@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Hook jemalloc into glibc's malloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Hook%20jemalloc%20into%20glibc%27s%20malloc&In-Reply-To=%3CACDBE215-7520-4009-B598-9C0B2B93725F%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000086.html">
+   <LINK REL="Next"  HREF="000087.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Hook jemalloc into glibc's malloc</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Hook%20jemalloc%20into%20glibc%27s%20malloc&In-Reply-To=%3CACDBE215-7520-4009-B598-9C0B2B93725F%40canonware.com%3E"
+       TITLE="[PATCH] Hook jemalloc into glibc's malloc">jasone at canonware.com
+       </A><BR>
+    <I>Wed Feb 29 10:47:52 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000086.html">[PATCH] Hook jemalloc into glibc's malloc
+</A></li>
+        <LI>Next message: <A HREF="000087.html">[PATCH] Don't fail memalign with an alignment &lt; sizeof(void *)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#112">[ date ]</a>
+              <a href="thread.html#112">[ thread ]</a>
+              <a href="subject.html#112">[ subject ]</a>
+              <a href="author.html#112">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 21, 2012, at 7:39 AM, Mike Hommey wrote:
+&gt;<i> When jemalloc is used as a libc malloc replacement (i.e. not prefixed),
+</I>&gt;<i> some particular setups may end up inconsistently calling malloc from
+</I>&gt;<i> libc and free from jemalloc, or the other way around.
+</I>&gt;<i> 
+</I>&gt;<i> Glibc provides hooks to make its functions use alternative
+</I>&gt;<i> implementations. Use them.
+</I>&gt;<i> 
+</I>&gt;<i> Original patch by: Karl Tomlinson &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">karlt+ at karlt.net</A>&gt;
+</I>
+
+I committed the important part of this:
+
+	<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=4bb09830133ffa8b27a95bc3727558007722c152">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=4bb09830133ffa8b27a95bc3727558007722c152</A>
+
+The configure.ac change caused mysterious failures if the AC_MSG_ERROR([dlfcn.h is missing]) statement was actually executed.  I came up with a workaround, but in the end left that part of the change out completely, because I don't think it makes sense to #error just because some poorly behaved applications that use RTLD_DEEPBIND might break.
+
+Thanks,
+Jason
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000086.html">[PATCH] Hook jemalloc into glibc's malloc
+</A></li>
+	<LI>Next message: <A HREF="000087.html">[PATCH] Don't fail memalign with an alignment &lt; sizeof(void *)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#112">[ date ]</a>
+              <a href="thread.html#112">[ thread ]</a>
+              <a href="subject.html#112">[ subject ]</a>
+              <a href="author.html#112">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

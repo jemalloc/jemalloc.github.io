@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150204004055.GA29464%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001016.html">
+   <LINK REL="Next"  HREF="001022.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150204004055.GA29464%40glandium.org%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">mh at glandium.org
+       </A><BR>
+    <I>Tue Feb  3 16:40:55 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001016.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001022.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1018">[ date ]</a>
+              <a href="thread.html#1018">[ thread ]</a>
+              <a href="subject.html#1018">[ subject ]</a>
+              <a href="author.html#1018">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Feb 03, 2015 at 04:19:00PM -0800, Jason Evans wrote:
+&gt;<i> On Feb 3, 2015, at 2:51 PM, Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt; wrote:
+</I>&gt;<i> &gt; I've been tracking a startup time regression in Firefox for Android
+</I>&gt;<i> &gt; when we tried to switch from mozjemalloc (memory refresher: it's
+</I>&gt;<i> &gt; derived from jemalloc 0.9) to mostly current jemalloc dev.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; It turned out to be <A HREF="https://github.com/jemalloc/jemalloc/pull/192">https://github.com/jemalloc/jemalloc/pull/192</A>
+</I>&gt;<i> 
+</I>&gt;<i> I intentionally removed the functionality #192 adds back (in
+</I>&gt;<i> e3d13060c8a04f08764b16b003169eb205fa09eb), but apparently forgot to
+</I>&gt;<i> update the documentation.  Do you have an understanding of why it's
+</I>&gt;<i> hurting performance so much?
+</I>
+My understanding is that the huge increase in page faults is making the
+difference. On Firefox startup we go from 50k page faults to 35k with
+that patch. I can surely double check whether it's really the page
+faults, or if it's actually the madvising itself that causes the
+regression. Or both.
+
+&gt;<i> I originally implemented that additional
+</I>&gt;<i> threshold because dirty page purging happened on a per chunk
+</I>&gt;<i> granularity, and I didn't want to spend a bunch of time iterating over
+</I>&gt;<i> chunks with very little purgeable memory.  Now that an LRU is used to
+</I>&gt;<i> purge page runs (see Qinfan Wu's patches in July 2014), that is
+</I>&gt;<i> certainly no longer an issue.  The only way I can think of this change
+</I>&gt;<i> hurting Firefox startup time is if there are a bunch of large memory
+</I>&gt;<i> usage fluctuations.
+</I>&gt;<i> 
+</I>&gt;<i> &gt; - Several changesets between 3.6 and current dev made the number of
+</I>&gt;<i> &gt; instructions as reported by perf stat on GNU/Linux x86-64 increase
+</I>&gt;<i> &gt; significantly, on a ~200k alloc/dealloc testcase that does nothing
+</I>&gt;<i> &gt; else[1]: - 5460aa6f6676c7f253bfcb75c028dfd38cae8aaf made the count
+</I>&gt;<i> &gt; go from 69M to 76M.
+</I>&gt;<i> 
+</I>&gt;<i> This is on ARM?
+</I>
+non-Android x86-64, as written above.
+
+&gt;<i> I can't think of a reason this would happen other than register
+</I>&gt;<i> pressure (which didn't appear to be an issue on x64), or a failure to
+</I>&gt;<i> inline despite all the *ALWAYS_INLINE* macros in the fast path.
+</I>&gt;<i> 
+</I>&gt;<i> &gt;  - 6ef80d68f092caf3b3802a73b8d716057b41864c from 76M to 81.5M
+</I>&gt;<i> 
+</I>&gt;<i> This is strictly related to heap profiling, so it should have no
+</I>&gt;<i> impact on your test.  Perhaps it's related to binary layout
+</I>&gt;<i> randomness?
+</I>&gt;<i> 
+</I>&gt;<i> &gt;  - 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 from 81.5M to 85M
+</I>&gt;<i> 
+</I>&gt;<i> Not surprising in the context of high lock acquisition rates (which is
+</I>&gt;<i> a problem in itself).
+</I>&gt;<i> 
+</I>&gt;<i> &gt;  - 155bfa7da18cab0d21d87aa2dce4554166836f5d from 85M to 88M
+</I>&gt;<i> 
+</I>&gt;<i> This might cause more unused memory coalescing due to lower
+</I>&gt;<i> fragmentation.
+</I>&gt;<i> 
+</I>&gt;<i> &gt;  I didn't investigate further because it was a red herring as far as
+</I>&gt;<i> &gt;  the regression I was tracking was concerned.
+</I>&gt;<i> 
+</I>&gt;<i> Did you also collect elapsed times when you ran the tests?  I ran some
+</I>&gt;<i> heavy stress tests a few months ago and measured a substantial
+</I>&gt;<i> throughput increase for dev versus 3.6, so I'm curious if the
+</I>&gt;<i> instruction count increase you measured exists despite speedups.
+</I>
+Elapsed times didn't seem to vary much, but that's x86-64. ARM would
+likely be much more affected by this (and in fact, 3.6 *does* fare
+better than current -dev on ARM)
+
+&gt;<i> &gt; - The average number of mutex lock per alloc/dealloc is close to 1
+</I>&gt;<i> &gt; with mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as
+</I>&gt;<i> &gt; above).  Fortunately, contention is likely lower (I measured it to
+</I>&gt;<i> &gt; be lower, but the instrumentation had so much overhead that it may
+</I>&gt;<i> &gt; have skewed the results), but pthread_mutex_lock/unlock are not free
+</I>&gt;<i> &gt; as far as instruction count is concerned.
+</I>&gt;<i> 
+</I>&gt;<i> This especially surprises me, and I really want to figure out what's
+</I>&gt;<i> going on.
+</I>&gt;<i> 
+</I>&gt;<i> Is there any chance you can make your test case available so I can dig
+</I>&gt;<i> in further?
+</I>
+<A HREF="https://gist.githubusercontent.com/glandium/a42d0265e324688cafc4/raw/gistfile1.c">https://gist.githubusercontent.com/glandium/a42d0265e324688cafc4/raw/gistfile1.c</A>
+
+Yes, that's a big source file. I did that to eliminate other overheads
+(we have a tool to replay a log we get out of firefox, but the tool
+itself had overhead that i needed to be eliminated during investigation)
+
+Mike
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001016.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001022.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1018">[ date ]</a>
+              <a href="thread.html#1018">[ thread ]</a>
+              <a href="subject.html#1018">[ subject ]</a>
+              <a href="author.html#1018">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

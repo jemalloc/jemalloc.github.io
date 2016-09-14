@@ -1,0 +1,68 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Enable valgrind support by default in Red Hat / Fedora package
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enable%20valgrind%20support%20by%20default%20in%20Red%20Hat%20/%20Fedora%20package&In-Reply-To=%3C0721ABBA-58CE-4E78-88E3-877E5051D420%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000607.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Enable valgrind support by default in Red Hat / Fedora package</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enable%20valgrind%20support%20by%20default%20in%20Red%20Hat%20/%20Fedora%20package&In-Reply-To=%3C0721ABBA-58CE-4E78-88E3-877E5051D420%40canonware.com%3E"
+       TITLE="Enable valgrind support by default in Red Hat / Fedora package">jasone at canonware.com
+       </A><BR>
+    <I>Fri Jun 14 19:21:39 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000607.html">Enable valgrind support by default in Red Hat / Fedora package
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#608">[ date ]</a>
+              <a href="thread.html#608">[ thread ]</a>
+              <a href="subject.html#608">[ subject ]</a>
+              <a href="author.html#608">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 14, 2013, at 1:05 AM, Ingvar Hagelund wrote:
+&gt;<i> I got a request for enabling valgrind support by default in the RedHat/Fedora package, ie. add valgrind-devel to the build requirements. (bz#974270)
+</I>&gt;<i> 
+</I>&gt;<i> Is there any downside with just adding valgrind support to the RedHat/Fedora build?
+</I>&gt;<i> 
+</I>&gt;<i> How will jemalloc behave if valgrind support is compiled in, but valgrind is not installed at runtime?
+</I>
+The only down side is that a few extra instructions (no-op sequences) are executed per allocation event.  As long as the valgrind dependency doesn't cause any rpm build-time dependency issues, I'd say go for it.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000607.html">Enable valgrind support by default in Red Hat / Fedora package
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#608">[ date ]</a>
+              <a href="thread.html#608">[ thread ]</a>
+              <a href="subject.html#608">[ subject ]</a>
+              <a href="author.html#608">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

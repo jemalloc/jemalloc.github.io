@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Use -MT options to build dependency files
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Use%20-MT%20options%20to%20build%20dependency%20files&In-Reply-To=%3C1334243960-21311-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000295.html">
+   <LINK REL="Next"  HREF="000275.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Use -MT options to build dependency files</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Use%20-MT%20options%20to%20build%20dependency%20files&In-Reply-To=%3C1334243960-21311-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Use -MT options to build dependency files">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 12 08:19:20 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000295.html">[PATCH] Use a make variable instead of preprocessing for srcroot,	and simplify source files handling
+</A></li>
+        <LI>Next message: <A HREF="000275.html">[PATCH] Use -MT options to build dependency files
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#269">[ date ]</a>
+              <a href="thread.html#269">[ thread ]</a>
+              <a href="subject.html#269">[ subject ]</a>
+              <a href="author.html#269">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ Makefile.in |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index b879807..a01e5e9 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -105,12 +105,12 @@ build_doc: $(DOCS)
+ src/%.o: $(srcroot)src/%.c
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -c $(CPPFLAGS) -o $@ $&lt;
+-	@$(SHELL) -ec &quot;$(CC) -MM $(CPPFLAGS) $&lt; | sed \&quot;s/\($(subst /,\/,$(notdir $(basename $@)))\)\.o\([ :]*\)/$(subst /,\/,$(strip $(dir $@)))\1.o \2/g\&quot; &gt; $(@:%.o=%.d)&quot;
++	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.o=%.d) $&lt;
+ 
+ src/%.pic.o: $(srcroot)src/%.c
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -fPIC -DPIC -c $(CPPFLAGS) -o $@ $&lt;
+-	@$(SHELL) -ec &quot;$(CC) -MM $(CPPFLAGS) $&lt; | sed \&quot;s/\($(subst /,\/,$(notdir $(basename $(basename $@))))\)\.o\([ :]*\)/$(subst /,\/,$(strip $(dir $@)))\1.pic.o \2/g\&quot; &gt; $(@:%.o=%.d)&quot;
++	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.o=%.d) $&lt;
+ 
+ %.$(SO) : %.$(SO).$(REV)
+ 	@mkdir -p $(@D)
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000295.html">[PATCH] Use a make variable instead of preprocessing for srcroot,	and simplify source files handling
+</A></li>
+	<LI>Next message: <A HREF="000275.html">[PATCH] Use -MT options to build dependency files
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#269">[ date ]</a>
+              <a href="thread.html#269">[ thread ]</a>
+              <a href="subject.html#269">[ subject ]</a>
+              <a href="author.html#269">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

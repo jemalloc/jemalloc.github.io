@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Need Help in porting Jemalloc.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20Help%20in%20porting%20Jemalloc.&In-Reply-To=%3C93A08515-8811-4095-A78E-21AA2B0F8D13%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001258.html">
+   <LINK REL="Next"  HREF="001260.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Need Help in porting Jemalloc.</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20Help%20in%20porting%20Jemalloc.&In-Reply-To=%3C93A08515-8811-4095-A78E-21AA2B0F8D13%40canonware.com%3E"
+       TITLE="Need Help in porting Jemalloc.">jasone at canonware.com
+       </A><BR>
+    <I>Thu Feb  4 09:15:11 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001258.html">Need Help in porting Jemalloc.
+</A></li>
+        <LI>Next message: <A HREF="001260.html">jemalloc hooks clarifications
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1259">[ date ]</a>
+              <a href="thread.html#1259">[ thread ]</a>
+              <a href="subject.html#1259">[ subject ]</a>
+              <a href="author.html#1259">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 4, 2016, at 1:53 AM, RajaKishore Sahu &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">raju.sahu at gmail.com</A>&gt; wrote:
+&gt;<i> Thanks for your help. My configuration was wrong which was causing the problem.
+</I>&gt;<i> 
+</I>&gt;<i> I have attached stats of JEMALLOC_TCACHE on and off.
+</I>&gt;<i> 
+</I>&gt;<i> When it is on we run out of memory of 30 MB. When it is off it works fine.
+</I>&gt;<i> 
+</I>&gt;<i> Please help me in configuring it properly.
+</I>
+It seems to me you have figured out how to configure jemalloc to work for your memory-constrained environment.  If you want to have jemalloc always run with tcache disabled, you can specify --disable-tcache to the configure script, or you can use one of the variants of MALLOC_CONF (see <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#TUNING">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#TUNING</A>) to turn tcache off for specific programs.
+
+Jason
+
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001258.html">Need Help in porting Jemalloc.
+</A></li>
+	<LI>Next message: <A HREF="001260.html">jemalloc hooks clarifications
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1259">[ date ]</a>
+              <a href="thread.html#1259">[ thread ]</a>
+              <a href="subject.html#1259">[ subject ]</a>
+              <a href="author.html#1259">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

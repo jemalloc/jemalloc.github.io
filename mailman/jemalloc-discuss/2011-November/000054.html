@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Mac OS X Lion support
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Mac%20OS%20X%20Lion%20support&In-Reply-To=%3CF5004AC2-5984-4D31-862A-B558DF26CACE%40dcreager.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000053.html">
+   <LINK REL="Next"  HREF="000055.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Mac OS X Lion support</H1>
+    <B>Douglas Creager</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Mac%20OS%20X%20Lion%20support&In-Reply-To=%3CF5004AC2-5984-4D31-862A-B558DF26CACE%40dcreager.net%3E"
+       TITLE="Mac OS X Lion support">dcreager at dcreager.net
+       </A><BR>
+    <I>Fri Nov  4 08:56:52 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000053.html">Question about pthread_getspecific with jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000055.html">Mac OS X Lion support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello all,
+
+The current dev branch of standalone jemalloc crashes on Mac OS X Lion.  I noticed that it looks like Mozilla's copy of jemalloc supports Lion:
+
+<A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=694896">https://bugzilla.mozilla.org/show_bug.cgi?id=694896</A>
+
+I've extracted out (what I think are) the relevant changes and applied them to the standalone jemalloc (patch attached).  Using the jemalloc.sh script, it &quot;seems to work&quot; for me with a handful of command-line apps on my Lion box.  I've noticed a couple of the Mozilla developers on this list; I'd appreciate a look through the patch to make sure I didn't leave out anything important.
+
+<A HREF="https://github.com/dcreager/jemalloc/commit/ca8c2659785bc06b572d05f9cf688ba8e991d7e2">https://github.com/dcreager/jemalloc/commit/ca8c2659785bc06b572d05f9cf688ba8e991d7e2</A>
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Update-jemalloc-to-work-on-Mac-OS-X-Lion.patch
+Type: application/octet-stream
+Size: 12281 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111104/af5ae3cf/attachment.obj">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111104/af5ae3cf/attachment.obj</A>&gt;
+-------------- next part --------------
+
+
+cheers
+?doug
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000053.html">Question about pthread_getspecific with jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000055.html">Mac OS X Lion support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

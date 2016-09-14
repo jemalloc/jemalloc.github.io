@@ -1,0 +1,7 @@
+<tt>
+hi,all.&lt;br&gt;i&#39;m&nbsp;a&nbsp;new&nbsp;guy&nbsp;using&nbsp;jemalloc.&lt;br&gt;there&nbsp;is&nbsp;a&nbsp;strange&nbsp;thing.when&nbsp;i&nbsp;&lt;b&gt;new&lt;/b&gt;&nbsp;a&nbsp;objct&nbsp;and&nbsp;then&nbsp;&lt;b&gt;free&lt;/b&gt;&nbsp;it,you&nbsp;know,mismatched&nbsp;free&nbsp;in&nbsp;valgrind,&nbsp;the&nbsp;jemalloc&nbsp;will&nbsp;crash&nbsp;under&nbsp;valgrind.&lt;br&gt;code&nbsp;like&nbsp;this:&lt;br&gt;<br>
+#include&nbsp;&lt;stdio.h&gt;&lt;br&gt;#include&nbsp;&lt;stdlib.h&gt;&lt;br&gt;&lt;br&gt;int &nbsp;main()&lt;br&gt;{&lt;br&gt;   &nbsp;int&nbsp;*pInt&nbsp;=&nbsp;new&nbsp;int();&lt;br&gt;   &nbsp;printf(&quot;%d\n&quot;,*pInt);&lt;br&gt;   &nbsp;free(pInt);&lt;br&gt;   &nbsp;return&nbsp;0;&lt;br&gt;}&lt;br&gt;&lt;br&gt;jemalloc&nbsp;output&nbsp;&quot;src/jemalloc.c:1201:&nbsp;Failed&nbsp;assertion:&nbsp;&quot;malloc_initialized&nbsp;||&nbsp;IS_INITIALIZER&quot;,&nbsp;and&nbsp;then&nbsp;abort.&lt;br&gt;<br>
+&lt;br&gt;my&nbsp;jemalloc&nbsp;version&nbsp;is&nbsp;3.0,and&nbsp;debug&nbsp;enabled.&lt;br&gt;&lt;br&gt;but&nbsp;using&nbsp;another&nbsp;shared&nbsp;library&nbsp;my&nbsp;&lt;span&nbsp;id=&quot;result_box&quot;&nbsp;class=&quot;short_text&quot;&nbsp;lang=&quot;en&quot;&gt;&lt;span&nbsp;class=&quot;&quot;&gt;colleague&nbsp;compiled&nbsp;on&nbsp;red&nbsp;hat&nbsp;4.3(x64)&nbsp;using&nbsp;gcc&nbsp;3.x,&nbsp;it&nbsp;works&nbsp;well.&lt;br&gt;<br>
+my&nbsp;os&nbsp;is&nbsp;debian&nbsp;6.0.5(x64),and&nbsp;gcc&nbsp;is&nbsp;4.6.2.&lt;br&gt;&lt;/span&gt;&lt;/span&gt;<br>
+
+</tt>

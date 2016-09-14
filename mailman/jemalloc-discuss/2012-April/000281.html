@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 6/7] Limit the number of flags directly given to the linker,	and refactor rpath
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%206/7%5D%20Limit%20the%20number%20of%20flags%20directly%20given%20to%20the%20linker%2C%0A%09and%20refactor%20rpath&In-Reply-To=%3C1334586626-2008-6-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000282.html">
+   <LINK REL="Next"  HREF="000283.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 6/7] Limit the number of flags directly given to the linker,	and refactor rpath</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%206/7%5D%20Limit%20the%20number%20of%20flags%20directly%20given%20to%20the%20linker%2C%0A%09and%20refactor%20rpath&In-Reply-To=%3C1334586626-2008-6-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 6/7] Limit the number of flags directly given to the linker,	and refactor rpath">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 16 07:30:25 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000282.html">[PATCH 5/7] Add variables for library prefix, and static library,	object and executable suffixes
+</A></li>
+        <LI>Next message: <A HREF="000283.html">[PATCH 7/7] Replace fprintf with malloc_printf in tests.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#281">[ date ]</a>
+              <a href="thread.html#281">[ thread ]</a>
+              <a href="subject.html#281">[ subject ]</a>
+              <a href="author.html#281">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+This will make things easier for MSVC support.
+---
+ Makefile.in  |   17 +++++------------
+ configure.ac |   11 +++++------
+ 2 files changed, 10 insertions(+), 18 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 146f57f..ef8f717 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -33,23 +33,20 @@ O := @o@
+ A := @a@
+ EXE := @exe@
+ LIB := @lib@
+-ifeq (macho, @abi@)
+-WL_SONAME := dylib_install_name
+-else
+-WL_SONAME := soname
+-endif
+ REV := @rev@
+ install_suffix := @install_suffix@
+ ABI := @abi@
+ XSLTPROC := @XSLTPROC@
+ AUTOCONF := @AUTOCONF@
+-RPATH := @RPATH@
++_RPATH = @RPATH@
++RPATH = $(if $(1),$(call _RPATH,$(1)))
+ cfghdrs_in := @cfghdrs_in@
+ cfghdrs_out := @cfghdrs_out@
+ cfgoutputs_in := @cfgoutputs_in@
+ cfgoutputs_out := @cfgoutputs_out@
+ enable_autogen := @enable_autogen@
+ enable_experimental := @enable_experimental@
++DSO_LDFLAGS = @DSO_LDFLAGS@
+ 
+ ifeq (macho, $(ABI))
+ TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=$(objroot)lib
+@@ -136,7 +133,7 @@ $(objroot)src/%.pic.$(O): $(srcroot)src/%.c
+ 
+ $(objroot)lib/$(LIBJEMALLOC).$(SO).$(REV) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
+ 	@mkdir -p $(@D)
+-	$(CC) -shared -Wl,-$(WL_SONAME),$(@F) $(RPATH_EXTRA:%=$(RPATH)%) -o $@ $+ $(LDFLAGS) $(LIBS)
++	$(CC) $(DSO_LDFLAGS) $(call RPATH,$(RPATH_EXTRA)) -o $@ $+ $(LDFLAGS) $(LIBS)
+ 
+ $(objroot)lib/$(LIBJEMALLOC)_pic.$(A) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
+ 	@mkdir -p $(@D)
+@@ -154,11 +151,7 @@ $(objroot)test/%.$(O): $(srcroot)test/%.c
+ $(objroot)test/%$(EXE): $(objroot)test/%.$(O) \
+ 		 $(objroot)lib/$(LIBJEMALLOC).$(SO)
+ 	@mkdir -p $(@D)
+-ifneq ($(RPATH), )
+-	$(CC) -o $@ $&lt; $(RPATH)$(objroot)lib -L$(objroot)lib -ljemalloc$(install_suffix) $(LIBS)
+-else
+-	$(CC) -o $@ $&lt; -L$(objroot)lib -ljemalloc$(install_suffix) $(LIBS)
+-endif
++	$(CC) -o $@ $&lt; $(call RPATH,$(objroot)lib) -L$(objroot)lib -ljemalloc$(install_suffix) $(LIBS)
+ 
+ build_lib_shared: $(DSOS)
+ build_lib_static: $(STATIC_LIBS)
+diff --git a/configure.ac b/configure.ac
+index 11b09e8..8b9ba00 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -199,6 +199,8 @@ o=&quot;o&quot;
+ a=&quot;a&quot;
+ exe=
+ lib=&quot;lib&quot;
++DSO_LDFLAGS='-shared -Wl,-soname,$(@F)'
++RPATH='-Wl,-rpath,$(1)'
+ 
+ dnl Heap profiling uses the log(3) function.
+ LIBS=&quot;$LIBS -lm&quot;
+@@ -219,12 +221,12 @@ case &quot;${host}&quot; in
+ 	LD_PRELOAD_VAR=&quot;DYLD_INSERT_LIBRARIES&quot;
+ 	so=&quot;dylib&quot;
+ 	force_tls=&quot;0&quot;
++	DSO_LDFLAGS='-shared -Wl,-dylib_install_name,$(@F)'
+ 	;;
+   *-*-freebsd*)
+ 	CFLAGS=&quot;$CFLAGS&quot;
+ 	abi=&quot;elf&quot;
+ 	AC_DEFINE([JEMALLOC_PURGE_MADVISE_FREE], [ ])
+-	RPATH=&quot;-Wl,-rpath,&quot;
+ 	force_lazy_lock=&quot;1&quot;
+ 	;;
+   *-*-linux*)
+@@ -233,7 +235,6 @@ case &quot;${host}&quot; in
+ 	abi=&quot;elf&quot;
+ 	AC_DEFINE([JEMALLOC_PURGE_MADVISE_DONTNEED], [ ])
+ 	AC_DEFINE([JEMALLOC_THREADED_INIT], [ ])
+-	RPATH=&quot;-Wl,-rpath,&quot;
+ 	;;
+   *-*-netbsd*)
+ 	AC_MSG_CHECKING([ABI])
+@@ -248,12 +249,11 @@ case &quot;${host}&quot; in
+                           [abi=&quot;aout&quot;])
+ 	AC_MSG_RESULT([$abi])
+ 	AC_DEFINE([JEMALLOC_PURGE_MADVISE_FREE], [ ])
+-	RPATH=&quot;-Wl,-rpath,&quot;
+ 	;;
+   *-*-solaris2*)
+ 	CFLAGS=&quot;$CFLAGS&quot;
+ 	abi=&quot;elf&quot;
+-	RPATH=&quot;-Wl,-R,&quot;
++	RPATH='-Wl,-R,$(1)'
+ 	dnl Solaris needs this for sigwait().
+ 	CPPFLAGS=&quot;$CPPFLAGS -D_POSIX_PTHREAD_SEMANTICS&quot;
+ 	LIBS=&quot;$LIBS -lposix4 -lsocket -lnsl&quot;
+@@ -267,12 +267,10 @@ case &quot;${host}&quot; in
+ 	  LD_PRELOAD_VAR=&quot;LDR_PRELOAD&quot;
+ 	fi
+ 	abi=&quot;xcoff&quot;
+-	RPATH=&quot;-Wl,-rpath,&quot;
+ 	;;
+   *)
+ 	AC_MSG_RESULT([Unsupported operating system: ${host}])
+ 	abi=&quot;elf&quot;
+-	RPATH=&quot;-Wl,-rpath,&quot;
+ 	;;
+ esac
+ AC_SUBST([abi])
+@@ -283,6 +281,7 @@ AC_SUBST([o])
+ AC_SUBST([a])
+ AC_SUBST([exe])
+ AC_SUBST([lib])
++AC_SUBST([DSO_LDFLAGS])
+ 
+ JE_COMPILABLE([__attribute__ syntax],
+               [static __attribute__((unused)) void foo(void){}],
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000282.html">[PATCH 5/7] Add variables for library prefix, and static library,	object and executable suffixes
+</A></li>
+	<LI>Next message: <A HREF="000283.html">[PATCH 7/7] Replace fprintf with malloc_printf in tests.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#281">[ date ]</a>
+              <a href="thread.html#281">[ thread ]</a>
+              <a href="subject.html#281">[ subject ]</a>
+              <a href="author.html#281">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Enabling profiling causes hang?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3CCAKthKi%3DvC6xc5T-unr924pEK5cMif4p9PGNMokpG3s-aE6qJGQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001045.html">
+   <LINK REL="Next"  HREF="001047.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Enabling profiling causes hang?</H1>
+    <B>Brock Pytlik</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3CCAKthKi%3DvC6xc5T-unr924pEK5cMif4p9PGNMokpG3s-aE6qJGQ%40mail.gmail.com%3E"
+       TITLE="Enabling profiling causes hang?">brock.pytlik at gmail.com
+       </A><BR>
+    <I>Wed Feb 11 16:45:55 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001045.html">Enabling profiling causes hang?
+</A></li>
+        <LI>Next message: <A HREF="001047.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1046">[ date ]</a>
+              <a href="thread.html#1046">[ thread ]</a>
+              <a href="subject.html#1046">[ subject ]</a>
+              <a href="author.html#1046">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I think these are the relevant lines from config.log:
+
+&gt;<i> configure:8897: checking configured backtracing method
+</I>&gt;<i> configure:8899: result: libgcc
+</I>
+
+I see the same lines for both the x86 and arm builds.
+
+Brock
+
+On Wed, Feb 11, 2015 at 3:36 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Feb 11, 2015, at 2:49 PM, Brock Pytlik &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">brock.pytlik at gmail.com</A>&gt; wrote:
+</I>&gt;<i> &gt; So I think we're closing in on the finish line. I've successfully
+</I>&gt;<i> generated profiles from ardb using the gate tip malloc. The problem I'm
+</I>&gt;<i> having is that pprof (the one distributed w/ jemalloc) shows no allocation
+</I>&gt;<i> information. (I use the one distributed w/ jemalloc b/c the one that's part
+</I>&gt;<i> of gperftools 2.4 doesn't know about heap_v2 afaict.) To be clear, pprof
+</I>&gt;<i> loads the file, then I do &quot;top&quot; and it says '0 B', as does &quot;top --cum&quot;.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I haven't found documentation about what the heap_v2 file format is, so
+</I>&gt;<i> I'm not sure where the problem is. I've included what one of the profile
+</I>&gt;<i> files looks like. If you can point me to the documentation for the heap_v2
+</I>&gt;<i> file format that would be great, then I could possibly interpret what's
+</I>&gt;<i> below. If you know what's going on when you look @ the file below, that
+</I>&gt;<i> would be great as well.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; heap_v2/524288
+</I>&gt;<i> &gt;   t*: 217: 3029560 [0: 0]
+</I>&gt;<i> &gt;   t0: 6: 1015808 [0: 0]
+</I>&gt;<i> &gt;   t1: 0: 0 [0: 0]
+</I>&gt;<i> &gt;   t2: 207: 1440312 [0: 0]
+</I>&gt;<i> &gt;   t3: 0: 0 [0: 0]
+</I>&gt;<i> &gt;   t4: 0: 0 [0: 0]
+</I>&gt;<i> &gt;   t5: 0: 0 [0: 0]
+</I>&gt;<i> &gt;   t6: 0: 0 [0: 0]
+</I>&gt;<i> &gt;   t7: 4: 573440 [0: 0]
+</I>&gt;<i> &gt; @
+</I>&gt;<i> &gt;   t*: 217: 3029560 [0: 0]
+</I>&gt;<i> &gt;   t0: 6: 1015808 [0: 0]
+</I>&gt;<i> &gt;   t2: 207: 1440312 [0: 0]
+</I>&gt;<i> &gt;   t7: 4: 573440 [0: 0]
+</I>&gt;<i>
+</I>&gt;<i> The line that starts with @ should also have a sequence of hex addresses
+</I>&gt;<i> (the backtrace).  For some reason you appear to be getting zero-length
+</I>&gt;<i> (i.e. failed) backtraces, which means that all samples are being merged
+</I>&gt;<i> into a single record.  Which backtracing mechanism are you using?  See the
+</I>&gt;<i> configure output to determine whether libunwind, libgcc, or gcc intrinsics
+</I>&gt;<i> are being used.
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Jason
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150211/e45b726e/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150211/e45b726e/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001045.html">Enabling profiling causes hang?
+</A></li>
+	<LI>Next message: <A HREF="001047.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1046">[ date ]</a>
+              <a href="thread.html#1046">[ thread ]</a>
+              <a href="subject.html#1046">[ subject ]</a>
+              <a href="author.html#1046">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc debug mode
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20debug%20mode&In-Reply-To=%3CCAGvmEXgBtBRg5mjMA4gHfc8bSP-asODChkUPF-ZvVfRn88qbYA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001011.html">
+   <LINK REL="Next"  HREF="001024.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc debug mode</H1>
+    <B>SNL</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20debug%20mode&In-Reply-To=%3CCAGvmEXgBtBRg5mjMA4gHfc8bSP-asODChkUPF-ZvVfRn88qbYA%40mail.gmail.com%3E"
+       TITLE="Jemalloc debug mode">snl20465 at gmail.com
+       </A><BR>
+    <I>Mon Feb  2 19:46:38 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001011.html">Jemalloc debug mode
+</A></li>
+        <LI>Next message: <A HREF="001024.html">Jemalloc debug mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1012">[ date ]</a>
+              <a href="thread.html#1012">[ thread ]</a>
+              <a href="subject.html#1012">[ subject ]</a>
+              <a href="author.html#1012">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I am LD_PRELOADing jemalloc library. I can see that redzone violation works
+well but not double free detection.
+
+On Mon, Feb 2, 2015 at 10:51 PM, Rogier 'DocWilco' Mulhuijzen &lt;
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">rogier at fastly.com</A>&gt; wrote:
+
+&gt;<i> Are you sure you have linked to jemalloc? That's something I've messed up
+</I>&gt;<i> in the past.
+</I>&gt;<i> On 2 Feb 2015 06:24, &quot;SNL&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Any inputs will be really helpful.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On Fri, Jan 30, 2015 at 8:48 PM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Two questions:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 1. I am using jemalloc-dev version and configured it as follows
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> ./configure --enable-debug --enable-fill --enable-ivsalloc
+</I>&gt;&gt;&gt;<i> --disable-tcache
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> I am running following simple test case but double free is not detected,
+</I>&gt;&gt;&gt;<i> what am I missing ?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> int main()
+</I>&gt;&gt;&gt;<i> {
+</I>&gt;&gt;&gt;<i>     char * ptr = malloc(1024);
+</I>&gt;&gt;&gt;<i>     free(ptr);
+</I>&gt;&gt;&gt;<i>     free(ptr);
+</I>&gt;&gt;&gt;<i>     return 0;
+</I>&gt;&gt;&gt;<i> }
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> 2.  Is quarantine basically a per thread free list ? How does it
+</I>&gt;&gt;&gt;<i> interact with tcache ?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Cheers.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Cheers,
+</I>&gt;&gt;<i> Sunny.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> jemalloc-discuss mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/d6465280/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/d6465280/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001011.html">Jemalloc debug mode
+</A></li>
+	<LI>Next message: <A HREF="001024.html">Jemalloc debug mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1012">[ date ]</a>
+              <a href="thread.html#1012">[ thread ]</a>
+              <a href="subject.html#1012">[ subject ]</a>
+              <a href="author.html#1012">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Supporting 'bookkeeping' and 'bin_unused' memory reporters in	Gecko
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Supporting%20%27bookkeeping%27%20and%20%27bin_unused%27%20memory%20reporters%20in%0A%09Gecko&In-Reply-To=%3C11FD6307-979E-40E4-AB17-0AB97F47F805%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000965.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Supporting 'bookkeeping' and 'bin_unused' memory reporters in	Gecko</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Supporting%20%27bookkeeping%27%20and%20%27bin_unused%27%20memory%20reporters%20in%0A%09Gecko&In-Reply-To=%3C11FD6307-979E-40E4-AB17-0AB97F47F805%40canonware.com%3E"
+       TITLE="Supporting 'bookkeeping' and 'bin_unused' memory reporters in	Gecko">jasone at canonware.com
+       </A><BR>
+    <I>Mon Nov  3 16:41:07 PST 2014</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000965.html">Supporting 'bookkeeping' and 'bin_unused' memory reporters in	Gecko
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#962">[ date ]</a>
+              <a href="thread.html#962">[ thread ]</a>
+              <a href="subject.html#962">[ subject ]</a>
+              <a href="author.html#962">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 30, 2014, at 3:45 PM, Guilherme Goncalves &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ggp at mozilla.com</A>&gt; wrote:
+&gt;<i> Our memory reporting tools in Gecko rely on two statistics that don't seem straightforward
+</I>&gt;<i> to obtain on latest jemalloc: &quot;bookkeeping&quot; and &quot;bin_unused&quot;.
+</I>&gt;<i> 
+</I>&gt;<i> &quot;bookkeeping&quot; is defined as &quot;Committed bytes which the heap allocator uses for internal data
+</I>&gt;<i> structures.&quot; [1], and is currently calculated in our mozjemalloc as the total memory used by
+</I>&gt;<i> all arena and chunk headers. As the comment in [2] suggests, it looks like this could be
+</I>&gt;<i> computed by adding up all base allocations in jemalloc3.
+</I>
+An accurate bookkeeping statistic is a bit tricky to maintain.  Heap profiling, quarantine, and tcache all perform internal allocation that would need to be tracked, in addition to base allocation and arena chunk header overhead.  I can see this being useful though, especially since I've been surprised on multiple occasions when trying to figure out why the stats seemed to disagree with heap profile data.
+
+If you create an issue to track this on Github, that will make sure I don't forget about it.  If you're motivated to implement it yourself, let's chat a bit about some design details before you dive in.
+
+&gt;<i> &quot;bin_unused&quot; is defined as &quot;Bytes reserved for bins of fixed-size allocations which do not
+</I>&gt;<i> correspond to an active allocation.&quot; [3], and is computed in mozjemalloc by adding up the product
+</I>&gt;<i> of each bin's number of free regions by their size.
+</I>
+Isn't bin_unused equivalent to (curruns*nregs - curregs)*size ?  Relevant mallctl interfaces:
+
+	stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.curruns
+	arenas.bin.&lt;i&gt;.nregs
+	stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.curregs
+	arenas.bin.&lt;i&gt;.size
+
+Thanks,
+Jason
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000965.html">Supporting 'bookkeeping' and 'bin_unused' memory reporters in	Gecko
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#962">[ date ]</a>
+              <a href="thread.html#962">[ thread ]</a>
+              <a href="subject.html#962">[ subject ]</a>
+              <a href="author.html#962">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

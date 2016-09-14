@@ -1,0 +1,263 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Coverity scan results
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Coverity%20scan%20results&In-Reply-To=%3C111179CA-6C7F-42A6-9C1E-67621412E49A%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000946.html">
+   <LINK REL="Next"  HREF="000948.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Coverity scan results</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Coverity%20scan%20results&In-Reply-To=%3C111179CA-6C7F-42A6-9C1E-67621412E49A%40canonware.com%3E"
+       TITLE="Coverity scan results">jasone at canonware.com
+       </A><BR>
+    <I>Sat Oct 11 21:51:50 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000946.html">Coverity scan results
+</A></li>
+        <LI>Next message: <A HREF="000948.html">Coverity scan results
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#947">[ date ]</a>
+              <a href="thread.html#947">[ thread ]</a>
+              <a href="subject.html#947">[ subject ]</a>
+              <a href="author.html#947">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 11, 2014, at 8:35 PM, Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+&gt;<i> In Monkey[0] we use Jemalloc by default and when running a Coverity[1]
+</I>&gt;<i> static code analysis, it reported some issues, maybe some of them are
+</I>&gt;<i> false positives, but is better you check this:
+</I>
+Thanks for running Coverity on jemalloc.  I received a Coverity analysis report from Pat Lynch last year for jemalloc 3.4.0 and fixed several bugs as a result.  This time around, I don't see any bugs that haven't already been fixed in the dev branch, though I'd love to see Coverity results for the dev branch of jemalloc.
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1017561:  Macro compares unsigned to 0  (NO_EFFECT)
+</I>&gt;<i> /deps/jemalloc/src/jemalloc.c: 603 in malloc_conf_init()
+</I>&gt;<i> 597                                 SIZE_T_MAX, false)
+</I>&gt;<i> 598                             CONF_HANDLE_SSIZE_T(opt_lg_dirty_mult,
+</I>&gt;<i> &quot;lg_dirty_mult&quot;,
+</I>&gt;<i> 599                                 -1, (sizeof(size_t) &lt;&lt; 3) - 1)
+</I>&gt;<i> 600                             CONF_HANDLE_BOOL(opt_stats_print, &quot;stats_print&quot;)
+</I>&gt;<i> 601                             if (config_fill) {
+</I>&gt;<i> 602                                     CONF_HANDLE_BOOL(opt_junk, &quot;junk&quot;)
+</I>&gt;&gt;&gt;&gt;<i>    CID 1017561:  Macro compares unsigned to 0  (NO_EFFECT)
+</I>&gt;&gt;&gt;&gt;<i>    This less-than-zero comparison of an unsigned value is never true. &quot;um &lt; 0UL&quot;.
+</I>&gt;<i> 603
+</I>&gt;<i> CONF_HANDLE_SIZE_T(opt_quarantine, &quot;quarantine&quot;,
+</I>&gt;<i> 604                                         0, SIZE_T_MAX, false)
+</I>&gt;<i> 605                                     CONF_HANDLE_BOOL(opt_redzone, &quot;redzone&quot;)
+</I>&gt;<i> 606                                     CONF_HANDLE_BOOL(opt_zero, &quot;zero&quot;)
+</I>&gt;<i> 607                             }
+</I>&gt;<i> 608                             if (config_utrace) {
+</I>
+This is protected by a comparison to 0, so there is no actual incorrect behavior, though Coverity continues to warn.
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/e2985a23819670866c041ba07964099eeb9e0e07">https://github.com/jemalloc/jemalloc/commit/e2985a23819670866c041ba07964099eeb9e0e07</A>
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1018162:  Unchecked return value  (CHECKED_RETURN)
+</I>&gt;<i> /deps/jemalloc/src/jemalloc.c: 1978 in jemalloc_constructor()
+</I>&gt;<i> 1972      */
+</I>&gt;<i> 1973     JEMALLOC_ATTR(constructor)
+</I>&gt;<i> 1974     static void
+</I>&gt;<i> 1975     jemalloc_constructor(void)
+</I>&gt;<i> 1976     {
+</I>&gt;<i> 1977
+</I>&gt;&gt;&gt;&gt;<i>    CID 1018162:  Unchecked return value  (CHECKED_RETURN)
+</I>&gt;&gt;&gt;&gt;<i>    Calling &quot;malloc_init&quot; without checking return value (as is done elsewhere 10 out of 11 times).
+</I>&gt;<i> 1978            malloc_init();
+</I>&gt;<i> 1979     }
+</I>&gt;<i> 1980
+</I>&gt;<i> 1981     #ifndef JEMALLOC_MUTEX_INIT_CB
+</I>&gt;<i> 1982     void
+</I>&gt;<i> 1983     jemalloc_prefork(void)
+</I>
+There are no actionable consequences to this call failing.
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1019005:  Uninitialized pointer read  (UNINIT)
+</I>&gt;<i> /deps/jemalloc/src/ctl.c: 1344 in arena_i_dss_ctl()
+</I>&gt;<i> 1338            dss_prec_t dss_prec = dss_prec_limit;
+</I>&gt;<i> 1339
+</I>&gt;<i> 1340            malloc_mutex_lock(&amp;ctl_mtx);
+</I>&gt;<i> 1341            WRITE(dss, const char *);
+</I>&gt;<i> 1342            match = false;
+</I>&gt;<i> 1343            for (i = 0; i &lt; dss_prec_limit; i++) {
+</I>&gt;&gt;&gt;&gt;<i>    CID 1019005:  Uninitialized pointer read  (UNINIT)
+</I>&gt;&gt;&gt;&gt;<i>    Using uninitialized value &quot;dss&quot; when calling &quot;strcmp&quot;.
+</I>&gt;<i> 1344                    if (strcmp(dss_prec_names[i], dss) == 0) {
+</I>&gt;<i> 1345                            dss_prec = i;
+</I>&gt;<i> 1346                            match = true;
+</I>&gt;<i> 1347                            break;
+</I>&gt;<i> 1348                    }
+</I>&gt;<i> 1349            }
+</I>
+Fixed recently:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/586c8ede42d7d0545d36d9cbb0235fb39221ef3e">https://github.com/jemalloc/jemalloc/commit/586c8ede42d7d0545d36d9cbb0235fb39221ef3e</A>
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1022889:  Missing unlock  (LOCK)
+</I>&gt;<i> /deps/jemalloc/src/arena.c: 1848 in arena_dalloc_bin_run()
+</I>&gt;<i> 1842            arena_run_dalloc(arena, run, true, false);
+</I>&gt;<i> 1843            malloc_mutex_unlock(&amp;arena-&gt;lock);
+</I>&gt;<i> 1844            /****************************/
+</I>&gt;<i> 1845            malloc_mutex_lock(&amp;bin-&gt;lock);
+</I>&gt;<i> 1846            if (config_stats)
+</I>&gt;<i> 1847                    bin-&gt;stats.curruns--;
+</I>&gt;&gt;&gt;&gt;<i>    CID 1022889:  Missing unlock  (LOCK)
+</I>&gt;&gt;&gt;&gt;<i>    Returning without unlocking &quot;bin-&gt;lock.lock&quot;.
+</I>&gt;<i> 1848     }
+</I>&gt;<i> 1849
+</I>&gt;<i> 1850     static void
+</I>&gt;<i> 1851     arena_bin_lower_run(arena_t *arena, arena_chunk_t *chunk,
+</I>&gt;<i> arena_run_t *run,
+</I>&gt;<i> 1852         arena_bin_t *bin)
+</I>&gt;<i> 1853     {
+</I>
+This function actually drops bin-&gt;lock, does some other work, then reacquires bin-&gt;lock, so there is no issue.
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1193408:  Free of address-of expression  (BAD_FREE)
+</I>&gt;<i> /deps/jemalloc/src/chunk_mmap.c: 110 in pages_trim()
+</I>&gt;<i> 104             {
+</I>&gt;<i> 105                     size_t trailsize = alloc_size - leadsize - size;
+</I>&gt;<i> 106
+</I>&gt;<i> 107                     if (leadsize != 0)
+</I>&gt;<i> 108                             pages_unmap(addr, leadsize);
+</I>&gt;<i> 109                     if (trailsize != 0)
+</I>&gt;&gt;&gt;&gt;<i>    CID 1193408:  Free of address-of expression  (BAD_FREE)
+</I>&gt;&gt;&gt;&gt;<i>    &quot;pages_unmap&quot; frees address offset from &quot;ret&quot;.
+</I>&gt;<i> 110                             pages_unmap((void *)((uintptr_t)ret +
+</I>&gt;<i> size), trailsize);
+</I>&gt;<i> 111                     return (ret);
+</I>&gt;<i> 112             }
+</I>&gt;<i> 113     #endif
+</I>&gt;<i> 114     }
+</I>&gt;<i> 115
+</I>
+This is intentional.
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1194963:  Data race condition  (MISSING_LOCK)
+</I>&gt;<i> /deps/jemalloc/src/prof.c: 430 in prof_ctx_init()
+</I>&gt;<i> 424             ctx-&gt;bt = bt;
+</I>&gt;<i> 425             ctx-&gt;lock = prof_ctx_mutex_choose();
+</I>&gt;<i> 426             /*
+</I>&gt;<i> 427              * Set nlimbo to 1, in order to avoid a race condition with
+</I>&gt;<i> 428              * prof_ctx_merge()/prof_ctx_destroy().
+</I>&gt;<i> 429              */
+</I>&gt;&gt;&gt;&gt;<i>    CID 1194963:  Data race condition  (MISSING_LOCK)
+</I>&gt;&gt;&gt;&gt;<i>    Accessing &quot;ctx-&gt;nlimbo&quot; without holding lock &quot;malloc_mutex_s.lock&quot;. Elsewhere, &quot;prof_ctx_s.nlimbo&quot; is accessed with &quot;malloc_mutex_s.lock&quot; held 5 out of 7 times (2 of these accesses strongly imply that it is necessary).
+</I>&gt;<i> 430             ctx-&gt;nlimbo = 1;
+</I>&gt;<i> 431             ql_elm_new(ctx, dump_link);
+</I>&gt;<i> 432             memset(&amp;ctx-&gt;cnt_merged, 0, sizeof(prof_cnt_t));
+</I>&gt;<i> 433             ql_new(&amp;ctx-&gt;cnts_ql);
+</I>&gt;<i> 434     }
+</I>&gt;<i> 435
+</I>
+Lock-free data structures make this okay.  Note that the lock-free data structures are gone in the dev branch, so the false positive list should be much shorter there.
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1194964:  Illegal address computation  (OVERRUN)
+</I>&gt;<i> /deps/jemalloc/src/prof.c: 964 in prof_dump_maps()
+</I>&gt;<i> 958                                     if (prof_dump_flush(propagate_err) &amp;&amp;
+</I>&gt;<i> 959                                         propagate_err) {
+</I>&gt;<i> 960                                             ret = true;
+</I>&gt;<i> 961                                             goto label_return;
+</I>&gt;<i> 962                                     }
+</I>&gt;<i> 963                             }
+</I>&gt;&gt;&gt;&gt;<i>    CID 1194964:  Illegal address computation  (OVERRUN)
+</I>&gt;&gt;&gt;&gt;<i>    &quot;&amp;prof_dump_buf[prof_dump_buf_end]&quot; evaluates to an address that is at byte offset 65536 of an array of 1 bytes.
+</I>&gt;<i> 964                             nread = read(mfd,
+</I>&gt;<i> &amp;prof_dump_buf[prof_dump_buf_end],
+</I>&gt;<i> 965                                 PROF_DUMP_BUFSIZE - prof_dump_buf_end);
+</I>&gt;<i> 966                     } while (nread &gt; 0);
+</I>&gt;<i> 967             } else {
+</I>&gt;<i> 968                     ret = true;
+</I>&gt;<i> 969                     goto label_return;
+</I>
+This is in unreachable code due to configuration.  If heap profiling were enabled, the buffer would be large enough to be safe.
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1221142:  Double lock  (LOCK)
+</I>&gt;<i> /deps/jemalloc/src/prof.c: 1388 in je_prof_prefork()
+</I>&gt;<i> 1382            if (opt_prof) {
+</I>&gt;<i> 1383                    unsigned i;
+</I>&gt;<i> 1384
+</I>&gt;<i> 1385                    malloc_mutex_prefork(&amp;bt2ctx_mtx);
+</I>&gt;<i> 1386                    malloc_mutex_prefork(&amp;prof_dump_seq_mtx);
+</I>&gt;<i> 1387                    for (i = 0; i &lt; PROF_NCTX_LOCKS; i++)
+</I>&gt;&gt;&gt;&gt;<i>    CID 1221142:  Double lock  (LOCK)
+</I>&gt;&gt;&gt;&gt;<i>    &quot;je_malloc_mutex_prefork&quot; locks &quot;ctx_locks[i].lock&quot; twice.
+</I>&gt;<i> 1388                            malloc_mutex_prefork(&amp;ctx_locks[i]);
+</I>&gt;<i> 1389            }
+</I>&gt;<i> 1390     }
+</I>&gt;<i> 1391
+</I>&gt;<i> 1392     void
+</I>&gt;<i> 1393     prof_postfork_parent(void)
+</I>
+i increments, so this code doesn't actually double lock the same mutex.  It's interesting that Coverity detects iteration, but doesn't detect that the loop variable discriminates mutexes.
+
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> [... numerous warnings due to lock-free data structures ...]
+</I>
+&gt;<i> ________________________________________________________________________________________________________
+</I>&gt;<i> *** CID 1221208:  Wrong sizeof argument  (SIZEOF_MISMATCH)
+</I>&gt;<i> /deps/jemalloc/src/stats.c: 410 in je_stats_print()
+</I>&gt;<i> 404
+</I>&gt;<i> 405                     malloc_cprintf(write_cb, cbopaque, &quot;CPUs: %u\n&quot;, ncpus);
+</I>&gt;<i> 406
+</I>&gt;<i> 407                     CTL_GET(&quot;arenas.narenas&quot;, &amp;uv, unsigned);
+</I>&gt;<i> 408                     malloc_cprintf(write_cb, cbopaque, &quot;Arenas: %u\n&quot;, uv);
+</I>&gt;<i> 409
+</I>&gt;&gt;&gt;&gt;<i>    CID 1221208:  Wrong sizeof argument  (SIZEOF_MISMATCH)
+</I>&gt;&gt;&gt;&gt;<i>    Passing argument &quot;cbopaque&quot; of type &quot;void *&quot; and argument &quot;8UL /* sizeof (void *) */&quot; to function &quot;je_malloc_cprintf&quot; is suspicious.
+</I>&gt;<i> 410                     malloc_cprintf(write_cb, cbopaque, &quot;Pointer
+</I>&gt;<i> size: %zu\n&quot;,
+</I>&gt;<i> 411                         sizeof(void *));
+</I>&gt;<i> 412
+</I>&gt;<i> 413                     CTL_GET(&quot;arenas.quantum&quot;, &amp;sv, size_t);
+</I>&gt;<i> 414                     malloc_cprintf(write_cb, cbopaque, &quot;Quantum
+</I>&gt;<i> size: %zu\n&quot;, sv);
+</I>&gt;<i> 415
+</I>
+This appears to be  tripping up an inapplicable detector in Coverity.
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000946.html">Coverity scan results
+</A></li>
+	<LI>Next message: <A HREF="000948.html">Coverity scan results
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#947">[ date ]</a>
+              <a href="thread.html#947">[ thread ]</a>
+              <a href="subject.html#947">[ subject ]</a>
+              <a href="author.html#947">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

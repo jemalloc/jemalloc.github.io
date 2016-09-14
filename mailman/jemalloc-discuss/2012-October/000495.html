@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> how to compile using Visual Studio?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20how%20to%20compile%20using%20Visual%20Studio%3F&In-Reply-To=%3C1351693183.77096.YahooMailNeo%40web160301.mail.bf1.yahoo.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000494.html">
+   <LINK REL="Next"  HREF="000496.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>how to compile using Visual Studio?</H1>
+    <B>Bob Price</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20how%20to%20compile%20using%20Visual%20Studio%3F&In-Reply-To=%3C1351693183.77096.YahooMailNeo%40web160301.mail.bf1.yahoo.com%3E"
+       TITLE="how to compile using Visual Studio?">rjp_email at yahoo.com
+       </A><BR>
+    <I>Wed Oct 31 07:19:43 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000494.html">mallctl(&quot;arenas.purge&quot;) dead-locks
+</A></li>
+        <LI>Next message: <A HREF="000496.html">how to compile using Visual Studio?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#495">[ date ]</a>
+              <a href="thread.html#495">[ thread ]</a>
+              <a href="subject.html#495">[ subject ]</a>
+              <a href="author.html#495">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I have been trying unsuccessfully to compile jemalloc with Visual Studio 10.0 and 11.0 with no luck.
+
+The files and website mention mingw and windows separately, and the msvc_compat headers seem targeted for this, so I assume that it is possible.
+
+What I want to do is setup jemalloc with a unique prefix on the public methods and compile it to a static library to be able to use it as the memory allocator for just one part of a larger 64-bit application.
+
+Can anyone give me some guidance here?
+
+What I have tried so far is as follows, using the current 3.1.0 download:
+
+Since I couldn't find a way to do this on Windows, I used a 64-bit Linux box and ran ./configure --with-jemalloc-prefix=je_ --with-private-namespace=jeint_ to (hopefully) get all the header files in the desired state.&#160; Then I copied everything over to a 64-bit Windows7 with the MS SDK and Visual Studio installed, and I borrowed a makefile I use on another C library and updated the options to include the jemalloc include and include/msvc_compat directories, and to ensure that _WIN32 is defined, and set it up to compile all C code in src. 
+
+When I run this and it tries to compile arena.c I get all kinds of redefinition errors and warnings from msvc_compat\stdint.h and then many syntax errors in include\jemalloc\internal\jemalloc.h.
+
+I suspect that the issue results from the configure on a Linux system, but instead of spending hours trying to understand how to manually do this for Windows VS I hope that someone here can get me going much more quickly.
+
+Thanks for any help you can provide!
+
+Bob
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121031/2fd37de0/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121031/2fd37de0/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000494.html">mallctl(&quot;arenas.purge&quot;) dead-locks
+</A></li>
+	<LI>Next message: <A HREF="000496.html">how to compile using Visual Studio?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#495">[ date ]</a>
+              <a href="thread.html#495">[ thread ]</a>
+              <a href="subject.html#495">[ subject ]</a>
+              <a href="author.html#495">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

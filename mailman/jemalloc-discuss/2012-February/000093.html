@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a build option to freeze the number of arenas to 1
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20build%20option%20to%20freeze%20the%20number%20of%20arenas%20to%201&In-Reply-To=%3C1330001349-19752-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000116.html">
+   <LINK REL="Next"  HREF="000094.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a build option to freeze the number of arenas to 1</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20build%20option%20to%20freeze%20the%20number%20of%20arenas%20to%201&In-Reply-To=%3C1330001349-19752-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Add a build option to freeze the number of arenas to 1">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Feb 23 04:49:09 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000116.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+        <LI>Next message: <A HREF="000094.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#93">[ date ]</a>
+              <a href="thread.html#93">[ thread ]</a>
+              <a href="subject.html#93">[ subject ]</a>
+              <a href="author.html#93">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+
+Mozilla does not currently make extensive use of concurrent allocation,
+so the increased fragmentation associated with multiple arenas is not
+warranted.
+
+ configure.ac                                     |    4 ++++
+ include/jemalloc/internal/jemalloc_internal.h.in |    8 ++++++++
+ include/jemalloc/jemalloc_defs.h.in              |    3 +++
+ src/jemalloc.c                                   |   10 ++++++++++
+ 4 files changed, 25 insertions(+), 0 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 704a703..4cc7d6f 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -787,6 +787,10 @@ if test &quot;x${enable_tls}&quot; = &quot;x0&quot; ; then
+   AC_DEFINE_UNQUOTED([NO_TLS], [ ])
+ fi
+ 
++AC_ARG_WITH([one_arena],
++  [AS_HELP_STRING([--with-one-arena], [Force jemalloc to use only one arena])],
++  [AC_DEFINE([JEMALLOC_ONE_ARENA])])
++
+ dnl ============================================================================
+ dnl Check for ffsl(3), and fail if not found.  This function exists on all
+ dnl platforms that jemalloc currently has a chance of functioning on without
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index 971336e..75b4b66 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -384,7 +384,11 @@ extern bool	opt_junk;
+ extern bool	opt_sysv;
+ extern bool	opt_xmalloc;
+ extern bool	opt_zero;
++#ifdef JEMALLOC_ONE_ARENA
++static const size_t	opt_narenas = 1;
++#else
+ extern size_t	opt_narenas;
++#endif
+ 
+ #ifdef DYNAMIC_PAGE_SHIFT
+ extern size_t		pagesize;
+@@ -420,7 +424,11 @@ extern __thread arena_t	*arenas_tls JEMALLOC_ATTR(tls_model(&quot;initial-exec&quot;));
+  * arenas array are necessarily used; arenas are created lazily as needed.
+  */
+ extern arena_t		**arenas;
++#ifdef JEMALLOC_ONE_ARENA
++static const unsigned	narenas = 1;
++#else
+ extern unsigned		narenas;
++#endif
+ 
+ #ifndef NO_TLS
+ extern __thread thread_allocated_t	thread_allocated_tls;
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 18cad28..e7e12d5 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -128,6 +128,9 @@
+ /* TLS is used to map arenas and magazine caches to threads. */
+ #undef NO_TLS
+ 
++/* Forces jemalloc to use only one arena when defined */
++#undef JEMALLOC_ONE_ARENA
++
+ /*
+  * JEMALLOC_IVSALLOC enables ivsalloc(), which verifies that pointers reside
+  * within jemalloc-owned chunks before dereferencing them.
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 8b927f8..540f211 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -6,7 +6,9 @@
+ 
+ malloc_mutex_t		arenas_lock;
+ arena_t			**arenas;
++#ifndef JEMALLOC_ONE_ARENA
+ unsigned		narenas;
++#endif
+ 
+ pthread_key_t		arenas_tsd;
+ #ifndef NO_TLS
+@@ -51,7 +53,9 @@ bool	opt_junk = false;
+ bool	opt_sysv = false;
+ bool	opt_xmalloc = false;
+ bool	opt_zero = false;
++#ifndef JEMALLOC_ONE_ARENA
+ size_t	opt_narenas = 0;
++#endif
+ 
+ /******************************************************************************/
+ /* Function prototypes for non-inline static functions. */
+@@ -573,7 +577,9 @@ malloc_conf_init(void)
+ 			 */
+ 			CONF_HANDLE_SIZE_T(lg_chunk, PAGE_SHIFT+1,
+ 			    (sizeof(size_t) &lt;&lt; 3) - 1)
++#ifndef JEMALLOC_ONE_ARENA
+ 			CONF_HANDLE_SIZE_T(narenas, 1, SIZE_T_MAX)
++#endif
+ 			CONF_HANDLE_SSIZE_T(lg_dirty_mult, -1,
+ 			    (sizeof(size_t) &lt;&lt; 3) - 1)
+ 			CONF_HANDLE_BOOL(stats_print)
+@@ -745,7 +751,9 @@ malloc_init_hard(void)
+ 	 * Create enough scaffolding to allow recursive allocation in
+ 	 * malloc_ncpus().
+ 	 */
++#ifndef JEMALLOC_ONE_ARENA
+ 	narenas = 1;
++#endif
+ 	arenas = init_arenas;
+ 	memset(arenas, 0, sizeof(arena_t *) * narenas);
+ 
+@@ -778,6 +786,7 @@ malloc_init_hard(void)
+ 	ncpus = malloc_ncpus();
+ 	malloc_mutex_lock(&amp;init_lock);
+ 
++#ifndef JEMALLOC_ONE_ARENA
+ 	if (opt_narenas == 0) {
+ 		/*
+ 		 * For SMP systems, create more than one arena per CPU by
+@@ -802,6 +811,7 @@ malloc_init_hard(void)
+ 		malloc_write(u2s(narenas, 10, buf));
+ 		malloc_write(&quot;)\n&quot;);
+ 	}
++#endif
+ 
+ 	/* Allocate and initialize arenas. */
+ 	arenas = (arena_t **)base_alloc(sizeof(arena_t *) * narenas);
+-- 
+1.7.9.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000116.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+	<LI>Next message: <A HREF="000094.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#93">[ date ]</a>
+              <a href="thread.html#93">[ thread ]</a>
+              <a href="subject.html#93">[ subject ]</a>
+              <a href="author.html#93">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

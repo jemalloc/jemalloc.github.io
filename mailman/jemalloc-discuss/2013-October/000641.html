@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Segfault with jemalloc 3.4
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segfault%20with%20jemalloc%203.4&In-Reply-To=%3C33CA6F03-1E8D-4B1C-853F-3D3805D549A6%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000639.html">
+   <LINK REL="Next"  HREF="000645.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Segfault with jemalloc 3.4</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segfault%20with%20jemalloc%203.4&In-Reply-To=%3C33CA6F03-1E8D-4B1C-853F-3D3805D549A6%40canonware.com%3E"
+       TITLE="Segfault with jemalloc 3.4">jasone at canonware.com
+       </A><BR>
+    <I>Sun Oct 13 16:25:35 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000639.html">Segfault with jemalloc 3.4
+</A></li>
+        <LI>Next message: <A HREF="000645.html">Segfault with jemalloc 3.4
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#641">[ date ]</a>
+              <a href="thread.html#641">[ thread ]</a>
+              <a href="subject.html#641">[ subject ]</a>
+              <a href="author.html#641">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 8, 2013, at 10:05 PM, Ofer Samocha &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ofers at iMesh.com</A>&gt; wrote:
+&gt;<i> I have been using the jemalloc 3.4.0. Usually  it runs fine but i have a rare crash at the following location.
+</I>&gt;<i> Any pointer regarding the resolution would be helpful.
+</I>&gt;<i>  
+</I>&gt;<i> Thanks in advance.
+</I>&gt;<i>  
+</I>&gt;<i> #0  0x0000000000aa4abe in arena_chunk_purge (arena=0x7ff5398000c0, all=&lt;value optimized out&gt;) at src/arena.c:783
+</I>&gt;<i> #1  arena_purge (arena=0x7ff5398000c0, all=&lt;value optimized out&gt;) at src/arena.c:952
+</I>&gt;<i> #2  0x0000000000aa5542 in arena_run_trim_tail (ptr=0x7ff52543a000, oldsize=20480, size=&lt;value optimized out&gt;, extra=&lt;value optimized out&gt;, zero=&lt;value optimized out&gt;) at src/arena.c:1165
+</I>&gt;<i> #3  arena_ralloc_large_shrink (ptr=0x7ff52543a000, oldsize=20480, size=&lt;value optimized out&gt;, extra=&lt;value optimized out&gt;, zero=&lt;value optimized out&gt;) at src/arena.c:1794
+</I>&gt;<i> #4  arena_ralloc_large (ptr=0x7ff52543a000, oldsize=20480, size=&lt;value optimized out&gt;, extra=&lt;value optimized out&gt;, zero=&lt;value optimized out&gt;) at src/arena.c:1909
+</I>&gt;<i> #5  arena_ralloc_no_move (ptr=0x7ff52543a000, oldsize=20480, size=&lt;value optimized out&gt;, extra=&lt;value optimized out&gt;, zero=&lt;value optimized out&gt;) at src/arena.c:1951
+</I>&gt;<i> #6  0x0000000000aa799d in arena_ralloc (arena=0x0, ptr=0x7ff52543a000, oldsize=32768, size=2985, extra=1024, alignment=16498863232710968265, zero=false, try_tcache_alloc=true, try_tcache_dalloc=true) at src/arena.c:1971
+</I>&gt;<i> #7  0x0000000000a9e65d in irallocx (ptr=0x7ff52543a000, size=8462) at include/jemalloc/internal/jemalloc_internal.h:1001
+</I>&gt;<i> #8  iralloc (ptr=0x7ff52543a000, size=8462) at include/jemalloc/internal/jemalloc_internal.h:1016
+</I>&gt;<i> #9  realloc (ptr=0x7ff52543a000, size=8462) at src/jemalloc.c:1181
+</I>&gt;<i> #10 0x00000000008e91ac in reserve (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartBuffer.h:138
+</I>&gt;<i> #11 resize (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartBuffer.h:126
+</I>&gt;<i> #12 readFromSocket&lt;sti::IRWPollableObject&gt; (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/streaminterface.h:487
+</I>&gt;<i> #13 CMsgSockHandlerImpl::recvBuffer (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:566
+</I>&gt;<i> #14 0x00000000008ed77c in CMsgSockHandlerImpl::HandleInput (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:290
+</I>&gt;<i> #15 0x0000000000870d94 in sti::CSocketAttachedEventHandler&lt;sti::IRWPollableObject&gt;::HandleInput (this=0x7ff502a62480, sock=&lt;value optimized out&gt;) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SocketEventHandler.h:362
+</I>&gt;<i> #16 0x00000000008734ce in sti::CSocketEventHandler&lt;sti::IRWPollableObject&gt;::disHandleInput (this=0x7ff502a62480, sock=&lt;value optimized out&gt;) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SocketEventHandler.h:175
+</I>&gt;<i> #17 0x00000000009d655f in sti::CDispatcher::HandleEvents (this=0x7ff53942b300, timeout=0) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:551
+</I>&gt;<i> #18 0x000000000080db3b in CServerHelper::HandleEvents (this=0x7ff539421020) at /home/imesh/SFIM2Rel/src/servercomm/ServerHelper.cpp:397
+</I>&gt;<i> #19 0x00000000005c8e6e in main (argc=&lt;value optimized out&gt;, argv=&lt;value optimized out&gt;) at /home/imesh/SFIM2Rel/src/SN/SN.cpp:34
+</I>
+It looks like the only way jemalloc can crash here is if the chunk pointer is pointing to unmapped memory, in which case some really bad memory corruption has occurred.  I don't have any good working theories as to how this can happen.  Just how similar do the backtraces look when you see this crash (e.g. is shrinking realloc() always involved)?  What else can you tell me about the app re: number of threads, memory usage, etc.?
+
+Thanks,
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131013/8b1e1b49/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131013/8b1e1b49/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000639.html">Segfault with jemalloc 3.4
+</A></li>
+	<LI>Next message: <A HREF="000645.html">Segfault with jemalloc 3.4
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#641">[ date ]</a>
+              <a href="thread.html#641">[ thread ]</a>
+              <a href="subject.html#641">[ subject ]</a>
+              <a href="author.html#641">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

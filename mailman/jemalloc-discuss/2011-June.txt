@@ -1,0 +1,64 @@
+From burns.ethan at gmail.com  Tue Jun 14 13:48:55 2011
+From: burns.ethan at gmail.com (Ethan Burns)
+Date: Tue, 14 Jun 2011 13:48:55 -0700
+Subject: Question about pthread_getspecific with jemalloc
+Message-ID: <BANLkTi=OA+OYO=ji2XkKFh8HmSfzCo_tpg@mail.gmail.com>
+
+Hi,
+
+I am experiencing strange behavior with pthread_getspecific when I
+link with jemalloc.  What happens is, after calling malloc(), the
+value of one of my keys seems to change out from under me.  Here is a
+small example that demonstrates this:
+http://itsapad.appspot.com/fancy/6.  I am using jemalloc-2.2.1 on
+Linux.  If I compile the example with gcc (ver 4.4.3) using the
+following command: 'gcc -lpthread main.c' then both calls to
+pthread_getspecific return a NULL pointer as expected.  When I link
+with jemalloc, however, ('gcc -ljemalloc -lpthread main.c') then the
+second call to pthread_getspecific returns some non-NULL value.  Is
+this a known bug or am I doing something wrong?
+
+Best,
+Ethan
+
+P.S. I am not subscribed to the list so please make sure to CC me in
+any responses.
+
+
+From burns.ethan at gmail.com  Tue Jun 14 14:13:10 2011
+From: burns.ethan at gmail.com (Ethan Burns)
+Date: Tue, 14 Jun 2011 14:13:10 -0700
+Subject: Question about pthread_getspecific with jemalloc
+In-Reply-To: <BANLkTi=OA+OYO=ji2XkKFh8HmSfzCo_tpg@mail.gmail.com>
+References: <BANLkTi=OA+OYO=ji2XkKFh8HmSfzCo_tpg@mail.gmail.com>
+Message-ID: <BANLkTi=mrik+ypCcqbbBork+nptn3NEj6w@mail.gmail.com>
+
+On Tue, Jun 14, 2011 at 1:48 PM, Ethan Burns <burns.ethan at gmail.com> wrote:
+> I am experiencing strange behavior with pthread_getspecific when I
+> link with jemalloc. ?What happens is, after calling malloc(), the
+> value of one of my keys seems to change out from under me. ?Here is a
+> small example that demonstrates this:
+> http://itsapad.appspot.com/fancy/6. ?I am using jemalloc-2.2.1 on
+> Linux. ?If I compile the example with gcc (ver 4.4.3) using the
+> following command: 'gcc -lpthread main.c' then both calls to
+> pthread_getspecific return a NULL pointer as expected. ?When I link
+> with jemalloc, however, ('gcc -ljemalloc -lpthread main.c') then the
+> second call to pthread_getspecific returns some non-NULL value. ?Is
+> this a known bug or am I doing something wrong?
+
+I have done a bit of digging.  It looks like the call to the macro
+ARENA_SET on src/jemalloc.c:794 calls pthread_setspecific on the
+arenas_tsd key before the key is actually created on
+src/jemalloc.c:800.  The attached patch seems to fix the problem.  I
+am not familiar with the code so I am not really sure that this patch
+doesn't introduce a new bug but if so, I didn't hit it.
+
+Ethan
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: pthread-key.patch
+Type: text/x-patch
+Size: 868 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110614/b483effd/attachment.bin>
+

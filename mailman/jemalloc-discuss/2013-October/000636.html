@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Segfault with jemalloc 3.4.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segfault%20with%20jemalloc%203.4.&In-Reply-To=%3CCAHdTFUu7G%2BsJ1aA46rG72%2B2-yjRhywvecBhe6V6anALeGQLPuQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000637.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Segfault with jemalloc 3.4.</H1>
+    <B>adnan akbar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segfault%20with%20jemalloc%203.4.&In-Reply-To=%3CCAHdTFUu7G%2BsJ1aA46rG72%2B2-yjRhywvecBhe6V6anALeGQLPuQ%40mail.gmail.com%3E"
+       TITLE="Segfault with jemalloc 3.4.">chaudry.adnan.akbar at gmail.com
+       </A><BR>
+    <I>Tue Oct  1 05:56:03 PDT 2013</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000637.html">Segfault with jemalloc 3.4.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#636">[ date ]</a>
+              <a href="thread.html#636">[ thread ]</a>
+              <a href="subject.html#636">[ subject ]</a>
+              <a href="author.html#636">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi All,
+
+I have been using the
+jemalloc 3.4.0-0-g0ed518e5dab789ad2171bb38977a8927e2a26775. Usually  it
+runs fine but i have a rare crash at the following location. And sometime
+while allocating. Any pointer regarding the resolution would be helpful.
+
+Thanks in advance.
+
+(gdb) bt
+#0  tcache_dalloc_small (ptr=0x7f1be585cc00)
+    at include/jemalloc/internal/tcache.h:405
+#1  arena_dalloc (ptr=0x7f1be585cc00) at
+include/jemalloc/internal/arena.h:1003
+#2  idallocx (ptr=0x7f1be585cc00)
+    at include/jemalloc/internal/jemalloc_internal.h:913
+#3  iqallocx (ptr=0x7f1be585cc00)
+    at include/jemalloc/internal/jemalloc_internal.h:932
+#4  iqalloc (ptr=0x7f1be585cc00)
+    at include/jemalloc/internal/jemalloc_internal.h:939
+#5  js_free (ptr=0x7f1be585cc00) at src/jemalloc.c:1272
+#6  0x00007f1c4af5180d in std::basic_string&lt;char, std::char_traits&lt;char&gt;,
+mcommons::mem::JEAllocator&lt;char&gt;
+&gt;::<i>_Rep::_M_destroy(mcommons::mem::JEAllocator&lt;char&gt; const&amp;) () from
+</I>../mcommons/output/libmcommons.so
+#7  0x00007f1c42dec17f in
+handlers::userhandlers::handleUserSessionEvent(mcommons::security::Session*,
+bool) () from ../LPConnector/output/libLPConnector.so
+#8  0x00007f1c4af9de93 in
+mcommons::framework::Consumer::processDescIO(unsigned long, unsigned long)
+const () from ../mcommons/output/libmcommons.so
+---Type &lt;return&gt; to continue, or q &lt;return&gt; to quit---
+#9  0x00007f1c4af9e2ee in mcommons::framework::Consumer::run() ()
+   from ../mcommons/output/libmcommons.so
+#10 0x00007f1c4af66389 in start_persistent_thread(void*) ()
+   from ../mcommons/output/libmcommons.so
+#11 0x0000003bd7007851 in start_thread () from /lib64/libpthread.so.0
+#12 0x0000003bd64e890d in nfsservctl () from /lib64/libc.so.6
+#13 0x0000000000000000 in ?? ()
+
+-- 
+
+Regards,
+
+----------------------
+Adnan Akbar
+Software Engineer
+Mob: +92-333-3643680
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131001/f93e1d98/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131001/f93e1d98/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000637.html">Segfault with jemalloc 3.4.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#636">[ date ]</a>
+              <a href="thread.html#636">[ thread ]</a>
+              <a href="subject.html#636">[ subject ]</a>
+              <a href="author.html#636">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

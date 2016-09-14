@@ -1,0 +1,198 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Patch: enumerate all live blocks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Patch%3A%20enumerate%20all%20live%20blocks&In-Reply-To=%3CCAJTmd9qWVR5p3pn3wRs_tPrXNR%3DCv%3DQn%3DYb4ESYWzDeTnW2%3DUg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000455.html">
+   <LINK REL="Next"  HREF="000457.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Patch: enumerate all live blocks</H1>
+    <B>Benoit Jacob</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Patch%3A%20enumerate%20all%20live%20blocks&In-Reply-To=%3CCAJTmd9qWVR5p3pn3wRs_tPrXNR%3DCv%3DQn%3DYb4ESYWzDeTnW2%3DUg%40mail.gmail.com%3E"
+       TITLE="Patch: enumerate all live blocks">jacob.benoit.1 at gmail.com
+       </A><BR>
+    <I>Sat Oct  6 11:42:02 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000455.html">Patch: enumerate all live blocks
+</A></li>
+        <LI>Next message: <A HREF="000457.html">LG_QUANTUM hppa definition
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#456">[ date ]</a>
+              <a href="thread.html#456">[ thread ]</a>
+              <a href="subject.html#456">[ subject ]</a>
+              <a href="author.html#456">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>2012/10/6 Justin Lebar &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">justin.lebar at gmail.com</A>&gt;:
+&gt;&gt;<i> It is equivalent, as long as you can ensure that _all_ allocations go
+</I>&gt;&gt;<i> through your wrappered malloc.
+</I>&gt;<i>
+</I>&gt;<i> For the purposes of the live-block-walker, does it matter if we miss
+</I>&gt;<i> the occasional malloc()/free()?
+</I>
+It matters for just being able to run at all without crashing: a
+mismatch between wrappered and non-wrappered functions would cause a
+crash or corruption like allocator mismatches typically do.
+
+Benoit
+
+&gt;<i>
+</I>&gt;<i> On Sat, Oct 6, 2012 at 11:51 AM, Benoit Jacob &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jacob.benoit.1 at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i> It is equivalent, as long as you can ensure that _all_ allocations go
+</I>&gt;&gt;<i> through your wrappered malloc. The terror of anyone making such a
+</I>&gt;&gt;<i> wrappered malloc is that some allocations might escape it, such as:
+</I>&gt;&gt;<i> allocations made by libraries that your application uses, etc. Not
+</I>&gt;&gt;<i> being familiar with the field, I just found it easier to be confident
+</I>&gt;&gt;<i> that all allocations would be correctly wrappered by doing it in the
+</I>&gt;&gt;<i> memory allocator itself, since if any allocation did not go through
+</I>&gt;&gt;<i> it, we would have allocator mismatches anyway.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Here is an example of what scared me away from trying to do it in the
+</I>&gt;&gt;<i> application: this is a comment in jemalloc 3.0's src/jemalloc.c:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> #if ((is_malloc(je_malloc) == 1) &amp;&amp; defined(__GLIBC__) &amp;&amp; !defined(__UCLIBC__))
+</I>&gt;&gt;<i> /*
+</I>&gt;&gt;<i>  * glibc provides the RTLD_DEEPBIND flag for dlopen which can make it possible
+</I>&gt;&gt;<i>  * to inconsistently reference libc's malloc(3)-compatible functions
+</I>&gt;&gt;<i>  * (<A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=493541">https://bugzilla.mozilla.org/show_bug.cgi?id=493541</A>).
+</I>&gt;&gt;<i>  *
+</I>&gt;&gt;<i>  * These definitions interpose hooks in glibc.  The functions are actually
+</I>&gt;&gt;<i>  * passed an extra argument for the caller return address, which will be
+</I>&gt;&gt;<i>  * ignored.
+</I>&gt;&gt;<i>  */
+</I>&gt;&gt;<i> JEMALLOC_EXPORT void (* const __free_hook)(void *ptr) = je_free;
+</I>&gt;&gt;<i> JEMALLOC_EXPORT void *(* const __malloc_hook)(size_t size) = je_malloc;
+</I>&gt;&gt;<i> JEMALLOC_EXPORT void *(* const __realloc_hook)(void *ptr, size_t size) =
+</I>&gt;&gt;<i>     je_realloc;
+</I>&gt;&gt;<i> JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
+</I>&gt;&gt;<i>     je_memalign;
+</I>&gt;&gt;<i> #endif
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Benoit
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 2012/10/6 Salvatore Sanfilippo &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">antirez at gmail.com</A>&gt;:
+</I>&gt;&gt;&gt;<i> Hello,
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> what is the advantage of this approach compared to doing it entirely
+</I>&gt;&gt;&gt;<i> in the application code just wrapping malloc/realloc/free?
+</I>&gt;&gt;&gt;<i> Basically wrappered_malloc() allocates a bit more space accordingly to
+</I>&gt;&gt;&gt;<i> the metadata to store, store this metadata at the start of the block,
+</I>&gt;&gt;&gt;<i> and then returns the pointer advanced to the start of the empty space.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Doing it in the context of the application makes it
+</I>&gt;&gt;&gt;<i> malloc-implementation agnostic that can be an advantage.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Regards,
+</I>&gt;&gt;&gt;<i> Salvatore
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> On Sat, Oct 6, 2012 at 7:28 AM, Benoit Jacob &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jacob.benoit.1 at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;&gt;&gt;<i> Hello,
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> The attached patch instruments jemalloc 3.0, adding the ability to
+</I>&gt;&gt;&gt;&gt;<i> enumerate all live blocks.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Currently, the only information stored about blocks is their (payload)
+</I>&gt;&gt;&gt;&gt;<i> address and size, but the plan is to also store their allocation call
+</I>&gt;&gt;&gt;&gt;<i> stack.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> This is achieved by allocating larger blocks than requested, and using
+</I>&gt;&gt;&gt;&gt;<i> the extra space to store doubly linked list elements.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i>  This is provided just in case it might be useful to anyone, not
+</I>&gt;&gt;&gt;&gt;<i> considered ready for inclusion in jemalloc. It's been tested for 15
+</I>&gt;&gt;&gt;&gt;<i> minutes in a Firefox build.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Details about the overhead, and how it could be reduced:
+</I>&gt;&gt;&gt;&gt;<i>  * Memory overhead is, per block: 32 bytes on 32-bit systems, 48 bytes
+</I>&gt;&gt;&gt;&gt;<i> on 64-bit systems (assuming size_t == uintptr_t). Could easily be
+</I>&gt;&gt;&gt;&gt;<i> reduced to 16 bytes in both cases (by using a XOR linked list and
+</I>&gt;&gt;&gt;&gt;<i> assuming that no block exceeds 4G).
+</I>&gt;&gt;&gt;&gt;<i>  * Slowness overhead is essentially an additional mutex to lock on
+</I>&gt;&gt;&gt;&gt;<i> every malloc/free call. Could be solved in various ways, either
+</I>&gt;&gt;&gt;&gt;<i> copying what jemalloc does internally, or by using a lock-free list.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> If you want to test it out, currently the only built-in way to output
+</I>&gt;&gt;&gt;&gt;<i> the list of blocks is to call je_dump_list_of_blocks(void) e.g. from
+</I>&gt;&gt;&gt;&gt;<i> your debugger. See its code to see the relevant calls. Sample output
+</I>&gt;&gt;&gt;&gt;<i> from Firefox:
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> ...snip...
+</I>&gt;&gt;&gt;&gt;<i> Block 193965:  real block = 0x7fffba218580,  payload = 0x7fffba2185b0,
+</I>&gt;&gt;&gt;&gt;<i>  payload size = 64
+</I>&gt;&gt;&gt;&gt;<i> Block 193966:  real block = 0x7fffc02dd000,  payload = 0x7fffc02dd030,
+</I>&gt;&gt;&gt;&gt;<i>  payload size = 1024
+</I>&gt;&gt;&gt;&gt;<i> Block 193967:  real block = 0x7fffc2053ce0,  payload = 0x7fffc2053d10,
+</I>&gt;&gt;&gt;&gt;<i>  payload size = 24
+</I>&gt;&gt;&gt;&gt;<i> Block 193968:  real block = 0x7fffc5b4ed80,  payload = 0x7fffc5b4edb0,
+</I>&gt;&gt;&gt;&gt;<i>  payload size = 80
+</I>&gt;&gt;&gt;&gt;<i> Block 193969:  real block = 0x7fffd119e240,  payload = 0x7fffd119e270,
+</I>&gt;&gt;&gt;&gt;<i>  payload size = 64
+</I>&gt;&gt;&gt;&gt;<i> Block 193970:  real block = 0x7fffcfb4aa60,  payload = 0x7fffcfb4aa90,
+</I>&gt;&gt;&gt;&gt;<i>  payload size = 24
+</I>&gt;&gt;&gt;&gt;<i> Block 193971:  real block = 0x7fffbb85e1f0,  payload = 0x7fffbb85e220,
+</I>&gt;&gt;&gt;&gt;<i>  payload size = 24
+</I>&gt;&gt;&gt;&gt;<i> Block 193972:  real block = 0x7fffe20a62e0,  payload = 0x7fffe20a6310,
+</I>&gt;&gt;&gt;&gt;<i>  payload size = 32
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> End enumeration of 193973 jemalloc blocks.
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Cheers,
+</I>&gt;&gt;&gt;&gt;<i> Benoit
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;&gt;&gt;<i> jemalloc-discuss mailing list
+</I>&gt;&gt;&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;&gt;&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> --
+</I>&gt;&gt;&gt;<i> Salvatore 'antirez' Sanfilippo
+</I>&gt;&gt;&gt;<i> open source developer - VMware
+</I>&gt;&gt;&gt;<i> <A HREF="http://invece.org">http://invece.org</A>
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Beauty is more important in computing than anywhere else in technology
+</I>&gt;&gt;&gt;<i> because software is so complicated. Beauty is the ultimate defence
+</I>&gt;&gt;&gt;<i> against complexity.
+</I>&gt;&gt;&gt;<i>        &#8212; David Gelernter
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> jemalloc-discuss mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000455.html">Patch: enumerate all live blocks
+</A></li>
+	<LI>Next message: <A HREF="000457.html">LG_QUANTUM hppa definition
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#456">[ date ]</a>
+              <a href="thread.html#456">[ thread ]</a>
+              <a href="subject.html#456">[ subject ]</a>
+              <a href="author.html#456">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> memory overhead for allocation a lot of aligned blocks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memory%20overhead%20for%20allocation%20a%20lot%20of%20aligned%20blocks&In-Reply-To=%3C71237848-511D-4035-9F50-E42C3A3CB7C6%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001053.html">
+   <LINK REL="Next"  HREF="001055.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>memory overhead for allocation a lot of aligned blocks</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memory%20overhead%20for%20allocation%20a%20lot%20of%20aligned%20blocks&In-Reply-To=%3C71237848-511D-4035-9F50-E42C3A3CB7C6%40canonware.com%3E"
+       TITLE="memory overhead for allocation a lot of aligned blocks">jasone at canonware.com
+       </A><BR>
+    <I>Mon Feb 16 11:44:09 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001053.html">memory overhead for allocation a lot of aligned blocks
+</A></li>
+        <LI>Next message: <A HREF="001055.html">pull request to add support for Bitrig
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1054">[ date ]</a>
+              <a href="thread.html#1054">[ thread ]</a>
+              <a href="subject.html#1054">[ subject ]</a>
+              <a href="author.html#1054">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 15, 2015, at 10:58 PM, Vasily Galkin &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">galkin-vv at yandex.ru</A>&gt; wrote:
+&gt;<i> I'm trying to implement a technique that would allow to store array limits and specific array position in a single pointer, calculating array limits from pointer alignment.
+</I>&gt;<i> So I want to allocate arrays of 2**N bytes at 2**N boundary.
+</I>&gt;<i> The idea is quite genereic so N's value may vary from 8 to huge values like 34 (for 64-bit system).
+</I>
+Note that e.g. a 4 MiB naturally aligned allocation happens to also be naturally aligned at all lesser alignments (2 MiB, 1 MiB, ..., 16 B, etc.), so I don't understand how you're going to make this work unless you prevent e.g. 16 byte allocations from being page-aligned.
+
+&gt;<i> Analyzing source of glibc allocator for this case I found that for aligned_alloc of 2**N block on 2**N boundary it may introduce worse case 2 times overhead by trying to allocate size+align block, finding aligned address in it and freeing unused part.
+</I>&gt;<i> jemalloc is more complex so I decided to ask about it.
+</I>&gt;<i> 
+</I>&gt;<i> What is jemalloc worst case overhead for allocating 2**N bytes at 2**N boundary?
+</I>&gt;<i> I think for jemalloc-huge objects &quot;no overhead&quot; can be achived depends via mmap with fixed aligned adress. Does jemalloc do it such way?
+</I>&gt;<i> For jemalloc-small and jemalloc-large allocations: does typical 2**N allocs are always aligned to 2**N boundaries or this requirement will change the way how jemalloc handle this allocations?
+</I>
+I think you're asking about metadata overhead.  jemalloc stores all metadata separately from allocations, so there are no inherent issues as there would be if allocations had metadata headers.  Also, if you specify --with-lg-size-class-group=0 while configuring the dev version of jemalloc, all size classes will be powers of 2, and all allocations will be naturally aligned.
+
+Regarding worst case fragmentation, the answer depends on size class category and allocation size mixture:
+
+- Small: All 2^n-aligned allocations of size 2^n will incur no additional overhead, due to how small allocations are aligned and packed.
+
+- Large: The worst case size is half the chunk size, in which case only one allocation per chunk can be allocated.  If the remaining (nearly) half of the chunk isn't otherwise useful for smaller allocations, the overhead will essentially be 50%.  However, assuming you use a diverse mixture of size classes, the actual overhead shouldn't be a significant issue in practice.
+
+- Huge: Extra virtual memory is mapped, then the excess is trimmed and unmapped.  This can leave virtual memory holes, but it incurs no physical memory overhead.  Earlier versions of jemalloc heuristically attempted to optimistically map chunks without excess that would need to be trimmed, but it didn't save much system call overhead in practice, and I ripped the code out during a simplification pass.
+
+ Jason
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001053.html">memory overhead for allocation a lot of aligned blocks
+</A></li>
+	<LI>Next message: <A HREF="001055.html">pull request to add support for Bitrig
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1054">[ date ]</a>
+              <a href="thread.html#1054">[ thread ]</a>
+              <a href="subject.html#1054">[ subject ]</a>
+              <a href="author.html#1054">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

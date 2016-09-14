@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> How to dump status of jemalloc on Android
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20dump%20status%20of%20jemalloc%20on%20Android&In-Reply-To=%3CBAY179-W37147FC5620D8401E10CC5D78E0%40phx.gbl%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001121.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>How to dump status of jemalloc on Android</H1>
+    <B>LiHaifeng</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20dump%20status%20of%20jemalloc%20on%20Android&In-Reply-To=%3CBAY179-W37147FC5620D8401E10CC5D78E0%40phx.gbl%3E"
+       TITLE="How to dump status of jemalloc on Android">omycle at gmail.com
+       </A><BR>
+    <I>Mon Jul 27 02:56:33 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001121.html">Bug in chunk allocation
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1126">[ date ]</a>
+              <a href="thread.html#1126">[ thread ]</a>
+              <a href="subject.html#1126">[ subject ]</a>
+              <a href="author.html#1126">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi there,
+It's known that the jemalloc is adopted by Android. Recently I want to dump some jemalloc status information with the thread exit. Fortunately, the function of status dump has been done by jemalloc.
+After tuned the variable of opt_stats_print into true in malloc_init_hard(), the stats_print_atexit() was registered as an hook for atexit(). But, there is nothing status information dumped when the process exit and there is only the warning on the console like below.
+&quot;W/libc    (  859): WARNING: generic atexit() called from legacy shared library&quot;
+So, how to dump the jemalloc status on Android?
+Thanks. 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150727/6c02a911/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150727/6c02a911/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001121.html">Bug in chunk allocation
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1126">[ date ]</a>
+              <a href="thread.html#1126">[ thread ]</a>
+              <a href="subject.html#1126">[ subject ]</a>
+              <a href="author.html#1126">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

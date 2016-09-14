@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> realloc behavior
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20behavior&In-Reply-To=%3C4F4DB1E3.8050002%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000106.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>realloc behavior</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20behavior&In-Reply-To=%3C4F4DB1E3.8050002%40canonware.com%3E"
+       TITLE="realloc behavior">jasone at canonware.com
+       </A><BR>
+    <I>Tue Feb 28 21:04:35 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000106.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#107">[ date ]</a>
+              <a href="thread.html#107">[ thread ]</a>
+              <a href="subject.html#107">[ subject ]</a>
+              <a href="author.html#107">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 01/29/2012 08:38 AM, Yoni Londner wrote:
+&gt;<i> I just started using jemalloc, and one of our tests fail, because
+</I>&gt;<i> realloc with size=0
+</I>&gt;<i> does malloc with size 1.
+</I>&gt;<i>
+</I>&gt;<i> from realloc spec at
+</I>&gt;<i> <A HREF="http://pubs.opengroup.org/onlinepubs/000095399/functions/realloc.html">http://pubs.opengroup.org/onlinepubs/000095399/functions/realloc.html</A> :
+</I>&gt;<i> If/size/is 0 and/ptr/is not a null pointer, the object pointed to is freed.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Why does jemalloc chooses to behave differently?
+</I>
+This was a bug.  I committed a fix to the dev branch.  The fix will be 
+part of version 3.0.0 (and 2.2.6, if enough bugs surface to warrant it).
+
+Thanks,
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000106.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#107">[ date ]</a>
+              <a href="thread.html#107">[ thread ]</a>
+              <a href="subject.html#107">[ subject ]</a>
+              <a href="author.html#107">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

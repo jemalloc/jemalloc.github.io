@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121030153658.GB16321%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000485.html">
+   <LINK REL="Next"  HREF="000487.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121030153658.GB16321%40glandium.org%3E"
+       TITLE="Memory usage regression">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Oct 30 08:36:58 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000485.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000487.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#486">[ date ]</a>
+              <a href="thread.html#486">[ thread ]</a>
+              <a href="subject.html#486">[ subject ]</a>
+              <a href="author.html#486">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Oct 30, 2012 at 04:35:02PM +0100, Mike Hommey wrote:
+&gt;<i> On Fri, Oct 26, 2012 at 06:10:13PM +0200, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt; &gt; &gt; For reference, the unzoomed graph looks like this:
+</I>&gt;<i> &gt; &gt; &gt; &gt; <A HREF="http://i.imgur.com/PViYm.png">http://i.imgur.com/PViYm.png</A>
+</I>&gt;<i> &gt; &gt; &gt; 
+</I>&gt;<i> &gt; &gt; &gt; I rediscovered --enable-munmap, and tried again with that, thinking it
+</I>&gt;<i> &gt; &gt; &gt; could be related, and it did change something, but it's still growing:
+</I>&gt;<i> &gt; &gt; &gt; <A HREF="http://i.imgur.com/lWzhG.png">http://i.imgur.com/lWzhG.png</A>
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; Needless to say, the increases I was observing closely on the the zoomed
+</I>&gt;<i> &gt; &gt; graph without a matching decrease was entirely due to munmap. Now I need
+</I>&gt;<i> &gt; &gt; to find the remainder...
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I tested size class independently, and none would cause the VM leak
+</I>&gt;<i> &gt; alone. Combining small and large classes do, but large + huge or small +
+</I>&gt;<i> &gt; huge don't.
+</I>&gt;<i> 
+</I>&gt;<i> Some more data: all non-unmapped chunks *are* used to some extent. The
+</I>&gt;<i> following is a dump of the number of requested and usable bytes in each
+</I>&gt;<i> chunk ; that's 18M spread across 600M... that sounds like a really bad
+</I>&gt;<i> case of fragmentation.
+</I>
+BTW, it does seem to grow forever: I went up to 1.3GB with more
+iterations before stopping.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000485.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000487.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#486">[ date ]</a>
+              <a href="thread.html#486">[ thread ]</a>
+              <a href="subject.html#486">[ subject ]</a>
+              <a href="author.html#486">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

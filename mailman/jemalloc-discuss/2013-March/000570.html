@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory Fragmentation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20Fragmentation&In-Reply-To=%3C5FF484B4-7409-42C1-9946-4CDACA92D331%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000569.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory Fragmentation</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20Fragmentation&In-Reply-To=%3C5FF484B4-7409-42C1-9946-4CDACA92D331%40canonware.com%3E"
+       TITLE="Memory Fragmentation">jasone at canonware.com
+       </A><BR>
+    <I>Thu Mar 21 13:41:11 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000569.html">Memory Fragmentation
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#570">[ date ]</a>
+              <a href="thread.html#570">[ thread ]</a>
+              <a href="subject.html#570">[ subject ]</a>
+              <a href="author.html#570">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 21, 2013, at 7:21 AM, Benjamin Bazso wrote:
+&gt;<i> I am using jemalloc for my server application and I have been monitoring the memory (rss) for several days and it continues to rise.  I have previously monitored the application using valgrind for several days and it reported no memory leaks.
+</I>
+What version of jemalloc are you using, and on what operating system?
+
+Also, valgrind will report as leaks memory that is unreachable, but your application can bloat its reachable memory usage without valgrind complaining.  You may find jemalloc's heap profiling support useful in understanding where your application is actually using memory, and if allocated memory usage is truly growing, you will be able to tell where that growth is occurring within your application.
+
+&gt;<i> This leads me to believe that the rise in memory consumption (rss) is due to memory fragmentation.
+</I>&gt;<i> 
+</I>&gt;<i> With this in mind, I added to my application the call to malloc_stats_print() function and I poll this function every hour and save the results.  From what I see and understand from this report, I do indeed see the memory consumption rising and I also noticed that the number of bigger allocations increases (~2.5 MB) over time.
+</I>&gt;<i> 
+</I>&gt;<i> [...]
+</I>&gt;<i> How can I use the malloc_stats_print() stats to show that my application is suffering from memory fragmentation?
+</I>For a summary of external fragmentation, look for the line that looks like:
+
+	Allocated: 5352608, active: 5353472, mapped: 285212672
+
+External fragmentation can be computed as 1.0 - (allocated/active).  That doesn't tell the whole RSS picture though; there are internal jemalloc data structures, dirty unused pages, and thread-cached objects that impose additional overhead.
+&gt;<i> Is there a way to help eliminate fragmentation in jemalloc, perhaps by calling an extended facility?
+</I>jemalloc would need to be able to compact active allocations via relocation in order to eliminate fragmentation, and that's simply not generally possible in C/C++.
+&gt;<i> Will using thread cache flushing and forced dirty page purging help reduce fragmentation? Is it a good idea?
+</I>Yes, this may reduce fragmentation, but there are probably easier and more effective methods.  From a fragmentation perspective, the ideal jemalloc configuration is one arena, no thread caching, and  a very high active:dirty ratio (prevents accumulation of unused dirty pages).  You will probably find that you can tune one or more of these parameters in a way that reduces fragmentation without significantly impacting your application's throughput.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130321/6f891d5f/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130321/6f891d5f/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000569.html">Memory Fragmentation
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#570">[ date ]</a>
+              <a href="thread.html#570">[ thread ]</a>
+              <a href="subject.html#570">[ subject ]</a>
+              <a href="author.html#570">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

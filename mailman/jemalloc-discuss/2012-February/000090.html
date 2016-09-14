@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to include memalign and valloc even when prefixing the	API
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20include%20memalign%20and%20valloc%20even%20when%20prefixing%20the%0A%09API&In-Reply-To=%3C1329932210-25776-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000113.html">
+   <LINK REL="Next"  HREF="000091.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to include memalign and valloc even when prefixing the	API</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20include%20memalign%20and%20valloc%20even%20when%20prefixing%20the%0A%09API&In-Reply-To=%3C1329932210-25776-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Allow to include memalign and valloc even when prefixing the	API">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Feb 22 09:36:50 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000113.html">[PATCH] Add a malloc_usable_size_in_advance function
+</A></li>
+        <LI>Next message: <A HREF="000091.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#90">[ date ]</a>
+              <a href="thread.html#90">[ thread ]</a>
+              <a href="subject.html#90">[ subject ]</a>
+              <a href="author.html#90">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+In some cases, like when using the &quot;__wrap_&quot; prefix for use with ld's
+--wrap, one may want to still expose memalign and valloc.
+---
+ configure.ac                        |    6 ++++++
+ include/jemalloc/jemalloc_defs.h.in |    6 ++++++
+ src/jemalloc.c                      |    5 +++--
+ 3 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 5ce16eb..e3c0736 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -320,6 +320,12 @@ if test &quot;x$JEMALLOC_PREFIX&quot; != &quot;x&quot; ; then
+   AC_DEFINE_UNQUOTED([JEMALLOC_P(string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix)], [${JEMALLOC_PREFIX}##string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix])
+ fi
+ 
++AC_ARG_ENABLE([jemalloc_prefix_omit],
++  [AS_HELP_STRING([--disable-jemalloc-prefix-omit], [Do not omit APIs that are normally ommitted when --with-jemalloc-prefix is used])])
++if test &quot;x$enable_jemalloc_prefix_omit&quot; = &quot;xno&quot; ; then
++  AC_DEFINE([JEMALLOC_PREFIX_NO_OMIT])
++fi
++
+ dnl Do not mangle library-private APIs by default.
+ AC_ARG_WITH([private_namespace],
+   [AS_HELP_STRING([--with-private-namespace=&lt;prefix&gt;], [Prefix to prepend to all library-private APIs])],
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index d1622fb..7bb171d 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -19,6 +19,12 @@
+ #endif
+ 
+ /*
++ * If JEMALLOC_PREFIX_NO_OMIT is defined, it will cause APIs that are normally
++ * ommitted when JEMALLOC_PREFIX is defined, to be included.
++ */
++#undef JEMALLOC_PREFIX_NO_OMIT
++
++/*
+  * JEMALLOC_PRIVATE_NAMESPACE is used as a prefix for all library-private APIs.
+  * For shared libraries, symbol visibility mechanisms prevent these symbols
+  * from being exported, but for static libraries, naming collisions are a real
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 64961c5..67035b7 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -1293,9 +1293,10 @@ JEMALLOC_P(free)(void *ptr)
+  * Begin non-standard override functions.
+  *
+  * These overrides are omitted if the JEMALLOC_PREFIX is defined, since the
+- * entire point is to avoid accidental mixed allocator usage.
++ * entire point is to avoid accidental mixed allocator usage. They may however
++ * be included with the JEMALLOC_PREFIX if JEMALLOC_PREFIX_NO_OMIT is defined.
+  */
+-#ifndef JEMALLOC_PREFIX
++#if !defined(JEMALLOC_PREFIX) || defined(JEMALLOC_PREFIX_NO_OMIT)
+ 
+ #ifdef JEMALLOC_OVERRIDE_MEMALIGN
+ JEMALLOC_ATTR(malloc)
+-- 
+1.7.9
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000113.html">[PATCH] Add a malloc_usable_size_in_advance function
+</A></li>
+	<LI>Next message: <A HREF="000091.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#90">[ date ]</a>
+              <a href="thread.html#90">[ thread ]</a>
+              <a href="subject.html#90">[ subject ]</a>
+              <a href="author.html#90">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

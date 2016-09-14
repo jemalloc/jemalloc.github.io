@@ -1,0 +1,122 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include "jemalloc/jemalloc.h"
+#include "jemalloc/jemalloc_defs.h"
+#include <string.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/sysinfo.h>
+#include <limits.h>
+#include <time.h>
+
+const long minFree = 8589934592;
+
+void * doThreadWork( void *threadid) {
+
+                int i = 0;
+
+                long freeMemory = sysconf(_SC_PAGESIZE) * sysconf(_SC_AVPHYS_PAGES);
+                long memoryToUse = freeMemory - minFree;
+                int NUM_THREADS = get_nprocs();
+
+                int maxPerEntrySize = 4096;
+                float avgEntrySize = maxPerEntrySize / 2;
+                int numOfElementsPerThread = (memoryToUse / NUM_THREADS) / avgEntrySize;
+
+                fprintf(stdout,
+                                              "thread %d ready to put in %d entries with an avg size of %f\n",
+                                              threadid, numOfElementsPerThread, avgEntrySize);
+
+
+                void **vs = jemalloc(numOfElementsPerThread * sizeof(void *));
+
+                for (i = 0; i < numOfElementsPerThread; i++) {
+                               int entrySize = i % maxPerEntrySize;
+                              vs[i] = jemalloc(entrySize * sizeof(char));
+                               //fprintf (stdout, " address of pointer for array index %d = %p\n",i, vs[i]);
+                               memset(vs[i], 1, entrySize);
+
+               }
+
+                printf("%d done waiting, proceeding to CRUD\n\n", threadid);
+
+                srandom(time (0));
+                long count=0;
+                while (1) {
+
+                               int percentToModify = rand() % 100;
+                               if (percentToModify == 0)
+                                              continue;
+
+                               float pM=(float)percentToModify/(float)100;
+                               int numToModify = (int) (numOfElementsPerThread
+                                                            * pM);
+                               //printf ("%d modifying %f percent of entries, %d\n", threadid ,pM,numToModify);
+                               int a=0;
+                               for (a = 0; a < 2; a++) {
+
+
+                                              for (i = 0; i < numToModify; i++) {
+                                                             if (a == 0) {
+                                                                            //if ((i%2)==0){
+                                                                            //              fprintf (stdout , "%d freeing array index %d= %p\n",threadid,i,vs[i]);
+
+                                                                            jefree(vs[i]);
+                                                            } else {
+
+                                                                            int entrySize = rand() % maxPerEntrySize;
+                                                                            //fprintf (stdout, " %d inserting %d bytes array index %d= %p\n",threadid,entrySize,i,vs[i]);
+                                                                           vs[i] = jemalloc(entrySize * sizeof(char));
+                                                                            //fprintf (stdout, " address of pointer for array index %d = %p\n",i,vs[i]);
+                                                                            memset(vs[i], 1, entrySize);
+                                                            }
+                                                             //sleep(5);
+                                             }
+
+                              }
+                              count++;
+                               if ((count%100)==0){
+                                              printf("%d completed %d loops\n",threadid,count);
+                              }
+               }
+                jefree(vs);
+                printf("%d done.\n", threadid);
+
+                pthread_detach(pthread_self ());
+                pthread_exit(NULL );
+}
+
+int main( void) {
+                int NUM_THREADS = get_nprocs();
+                long freeMemory = sysconf(_SC_PAGESIZE) * sysconf(_SC_AVPHYS_PAGES);
+
+                fprintf(stdout,
+                                              "page size is %d and available number of pages is %d\ therefore freeMemory=%llu\n",
+                                              sysconf(_SC_PAGESIZE), sysconf(_SC_AVPHYS_PAGES), freeMemory);
+
+                if (freeMemory < minFree) {
+                               printf("Min of %llu free is not available. Exiting...\n", minFree);
+                               exit(1);
+               }
+
+                fprintf(stdout, " Num Threads=%d\n", NUM_THREADS);
+                pthread_t threads[NUM_THREADS];
+                int t = 0;
+                int rc = 0;
+                for (t = 0; t < NUM_THREADS; t++) {
+                               fprintf(stdout, "Starting thread=%d\n" , t);
+                               //rc = pthread_create(&threads[t], NULL, PrintHello, (void *)t);
+                               rc = pthread_create(&threads[t], NULL, doThreadWork, ( void *) t);
+                               if (rc) {
+                                              fprintf(stderr, "ERROR; return code from pthread_create() is %d\n" ,
+                                                                           rc);
+                                              exit(-1);
+                              }
+
+               }
+                for (t = 0; t < NUM_THREADS; t++) {
+                               pthread_join(threads[t], NULL );
+               }
+                exit(0);
+}

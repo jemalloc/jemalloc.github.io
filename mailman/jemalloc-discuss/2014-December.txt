@@ -1,0 +1,564 @@
+From normalperson at yhbt.net  Mon Dec  1 15:25:41 2014
+From: normalperson at yhbt.net (Eric Wong)
+Date: Mon, 1 Dec 2014 23:25:41 +0000
+Subject: Huge page support would be useful in JEMalloc
+In-Reply-To: <AM3PR02MB0568D48ABCECBBC9946A4516D8730@AM3PR02MB0568.eurprd02.prod.outlook.com>
+References: <AM3PR02MB0568D48ABCECBBC9946A4516D8730@AM3PR02MB0568.eurprd02.prod.outlook.com>
+Message-ID: <20141201232541.GA6893@dcvr.yhbt.net>
+
+Kenneth Steele <ken at ezchip.com> wrote:
+> Ideally, JEMalloc with Huge pages would be the best.
+
+For some apps such as yours, yes.  And jemalloc can already use
+transparent hugepages, but there are downsides to apps (e.g. redis)
+which fork:
+
+  http://mid.gmane.org/CA+XzkVfZV36k-d6mw9xEBgSQQhmfMKwts79wrwMB+3PYydzeCg at mail.gmail.com
+
+Not sure if there's an automatic, best-of-both worlds approach...
+
+From jeff.science at gmail.com  Tue Dec  2 00:09:47 2014
+From: jeff.science at gmail.com (Jeff Hammond)
+Date: Tue, 2 Dec 2014 00:09:47 -0800
+Subject: Huge page support would be useful in JEMalloc
+In-Reply-To: <20141201232541.GA6893@dcvr.yhbt.net>
+References: <AM3PR02MB0568D48ABCECBBC9946A4516D8730@AM3PR02MB0568.eurprd02.prod.outlook.com>
+	<20141201232541.GA6893@dcvr.yhbt.net>
+Message-ID: <CAGKz=uJr-p579GA4vXntODbUZ4KhJuvVTe18rSABNPdkOPDSRQ@mail.gmail.com>
+
+On Mon, Dec 1, 2014 at 3:25 PM, Eric Wong <normalperson at yhbt.net> wrote:
+> Kenneth Steele <ken at ezchip.com> wrote:
+>> Ideally, JEMalloc with Huge pages would be the best.
+>
+> For some apps such as yours, yes.  And jemalloc can already use
+> transparent hugepages, but there are downsides to apps (e.g. redis)
+> which fork:
+>
+>   http://mid.gmane.org/CA+XzkVfZV36k-d6mw9xEBgSQQhmfMKwts79wrwMB+3PYydzeCg at mail.gmail.com
+>
+> Not sure if there's an automatic, best-of-both worlds approach...
+
+Large pages are widely known to be a win in high-performance
+computing, e.g. Cray supercomputers.  Not that anyone sane forks
+(outside of program launch) in HPC programs, but you can't do it if
+you want to in Cray Linux anyways (at least the last time I read the
+docs).  Same story for Blue Gene, but since Blue Gene doesn't run
+Linux, there are a different set of issues to consider in the context
+of jemalloc.
+
+The positive effective of large pages on TLB misses are pretty
+obvious, but there are plenty of papers written about this topic if
+people need evidence.  TLB misses are more common than fork() in all
+of the codes where I care about performance...
+
+I'm optimistic that https://github.com/memkind will let me exploit
+large pages on Cray machines, but I haven't had time to try it yet.
+
+Best,
+
+Jeff
+
+-- 
+Jeff Hammond
+jeff.science at gmail.com
+http://jeffhammond.github.io/
+
+From jasone at canonware.com  Tue Dec  2 16:29:46 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 2 Dec 2014 16:29:46 -0800
+Subject: [PATCH] Fix test breakage on 32-bit systems
+In-Reply-To: <546543F7.6050307@gmail.com>
+References: <546543F7.6050307@gmail.com>
+Message-ID: <DC6FB7A5-1824-4ED4-988F-89EADFC0C8EC@canonware.com>
+
+On Nov 13, 2014, at 3:51 PM, Yuriy Kaminskiy <yumkam at gmail.com> wrote:
+> From 870eb004d977b92a82531275c5739ec2d2667281 Mon Sep 17 00:00:00 2001
+> From: "Yuriy M. Kaminskiy" <yumkam at gmail.com>
+> Date: Fri, 14 Nov 2014 02:13:02 +0300
+> Subject: [PATCH] Fix test breakage on 32-bit systems
+> 
+> test_stats_arenas_bins:test/unit/stats.c:332: Failed assertion:
+> (jet_mallctl("stats.arenas.0.bins.0.nfills", &nfills, &sz, ((void *)0),
+> 0)) == (config_tcache ? expected : 2) --> 22 != 0: Unexpected mallctl()
+> result
+> etc
+> (22 is EINVAL on this platform)
+> 
+> Regression by 3c4d92e82a31f652a7c77ca937a02d0185085b06
+> ---
+> test/unit/stats.c |    1 +
+> 1 files changed, 1 insertions(+), 0 deletions(-)
+> 
+> diff --git a/test/unit/stats.c b/test/unit/stats.c
+> index fd92d54..946e737 100644
+> --- a/test/unit/stats.c
+> +++ b/test/unit/stats.c
+> @@ -327,6 +327,7 @@ TEST_BEGIN(test_stats_arenas_bins)
+> 	assert_d_eq(mallctl("stats.arenas.0.bins.0.curregs", &curregs, &sz,
+> 	    NULL, 0), expected, "Unexpected mallctl() result");
+> 
+> +	sz = sizeof(uint64_t);
+> 	assert_d_eq(mallctl("stats.arenas.0.bins.0.nfills", &nfills, &sz,
+> 	    NULL, 0), config_tcache ? expected : ENOENT,
+> 	    "Unexpected mallctl() result");
+> -- 
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/f79e01f75b79058c3be0ce6de0d46f8a9a990176 <https://github.com/jemalloc/jemalloc/commit/f79e01f75b79058c3be0ce6de0d46f8a9a990176>
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141202/e9acc8c8/attachment.html>
+
+From fykcee1 at gmail.com  Wed Dec  3 06:17:30 2014
+From: fykcee1 at gmail.com (cee1)
+Date: Wed, 3 Dec 2014 22:17:30 +0800
+Subject: Question about the spare chunk
+Message-ID: <CAGXxSxXTGthF-_PBP8LuxPKxDdjeQXQqowyrdj5BnFw3TE+1zg@mail.gmail.com>
+
+Hi, all
+
+I'm learning the code of jemalloc 3.6.0, I find in arena_run_dalloc()
+"""
+if (size == arena_maxclass)
+    arena_chunk_dealloc(arena, chunk);
+"""
+
+And in arena_chunk_dealloc():
+"""
+if (arena->spare != NULL) {
+    arena_chunk_t *spare = arena->spare;
+
+    arena->spare = chunk;
+    malloc_mutex_unlock(&arena->lock);
+
+    chunk_dealloc((void *)spare, chunksize, true);
+
+    malloc_mutex_lock(&arena->lock);
+"""
+
+Here the old spare chunk is replaced by the new one and dealloced.
+
+The deallocating process is done without the lock protection. In this
+lockless period, is it possible another arena_chunk_dealloc running in
+another thread replaces and deallocates ** our new spare chunk ** ?
+Which is still in the chunks_dirty tree and will be accessed by the
+purge process later.
+
+
+
+-- 
+Regards,
+
+- cee1
+
+From jasone at canonware.com  Wed Dec  3 15:41:45 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 3 Dec 2014 15:41:45 -0800
+Subject: Question about the spare chunk
+In-Reply-To: <CAGXxSxXTGthF-_PBP8LuxPKxDdjeQXQqowyrdj5BnFw3TE+1zg@mail.gmail.com>
+References: <CAGXxSxXTGthF-_PBP8LuxPKxDdjeQXQqowyrdj5BnFw3TE+1zg@mail.gmail.com>
+Message-ID: <431B543D-B3E6-4374-9AC1-D42B859F9F48@canonware.com>
+
+On Dec 3, 2014, at 6:17 AM, cee1 <fykcee1 at gmail.com> wrote:
+> I'm learning the code of jemalloc 3.6.0, I find in arena_run_dalloc()
+> """
+> if (size == arena_maxclass)
+>    arena_chunk_dealloc(arena, chunk);
+> """
+> 
+> And in arena_chunk_dealloc():
+> """
+> if (arena->spare != NULL) {
+>    arena_chunk_t *spare = arena->spare;
+> 
+>    arena->spare = chunk;
+>    malloc_mutex_unlock(&arena->lock);
+> 
+>    chunk_dealloc((void *)spare, chunksize, true);
+> 
+>    malloc_mutex_lock(&arena->lock);
+> """
+> 
+> Here the old spare chunk is replaced by the new one and dealloced.
+> 
+> The deallocating process is done without the lock protection. In this
+> lockless period, is it possible another arena_chunk_dealloc running in
+> another thread replaces and deallocates ** our new spare chunk ** ?
+> Which is still in the chunks_dirty tree and will be accessed by the
+> purge process later.
+
+The chunk being passed to chunk_dealloc() has been completely dissociated from the arena prior to the malloc_mutex_unlock() call, so there's no way for it to be accessed by the arena again.  If another thread concurrently calls into arena_chunk_dealloc() to deallocate the current spare, then the same logic holds for that chunk deallocation.
+
+Jason
+
+From fykcee1 at gmail.com  Thu Dec  4 21:17:52 2014
+From: fykcee1 at gmail.com (cee1)
+Date: Fri, 5 Dec 2014 13:17:52 +0800
+Subject: Question about the spare chunk
+In-Reply-To: <431B543D-B3E6-4374-9AC1-D42B859F9F48@canonware.com>
+References: <CAGXxSxXTGthF-_PBP8LuxPKxDdjeQXQqowyrdj5BnFw3TE+1zg@mail.gmail.com>
+	<431B543D-B3E6-4374-9AC1-D42B859F9F48@canonware.com>
+Message-ID: <CAGXxSxW_FwtzT5KXpQqoEJOGA23Q55ZD5zFq89pKNAgOSsx_Aw@mail.gmail.com>
+
+Hi,
+
+Thanks for the reply!
+
+2014-12-04 7:41 GMT+08:00 Jason Evans <jasone at canonware.com>:
+> On Dec 3, 2014, at 6:17 AM, cee1 <fykcee1 at gmail.com> wrote:
+>> Here the old spare chunk is replaced by the new one and dealloced.
+>>
+>> The deallocating process is done without the lock protection. In this
+>> lockless period, is it possible another arena_chunk_dealloc running in
+>> another thread replaces and deallocates ** our new spare chunk ** ?
+>> Which is still in the chunks_dirty tree and will be accessed by the
+>> purge process later.
+>
+> The chunk being passed to chunk_dealloc() has been completely dissociated from the arena prior to the malloc_mutex_unlock() call, so there's no way for it to be accessed by the arena again.  If another thread concurrently calls into arena_chunk_dealloc() to deallocate the current spare, then the same logic holds for that chunk deallocation.
+
+Could you describe this more detail?
+
+"""   <--- code snippet in arena_chunk_dealloc()
+
+assert(arena_mapbits_dirty_get(chunk, map_bias) ==
+arena_mapbits_dirty_get(chunk, chunk_npages-1));
+/*
+ * Remove run from the runs_avail tree, so that the arena does not use
+ * it.
+ */
+arena_avail_remove(arena, chunk, map_bias, chunk_npages-map_bias, false, false);
+
+if (arena->spare != NULL) {
+    arena_chunk_t *spare = arena->spare;
+    arena->spare = chunk;
+
+    malloc_mutex_unlock(&arena->lock);
+    ...
+"""
+
+What I understand:
+1. The chunk may be whole dirty, i.e. n_dirty == 1.
+
+2. After calling arena_avail_remove, the chunk may still be in
+arena->chunks_dirty
+
+3. After calling unlock(and before locking again), some other
+arena_chunk_dealloc may dealloc previous arena->spare, which is still
+in chunks_dirty.
+
+Am I right?
+
+
+
+BTW, in function arena_run_regind(), I notice a "plus 1" in
+"""
+define SIZE_INV(s)     (((1U << SIZE_INV_SHIFT) / (s)) + 1)
+"""
+
+Why we need this?
+
+
+
+-- 
+Regards,
+
+- cee1
+
+From fykcee1 at gmail.com  Mon Dec  8 04:28:34 2014
+From: fykcee1 at gmail.com (cee1)
+Date: Mon, 8 Dec 2014 20:28:34 +0800
+Subject: Question about the spare chunk
+In-Reply-To: <CAGXxSxW_FwtzT5KXpQqoEJOGA23Q55ZD5zFq89pKNAgOSsx_Aw@mail.gmail.com>
+References: <CAGXxSxXTGthF-_PBP8LuxPKxDdjeQXQqowyrdj5BnFw3TE+1zg@mail.gmail.com>
+	<431B543D-B3E6-4374-9AC1-D42B859F9F48@canonware.com>
+	<CAGXxSxW_FwtzT5KXpQqoEJOGA23Q55ZD5zFq89pKNAgOSsx_Aw@mail.gmail.com>
+Message-ID: <CAGXxSxUEF=JOp8epQ4w24-XYeqbdTJ2xueMVNPtmAfQGrycuvw@mail.gmail.com>
+
+2014-12-05 13:17 GMT+08:00 cee1 <fykcee1 at gmail.com>:
+> Hi,
+>
+> Thanks for the reply!
+>
+> 2014-12-04 7:41 GMT+08:00 Jason Evans <jasone at canonware.com>:
+>> On Dec 3, 2014, at 6:17 AM, cee1 <fykcee1 at gmail.com> wrote:
+>>> Here the old spare chunk is replaced by the new one and dealloced.
+>>>
+>>> The deallocating process is done without the lock protection. In this
+>>> lockless period, is it possible another arena_chunk_dealloc running in
+>>> another thread replaces and deallocates ** our new spare chunk ** ?
+>>> Which is still in the chunks_dirty tree and will be accessed by the
+>>> purge process later.
+>>
+>> The chunk being passed to chunk_dealloc() has been completely dissociated from the arena prior to the malloc_mutex_unlock() call, so there's no way for it to be accessed by the arena again.  If another thread concurrently calls into arena_chunk_dealloc() to deallocate the current spare, then the same logic holds for that chunk deallocation.
+>
+> Could you describe this more detail?
+>
+> """   <--- code snippet in arena_chunk_dealloc()
+>
+> assert(arena_mapbits_dirty_get(chunk, map_bias) ==
+> arena_mapbits_dirty_get(chunk, chunk_npages-1));
+> /*
+>  * Remove run from the runs_avail tree, so that the arena does not use
+>  * it.
+>  */
+> arena_avail_remove(arena, chunk, map_bias, chunk_npages-map_bias, false, false);
+>
+> if (arena->spare != NULL) {
+>     arena_chunk_t *spare = arena->spare;
+>     arena->spare = chunk;
+>
+>     malloc_mutex_unlock(&arena->lock);
+>     ...
+> """
+>
+> What I understand:
+> 1. The chunk may be whole dirty, i.e. n_dirty == 1.
+>
+> 2. After calling arena_avail_remove, the chunk may still be in
+> arena->chunks_dirty
+
+Sorry for didn't notice the chunk will be removed from
+arena->chunks_dirty in arena_avail_remove():
+"""
+if (arena_mapbits_dirty_get(chunk, pageind) != 0) {
+    arena->ndirty -= npages;
+    chunk->ndirty -= npages;
+}
+
+if (chunk->ndirty != 0)
+    arena_chunk_dirty_insert(&arena->chunks_dirty, chunk);
+"""
+
+Then the question becomes what case does the branch in
+arena_chunk_purge() to catch:
+"""
+if (chunk == arena->spare) {
+    assert(arena_mapbits_dirty_get(chunk, map_bias) != 0);
+    assert(arena_mapbits_dirty_get(chunk, chunk_npages-1) != 0);
+    arena_chunk_alloc(arena);
+}
+"""
+
+The invocation path is
+"arena_run_dalloc()/arena_maybe_purge()/arena_purge()
+/arena_chunk_purge(arena, chunk, all)"
+
+I notice:
+1. The chunk parameter of arena_chunk_purge() is from "chunk =
+arena_chunk_dirty_first(&arena->chunks_dirty)"
+2. arena->chunks_dirty should not hold any reference to arena->spare
+
+So the branch should always be skipped, am I right?
+
+
+
+>
+> BTW, in function arena_run_regind(), I notice a "plus 1" in
+> """
+> define SIZE_INV(s)     (((1U << SIZE_INV_SHIFT) / (s)) + 1)
+> """
+>
+> Why we need this?
+
+
+
+-- 
+Regards,
+
+- cee1
+
+From bradley at mit.edu  Thu Dec 18 19:15:28 2014
+From: bradley at mit.edu (Bradley C. Kuszmaul)
+Date: Thu, 18 Dec 2014 22:15:28 -0500
+Subject: linux glibc sometimes improperly free()'s objects created by
+	__libc_memalign()
+Message-ID: <CAKSyJXdC-ncR4JMHHaeT9ZJyd4q-K88aK3JVviS+O1xZQMOWxg@mail.gmail.com>
+
+I'd like to alert you to a problem that I found in linux libc.  This bug
+may affect users of jemalloc.
+
+I've submitted a bug on libc as
+ https://sourceware.org/bugzilla/show_bug.cgi?id=17730
+
+The problem is that under some conditions, libc allocates memory using
+__libc_memalign or __libc_malloc and later frees it using free(), rather
+than __libc_free().  This behavior is incorrect: for example, there is no
+reason to believe that jemalloc will know what to do with
+free(__libc_malloc(N)).   It seems quite possible that the jemalloc data
+structures could become corrupted, but I haven't investigated exactly what
+happens.
+
+One possible workaround for the problem is to arrange that if jemalloc sees
+a pointer that it didn't create, then pass the pointer to the system's free
+as
+
+    if (pointer_doesnt_belong_to_jemalloc(p)) {
+       void (*free_p)(void*) = (void(*)(void*)) (dlsym(RTLD_NEXT, "free"));
+       free_p(p);
+    }
+
+this workaround *might* fix the problem for some users.  I haven't got a
+better idea except to fix libc.
+
+
+The conditions are as follows:
+
+Here are the conditions under which I can reproduce this problem:
+ * The main user code defines its own malloc/free
+ * The main user code dynamically loads a library using dlopen()/dlsym().
+ * The library contains thread-local storage.
+ * A thread runs, and then proceeds to touch the thread-local storage,
+eventually invoking tls_get_addr_tail() (in /elf/dl-tls.c) and then
+allocate_and_init() and then __libc_memalign().
+ * Eventually, this storage is deallocated using free() instead __libc_free().
+
+I ran this on Fedora 20, but it looks like the problem is still there
+in libc-main.
+
+A test case is attached.  This test case implements its own very
+simple malloc/free library and complains if you pass free() an
+improper pointer. You can run it as show below.
+
+-Bradley
+
+[bradley at 30-87-232 test]$ tar xfz libc-bug.tar.gz
+[bradley at 30-87-232 test]$ cd libc-bug/
+[bradley at 30-87-232 libc-bug]$ make check
+gcc -g -W -Wall -Werror -pthread -fPIC --shared libtls.c -o libtls.so
+cc -g -W -Wall -Werror -pthread -fPIC    tls.c  -ldl -o tls
+./tls
+malloc(32)=0x6020c0
+malloc(46)=0x6020e0
+malloc(1214)=0x60210e
+malloc(46)=0x6025cc
+malloc(56)=0x6025fa
+malloc(96)=0x602632
+malloc(288)=0x602692
+malloc(288)=0x6027b2
+malloc(288)=0x6028d2
+malloc(288)=0x6029f2
+1048576
+1048576
+1048576
+malloc(288)=0x602b12
+1048576
+1048576
+free passed 0xea1010 not in range
+make: *** [check] Aborted (core dumped)
+[bradley at 30-87-232 libc-bug]$
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141218/20b15fb7/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: libc-bug.tar.gz
+Type: application/x-gzip
+Size: 1691 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141218/20b15fb7/attachment.bin>
+
+From oran at redislabs.com  Wed Dec 24 01:33:40 2014
+From: oran at redislabs.com (Oran Agra)
+Date: Wed, 24 Dec 2014 11:33:40 +0200
+Subject: ctl_refresh() is never called,
+	je_mallctl("stats.allocated") doesn't work
+Message-ID: <CAJQN3N6hQv6m04R6TA8u+MxpzAttWJ+Aoead3yvbjOWy_FnPOg@mail.gmail.com>
+
+Hi,
+I'm trying to get the stat for total allocated memory.
+
+i'm calling either:
+    size_t um;
+    size_t sz = sizeof(size_t);
+    res = je_mallctl("stats.allocated", &um, &sz, NULL, 0);
+or
+    size_t allocated_mib[2];
+    size_t allocated_mib_len = 0;
+    allocated_mib_len = sizeof(allocated_mib);
+    int res = je_mallctlnametomib("stats.allocated", allocated_mib,
+&allocated_mib_len);
+    int res = je_mallctlbymib(allocated_mib, allocated_mib_len, &um, &sz,
+NULL, 0);
+both return success (0), but 'um' variable is always set to 0.
+
+digging into the source code of jemalloc, it seems that ctl_refresh() which
+is suppose to update this stat is never called.
+p.s. config_stats is set to true, and i confirmed that with a debugger.
+
+is it a bug? or am i missing something?
+thanks.
+    Oran.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141224/016aa639/attachment.html>
+
+From oran at redislabs.com  Wed Dec 24 01:35:25 2014
+From: oran at redislabs.com (Oran Agra)
+Date: Wed, 24 Dec 2014 11:35:25 +0200
+Subject: adding size class for 24 bytes pool on x86
+Message-ID: <CAJQN3N7CiyVsCj4J9Wh0Lo3rQm1PLYZSpCKgmV_4KjfxYvLKSA@mail.gmail.com>
+
+Hi,
+I have an application running on x86 that uses jemalloc which can greatly
+benefit from an allocation pool of 24 bytes.
+currently there are pools for 8,16,32...
+I've tried changing include/jemalloc/internal/size_classes.sh with the
+following patch:
+------------------------------------------------------------
+----------------------
+-# The range of tiny size classes is [2^lg_tmin..2^(lg_q-1)].
++# The range of tiny size classes is [2^lg_tmin..2^(lg_q+1)].
+ lg_tmin=3
+
+ # Range of page sizes.
+@@ -48,11 +48,11 @@
+       echo "#define    SIZE_CLASSES                            \\"
+
+       # Tiny size classes.
+-      while [ ${sz} -lt ${q} ] ; do
++      while [ ${sz} -lt $((${q}*2)) ] ; do
+         echo "    SIZE_CLASS(${bin},    ${delta},    ${sz})
+    \\"
+         bin=$((${bin} + 1))
+         psz=${sz}
+-        sz=$((${sz} + ${sz}))
++        sz=$((${sz} + ${t}))
+         delta=$((${sz} - ${psz}))
+       done
+------------------------------------------------------------
+----------------------
+
+now, my size classes table looks like this:
+------------------------------------------------------------
+----------------------
+/*  SIZE_CLASS(bin,    delta,    sz) */
+#define    SIZE_CLASSES                            \
+    SIZE_CLASS(0,    8,    8)                    \
+    SIZE_CLASS(1,    8,    16)                    \
+    SIZE_CLASS(2,    8,    24)                    \
+    SIZE_CLASS(3,    8,    32)                    \
+    SIZE_CLASS(4,    16,    48)                    \
+    SIZE_CLASS(5,    16,    64)                    \
+------------------------------------------------------------
+----------------------
+it seems to work fine, but i'm not sure if there are some side-effects.
+the 32 bytes pool which had delta of 16, now has a delta of 8.
+i see in the implementation of the SIZE_CLASS macro, that the 'sz' argument
+isn't used at all, and the delta argument is.
+
+another approach might be to change LG_QUANTUM to 3 rather than 4.
+i think this will create several new small size classes, but may also have
+undesired side-effects.
+
+can you please tell me if i got it right? what are the side-effects? or
+what is the right way to achieve what I'm trying to do?
+thanks.
+    Oran.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141224/6d2a08cc/attachment.html>
+

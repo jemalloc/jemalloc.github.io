@@ -1,0 +1,1858 @@
+From veejppee at gmail.com  Wed Jan  6 01:03:53 2016
+From: veejppee at gmail.com (vijay bhatt)
+Date: Wed, 6 Jan 2016 14:33:53 +0530
+Subject: Jemalloc Porting
+Message-ID: <CABBz-2Dht-wD2zHFs2EeOs7PSPzyAd5mGO2A4cO_aSbNxwPqLA@mail.gmail.com>
+
+Hi,
+
+I have requirement to setup jemalloc for application, the
+specification is as follows:
+
+1   Allocations  (small, large ) is in terms of MB (2MB, 4MB, .........)
+
+2.  Allocations are always aligned to 2MB granularity
+3.  System Page size considered as 2MB (Linux Huge PAGE)
+4.  No request comes for allocation size less than 2MB, if such
+request comes then application will round up the size to 2Mb
+granularity
+
+Please provide how to do port jemalloc for such configuration, I want
+to avail jemalloc (small, large) size class  also for above
+requirement such that
+- small size will range from : 2MB, 4MB, 8MB ....... to 16MB
+- large size class ranges from 32MB, 64MB, 128 MB
+There is no intermediate allocation size i.e (3MB, 5MB etc )
+
+Thanks & Regards,
+Vijay  Bhatt
+
+From mmzsmm at 163.com  Thu Jan  7 18:46:24 2016
+From: mmzsmm at 163.com (mmzsmm)
+Date: Fri, 8 Jan 2016 10:46:24 +0800 (CST)
+Subject: question about Jemalloc purging order
+Message-ID: <31f02a1e.54ca.1521f20bb34.Coremail.mmzsmm@163.com>
+
+Hi,
+
+I have been reading the Je source code, and I have some question about the purging order.
+The fisrt one is , according to the code comments, the clean-dirty fragmentation is measured as,
+
+* Order such that chunks with higher fragmentation are "less than"
+* those with lower fragmentation -- purging order is from "least" to
+* "greatest".
+    mean current avail run size                 nruns_avail-nruns_adjac
+--------------------------------------------  =  ----------------------------------
+mean defragmented avail run size                  nruns_avail
+
+So if I have a chunkA with avail_runs = 10, adjac = 1, and another chunkB with avail_runs = 20, adjac = 5.
+Obviously, the fragmentA(0.9) > fragmentB(0.75), so the A will be prior to B in the dirty chunk tree, and
+will be purged first. But the chunkB truely has more adjacs than the A, and the performace gain after purging
+chunkA is also less than the other(0.1 vs 0.25). Why we prefer to purge the chunk with "less adjacs"?
+Shouldn't we purge more adjacs or clean-dirty fragments to acquire more continuous unalloc pages?
+
+Another question is, I notice that before the git node e3d13060 there are two avail-trees, one is for dirty,
+and another for clean,
+    arena_avail_tree_t    runs_avail_clean;
+    arena_avail_tree_t    runs_avail_dirty;
+After that, the two became one. So how to ensure the new runs allocaction to prefer to dirty pages?
+Is the modification will cause more performance regression than before?
+
+That's all, thanks.
+
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160108/b08f3322/attachment.html>
+
+From jasone at canonware.com  Mon Jan 11 11:12:15 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 11 Jan 2016 11:12:15 -0800
+Subject: [PATCH v2] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+In-Reply-To: <1450895532-11202-1-git-send-email-cparaschiv@ixiacom.com>
+References: <D7E9A7DF-2132-49E5-A9B4-46D249362D65@canonware.com>
+	<1450895532-11202-1-git-send-email-cparaschiv@ixiacom.com>
+Message-ID: <68EDFB2C-893B-4188-A7E6-075C07C099C0@canonware.com>
+
+On Dec 23, 2015, at 10:32 AM, Cosmin Paraschiv <cparaschiv at ixiacom.com> wrote:
+> When using LinuxThreads, malloc bootstrapping deadlocks, since malloc_tsd_boot0
+> ends up calling pthread_setspecific, which causes recursive allocation. Fix it,
+> by moving the malloc_tsd_boot0 call to malloc_init_hard_recursible.
+> 
+> The deadlock has been introduced by commit 8bb3198f72, when tsd_boot was split
+> and the top half, tsd_boot0, got an extra tsd_wrapper_set call.
+> 
+> Signed-off-by: Cosmin Paraschiv <cparaschiv at ixiacom.com>
+> ---
+> src/jemalloc.c | 21 ++++++++++++++++-----
+> 1 file changed, 16 insertions(+), 5 deletions(-)
+> 
+> <0001-Call-malloc_tsd_boot0-from-malloc_init_hard_recursib.patch>_______________________________________________
+> 
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/9cb481a73f6d2b518f695a669c1f850e477fdd2c
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Mon Jan 11 11:37:23 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 11 Jan 2016 11:37:23 -0800
+Subject: question about Jemalloc purging order
+In-Reply-To: <31f02a1e.54ca.1521f20bb34.Coremail.mmzsmm@163.com>
+References: <31f02a1e.54ca.1521f20bb34.Coremail.mmzsmm@163.com>
+Message-ID: <7D460055-474F-47B5-A93F-BD50D5C818DB@canonware.com>
+
+On Jan 7, 2016, at 6:46 PM, mmzsmm <mmzsmm at 163.com> wrote:
+> [...] according to the code comments, the clean-dirty fragmentation is measured as,
+> 
+> * Order such that chunks with higher fragmentation are "less than"
+> * those with lower fragmentation -- purging order is from "least" to
+> * "greatest". 
+>     mean current avail run size                 nruns_avail-nruns_adjac
+> --------------------------------------------  =  ----------------------------------
+> mean defragmented avail run size                  nruns_avail
+> 
+> So if I have a chunkA with avail_runs = 10, adjac = 1, and another chunkB with avail_runs = 20, adjac = 5.
+> Obviously, the fragmentA(0.9) > fragmentB(0.75), so the A will be prior to B in the dirty chunk tree, and 
+> will be purged first. But the chunkB truely has more adjacs than the A, and the performace gain after purging 
+> chunkA is also less than the other(0.1 vs 0.25). Why we prefer to purge the chunk with "less adjacs"? 
+> Shouldn't we purge more adjacs or clean-dirty fragments to acquire more continuous unalloc pages?
+
+We actually do purge B first, but it's hard to see unless you follow the calculations in the code.  Note that a_val=0.45 and b_val=1.5 in this case, which means that the comparison function returns 1, causing A to come after B in the in-order tree traversal.
+
+> Another question is, I notice that before the git node e3d13060 there are two avail-trees, one is for dirty, 
+> and another for clean,
+>     arena_avail_tree_t    runs_avail_clean;
+>     arena_avail_tree_t    runs_avail_dirty;
+> After that, the two became one. So how to ensure the new runs allocaction to prefer to dirty pages? 
+
+IIRC, there were versions of jemalloc that did not prefer dirty pages.
+
+Note that you're looking at jemalloc 3.x code, but 4.x uses substantially different algorithms that obsoleted the code that ordered chunks according to fragmentation.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160111/f8833186/attachment.html>
+
+From jasone at canonware.com  Mon Jan 11 12:20:30 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 11 Jan 2016 12:20:30 -0800
+Subject: Jemalloc 4.0.3 configure script breaks building inside a
+	different git repository.
+In-Reply-To: <CA+XzkVdQ0Cr2ip0LVONYTmNDQ0mMWVPV4Q1NOCtgf6OWKBiO7g@mail.gmail.com>
+References: <CA+XzkVdQ0Cr2ip0LVONYTmNDQ0mMWVPV4Q1NOCtgf6OWKBiO7g@mail.gmail.com>
+Message-ID: <E84967F5-8B74-4854-84CC-C1602C280D53@canonware.com>
+
+On Oct 7, 2015, at 12:09 AM, Salvatore Sanfilippo <antirez at gmail.com> wrote:
+> [VERSION-related build issues]
+
+There is a separate (more recent) report for this issue:
+
+  https://github.com/jemalloc/jemalloc/issues/305
+
+I will follow up there with a fix, sometime before the next release.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Mon Jan 11 12:22:12 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 11 Jan 2016 12:22:12 -0800
+Subject: jemalloc usage for bare metal cortex A53 : Multicore 
+In-Reply-To: <CCB8317357699442B304E7B1149BB718033FDB71C6@EAPEX1MAIL2.st.com>
+References: <CCB8317357699442B304E7B1149BB718033FDB71C6@EAPEX1MAIL2.st.com>
+Message-ID: <BF789E88-0CD2-4D13-838A-797051E8CC62@canonware.com>
+
+On Oct 5, 2015, at 4:53 AM, Monika TRIPATHI <monika.tripathi at st.com> wrote:
+> This is regarding usage of jemalloc, I want to use jemalloc for bare metal cortex A53 malloc (since bare metal gcc does not support malloc for multicore).
+>  
+> when I use gcc  
+> Using built-in specs.
+> COLLECT_GCC=gcc
+> COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6/lto-wrapper
+> Target: x86_64-linux-gnu
+> Configured with: ../src/configure -v --with-pkgversion='Ubuntu/Linaro 4.6.3-1ubuntu5' --with-bugurl=file:///usr/share/doc/gcc-4.6/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.6 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --enable-plugin --enable-objc-gc --disable-werror --with-arch-32=i686 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+> Thread model: posix
+> gcc version 4.6.3 (Ubuntu/Linaro 4.6.3-1ubuntu5) \
+>  
+> Then I can see the make is OK , where as when I use ?bare-4.8.2-3/bin//arm-none-eabi-gcc?
+> Then I get error
+>  
+> In file included from include/jemalloc/internal/jemalloc_internal.h:5:0,
+>                  from src/jemalloc.c:2:
+> include/jemalloc/internal/jemalloc_internal_decls.h:11:24: fatal error: sys/mman.h: No such file or directory
+> #  include <sys/mman.h>
+>                         ^
+> compilation terminated.
+> make: *** [src/jemalloc.pic.o] Error 1
+>  
+> Now the problem is since I am working in baremetal I have to use ??bare-4.8.2-3/bin//arm-none-eabi-gcc?
+
+jemalloc requires the mmap() system call, so if you want to port to an environment that lacks the system call, you're going to have to provide an alternative, remove the #include <sys/mman.h>, etc.
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160111/1af74421/attachment.html>
+
+From mmzsmm at 163.com  Mon Jan 11 19:49:00 2016
+From: mmzsmm at 163.com (mmzsmm)
+Date: Tue, 12 Jan 2016 11:49:00 +0800 (CST)
+Subject: question about Jemalloc purging order
+In-Reply-To: <7D460055-474F-47B5-A93F-BD50D5C818DB@canonware.com>
+References: <31f02a1e.54ca.1521f20bb34.Coremail.mmzsmm@163.com>
+	<7D460055-474F-47B5-A93F-BD50D5C818DB@canonware.com>
+Message-ID: <ceb0c14.4e1a.15233f3783a.Coremail.mmzsmm@163.com>
+
+Hi Jason,
+
+Thank you so much for the reply. I read the code once again, but I still don't understand the calculations here.
+The original dirty chunk cmp function is,
+
+static inline int
+arena_chunk_dirty_comp(arena_chunk_t *a, arena_chunk_t *b)
+{
+        ......
+        size_t a_val = (a->nruns_avail - a->nruns_adjac) *
+            b->nruns_avail;
+        size_t b_val = (b->nruns_avail - b->nruns_adjac) *
+            a->nruns_avail;
+
+        if (a_val < b_val)
+            return (1);
+        if (a_val > b_val)
+            return (-1);
+
+        ......
+}
+
+In the case as we mentioned above, how do you get a_val = 0.45 and b_val = 1.5?
+Is it because a_val = (10 - 1) / 20; b_val = (20 - 5) / 10?
+But according to the code, a_val = (10 - 1) * 20, and b_val = (20 - 5) * 10, so it should return (-1)?
+
+And I trace the code in a demo, that makes me more confusing...
+At first, I set the breakpoint at arena_chunk_dirty_first() when the Je is performing purging, and the backtrace is like this,
+#0  arena_chunk_dirty_first (rbtree=0x7ffff7010110) at src/arena.c:171
+#1  0x0000000000411f4e in arena_purge (arena=0x7ffff7010080, all=false) at src/arena.c:1032
+#2  0x0000000000411447 in arena_maybe_purge (arena=0x7ffff7010080) at src/arena.c:793
+#3  0x000000000041299f in arena_run_dalloc (arena=0x7ffff7010080, run=0x7ffff68ce000, dirty=true, cleaned=false) at src/arena.c:1232
+#4  0x0000000000414db4 in je_arena_dalloc_large_locked (arena=0x7ffff7010080, chunk=0x7ffff6800000, ptr=0x7ffff68ce000) at src/arena.c:1971
+#5  0x0000000000414df6 in je_arena_dalloc_large (arena=0x7ffff7010080, chunk=0x7ffff6800000, ptr=0x7ffff68ce000) at src/arena.c:1979
+#6  0x0000000000409914 in je_arena_dalloc (arena=0x7ffff7010080, chunk=0x7ffff6800000, ptr=0x7ffff68ce000, try_tcache=true)
+    at include/jemalloc/internal/arena.h:1056
+#7  0x0000000000401b85 in je_idalloct (ptr=0x7ffff68ce000, try_tcache=true) at include/jemalloc/internal/jemalloc_internal.h:898
+#8  0x0000000000401c06 in je_iqalloct (ptr=0x7ffff68ce000, try_tcache=true) at include/jemalloc/internal/jemalloc_internal.h:917
+#9  0x0000000000401c25 in je_iqalloc (ptr=0x7ffff68ce000) at include/jemalloc/internal/jemalloc_internal.h:924
+#10 0x0000000000405414 in ifree (ptr=0x7ffff68ce000) at src/jemalloc.c:1233
+#11 0x0000000000405a5c in xffree (ptr=0x7ffff68ce000) at src/jemalloc.c:1308
+#12 0x00000000004011f1 in main (argc=1, argv=0x7fffffffe0c8) at main.c:40
+
+We can see the dirty chuck tree,
+(gdb) p (arena_chunk_tree_t) *0x7ffff7010110
+$16 = {
+  rbt_root = 0x7ffff6800000,
+  rbt_nil = {
+    arena = 0x0,
+    dirty_link = {
+      rbn_left = 0x7ffff7010118,
+      rbn_right_red = 0x7ffff7010118
+    },
+    ndirty = 0,
+    nruns_avail = 0,
+    nruns_adjac = 0,
+    map = {{
+       ......
+      }}
+  }
+}
+
+The root node is 0x7ffff6800000,
+(gdb) p (arena_chunk_t) *0x7ffff6800000
+$17 = {
+  arena = 0x7ffff7010080,
+  dirty_link = {
+    rbn_left = 0x7ffff6c00000,
+    rbn_right_red = 0x7ffff7010118
+  },
+  ndirty = 96,
+  nruns_avail = 3,
+  nruns_adjac = 1,
+  map = {{
+      ......
+    }}
+}
+
+And the left node is 0x7ffff6c00000, which is also the left-most node(we only have two chunks here),
+(gdb) p (arena_chunk_t) *0x7ffff6c00000
+$18 = {
+  arena = 0x7ffff7010080,
+  dirty_link = {
+    rbn_left = 0x7ffff7010118,
+    rbn_right_red = 0x7ffff7010119
+  },
+  ndirty = 72,
+  nruns_avail = 127,
+  nruns_adjac = 0,
+  map = {{
+      ......
+    }}
+}
+
+So when returned from frame#0, we got the chunk 0x7ffff6c00000,
+(gdb) fin
+Run till exit from #0  arena_chunk_dirty_first (rbtree=0x7ffff7010110) at src/arena.c:171
+0x0000000000411f4e in arena_purge (arena=0x7ffff7010080, all=false) at src/arena.c:1032
+1032            chunk = arena_chunk_dirty_first(&arena->chunks_dirty);
+Value returned is $19 = (arena_chunk_t *) 0x7ffff6c00000
+
+That is the traversal order, from 0x7ffff6c00000 -> 0x7ffff6800000. But you can see the
+node 0x7ffff6c00000 with nruns_avail = 127, nruns_adjac = 0; and 0x7ffff6800000
+with nruns_avail = 3, nruns_adjac = 1.  So why? According to the algorithm as you said,
+shoultn't we purge 0x7ffff6800000 first? However actually we purged a chunk even with no
+adjac first!
+
+
+
+
+
+? 2016-01-12 03:37:23?"Jason Evans" <jasone at canonware.com> ???
+On Jan 7, 2016, at 6:46 PM, mmzsmm <mmzsmm at 163.com> wrote:
+[...] according to the code comments, the clean-dirty fragmentation is measured as,
+
+* Order such that chunks with higher fragmentation are "less than"
+* those with lower fragmentation -- purging order is from "least" to
+* "greatest".
+    mean current avail run size                 nruns_avail-nruns_adjac
+--------------------------------------------  =  ----------------------------------
+mean defragmented avail run size                  nruns_avail
+
+So if I have a chunkA with avail_runs = 10, adjac = 1, and another chunkB with avail_runs = 20, adjac = 5.
+Obviously, the fragmentA(0.9) > fragmentB(0.75), so the A will be prior to B in the dirty chunk tree, and
+will be purged first. But the chunkB truely has more adjacs than the A, and the performace gain after purging
+chunkA is also less than the other(0.1 vs 0.25). Why we prefer to purge the chunk with "less adjacs"?
+Shouldn't we purge more adjacs or clean-dirty fragments to acquire more continuous unalloc pages?
+
+
+
+We actually do purge B first, but it's hard to see unless you follow the calculations in the code.  Note that a_val=0.45 and b_val=1.5 in this case, which means that the comparison function returns 1, causing A to come after B in the in-order tree traversal.
+
+
+Another question is, I notice that before the git node e3d13060 there are two avail-trees, one is for dirty,
+and another for clean,
+    arena_avail_tree_t    runs_avail_clean;
+    arena_avail_tree_t    runs_avail_dirty;
+After that, the two became one. So how to ensure the new runs allocaction to prefer to dirty pages?
+
+
+
+IIRC, there were versions of jemalloc that did not prefer dirty pages.
+
+
+Note that you're looking at jemalloc 3.x code, but 4.x uses substantially different algorithms that obsoleted the code that ordered chunks according to fragmentation.
+
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160112/1a73fae2/attachment-0001.html>
+
+From raju.sahu at gmail.com  Sun Jan 17 18:53:43 2016
+From: raju.sahu at gmail.com (RajaKishore Sahu)
+Date: Mon, 18 Jan 2016 08:23:43 +0530
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+	<CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+Message-ID: <CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+
+Hi,
+
+I have a follow up question.
+
+We have only 40 MB of memory for our sub system.
+
+I start up Jemalloc is keep asking for new chunks and by the time the
+system becomes ready it almost consumes 38 MB of memory.
+
+How we can tell Jemalloc to uses already allocated memory chuck when we run
+out of our 40 MB of memory?
+
+Thanks
+Rajakishore
+
+On Tue, Oct 13, 2015 at 8:21 AM, RajaKishore Sahu <raju.sahu at gmail.com>
+wrote:
+
+> Hi Luke,
+>
+> Thanks for sharing the details. I will go through the code and come back
+> if I need some more help.
+>
+> Thanks
+> Rajakishore Sahu
+>
+> On Mon, Oct 12, 2015 at 5:09 PM, D'Alessandro, Luke K <
+> ldalessa at indiana.edu> wrote:
+>
+>>
+>> > On Oct 12, 2015, at 1:12 AM, RajaKishore Sahu <raju.sahu at gmail.com>
+>> wrote:
+>> >
+>> > Hi,
+>> >
+>> > I am trying to port Jemalloc. We are going to use it for our sub-system
+>> not for the whole system.
+>> >
+>> > Main system has its own memory manager. While initializing the
+>> sub-system (in boot up) we will allocate memory from main system (Ex:- 10
+>> MB) which will be contiguous memory then we want to give the start address
+>> and size to Jemalloc to manage it. Please let us know where to provide the
+>> start address to jemalloc?
+>>
+>> Hi. This dlmalloc-mspace-like interface isn?t really supported by
+>> jemalloc, which wants to be able to request ?chunks? of memory from the
+>> system using a chunk allocator (typically mmap()).
+>>
+>> To do what you want you need to write a chunk provider based on [the
+>> chunk hooks class](
+>> http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html),
+>> and then install it for all of the threads in your code. Your chunk
+>> provider will have to give jemalloc chunks from your contiguous region.
+>>
+>> We do this in HPX-5 to manage a network-registered global heap. The
+>> callback chunks are [here](
+>> https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c)
+>> and the ?heap? is implemented (here)[
+>> https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c].
+>> This code is slightly complex but it?s basically just using a bitmap to
+>> allocate chunks from a large contiguous heap, and can serve as an example
+>> for you.
+>>
+>> > Main system will provide thread, Mutex/Semaphore and the memory for
+>> this will not be allocated from the sub-system. In this scenario how can we
+>> enable thread caching? We do have a rapper to create threads, which means
+>> we know which are the the threads created by sub-system. Will it help in
+>> enabling the thread caching?
+>>
+>> Thread caching will likely be on by default for the threads. In more
+>> complex code where you might want to manage more than one memory space, you
+>> may need to explicitly allocate new caches.
+>>
+>> Luke
+>>
+>> >
+>> > Any help will greatly appreciated!
+>> >
+>> >
+>> > --
+>> > Thanx
+>> > Rajakishore Sahu
+>> > Mail:-raju.sahu at gmail.com
+>> > _______________________________________________
+>> > jemalloc-discuss mailing list
+>> > jemalloc-discuss at canonware.com
+>> > http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>>
+>
+>
+> --
+> Thanx
+> Rajakishore Sahu
+> Mail:-raju.sahu at gmail.com
+> Mobile:-+91 9886719841
+>
+
+
+
+-- 
+Thanx
+Rajakishore Sahu
+Mail:-raju.sahu at gmail.com
+Mobile:-+91 9886719841
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160118/feb7cb45/attachment.html>
+
+From veejppee at gmail.com  Sun Jan 17 22:37:31 2016
+From: veejppee at gmail.com (vijay bhatt)
+Date: Mon, 18 Jan 2016 12:07:31 +0530
+Subject: Jemalloc Porting
+In-Reply-To: <CABBz-2Dht-wD2zHFs2EeOs7PSPzyAd5mGO2A4cO_aSbNxwPqLA@mail.gmail.com>
+References: <CABBz-2Dht-wD2zHFs2EeOs7PSPzyAd5mGO2A4cO_aSbNxwPqLA@mail.gmail.com>
+Message-ID: <CABBz-2ARdjioNyEd6w4bENmY3RQyp5N9BeRcprfi8hmKp85Z9w@mail.gmail.com>
+
+Hi,
+
+I am studying jemalloc design so that this design can be used in
+server based application. Please provide some initial references
+related to metadata management of each memory allocation of any size
+in jemalloc.
+
+1.  Is it possible to move the metadata allocation (Internal data
+structures for each arena a1, a2 .... narenas) from single arena "a0"?
+Example:
+I have two memory chunks (A & B )or blocks of size  1GB each. One
+memory chunk A is used to hold metadata information (excluding chunk
+headers) for each memory request done from memory block B. If memory
+chunk A cant be able to hold more metadata then  a new memory block of
+same size 1 GB  is allocated (A1, A2........ An') and same is for B
+which will
+Whether this strategy will work, if arena a0 will be used to hold
+metadata requests and all the other to serve memory requests. I am
+also finding out another solution but still not sure whether it works
+or not, Please see some description.
+
+For every Arena allocate two different chunks one to hold metadata
+information of small size requests and large size requests are already
+maintained in tree.
+
+2.  Please provide some more details or references related to size
+class implementation, If  user want to customize the size class
+granularity to 1MB, 2MB instead of bytes, KB's what other factors need
+to consider during customization.
+
+3. Is it possible to maintain chunk header separately instead of start
+of chunk?.
+
+Please correct me if there is any gap in understanding the design of
+jemalloc and feasibility to club jemalloc with server application.
+
+Thanks & Regards,
+Vijay K Bhatt
+
+On Wed, Jan 6, 2016 at 2:33 PM, vijay bhatt <veejppee at gmail.com> wrote:
+> Hi,
+>
+> I have requirement to setup jemalloc for application, the
+> specification is as follows:
+>
+> 1   Allocations  (small, large ) is in terms of MB (2MB, 4MB, .........)
+>
+> 2.  Allocations are always aligned to 2MB granularity
+> 3.  System Page size considered as 2MB (Linux Huge PAGE)
+> 4.  No request comes for allocation size less than 2MB, if such
+> request comes then application will round up the size to 2Mb
+> granularity
+>
+> Please provide how to do port jemalloc for such configuration, I want
+> to avail jemalloc (small, large) size class  also for above
+> requirement such that
+> - small size will range from : 2MB, 4MB, 8MB ....... to 16MB
+> - large size class ranges from 32MB, 64MB, 128 MB
+> There is no intermediate allocation size i.e (3MB, 5MB etc )
+>
+> Thanks & Regards,
+> Vijay  Bhatt
+
+
+
+-- 
+Vijay Kumar Bhatt
+
+From raju.sahu at gmail.com  Mon Jan 18 19:25:21 2016
+From: raju.sahu at gmail.com (RajaKishore Sahu)
+Date: Tue, 19 Jan 2016 08:55:21 +0530
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+	<CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+	<CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+Message-ID: <CA+bEgOGm6fEF5+aqhcVk6S5SArzkzTPbXtrYQx_51faKggiAtQ@mail.gmail.com>
+
+Hi,
+
+Please provide your valuable inputs for my below question?
+
+Thanks
+Rajakishore
+
+On Mon, Jan 18, 2016 at 8:23 AM, RajaKishore Sahu <raju.sahu at gmail.com>
+wrote:
+
+> Hi,
+>
+> I have a follow up question.
+>
+> We have only 40 MB of memory for our sub system.
+>
+> I start up Jemalloc is keep asking for new chunks and by the time the
+> system becomes ready it almost consumes 38 MB of memory.
+>
+> How we can tell Jemalloc to uses already allocated memory chuck when we
+> run out of our 40 MB of memory?
+>
+> Thanks
+> Rajakishore
+>
+> On Tue, Oct 13, 2015 at 8:21 AM, RajaKishore Sahu <raju.sahu at gmail.com>
+> wrote:
+>
+>> Hi Luke,
+>>
+>> Thanks for sharing the details. I will go through the code and come back
+>> if I need some more help.
+>>
+>> Thanks
+>> Rajakishore Sahu
+>>
+>> On Mon, Oct 12, 2015 at 5:09 PM, D'Alessandro, Luke K <
+>> ldalessa at indiana.edu> wrote:
+>>
+>>>
+>>> > On Oct 12, 2015, at 1:12 AM, RajaKishore Sahu <raju.sahu at gmail.com>
+>>> wrote:
+>>> >
+>>> > Hi,
+>>> >
+>>> > I am trying to port Jemalloc. We are going to use it for our
+>>> sub-system not for the whole system.
+>>> >
+>>> > Main system has its own memory manager. While initializing the
+>>> sub-system (in boot up) we will allocate memory from main system (Ex:- 10
+>>> MB) which will be contiguous memory then we want to give the start address
+>>> and size to Jemalloc to manage it. Please let us know where to provide the
+>>> start address to jemalloc?
+>>>
+>>> Hi. This dlmalloc-mspace-like interface isn?t really supported by
+>>> jemalloc, which wants to be able to request ?chunks? of memory from the
+>>> system using a chunk allocator (typically mmap()).
+>>>
+>>> To do what you want you need to write a chunk provider based on [the
+>>> chunk hooks class](
+>>> http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html),
+>>> and then install it for all of the threads in your code. Your chunk
+>>> provider will have to give jemalloc chunks from your contiguous region.
+>>>
+>>> We do this in HPX-5 to manage a network-registered global heap. The
+>>> callback chunks are [here](
+>>> https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c)
+>>> and the ?heap? is implemented (here)[
+>>> https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c].
+>>> This code is slightly complex but it?s basically just using a bitmap to
+>>> allocate chunks from a large contiguous heap, and can serve as an example
+>>> for you.
+>>>
+>>> > Main system will provide thread, Mutex/Semaphore and the memory for
+>>> this will not be allocated from the sub-system. In this scenario how can we
+>>> enable thread caching? We do have a rapper to create threads, which means
+>>> we know which are the the threads created by sub-system. Will it help in
+>>> enabling the thread caching?
+>>>
+>>> Thread caching will likely be on by default for the threads. In more
+>>> complex code where you might want to manage more than one memory space, you
+>>> may need to explicitly allocate new caches.
+>>>
+>>> Luke
+>>>
+>>> >
+>>> > Any help will greatly appreciated!
+>>> >
+>>> >
+>>> > --
+>>> > Thanx
+>>> > Rajakishore Sahu
+>>> > Mail:-raju.sahu at gmail.com
+>>> > _______________________________________________
+>>> > jemalloc-discuss mailing list
+>>> > jemalloc-discuss at canonware.com
+>>> > http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>>
+>>>
+>>
+>>
+>> --
+>> Thanx
+>> Rajakishore Sahu
+>> Mail:-raju.sahu at gmail.com
+>> Mobile:-+91 9886719841
+>>
+>
+>
+>
+> --
+> Thanx
+> Rajakishore Sahu
+> Mail:-raju.sahu at gmail.com
+> Mobile:-+91 9886719841
+>
+
+
+
+-- 
+Thanx
+Rajakishore Sahu
+Mail:-raju.sahu at gmail.com
+Mobile:-+91 9886719841
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160119/1d7cdefd/attachment.html>
+
+From ldalessa at indiana.edu  Mon Jan 18 19:32:57 2016
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Tue, 19 Jan 2016 03:32:57 +0000
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+	<CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+	<CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+Message-ID: <A5EBF230-FEAB-470A-970D-239F1890F175@indiana.edu>
+
+
+> On Jan 17, 2016, at 9:53 PM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> 
+> Hi,
+> 
+> I have a follow up question.
+> 
+> We have only 40 MB of memory for our sub system.
+> 
+> I start up Jemalloc is keep asking for new chunks and by the time the system becomes ready it almost consumes 38 MB of memory.
+> 
+> How we can tell Jemalloc to uses already allocated memory chuck when we run out of our 40 MB of memory?
+
+I?m not sure this has anything to do with jemalloc. It just allocates chunks in response to application demand when it can?t satisfy new allocations given its existing chunks. That being said, I don?t know much about using jemalloc in constrained environments?we?re using it in 128GB settings.
+
+Are you suffering from terrible fragmentation? Is this consistent across different allocations? I supposed it?s easily possible that jemalloc needs a bunch of memory for its own infrastructure for trees and such.
+
+Luke
+
+> 
+> Thanks
+> Rajakishore
+> 
+> On Tue, Oct 13, 2015 at 8:21 AM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> Hi Luke,
+> 
+> Thanks for sharing the details. I will go through the code and come back if I need some more help.
+> 
+> Thanks
+> Rajakishore Sahu
+> 
+> On Mon, Oct 12, 2015 at 5:09 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> 
+> > On Oct 12, 2015, at 1:12 AM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> >
+> > Hi,
+> >
+> > I am trying to port Jemalloc. We are going to use it for our sub-system not for the whole system.
+> >
+> > Main system has its own memory manager. While initializing the sub-system (in boot up) we will allocate memory from main system (Ex:- 10 MB) which will be contiguous memory then we want to give the start address and size to Jemalloc to manage it. Please let us know where to provide the start address to jemalloc?
+> 
+> Hi. This dlmalloc-mspace-like interface isn?t really supported by jemalloc, which wants to be able to request ?chunks? of memory from the system using a chunk allocator (typically mmap()).
+> 
+> To do what you want you need to write a chunk provider based on [the chunk hooks class](http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html), and then install it for all of the threads in your code. Your chunk provider will have to give jemalloc chunks from your contiguous region.
+> 
+> We do this in HPX-5 to manage a network-registered global heap. The callback chunks are [here](https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c) and the ?heap? is implemented (here)[https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c]. This code is slightly complex but it?s basically just using a bitmap to allocate chunks from a large contiguous heap, and can serve as an example for you.
+> 
+> > Main system will provide thread, Mutex/Semaphore and the memory for this will not be allocated from the sub-system. In this scenario how can we enable thread caching? We do have a rapper to create threads, which means we know which are the the threads created by sub-system. Will it help in enabling the thread caching?
+> 
+> Thread caching will likely be on by default for the threads. In more complex code where you might want to manage more than one memory space, you may need to explicitly allocate new caches.
+> 
+> Luke
+> 
+> >
+> > Any help will greatly appreciated!
+> >
+> >
+> > --
+> > Thanx
+> > Rajakishore Sahu
+> > Mail:-raju.sahu at gmail.com
+> > _______________________________________________
+> > jemalloc-discuss mailing list
+> > jemalloc-discuss at canonware.com
+> > http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> 
+> 
+> 
+> 
+> -- 
+> Thanx
+> Rajakishore Sahu
+> Mail:-raju.sahu at gmail.com
+> Mobile:-+91 9886719841
+> 
+> 
+> 
+> -- 
+> Thanx
+> Rajakishore Sahu
+> Mail:-raju.sahu at gmail.com
+> Mobile:-+91 9886719841
+
+
+From raju.sahu at gmail.com  Mon Jan 18 20:35:15 2016
+From: raju.sahu at gmail.com (RajaKishore Sahu)
+Date: Tue, 19 Jan 2016 10:05:15 +0530
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <A5EBF230-FEAB-470A-970D-239F1890F175@indiana.edu>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+	<CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+	<CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+	<A5EBF230-FEAB-470A-970D-239F1890F175@indiana.edu>
+Message-ID: <CA+bEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g@mail.gmail.com>
+
+Hi Luke,
+
+Thanks for your reply.
+
+I am trying to port Jemalloc to a embedded environment where we have only
+40 MB of memory for a subsystem.
+
+While porting I found that in start up it is consuming almost 38 MB of
+memory with arena size of 1MB. We spawn around 70 threads in the start up.
+So we are only 2 MB left for that subsystem. While the system is in run
+definitely it will ask for more memory, in that case how we are going to
+satisfy the memory needed by Jemalloc?
+
+Current allocator consumes around 20 - 22 MB of memory and remaining is
+used for the system to run.
+
+Or Jemalloc is not suited for embedded environment?
+
+Thanks
+Rajakishore
+
+
+On Tue, Jan 19, 2016 at 9:02 AM, D'Alessandro, Luke K <ldalessa at indiana.edu>
+wrote:
+
+>
+> > On Jan 17, 2016, at 9:53 PM, RajaKishore Sahu <raju.sahu at gmail.com>
+> wrote:
+> >
+> > Hi,
+> >
+> > I have a follow up question.
+> >
+> > We have only 40 MB of memory for our sub system.
+> >
+> > I start up Jemalloc is keep asking for new chunks and by the time the
+> system becomes ready it almost consumes 38 MB of memory.
+> >
+> > How we can tell Jemalloc to uses already allocated memory chuck when we
+> run out of our 40 MB of memory?
+>
+> I?m not sure this has anything to do with jemalloc. It just allocates
+> chunks in response to application demand when it can?t satisfy new
+> allocations given its existing chunks. That being said, I don?t know much
+> about using jemalloc in constrained environments?we?re using it in 128GB
+> settings.
+>
+> Are you suffering from terrible fragmentation? Is this consistent across
+> different allocations? I supposed it?s easily possible that jemalloc needs
+> a bunch of memory for its own infrastructure for trees and such.
+>
+> Luke
+>
+> >
+> > Thanks
+> > Rajakishore
+> >
+> > On Tue, Oct 13, 2015 at 8:21 AM, RajaKishore Sahu <raju.sahu at gmail.com>
+> wrote:
+> > Hi Luke,
+> >
+> > Thanks for sharing the details. I will go through the code and come back
+> if I need some more help.
+> >
+> > Thanks
+> > Rajakishore Sahu
+> >
+> > On Mon, Oct 12, 2015 at 5:09 PM, D'Alessandro, Luke K <
+> ldalessa at indiana.edu> wrote:
+> >
+> > > On Oct 12, 2015, at 1:12 AM, RajaKishore Sahu <raju.sahu at gmail.com>
+> wrote:
+> > >
+> > > Hi,
+> > >
+> > > I am trying to port Jemalloc. We are going to use it for our
+> sub-system not for the whole system.
+> > >
+> > > Main system has its own memory manager. While initializing the
+> sub-system (in boot up) we will allocate memory from main system (Ex:- 10
+> MB) which will be contiguous memory then we want to give the start address
+> and size to Jemalloc to manage it. Please let us know where to provide the
+> start address to jemalloc?
+> >
+> > Hi. This dlmalloc-mspace-like interface isn?t really supported by
+> jemalloc, which wants to be able to request ?chunks? of memory from the
+> system using a chunk allocator (typically mmap()).
+> >
+> > To do what you want you need to write a chunk provider based on [the
+> chunk hooks class](
+> http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html),
+> and then install it for all of the threads in your code. Your chunk
+> provider will have to give jemalloc chunks from your contiguous region.
+> >
+> > We do this in HPX-5 to manage a network-registered global heap. The
+> callback chunks are [here](
+> https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c)
+> and the ?heap? is implemented (here)[
+> https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c].
+> This code is slightly complex but it?s basically just using a bitmap to
+> allocate chunks from a large contiguous heap, and can serve as an example
+> for you.
+> >
+> > > Main system will provide thread, Mutex/Semaphore and the memory for
+> this will not be allocated from the sub-system. In this scenario how can we
+> enable thread caching? We do have a rapper to create threads, which means
+> we know which are the the threads created by sub-system. Will it help in
+> enabling the thread caching?
+> >
+> > Thread caching will likely be on by default for the threads. In more
+> complex code where you might want to manage more than one memory space, you
+> may need to explicitly allocate new caches.
+> >
+> > Luke
+> >
+> > >
+> > > Any help will greatly appreciated!
+> > >
+> > >
+> > > --
+> > > Thanx
+> > > Rajakishore Sahu
+> > > Mail:-raju.sahu at gmail.com
+> > > _______________________________________________
+> > > jemalloc-discuss mailing list
+> > > jemalloc-discuss at canonware.com
+> > > http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> >
+> >
+> >
+> >
+> > --
+> > Thanx
+> > Rajakishore Sahu
+> > Mail:-raju.sahu at gmail.com
+> > Mobile:-+91 9886719841
+> >
+> >
+> >
+> > --
+> > Thanx
+> > Rajakishore Sahu
+> > Mail:-raju.sahu at gmail.com
+> > Mobile:-+91 9886719841
+>
+>
+
+
+-- 
+Thanx
+Rajakishore Sahu
+Mail:-raju.sahu at gmail.com
+Mobile:-+91 9886719841
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160119/e4165337/attachment-0001.html>
+
+From ldalessa at indiana.edu  Mon Jan 18 20:46:20 2016
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Tue, 19 Jan 2016 04:46:20 +0000
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <CA+bEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g@mail.gmail.com>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+	<CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+	<CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+	<A5EBF230-FEAB-470A-970D-239F1890F175@indiana.edu>
+	<CA+bEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g@mail.gmail.com>
+Message-ID: <612BC89C-ADBD-463F-AF27-21417D1EBAE1@indiana.edu>
+
+
+> On Jan 18, 2016, at 11:35 PM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> 
+> Hi Luke,
+> 
+> Thanks for your reply. 
+> 
+> I am trying to port Jemalloc to a embedded environment where we have only 40 MB of memory for a subsystem.
+> 
+> While porting I found that in start up it is consuming almost 38 MB of memory with arena size of 1MB. We spawn around 70 threads in the start up.
+
+So are these threads eating up lots of memory with their stacks?
+
+> So we are only 2 MB left for that subsystem. While the system is in run definitely it will ask for more memory, in that case how we are going to satisfy the memory needed by Jemalloc?
+> 
+> Current allocator consumes around 20 - 22 MB of memory and remaining is used for the system to run.
+> 
+> Or Jemalloc is not suited for embedded environment?
+
+Possibly not. I really don?t know anything about configuring in a small memory environment, sorry. 
+
+You could try tbbmallloc if you have access to it and can cope with C++. It might have different overheads given its different design. We find it to be slightly slower than jemalloc but a bit better about memory usage. These are on large memory nodes though, not sure about its memory-constrained constrained.
+
+I seem to recall reading some papers about concurrent memory allocation for embedded systems as well, but can?t find them off the top of my head.
+
+Good luck,
+Luke
+
+> 
+> Thanks
+> Rajakishore 
+> 
+> 
+> On Tue, Jan 19, 2016 at 9:02 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> 
+> > On Jan 17, 2016, at 9:53 PM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> >
+> > Hi,
+> >
+> > I have a follow up question.
+> >
+> > We have only 40 MB of memory for our sub system.
+> >
+> > I start up Jemalloc is keep asking for new chunks and by the time the system becomes ready it almost consumes 38 MB of memory.
+> >
+> > How we can tell Jemalloc to uses already allocated memory chuck when we run out of our 40 MB of memory?
+> 
+> I?m not sure this has anything to do with jemalloc. It just allocates chunks in response to application demand when it can?t satisfy new allocations given its existing chunks. That being said, I don?t know much about using jemalloc in constrained environments?we?re using it in 128GB settings.
+> 
+> Are you suffering from terrible fragmentation? Is this consistent across different allocations? I supposed it?s easily possible that jemalloc needs a bunch of memory for its own infrastructure for trees and such.
+> 
+> Luke
+> 
+> >
+> > Thanks
+> > Rajakishore
+> >
+> > On Tue, Oct 13, 2015 at 8:21 AM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> > Hi Luke,
+> >
+> > Thanks for sharing the details. I will go through the code and come back if I need some more help.
+> >
+> > Thanks
+> > Rajakishore Sahu
+> >
+> > On Mon, Oct 12, 2015 at 5:09 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> >
+> > > On Oct 12, 2015, at 1:12 AM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> > >
+> > > Hi,
+> > >
+> > > I am trying to port Jemalloc. We are going to use it for our sub-system not for the whole system.
+> > >
+> > > Main system has its own memory manager. While initializing the sub-system (in boot up) we will allocate memory from main system (Ex:- 10 MB) which will be contiguous memory then we want to give the start address and size to Jemalloc to manage it. Please let us know where to provide the start address to jemalloc?
+> >
+> > Hi. This dlmalloc-mspace-like interface isn?t really supported by jemalloc, which wants to be able to request ?chunks? of memory from the system using a chunk allocator (typically mmap()).
+> >
+> > To do what you want you need to write a chunk provider based on [the chunk hooks class](http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html), and then install it for all of the threads in your code. Your chunk provider will have to give jemalloc chunks from your contiguous region.
+> >
+> > We do this in HPX-5 to manage a network-registered global heap. The callback chunks are [here](https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c) and the ?heap? is implemented (here)[https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c]. This code is slightly complex but it?s basically just using a bitmap to allocate chunks from a large contiguous heap, and can serve as an example for you.
+> >
+> > > Main system will provide thread, Mutex/Semaphore and the memory for this will not be allocated from the sub-system. In this scenario how can we enable thread caching? We do have a rapper to create threads, which means we know which are the the threads created by sub-system. Will it help in enabling the thread caching?
+> >
+> > Thread caching will likely be on by default for the threads. In more complex code where you might want to manage more than one memory space, you may need to explicitly allocate new caches.
+> >
+> > Luke
+> >
+> > >
+> > > Any help will greatly appreciated!
+> > >
+> > >
+> > > --
+> > > Thanx
+> > > Rajakishore Sahu
+> > > Mail:-raju.sahu at gmail.com
+> > > _______________________________________________
+> > > jemalloc-discuss mailing list
+> > > jemalloc-discuss at canonware.com
+> > > http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> >
+> >
+> >
+> >
+> > --
+> > Thanx
+> > Rajakishore Sahu
+> > Mail:-raju.sahu at gmail.com
+> > Mobile:-+91 9886719841
+> >
+> >
+> >
+> > --
+> > Thanx
+> > Rajakishore Sahu
+> > Mail:-raju.sahu at gmail.com
+> > Mobile:-+91 9886719841
+> 
+> 
+> 
+> 
+> -- 
+> Thanx
+> Rajakishore Sahu
+> Mail:-raju.sahu at gmail.com
+> Mobile:-+91 9886719841
+
+
+From jasone at canonware.com  Tue Jan 19 12:25:33 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 19 Jan 2016 12:25:33 -0800
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <CA+bEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g@mail.gmail.com>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+	<CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+	<CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+	<A5EBF230-FEAB-470A-970D-239F1890F175@indiana.edu>
+	<CA+bEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g@mail.gmail.com>
+Message-ID: <951185CE-6B97-4601-9CD1-55F4E6DED780@canonware.com>
+
+> On Jan 18, 2016, at 8:35 PM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> I am trying to port Jemalloc to a embedded environment where we have only 40 MB of memory for a subsystem.
+> 
+> While porting I found that in start up it is consuming almost 38 MB of memory with arena size of 1MB. We spawn around 70 threads in the start up. So we are only 2 MB left for that subsystem. While the system is in run definitely it will ask for more memory, in that case how we are going to satisfy the memory needed by Jemalloc?
+> 
+> Current allocator consumes around 20 - 22 MB of memory and remaining is used for the system to run.
+
+It sounds to me like you have jemalloc configured to create numerous arenas.  You need to drop the chunk size (256 KiB works fine), and/or decrease the number of arenas (one will work fine unless your app does a lot of large allocation).
+
+Jason
+
+From bucjac at gmail.com  Tue Jan 19 09:56:00 2016
+From: bucjac at gmail.com (Jakob Buchgraber)
+Date: Tue, 19 Jan 2016 18:56:00 +0100
+Subject: jemalloc hooks clarifications
+In-Reply-To: <CBD9B88C-46DF-4950-91DC-DA910D578787@canonware.com>
+References: <CANP6M4s0Xc+k7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA@mail.gmail.com>
+	<CBD9B88C-46DF-4950-91DC-DA910D578787@canonware.com>
+Message-ID: <F01B34A9-F5FB-4333-82EA-73B34085578E@gmail.com>
+
+
+> On Dec 23, 2015, at 6:20 PM, Jason Evans <jasone at canonware.com> wrote:
+> 
+> On Nov 25, 2015, at 8:14 AM, Jakob Buchgraber <jakob.buchgraber at tum.de> wrote:
+>> I am playing around with the memory management hooks introduced in version 4.
+>> So I wrote a delegate for the default chunk hooks, that additionally report to
+>> stdout what's happening [1]. 
+>> 
+>> The test program allocates 1GB of memory and immediately frees it.
+>> It then tries to allocate 4MB and 8MB. The output is as follows
+>> 
+>> ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52a00000
+>> DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+>> DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824, arena_ind 0
+>> PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824, arena_ind 0
+>> FREED
+>> ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52a00000
+>> ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52e00000
+>> 
+>> Given that the 1GB has not been deallocated, but purged I would expect 
+>> the last two ALLOCations not to have happened. Instead I would expect
+>> the virtual memory from the 1GB allocation before to be reused?
+> 
+> It looks to me like the first ALLOC gets 2^30 bytes at 0x7f2f52a00000, and the DALLOC/DECOMMIT/PURGE logging indicates that during free() the memory is madvise()d away, but the virtual memory is cached for future use.  Then the ALLOCs of 2^22 and 2^23 bytes use the lowest contiguous parts of the cached virtual memory (0x7f2f52a00000 == 0x7f2f52a00000 for the 2^30 and 2^22 allocations).  If I understand correctly, this exactly matches your expectations.
+> 
+
+Thanks you are correct. I was confused by the call to ALLOC, as I (wrongfully) assumed that fetching a chunk of cached virtual memory doesn?t call the alloc chunk hook.
+
+I think there might be an issue with this approach though: https://github.com/jemalloc/jemalloc/issues/307
+
+>> Also, on an unrelated note, is it generally safe to trigger purging for arena A
+>> from within an allocation chunk hook of arena B, with A <> B? 
+>> The reason why am asking this question is that I would generally want to 
+>> run with purging disabled on all arenas, but if some threshold of committed 
+>> memory is surpassed I would like to enable purging for some arenas. 
+>> Does this sound feasible?
+> 
+> Currently this will probably work, but isn't in general safe.  I have some long term plans to allocate internal metadata from the auto arenas (maybe just arena 0, maybe any auto arena, depending on how things work out), so that it is possible to do low overhead full arena reset without losing critical metadata (https://github.com/jemalloc/jemalloc/issues/146).  These changes would create the potential for deadlock in what you're proposing.
+
+It?s deadlocking right now as well, as I am accessing stats from within the chunk hooks to determine which arenas to purge. I had to replace the malloc mutexes with recursive mutexes to make it work. Seems fine so far.
+
+Basically, I am running with lots of main memory (> 1TB). Most of the time the program will only use a fraction of the available memory but some queries will require almost all the memory in some random arena. So even if I leave purging on and set lg_dirty_mult to say 3, some arenas might end up having cached 10s of GB of physical memory with others running out and the program will crash. Ideally, I would want BSD?s MADV_FREE on Linux. That patch never got merged though. So what I am doing is to add some logic that tracks the amount of committed physical memory and if some threshold is reached, I query the jemalloc stats and dynamically adjust the purging ratio. Does that make sense?
+
+Cheers,
+Jakob
+
+
+From roel.vandepaar at percona.com  Tue Jan 26 20:08:36 2016
+From: roel.vandepaar at percona.com (Roel Van de Paar)
+Date: Wed, 27 Jan 2016 15:08:36 +1100
+Subject: Jemalloc bug?
+Message-ID: <CAGQTitMQC7-DTMiCMgbVo7cBdgifxCThdNK-r8cBnyjT8FD-1Q@mail.gmail.com>
+
+Hi All,
+
+Crashing mysqld:
+
++bt
+#0  0x00007f01cabf5741 in __pthread_kill (threadid=<optimized out>,
+signo=11) at ../nptl/sysdeps/unix/sysv/linux/pthread_kill.c:61
+#1  0x0000000000793555 in handle_fatal_signal (sig=11) at
+/git/PS-5.7_opt/sql/signal_handler.cc:223
+#2  <signal handler called>
+#3  je_bitmap_set (bit=18446744073709551615, binfo=0x7f01cb037a28
+<je_arena_bin_info+456>, bitmap=0x7f016b423010) at
+include/jemalloc/internal/bitmap.h:105
+#4  je_bitmap_sfu (binfo=0x7f01cb037a28 <je_arena_bin_info+456>,
+bitmap=0x7f016b423010) at include/jemalloc/internal/bitmap.h:140
+#5  arena_run_reg_alloc (bin_info=0x7f01cb037a00 <je_arena_bin_info+416>,
+run=0x7f016b423000) at src/arena.c:291
+#6  je_arena_tcache_fill_small (arena=0x7f01c721f1c0,
+tbin=tbin at entry=0x7f016b4060a8,
+binind=binind at entry=4, prof_accumbytes=prof_accumbytes at entry=0) at
+src/arena.c:1479
+#7  0x00007f01cae2b6ff in je_tcache_alloc_small_hard
+(tcache=tcache at entry=0x7f016b406000,
+tbin=tbin at entry=0x7f016b4060a8, binind=binind at entry=4) at src/tcache.c:72
+#8  0x00007f01cae0b14f in je_tcache_alloc_small (zero=false, size=64,
+tcache=0x7f016b406000) at include/jemalloc/internal/tcache.h:303
+#9  je_arena_malloc (try_tcache=true, zero=false, size=<optimized out>,
+arena=0x0) at include/jemalloc/internal/arena.h:957
+#10 je_imalloct (arena=0x0, try_tcache=true, size=<optimized out>) at
+include/jemalloc/internal/jemalloc_internal.h:771
+#11 je_imalloc (size=<optimized out>) at
+include/jemalloc/internal/jemalloc_internal.h:780
+#12 malloc (size=<optimized out>) at src/jemalloc.c:929
+#13 0x00000000011ce169 in ut_allocator<unsigned char>::allocate
+(this=this at entry=0x7f01977f7930, n_elements=32, file=file at entry=0x159f298
+"/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc", throw_on_error=false,
+set_to_zero=false, hint=0x0) at
+/git/PS-5.7_opt/storage/innobase/include/ut0new.h:349
+#14 0x00000000011d9e2d in fil_flush_file_spaces
+(purpose=purpose at entry=FIL_TYPE_TABLESPACE)
+at /git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5946
+#15 0x00000000011685d9 in buf_dblwr_update (bpage=bpage at entry=0x7f019cd07740,
+flush_type=flush_type at entry=BUF_FLUSH_LIST) at
+/git/PS-5.7_opt/storage/innobase/buf/buf0dblwr.cc:750
+#16 0x0000000001177506 in buf_flush_write_complete
+(bpage=bpage at entry=0x7f019cd07740)
+at /git/PS-5.7_opt/storage/innobase/buf/buf0flu.cc:809
+#17 0x000000000115f511 in buf_page_io_complete (bpage=0x7f019cd07740,
+evict=evict at entry=false) at
+/git/PS-5.7_opt/storage/innobase/buf/buf0buf.cc:6030
+#18 0x00000000011d24af in fil_aio_wait (segment=segment at entry=7) at
+/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5754
+#19 0x00000000010c07b0 in io_handler_thread (arg=<optimized out>) at
+/git/PS-5.7_opt/storage/innobase/srv/srv0start.cc:330
+#20 0x00007f01cabf0dc5 in start_thread (arg=0x7f01977f8700) at
+pthread_create.c:308
+#21 0x00007f01c904f21d in clone () at
+../sysdeps/unix/sysv/linux/x86_64/clone.S:113
+
+This looks highly like to be jemalloc bug - agreed?
+
+Can I provide any other info to report this? Is this list notification
+sufficient?
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: percona.rvandepaar
+http://www.percona.com/services.html
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+<http://www.percona.com/software/percona-xtradb-cluster>!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160127/3c093c32/attachment.html>
+
+From jasone at canonware.com  Tue Jan 26 21:48:18 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 26 Jan 2016 21:48:18 -0800
+Subject: Jemalloc bug?
+In-Reply-To: <CAGQTitMQC7-DTMiCMgbVo7cBdgifxCThdNK-r8cBnyjT8FD-1Q@mail.gmail.com>
+References: <CAGQTitMQC7-DTMiCMgbVo7cBdgifxCThdNK-r8cBnyjT8FD-1Q@mail.gmail.com>
+Message-ID: <4B86E0D4-D823-4F4F-AA4A-8AF3B580B16C@canonware.com>
+
+On Jan 26, 2016, at 8:08 PM, Roel Van de Paar <roel.vandepaar at percona.com> wrote:
+> Crashing mysqld: 
+> 
+> +bt
+> #0  0x00007f01cabf5741 in __pthread_kill (threadid=<optimized out>, signo=11) at ../nptl/sysdeps/unix/sysv/linux/pthread_kill.c:61
+> #1  0x0000000000793555 in handle_fatal_signal (sig=11) at /git/PS-5.7_opt/sql/signal_handler.cc:223
+> #2  <signal handler called>
+> #3  je_bitmap_set (bit=18446744073709551615, binfo=0x7f01cb037a28 <je_arena_bin_info+456>, bitmap=0x7f016b423010) at include/jemalloc/internal/bitmap.h:105
+> #4  je_bitmap_sfu (binfo=0x7f01cb037a28 <je_arena_bin_info+456>, bitmap=0x7f016b423010) at include/jemalloc/internal/bitmap.h:140
+> #5  arena_run_reg_alloc (bin_info=0x7f01cb037a00 <je_arena_bin_info+416>, run=0x7f016b423000) at src/arena.c:291
+> #6  je_arena_tcache_fill_small (arena=0x7f01c721f1c0, tbin=tbin at entry=0x7f016b4060a8, binind=binind at entry=4, prof_accumbytes=prof_accumbytes at entry=0) at src/arena.c:1479
+> #7  0x00007f01cae2b6ff in je_tcache_alloc_small_hard (tcache=tcache at entry=0x7f016b406000, tbin=tbin at entry=0x7f016b4060a8, binind=binind at entry=4) at src/tcache.c:72
+> #8  0x00007f01cae0b14f in je_tcache_alloc_small (zero=false, size=64, tcache=0x7f016b406000) at include/jemalloc/internal/tcache.h:303
+> #9  je_arena_malloc (try_tcache=true, zero=false, size=<optimized out>, arena=0x0) at include/jemalloc/internal/arena.h:957
+> #10 je_imalloct (arena=0x0, try_tcache=true, size=<optimized out>) at include/jemalloc/internal/jemalloc_internal.h:771
+> #11 je_imalloc (size=<optimized out>) at include/jemalloc/internal/jemalloc_internal.h:780
+> #12 malloc (size=<optimized out>) at src/jemalloc.c:929
+> #13 0x00000000011ce169 in ut_allocator<unsigned char>::allocate (this=this at entry=0x7f01977f7930, n_elements=32, file=file at entry=0x159f298 "/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc", throw_on_error=false, set_to_zero=false, hint=0x0) at /git/PS-5.7_opt/storage/innobase/include/ut0new.h:349
+> #14 0x00000000011d9e2d in fil_flush_file_spaces (purpose=purpose at entry=FIL_TYPE_TABLESPACE) at /git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5946
+> #15 0x00000000011685d9 in buf_dblwr_update (bpage=bpage at entry=0x7f019cd07740, flush_type=flush_type at entry=BUF_FLUSH_LIST) at /git/PS-5.7_opt/storage/innobase/buf/buf0dblwr.cc:750
+> #16 0x0000000001177506 in buf_flush_write_complete (bpage=bpage at entry=0x7f019cd07740) at /git/PS-5.7_opt/storage/innobase/buf/buf0flu.cc:809
+> #17 0x000000000115f511 in buf_page_io_complete (bpage=0x7f019cd07740, evict=evict at entry=false) at /git/PS-5.7_opt/storage/innobase/buf/buf0buf.cc:6030
+> #18 0x00000000011d24af in fil_aio_wait (segment=segment at entry=7) at /git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5754
+> #19 0x00000000010c07b0 in io_handler_thread (arg=<optimized out>) at /git/PS-5.7_opt/storage/innobase/srv/srv0start.cc:330
+> #20 0x00007f01cabf0dc5 in start_thread (arg=0x7f01977f8700) at pthread_create.c:308
+> #21 0x00007f01c904f21d in clone () at ../sysdeps/unix/sysv/linux/x86_64/clone.S:113
+> 
+> This looks highly like to be jemalloc bug - agreed?
+> 
+> Can I provide any other info to report this? Is this list notification sufficient?
+
+No, this is more likely to be an application bug than a jemalloc bug.  The application probably corrupted jemalloc data structures, e.g. by freeing the same object twice.  If you do determine that it's a jemalloc bug, please provide full reproduction steps or a diagnosis/patch so we can get the problem fixed.
+
+Thanks,
+Jason
+
+From roel.vandepaar at percona.com  Tue Jan 26 21:49:11 2016
+From: roel.vandepaar at percona.com (Roel Van de Paar)
+Date: Wed, 27 Jan 2016 16:49:11 +1100
+Subject: Jemalloc bug?
+In-Reply-To: <4B86E0D4-D823-4F4F-AA4A-8AF3B580B16C@canonware.com>
+References: <CAGQTitMQC7-DTMiCMgbVo7cBdgifxCThdNK-r8cBnyjT8FD-1Q@mail.gmail.com>
+	<4B86E0D4-D823-4F4F-AA4A-8AF3B580B16C@canonware.com>
+Message-ID: <CAGQTitO5NF3NRe7zeXHM6Bqf4SqD3es6-1pg9aMqSSKkVkcyng@mail.gmail.com>
+
+Thanks Jason
+
+On Wed, Jan 27, 2016 at 4:48 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jan 26, 2016, at 8:08 PM, Roel Van de Paar <roel.vandepaar at percona.com>
+> wrote:
+> > Crashing mysqld:
+> >
+> > +bt
+> > #0  0x00007f01cabf5741 in __pthread_kill (threadid=<optimized out>,
+> signo=11) at ../nptl/sysdeps/unix/sysv/linux/pthread_kill.c:61
+> > #1  0x0000000000793555 in handle_fatal_signal (sig=11) at
+> /git/PS-5.7_opt/sql/signal_handler.cc:223
+> > #2  <signal handler called>
+> > #3  je_bitmap_set (bit=18446744073709551615, binfo=0x7f01cb037a28
+> <je_arena_bin_info+456>, bitmap=0x7f016b423010) at
+> include/jemalloc/internal/bitmap.h:105
+> > #4  je_bitmap_sfu (binfo=0x7f01cb037a28 <je_arena_bin_info+456>,
+> bitmap=0x7f016b423010) at include/jemalloc/internal/bitmap.h:140
+> > #5  arena_run_reg_alloc (bin_info=0x7f01cb037a00
+> <je_arena_bin_info+416>, run=0x7f016b423000) at src/arena.c:291
+> > #6  je_arena_tcache_fill_small (arena=0x7f01c721f1c0, tbin=tbin at entry=0x7f016b4060a8,
+> binind=binind at entry=4, prof_accumbytes=prof_accumbytes at entry=0) at
+> src/arena.c:1479
+> > #7  0x00007f01cae2b6ff in je_tcache_alloc_small_hard (tcache=tcache at entry=0x7f016b406000,
+> tbin=tbin at entry=0x7f016b4060a8, binind=binind at entry=4) at src/tcache.c:72
+> > #8  0x00007f01cae0b14f in je_tcache_alloc_small (zero=false, size=64,
+> tcache=0x7f016b406000) at include/jemalloc/internal/tcache.h:303
+> > #9  je_arena_malloc (try_tcache=true, zero=false, size=<optimized out>,
+> arena=0x0) at include/jemalloc/internal/arena.h:957
+> > #10 je_imalloct (arena=0x0, try_tcache=true, size=<optimized out>) at
+> include/jemalloc/internal/jemalloc_internal.h:771
+> > #11 je_imalloc (size=<optimized out>) at
+> include/jemalloc/internal/jemalloc_internal.h:780
+> > #12 malloc (size=<optimized out>) at src/jemalloc.c:929
+> > #13 0x00000000011ce169 in ut_allocator<unsigned char>::allocate
+> (this=this at entry=0x7f01977f7930, n_elements=32, file=file at entry=0x159f298
+> "/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc", throw_on_error=false,
+> set_to_zero=false, hint=0x0) at
+> /git/PS-5.7_opt/storage/innobase/include/ut0new.h:349
+> > #14 0x00000000011d9e2d in fil_flush_file_spaces (purpose=purpose at entry=FIL_TYPE_TABLESPACE)
+> at /git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5946
+> > #15 0x00000000011685d9 in buf_dblwr_update (bpage=bpage at entry=0x7f019cd07740,
+> flush_type=flush_type at entry=BUF_FLUSH_LIST) at
+> /git/PS-5.7_opt/storage/innobase/buf/buf0dblwr.cc:750
+> > #16 0x0000000001177506 in buf_flush_write_complete (bpage=bpage at entry=0x7f019cd07740)
+> at /git/PS-5.7_opt/storage/innobase/buf/buf0flu.cc:809
+> > #17 0x000000000115f511 in buf_page_io_complete (bpage=0x7f019cd07740,
+> evict=evict at entry=false) at
+> /git/PS-5.7_opt/storage/innobase/buf/buf0buf.cc:6030
+> > #18 0x00000000011d24af in fil_aio_wait (segment=segment at entry=7) at
+> /git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5754
+> > #19 0x00000000010c07b0 in io_handler_thread (arg=<optimized out>) at
+> /git/PS-5.7_opt/storage/innobase/srv/srv0start.cc:330
+> > #20 0x00007f01cabf0dc5 in start_thread (arg=0x7f01977f8700) at
+> pthread_create.c:308
+> > #21 0x00007f01c904f21d in clone () at
+> ../sysdeps/unix/sysv/linux/x86_64/clone.S:113
+> >
+> > This looks highly like to be jemalloc bug - agreed?
+> >
+> > Can I provide any other info to report this? Is this list notification
+> sufficient?
+>
+> No, this is more likely to be an application bug than a jemalloc bug.  The
+> application probably corrupted jemalloc data structures, e.g. by freeing
+> the same object twice.  If you do determine that it's a jemalloc bug,
+> please provide full reproduction steps or a diagnosis/patch so we can get
+> the problem fixed.
+>
+> Thanks,
+> Jason
+
+
+
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: percona.rvandepaar
+http://www.percona.com/services.html
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+<http://www.percona.com/software/percona-xtradb-cluster>!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160127/9cda115c/attachment.html>
+
+From rustamabd at gmail.com  Thu Jan 28 12:15:23 2016
+From: rustamabd at gmail.com (Rustam)
+Date: Thu, 28 Jan 2016 21:15:23 +0100
+Subject: Building with MSVC
+Message-ID: <CAPzS6u81buj0n10Esi2KhCd8cV1=YMeQ6Qg4tdyDvi6rBKhkyA@mail.gmail.com>
+
+I've seen some #ifdef _MSC_VER so I assume at least _some_ work has been
+done to make jemalloc compile using Microsoft's compiler.
+
+My question is - what's the status of that work, it is already usable, and
+most importantly, what's the process of compiling with MSVC? Most
+importantly, how to generate the proper headers for it?
+
+Thanks and regards,
+
+Rustam
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160128/e82668d8/attachment.html>
+
+From jorgefm at cirsa.com  Fri Jan 29 10:26:45 2016
+From: jorgefm at cirsa.com (Jorge Fernandez Monteagudo)
+Date: Fri, 29 Jan 2016 19:26:45 +0100
+Subject: jemalloc on iMX6 ARM
+Message-ID: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A7@NTMBOX.central.cirsa.com>
+
+Hi all, this is my first post to this mailing list.
+
+I'm trying to give a try to jemalloc in a iMX6 ARM board. I've
+downloaded the current master image from
+
+https://github.com/jemalloc/jemalloc/tree/master
+
+I've done the cross compilation with no problem and I've deploy
+the lib to the board. Our iMX6 image is using 3.14 linux kernel.
+The library generated with
+
+./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi
+scp lib/libjemalloc.so.2 root@<imx6_board_ip>:/tmp/
+
+when I tried in the board I get:
+
+# export LD_PRELOAD=/tmp/libjemalloc.so.2
+# ls
+Bus error
+
+and in dmesg I can see
+
+Alignment trap: not handling instruction e1b14f9f at [<76f06b14>]
+Unhandled fault: alignment exception (0x011) at 0x76f2cfe4
+
+
+If I build the library with
+
+./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --disable-fill
+scp lib/libjemalloc.so.2 root@<imx6_board_ip>:/tmp/
+
+when I tried in the board I get:
+
+# export LD_PRELOAD=/tmp/libjemalloc.so.2
+# ls
+Segmentation fault
+
+
+I guess the jemalloc is able to work on ARM systems. Where should I start looking to
+make it work? Any hint is welcome!
+
+
+Pd: This is the configuration the 'configure' process prints on screen
+
+===============================================================================
+jemalloc version   : 0.0.0-0-g0000000000000000000000000000000000000000
+library revision   : 2
+
+CONFIG             : --build=x86_64-linux --host=arm-poky-linux-gnueabi build_alias=x86_64-linux host_alias=arm-poky-linux-gnueabi 'CC=arm-poky-linux-gnueabi-gcc -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi' 'CFLAGS= -O2 -pipe -g -feliminate-unused-debug-types' 'LDFLAGS=-Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed' CPPFLAGS= 'CPP=arm-poky-linux-gnueabi-gcc -E -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi'
+CC                 : arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi
+CFLAGS             :  -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden
+CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+LDFLAGS            : -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed
+EXTRA_LDFLAGS      :
+LIBS               :  -lpthread
+TESTLIBS           :
+RPATH_EXTRA        :
+
+XSLTPROC           : false
+XSLROOT            :
+
+PREFIX             : /usr/local
+BINDIR             : /usr/local/bin
+DATADIR            : /usr/local/share
+INCLUDEDIR         : /usr/local/include
+LIBDIR             : /usr/local/lib
+MANDIR             : /usr/local/share/man
+
+srcroot            :
+abs_srcroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+objroot            :
+abs_objroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+
+JEMALLOC_PREFIX    :
+JEMALLOC_PRIVATE_NAMESPACE
+                   : je_
+install_suffix     :
+autogen            : 0
+cc-silence         : 1
+debug              : 0
+code-coverage      : 0
+stats              : 1
+prof               : 0
+prof-libunwind     : 0
+prof-libgcc        : 0
+prof-gcc           : 0
+tcache             : 1
+fill               : 1
+utrace             : 0
+valgrind           : 1
+xmalloc            : 0
+munmap             : 0
+lazy_lock          : 0
+tls                : 1
+cache-oblivious    : 1
+===============================================================================
+
+
+Este mensaje se dirige exclusivamente a su destinatario y puede contener informaci?n privilegiada o CONFIDENCIAL. Si no es vd. el destinatario indicado, queda notificado de que la utilizaci?n, divulgaci?n y/o copia sin autorizaci?n est? prohibida en virtud de la legislaci?n vigente. Si ha recibido este mensaje por error, le rogamos que nos lo comunique inmediatamente por esta misma v?a y proceda a su destrucci?n.
+
+This message is intended exclusively for its addressee and may contain information that is CONFIDENTIAL and protected by professional privilege.
+If you are not the intended recipient you are hereby notified that any dissemination, copy or disclosure of this communication is strictly prohibited by law. If this message has been received in error, please immediately notify us via e-mail and delete it.
+
+From jorgefm at cirsa.com  Fri Jan 29 10:56:12 2016
+From: jorgefm at cirsa.com (Jorge Fernandez Monteagudo)
+Date: Fri, 29 Jan 2016 19:56:12 +0100
+Subject: jemalloc on iMX6 ARM
+In-Reply-To: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A7@NTMBOX.central.cirsa.com>
+References: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A7@NTMBOX.central.cirsa.com>
+Message-ID: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A8@NTMBOX.central.cirsa.com>
+
+Another clue. I've generated the library with 
+
+$ ./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --enable-debug
+
+and now I have
+
+# export LD_PRELOAD=/tmp/libjemalloc.so.2
+# ls
+<jemalloc>: src/rtree.c:18: Failed assertion: "bits > 0 && bits <= (sizeof(uintptr_t) << 3)"
+Aborted
+
+
+________________________________________
+From: jemalloc-discuss-bounces at canonware.com [jemalloc-discuss-bounces at canonware.com] On Behalf Of Jorge Fernandez Monteagudo [jorgefm at cirsa.com]
+Sent: Friday, January 29, 2016 7:26 PM
+To: jemalloc-discuss at canonware.com
+Subject: jemalloc on iMX6 ARM
+
+Hi all, this is my first post to this mailing list.
+
+I'm trying to give a try to jemalloc in a iMX6 ARM board. I've
+downloaded the current master image from
+
+https://github.com/jemalloc/jemalloc/tree/master
+
+I've done the cross compilation with no problem and I've deploy
+the lib to the board. Our iMX6 image is using 3.14 linux kernel.
+The library generated with
+
+./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi
+scp lib/libjemalloc.so.2 root@<imx6_board_ip>:/tmp/
+
+when I tried in the board I get:
+
+# export LD_PRELOAD=/tmp/libjemalloc.so.2
+# ls
+Bus error
+
+and in dmesg I can see
+
+Alignment trap: not handling instruction e1b14f9f at [<76f06b14>]
+Unhandled fault: alignment exception (0x011) at 0x76f2cfe4
+
+
+If I build the library with
+
+./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --disable-fill
+scp lib/libjemalloc.so.2 root@<imx6_board_ip>:/tmp/
+
+when I tried in the board I get:
+
+# export LD_PRELOAD=/tmp/libjemalloc.so.2
+# ls
+Segmentation fault
+
+
+I guess the jemalloc is able to work on ARM systems. Where should I start looking to
+make it work? Any hint is welcome!
+
+
+Pd: This is the configuration the 'configure' process prints on screen
+
+===============================================================================
+jemalloc version   : 0.0.0-0-g0000000000000000000000000000000000000000
+library revision   : 2
+
+CONFIG             : --build=x86_64-linux --host=arm-poky-linux-gnueabi build_alias=x86_64-linux host_alias=arm-poky-linux-gnueabi 'CC=arm-poky-linux-gnueabi-gcc -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi' 'CFLAGS= -O2 -pipe -g -feliminate-unused-debug-types' 'LDFLAGS=-Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed' CPPFLAGS= 'CPP=arm-poky-linux-gnueabi-gcc -E -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi'
+CC                 : arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi
+CFLAGS             :  -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden
+CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+LDFLAGS            : -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed
+EXTRA_LDFLAGS      :
+LIBS               :  -lpthread
+TESTLIBS           :
+RPATH_EXTRA        :
+
+XSLTPROC           : false
+XSLROOT            :
+
+PREFIX             : /usr/local
+BINDIR             : /usr/local/bin
+DATADIR            : /usr/local/share
+INCLUDEDIR         : /usr/local/include
+LIBDIR             : /usr/local/lib
+MANDIR             : /usr/local/share/man
+
+srcroot            :
+abs_srcroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+objroot            :
+abs_objroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+
+JEMALLOC_PREFIX    :
+JEMALLOC_PRIVATE_NAMESPACE
+                   : je_
+install_suffix     :
+autogen            : 0
+cc-silence         : 1
+debug              : 0
+code-coverage      : 0
+stats              : 1
+prof               : 0
+prof-libunwind     : 0
+prof-libgcc        : 0
+prof-gcc           : 0
+tcache             : 1
+fill               : 1
+utrace             : 0
+valgrind           : 1
+xmalloc            : 0
+munmap             : 0
+lazy_lock          : 0
+tls                : 1
+cache-oblivious    : 1
+===============================================================================
+
+
+Este mensaje se dirige exclusivamente a su destinatario y puede contener informaci?n privilegiada o CONFIDENCIAL. Si no es vd. el destinatario indicado, queda notificado de que la utilizaci?n, divulgaci?n y/o copia sin autorizaci?n est? prohibida en virtud de la legislaci?n vigente. Si ha recibido este mensaje por error, le rogamos que nos lo comunique inmediatamente por esta misma v?a y proceda a su destrucci?n.
+
+This message is intended exclusively for its addressee and may contain information that is CONFIDENTIAL and protected by professional privilege.
+If you are not the intended recipient you are hereby notified that any dissemination, copy or disclosure of this communication is strictly prohibited by law. If this message has been received in error, please immediately notify us via e-mail and delete it.
+_______________________________________________
+jemalloc-discuss mailing list
+jemalloc-discuss at canonware.com
+http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+From jorgefm at cirsa.com  Sat Jan 30 00:20:16 2016
+From: jorgefm at cirsa.com (Jorge Fernandez Monteagudo)
+Date: Sat, 30 Jan 2016 09:20:16 +0100
+Subject: jemalloc on iMX6 ARM
+In-Reply-To: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A8@NTMBOX.central.cirsa.com>
+References: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A7@NTMBOX.central.cirsa.com>,
+	<6A230045C5A9854B97A1D40971AC8BE1023ACE60A8@NTMBOX.central.cirsa.com>
+Message-ID: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A9@NTMBOX.central.cirsa.com>
+
+Another one...
+
+I don't know why the autogen.sh is getting the properties from the building system not the target???
+
+I do
+
+$ source /opt/fsl-imx-fb/3.14.52-1.1.0/environment-setup-cortexa9hf-vfp-neon-poky-linux-gnueabi
+$ ./autogen.sh --build=x86_64-linux --host=arm-poky-linux-gnueabi --target=arm-poky-linux-gnueabi --enable-debug
+...
+checking whether byte ordering is bigendian... (cached) no
+checking size of void *... (cached) 8
+checking size of int... (cached) 4
+checking size of long... (cached) 8
+checking size of intmax_t... 8
+checking build system type... x86_64-pc-linux-gnu
+checking host system type... arm-poky-linux-gnueabi
+...
+
+with this defines the code generated is wrong. The void * is a 32b pointer in the target, but a 64b one in the build machine.
+There are some warnings compiling too
+
+arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.pic.o src/jemalloc.c
+src/jemalloc.c:77:2: warning: left shift count >= width of type
+  SIZE_CLASSES
+  ^
+...
+arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/util.o src/util.c
+In file included from include/jemalloc/internal/jemalloc_internal.h:500:0,
+                 from src/util.c:23:
+include/jemalloc/internal/util.h: In function ?je_pow2_ceil?:
+include/jemalloc/internal/util.h:207:2: warning: right shift count >= width of type
+  x |= x >> 32;
+  ^
+
+________________________________________
+From: jemalloc-discuss-bounces at canonware.com [jemalloc-discuss-bounces at canonware.com] On Behalf Of Jorge Fernandez Monteagudo [jorgefm at cirsa.com]
+Sent: Friday, January 29, 2016 7:56 PM
+To: jemalloc-discuss at canonware.com
+Subject: RE: jemalloc on iMX6 ARM
+
+Another clue. I've generated the library with
+
+$ ./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --enable-debug
+
+and now I have
+
+# export LD_PRELOAD=/tmp/libjemalloc.so.2
+# ls
+<jemalloc>: src/rtree.c:18: Failed assertion: "bits > 0 && bits <= (sizeof(uintptr_t) << 3)"
+Aborted
+
+
+________________________________________
+From: jemalloc-discuss-bounces at canonware.com [jemalloc-discuss-bounces at canonware.com] On Behalf Of Jorge Fernandez Monteagudo [jorgefm at cirsa.com]
+Sent: Friday, January 29, 2016 7:26 PM
+To: jemalloc-discuss at canonware.com
+Subject: jemalloc on iMX6 ARM
+
+Hi all, this is my first post to this mailing list.
+
+I'm trying to give a try to jemalloc in a iMX6 ARM board. I've
+downloaded the current master image from
+
+https://github.com/jemalloc/jemalloc/tree/master
+
+I've done the cross compilation with no problem and I've deploy
+the lib to the board. Our iMX6 image is using 3.14 linux kernel.
+The library generated with
+
+./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi
+scp lib/libjemalloc.so.2 root@<imx6_board_ip>:/tmp/
+
+when I tried in the board I get:
+
+# export LD_PRELOAD=/tmp/libjemalloc.so.2
+# ls
+Bus error
+
+and in dmesg I can see
+
+Alignment trap: not handling instruction e1b14f9f at [<76f06b14>]
+Unhandled fault: alignment exception (0x011) at 0x76f2cfe4
+
+
+If I build the library with
+
+./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --disable-fill
+scp lib/libjemalloc.so.2 root@<imx6_board_ip>:/tmp/
+
+when I tried in the board I get:
+
+# export LD_PRELOAD=/tmp/libjemalloc.so.2
+# ls
+Segmentation fault
+
+
+I guess the jemalloc is able to work on ARM systems. Where should I start looking to
+make it work? Any hint is welcome!
+
+
+Pd: This is the configuration the 'configure' process prints on screen
+
+===============================================================================
+jemalloc version   : 0.0.0-0-g0000000000000000000000000000000000000000
+library revision   : 2
+
+CONFIG             : --build=x86_64-linux --host=arm-poky-linux-gnueabi build_alias=x86_64-linux host_alias=arm-poky-linux-gnueabi 'CC=arm-poky-linux-gnueabi-gcc -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi' 'CFLAGS= -O2 -pipe -g -feliminate-unused-debug-types' 'LDFLAGS=-Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed' CPPFLAGS= 'CPP=arm-poky-linux-gnueabi-gcc -E -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi'
+CC                 : arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi
+CFLAGS             :  -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden
+CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+LDFLAGS            : -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed
+EXTRA_LDFLAGS      :
+LIBS               :  -lpthread
+TESTLIBS           :
+RPATH_EXTRA        :
+
+XSLTPROC           : false
+XSLROOT            :
+
+PREFIX             : /usr/local
+BINDIR             : /usr/local/bin
+DATADIR            : /usr/local/share
+INCLUDEDIR         : /usr/local/include
+LIBDIR             : /usr/local/lib
+MANDIR             : /usr/local/share/man
+
+srcroot            :
+abs_srcroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+objroot            :
+abs_objroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+
+JEMALLOC_PREFIX    :
+JEMALLOC_PRIVATE_NAMESPACE
+                   : je_
+install_suffix     :
+autogen            : 0
+cc-silence         : 1
+debug              : 0
+code-coverage      : 0
+stats              : 1
+prof               : 0
+prof-libunwind     : 0
+prof-libgcc        : 0
+prof-gcc           : 0
+tcache             : 1
+fill               : 1
+utrace             : 0
+valgrind           : 1
+xmalloc            : 0
+munmap             : 0
+lazy_lock          : 0
+tls                : 1
+cache-oblivious    : 1
+===============================================================================
+
+
+Este mensaje se dirige exclusivamente a su destinatario y puede contener informaci?n privilegiada o CONFIDENCIAL. Si no es vd. el destinatario indicado, queda notificado de que la utilizaci?n, divulgaci?n y/o copia sin autorizaci?n est? prohibida en virtud de la legislaci?n vigente. Si ha recibido este mensaje por error, le rogamos que nos lo comunique inmediatamente por esta misma v?a y proceda a su destrucci?n.
+
+This message is intended exclusively for its addressee and may contain information that is CONFIDENTIAL and protected by professional privilege.
+If you are not the intended recipient you are hereby notified that any dissemination, copy or disclosure of this communication is strictly prohibited by law. If this message has been received in error, please immediately notify us via e-mail and delete it.
+_______________________________________________
+jemalloc-discuss mailing list
+jemalloc-discuss at canonware.com
+http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+_______________________________________________
+jemalloc-discuss mailing list
+jemalloc-discuss at canonware.com
+http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+

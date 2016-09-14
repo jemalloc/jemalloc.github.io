@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to build with clang-cl
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20build%20with%20clang-cl&In-Reply-To=%3C1402546051-27863-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000867.html">
+   <LINK REL="Next"  HREF="000869.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to build with clang-cl</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20build%20with%20clang-cl&In-Reply-To=%3C1402546051-27863-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Allow to build with clang-cl">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Jun 11 21:07:31 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000867.html">[PATCH] Ensure the default purgeable zone is after the default	zone on OS X
+</A></li>
+        <LI>Next message: <A HREF="000869.html">[PATCH] Allow to build with clang-cl
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#868">[ date ]</a>
+              <a href="thread.html#868">[ thread ]</a>
+              <a href="subject.html#868">[ subject ]</a>
+              <a href="author.html#868">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ include/msvc_compat/C99/stdbool.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/msvc_compat/C99/stdbool.h b/include/msvc_compat/C99/stdbool.h
+index da9ee8b..d92160e 100644
+--- a/include/msvc_compat/C99/stdbool.h
++++ b/include/msvc_compat/C99/stdbool.h
+@@ -5,7 +5,11 @@
+ 
+ /* MSVC doesn't define _Bool or bool in C, but does have BOOL */
+ /* Note this doesn't pass autoconf's test because (bool) 0.5 != true */
++/* Clang-cl uses MSVC headers, so needs msvc_compat, but has _Bool as
++ * a built-in type. */
++#ifndef __clang__
+ typedef BOOL _Bool;
++#endif
+ 
+ #define bool _Bool
+ #define true 1
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000867.html">[PATCH] Ensure the default purgeable zone is after the default	zone on OS X
+</A></li>
+	<LI>Next message: <A HREF="000869.html">[PATCH] Allow to build with clang-cl
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#868">[ date ]</a>
+              <a href="thread.html#868">[ thread ]</a>
+              <a href="subject.html#868">[ subject ]</a>
+              <a href="author.html#868">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

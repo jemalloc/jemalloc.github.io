@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Some jemalloc questions...
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Some%20jemalloc%20questions...&In-Reply-To=%3C2DEDFB07-5999-4EEE-BF2F-8CC1694CC724%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000754.html">
+   <LINK REL="Next"  HREF="000756.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Some jemalloc questions...</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Some%20jemalloc%20questions...&In-Reply-To=%3C2DEDFB07-5999-4EEE-BF2F-8CC1694CC724%40canonware.com%3E"
+       TITLE="Some jemalloc questions...">jasone at canonware.com
+       </A><BR>
+    <I>Fri Apr 11 09:20:09 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000754.html">Some jemalloc questions...
+</A></li>
+        <LI>Next message: <A HREF="000756.html">mremap with modern Linux kernel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#755">[ date ]</a>
+              <a href="thread.html#755">[ thread ]</a>
+              <a href="subject.html#755">[ subject ]</a>
+              <a href="author.html#755">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 11, 2014, at 12:43 AM, Paul Pedriana &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ppedriana at gmail.com</A>&gt; wrote:
+&gt;<i> I've been reading through the jemalloc source in order to understand how it works, and I have a few questions.
+</I>&gt;<i> 
+</I>&gt;<i> What are bitmap levels (and groups)? The bitmap functionality seems to be a little different from a basic 1 dimensional array of bits and has some concept of levels and groups. But I don't understand what that's for and why it exists.
+</I>
+The bitmap levels implement a tree-like structure that allows O(lg N) searches for the lowest unset bit (see bitmap_sfu()).  Older versions of jemalloc used some heuristics to amortize the cost of searches, but some realistic allocation/deallocation patterns thwarted the heuristics.
+
+&gt;<i> Is the reason for having malloc_printf, etc. to have a printf that won't call malloc internally?
+</I>
+As you say, if printf() were to allocate internally, that would cause problems, though in practice printf() tends not to allocate much for performance reasons.  The primary driver for malloc_printf() is that on FreeBSD, jemalloc is used as an integral part of libc, and if jemalloc were to use printf(), it would add run-time dependencies on all of the printf() machinery, including a bunch of floating point code.  Older versions of jemalloc used malloc_write() for everything that couldn't be omitted, and malloc_printf() (which was a thin wrapper around printf()) for e.g. statistics printing.  For the 3.0.0 release I implemented a stand-alone malloc_printf() so that it could be used everywhere in jemalloc.
+
+&gt;<i> I see #define LG_TINY_MIN 3 . Does this mean that these allocations are minimally 8 byte aligned? I ask because I'm under the impression that some platforms (e.g. Apple) require 16 byte minimum allocator alignment.
+</I>
+My vague recollection of what the C standard says indicates that all x86_64 systems should require at least 16-byte alignment, because otherwise 128-bit vector code is a pain to write.  That's not what we get on Linux though, and now that we're seeing vector sizes on the order of 256 and 512 bits, maybe it's reasonable to provide default alignment smaller than that needed by the largest fundamental types.  jemalloc effectively implements 16-byte alignment, because 8-byte allocations are considered &quot;tiny&quot;, and only tiny allocations have weaker alignment than the quantum (see LG_QUANTUM), which is 16 for most of the platforms jemalloc supports.  There's never any call to access an 8-byte allocation with an instruction that requires 16-byte alignment (unless compiler builtins like memcpy() make alignment assumptions), so this works out fine in practice.
+
+&gt;<i> What is prof promote/demote?
+</I>
+jemalloc implements heap profiling, which under normal circumstances samples a representative subset of all allocations, and any small allocations (less than 1 page) are &quot;promoted&quot; to 1 page, so that profiling metadata can be stored in the chunk map.  However, the memory cost of promoting small objects becomes very high as the sample rate increases.  jemalloc currently implements an alternative bookkeeping strategy for small allocations when using a high sampling rate; metadata are stored in the page run header, just after the bitmap that tracks allocated/deallocated status.  As it happens, I'm ripping that alternative strategy out today, as part of some optimization and refactoring work for the 4.0.0 release.  Although it's possible to semi-efficiently track all allocations and perform comprehensive leak detection, in practice Valgrind is a reasonable alternative for this use case, because the performance overhead of capturing backtraces for every allocation is substantial enough that it isn't realistic to use jemalloc in this mode unless willing to accept a slowdown on the order of what Valgrind causes anyway.  Backtracing is expensive in the absence of frame pointers, which I didn't have a full appreciation for until after I'd already implemented the non-promoting bookkeeping alternative.
+
+&gt;<i> What is the defined behavior of mb_write? Similarly what's the expected memory consistency behavior of the atomic functions (e.g. atomic_add_uint64)?
+</I>
+mb_write() implements a typical write barrier, which can be thought of as a barrier across which write operations cannot be moved.  It's used in jemalloc to perform lock-free multi-phase commit.  The atomic_*() functions have semantics equivalent to what can be built on top of compare-exchange, and they are used for updating/reading simple counters.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140411/9f1fbe77/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140411/9f1fbe77/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000754.html">Some jemalloc questions...
+</A></li>
+	<LI>Next message: <A HREF="000756.html">mremap with modern Linux kernel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#755">[ date ]</a>
+              <a href="thread.html#755">[ thread ]</a>
+              <a href="subject.html#755">[ subject ]</a>
+              <a href="author.html#755">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,198 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Remove MAP_NORESERVE support
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20MAP_NORESERVE%20support&In-Reply-To=%3C1334074785-8519-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000237.html">
+   <LINK REL="Next"  HREF="000238.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Remove MAP_NORESERVE support</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20MAP_NORESERVE%20support&In-Reply-To=%3C1334074785-8519-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Remove MAP_NORESERVE support">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr 10 09:19:45 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000237.html">[PATCH] Ignore whitespaces when comparing test results with	expected output
+</A></li>
+        <LI>Next message: <A HREF="000238.html">[PATCH] Remove MAP_NORESERVE support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#233">[ date ]</a>
+              <a href="thread.html#233">[ thread ]</a>
+              <a href="subject.html#233">[ subject ]</a>
+              <a href="author.html#233">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+It was only used by the swap feature, and that is gone.
+---
+ include/jemalloc/internal/chunk_mmap.h |    1 -
+ src/chunk_mmap.c                       |   37 +++++++++++---------------------
+ 2 files changed, 12 insertions(+), 26 deletions(-)
+
+diff --git a/include/jemalloc/internal/chunk_mmap.h b/include/jemalloc/internal/chunk_mmap.h
+index 07b50a4..3f60315 100644
+--- a/include/jemalloc/internal/chunk_mmap.h
++++ b/include/jemalloc/internal/chunk_mmap.h
+@@ -10,7 +10,6 @@
+ #ifdef JEMALLOC_H_EXTERNS
+ 
+ void	*chunk_alloc_mmap(size_t size);
+-void	*chunk_alloc_mmap_noreserve(size_t size);
+ void	chunk_dealloc_mmap(void *chunk, size_t size);
+ 
+ bool	chunk_mmap_boot(void);
+diff --git a/src/chunk_mmap.c b/src/chunk_mmap.c
+index 749a2da..6d16191 100644
+--- a/src/chunk_mmap.c
++++ b/src/chunk_mmap.c
+@@ -15,16 +15,15 @@ malloc_tsd_funcs(JEMALLOC_INLINE, mmap_unaligned, bool, false,
+ /******************************************************************************/
+ /* Function prototypes for non-inline static functions. */
+ 
+-static void	*pages_map(void *addr, size_t size, bool noreserve);
++static void	*pages_map(void *addr, size_t size);
+ static void	pages_unmap(void *addr, size_t size);
+-static void	*chunk_alloc_mmap_slow(size_t size, bool unaligned,
+-    bool noreserve);
+-static void	*chunk_alloc_mmap_internal(size_t size, bool noreserve);
++static void	*chunk_alloc_mmap_slow(size_t size, bool unaligned);
++static void	*chunk_alloc_mmap_internal(size_t size);
+ 
+ /******************************************************************************/
+ 
+ static void *
+-pages_map(void *addr, size_t size, bool noreserve)
++pages_map(void *addr, size_t size)
+ {
+ 	void *ret;
+ 
+@@ -33,10 +32,6 @@ pages_map(void *addr, size_t size, bool noreserve)
+ 	 * of existing mappings, and we only want to create new mappings.
+ 	 */
+ 	int flags = MAP_PRIVATE | MAP_ANON;
+-#ifdef MAP_NORESERVE
+-	if (noreserve)
+-		flags |= MAP_NORESERVE;
+-#endif
+ 	ret = mmap(addr, size, PROT_READ | PROT_WRITE, flags, -1, 0);
+ 	assert(ret != NULL);
+ 
+@@ -78,7 +73,7 @@ pages_unmap(void *addr, size_t size)
+ }
+ 
+ static void *
+-chunk_alloc_mmap_slow(size_t size, bool unaligned, bool noreserve)
++chunk_alloc_mmap_slow(size_t size, bool unaligned)
+ {
+ 	void *ret;
+ 	size_t offset;
+@@ -87,7 +82,7 @@ chunk_alloc_mmap_slow(size_t size, bool unaligned, bool noreserve)
+ 	if (size + chunksize &lt;= size)
+ 		return (NULL);
+ 
+-	ret = pages_map(NULL, size + chunksize, noreserve);
++	ret = pages_map(NULL, size + chunksize);
+ 	if (ret == NULL)
+ 		return (NULL);
+ 
+@@ -126,7 +121,7 @@ chunk_alloc_mmap_slow(size_t size, bool unaligned, bool noreserve)
+ }
+ 
+ static void *
+-chunk_alloc_mmap_internal(size_t size, bool noreserve)
++chunk_alloc_mmap_internal(size_t size)
+ {
+ 	void *ret;
+ 
+@@ -161,7 +156,7 @@ chunk_alloc_mmap_internal(size_t size, bool noreserve)
+ 	if (mmap_unaligned_booted &amp;&amp; *mmap_unaligned_tsd_get() == false) {
+ 		size_t offset;
+ 
+-		ret = pages_map(NULL, size, noreserve);
++		ret = pages_map(NULL, size);
+ 		if (ret == NULL)
+ 			return (NULL);
+ 
+@@ -171,14 +166,13 @@ chunk_alloc_mmap_internal(size_t size, bool noreserve)
+ 			mmap_unaligned_tsd_set(&amp;mu);
+ 			/* Try to extend chunk boundary. */
+ 			if (pages_map((void *)((uintptr_t)ret + size),
+-			    chunksize - offset, noreserve) == NULL) {
++			    chunksize - offset) == NULL) {
+ 				/*
+ 				 * Extension failed.  Clean up, then revert to
+ 				 * the reliable-but-expensive method.
+ 				 */
+ 				pages_unmap(ret, size);
+-				ret = chunk_alloc_mmap_slow(size, true,
+-				    noreserve);
++				ret = chunk_alloc_mmap_slow(size, true);
+ 			} else {
+ 				/* Clean up unneeded leading space. */
+ 				pages_unmap(ret, chunksize - offset);
+@@ -187,7 +181,7 @@ chunk_alloc_mmap_internal(size_t size, bool noreserve)
+ 			}
+ 		}
+ 	} else
+-		ret = chunk_alloc_mmap_slow(size, false, noreserve);
++		ret = chunk_alloc_mmap_slow(size, false);
+ 
+ 	return (ret);
+ }
+@@ -196,14 +190,7 @@ void *
+ chunk_alloc_mmap(size_t size)
+ {
+ 
+-	return (chunk_alloc_mmap_internal(size, false));
+-}
+-
+-void *
+-chunk_alloc_mmap_noreserve(size_t size)
+-{
+-
+-	return (chunk_alloc_mmap_internal(size, true));
++	return (chunk_alloc_mmap_internal(size));
+ }
+ 
+ void
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000237.html">[PATCH] Ignore whitespaces when comparing test results with	expected output
+</A></li>
+	<LI>Next message: <A HREF="000238.html">[PATCH] Remove MAP_NORESERVE support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#233">[ date ]</a>
+              <a href="thread.html#233">[ thread ]</a>
+              <a href="subject.html#233">[ subject ]</a>
+              <a href="author.html#233">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

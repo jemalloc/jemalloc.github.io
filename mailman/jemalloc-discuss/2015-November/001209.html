@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Relationship between opt.prof and opt.prof_leak
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Relationship%20between%20opt.prof%20and%20opt.prof_leak&In-Reply-To=%3C488450D3-AE35-47C1-B92B-BB07A7E8FD71%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001208.html">
+   <LINK REL="Next"  HREF="001211.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Relationship between opt.prof and opt.prof_leak</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Relationship%20between%20opt.prof%20and%20opt.prof_leak&In-Reply-To=%3C488450D3-AE35-47C1-B92B-BB07A7E8FD71%40canonware.com%3E"
+       TITLE="Relationship between opt.prof and opt.prof_leak">jasone at canonware.com
+       </A><BR>
+    <I>Sun Nov  8 11:35:39 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001208.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+        <LI>Next message: <A HREF="001211.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1209">[ date ]</a>
+              <a href="thread.html#1209">[ thread ]</a>
+              <a href="subject.html#1209">[ subject ]</a>
+              <a href="author.html#1209">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 6, 2015, at 2:01 PM, Evan Jones &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ejones at twitter.com</A>&gt; wrote:
+&gt;<i> On Fri, Nov 6, 2015 at 4:57 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A> &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;&gt; wrote:
+</I>&gt;<i> On Nov 6, 2015, at 12:53 PM, Evan Jones &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ejones at twitter.com</A> &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ejones at twitter.com</A>&gt;&gt; wrote:
+</I>&gt;&gt;<i> On Fri, Nov 6, 2015 at 3:45 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A> &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;&gt; wrote:
+</I>&gt;&gt;<i> No, dumps are always based on the most recent stats reset (process start or &quot;prof.reset&quot; mallctl call).  You can view incremental differences between two dumps by using the --base option to jeprof.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Is this true if you use opt.lg_prof_interval? Then what is the point of the opt.prof_accum option?
+</I>&gt;<i> 
+</I>&gt;<i> opt.lg_prof_interval is merely a dump triggering mechanism.  opt.prof_accum controls whether cumulative stats are collected at all.
+</I>&gt;<i> 
+</I>&gt;<i> There must be something stupid that I don't understand then. You said: &quot;dumps are always based on the most recent stats reset&quot;, which is usually the process start time, unless you do some manual reset. Does this mean that prof_accum is *only* useful if you do manually trigger resets using mallctl(&quot;prof.reset&quot;)? Does this mean that with prof_accum:true, the dumps contain *both* the data since the last reset *and* the data since profiling was enabled?
+</I>
+Take the following function as an example, run with MALLOC_CONF=prof:true,prof_accum:true :
+
+	void	g(void *p);
+
+	void
+	f(void) {
+		unsigned i;
+
+		for (i = 0; i &lt; (1U &lt;&lt; 20); i++) {
+			void *p = malloc(1U &lt;&lt; 30);
+			if (i == (1U &lt;&lt; 19)) {
+				mallctl(&quot;prof.dump&quot;, NULL, NULL, NULL, 0); /* A */
+				mallctl(&quot;prof.reset&quot;, NULL, NULL, NULL, 0);
+				mallctl(&quot;prof.dump&quot;, NULL, NULL, NULL, 0); /* B */
+			}
+			if (p != NULL) {
+				g(p);
+				free(p);
+			}
+		}
+		mallctl(&quot;prof.dump&quot;, NULL, NULL, NULL, 0); /* C */
+	}
+
+What will the heap profiling stats (as interpreted by jeprof) dumped at A, B, and C say regarding the malloc() site in f()?
+
+A:
+  - Current: ~1 object, ~2^30 bytes
+  - Cumulative: ~2^19 objects, ~2^49 bytes
+B:
+  - Current: 0 objects, 0 bytes
+  - Cumulative: 0 objects, 0 bytes
+C:
+  - Current: 0 objects, 0 bytes
+  - Cumulative: ~2^19 objects, ~2^49 bytes
+
+opt.prof_accum controls whether jemalloc maintains the cumulative stats.  With MALLOC_CONF=prof:true,prof_accum:false, you will get no cumulative stats at all, no matter when/whether any resets occurred.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151108/e7c527fe/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151108/e7c527fe/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001208.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+	<LI>Next message: <A HREF="001211.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1209">[ date ]</a>
+              <a href="thread.html#1209">[ thread ]</a>
+              <a href="subject.html#1209">[ subject ]</a>
+              <a href="author.html#1209">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

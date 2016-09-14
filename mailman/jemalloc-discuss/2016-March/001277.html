@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Invalid conf pair
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Invalid%20conf%20pair&In-Reply-To=%3CCALodpJ1JAnoDCqKSq1M_QMBziL751H%2B7z5r%3D_jQafVDWeV-onQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001279.html">
+   <LINK REL="Next"  HREF="001278.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Invalid conf pair</H1>
+    <B>Jeffery Griffith</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Invalid%20conf%20pair&In-Reply-To=%3CCALodpJ1JAnoDCqKSq1M_QMBziL751H%2B7z5r%3D_jQafVDWeV-onQ%40mail.gmail.com%3E"
+       TITLE="Invalid conf pair">jeffery.griffith at gmail.com
+       </A><BR>
+    <I>Thu Mar 17 09:17:52 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001279.html">Tuning-advise for soft-realtime systems
+</A></li>
+        <LI>Next message: <A HREF="001278.html">Invalid conf pair
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1277">[ date ]</a>
+              <a href="thread.html#1277">[ thread ]</a>
+              <a href="subject.html#1277">[ subject ]</a>
+              <a href="author.html#1277">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>My first attempt at trying to integrate jemalloc and I can't get out of the
+starting blocks :-)  From what I read, it seems that I should be able to
+get jemalloc into the JVM with LD_PRELOAD and MALLOC_CONF as used below. I
+took the examples straight from the wiki but I must be missing something
+incredibly basic. I built the .so straight from the download with no
+problems (version 4.0) and my JVM does seem to run with it with no problem
+(radically lower virtual size and i can see the .so is loaded with pmap),
+but I clearly don't know what the hell I'm doing with MALLOC_CONF.
+TIA,
+--jg
+
+
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jgriffith at mydevbox.c1.</A>:~/JEMALLOC$ echo $LD_PRELOAD
+/usr/local/lib/libjemalloc.so
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jgriffith at mydevbox.c1.</A>:~/JEMALLOC$ echo $MALLOC_CONF
+prof:true,lg_prof_interval:30,lg_prof_sample:17
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jgriffith at mydevbox.c1.</A>:~/JEMALLOC$ java -jar allocmemory.jar
+&lt;jemalloc&gt;: Invalid conf pair: prof:true
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_interval:30
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_sample:17
+&lt;jemalloc&gt;: Invalid conf pair: prof:true
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_interval:30
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_sample:17
+&lt;jemalloc&gt;: Invalid conf pair: prof:true
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_interval:30
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_sample:17
+&lt;jemalloc&gt;: Invalid conf pair: prof:true
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_interval:30
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_sample:17
+^C
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jgriffith at mydevbox.c1.</A>:~/JEMALLOC$ ls
+&lt;jemalloc&gt;: Invalid conf pair: prof:true
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_interval:30
+&lt;jemalloc&gt;: Invalid conf pair: lg_prof_sample:17
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160317/12bd4b4a/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160317/12bd4b4a/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001279.html">Tuning-advise for soft-realtime systems
+</A></li>
+	<LI>Next message: <A HREF="001278.html">Invalid conf pair
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1277">[ date ]</a>
+              <a href="thread.html#1277">[ thread ]</a>
+              <a href="subject.html#1277">[ subject ]</a>
+              <a href="author.html#1277">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

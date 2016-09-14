@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Replace %z in format strings with configure-time	determined printf length modifier
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Replace%20%25z%20in%20format%20strings%20with%20configure-time%0A%09determined%20printf%20length%20modifier&In-Reply-To=%3CF7497FD0-754A-47EB-BBF6-3FD7DDA9EC9C%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000246.html">
+   <LINK REL="Next"  HREF="000248.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Replace %z in format strings with configure-time	determined printf length modifier</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Replace%20%25z%20in%20format%20strings%20with%20configure-time%0A%09determined%20printf%20length%20modifier&In-Reply-To=%3CF7497FD0-754A-47EB-BBF6-3FD7DDA9EC9C%40canonware.com%3E"
+       TITLE="[PATCH] Replace %z in format strings with configure-time	determined printf length modifier">jasone at canonware.com
+       </A><BR>
+    <I>Wed Apr 11 09:42:33 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000246.html">[PATCH] Replace %z in format strings with configure-time	determined printf length modifier
+</A></li>
+        <LI>Next message: <A HREF="000248.html">[PATCH] Replace %z in format strings with configure-time	determined printf length modifier
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#247">[ date ]</a>
+              <a href="thread.html#247">[ thread ]</a>
+              <a href="subject.html#247">[ subject ]</a>
+              <a href="author.html#247">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 11, 2012, at 5:33 AM, Mike Hommey wrote:
+&gt;<i> On Wed, Apr 11, 2012 at 02:27:27PM +0200, Mike Hommey wrote:
+</I>&gt;&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> ---
+</I>&gt;&gt;<i> configure.ac                        |   14 +++++++++
+</I>&gt;&gt;<i> include/jemalloc/jemalloc_defs.h.in |    8 ++++++
+</I>&gt;&gt;<i> src/prof.c                          |    2 +-
+</I>&gt;&gt;<i> src/stats.c                         |   54 +++++++++++++++++------------------
+</I>&gt;&gt;<i> test/aligned_alloc.c                |   14 ++++-----
+</I>&gt;&gt;<i> test/allocm.c                       |   22 +++++++-------
+</I>&gt;&gt;<i> test/mremap.c                       |    6 ++--
+</I>&gt;&gt;<i> test/posix_memalign.c               |   14 ++++-----
+</I>&gt;&gt;<i> test/rallocm.c                      |   16 +++++------
+</I>&gt;&gt;<i> 9 files changed, 86 insertions(+), 64 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> Disclaimer: no effort has been made to wrap strings. It's merely the
+</I>&gt;<i> result of a big sed (plus configure and preprocessed header glue).
+</I>&gt;<i> 
+</I>&gt;<i> Note that this leads to compiler warnings with mingw64 (warning: unknown
+</I>&gt;<i> conversion type character 'l' in format [-Wformat]), but I suspect this
+</I>&gt;<i> is a bug in mingw64 (and as a matter of fact, the resulting printfs do
+</I>&gt;<i> the right thing ; fwiw, I sent a message on the mingw64 list, but it's
+</I>&gt;<i> awaiting moderation). MSVC is happy with %llu, too.
+</I>&gt;<i> 
+</I>&gt;<i> The defines in jemalloc_defs.h mimic inttypes.h PRI* macros.
+</I>
+What problem is this trying to solve?  Is it purely a matter of compiler warnings due to lack of the 'z' modifier on Windows?  If so, how about we just conditionally remove the format attributes on malloc_{sn,c,}printf() to silence the warnings?
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000246.html">[PATCH] Replace %z in format strings with configure-time	determined printf length modifier
+</A></li>
+	<LI>Next message: <A HREF="000248.html">[PATCH] Replace %z in format strings with configure-time	determined printf length modifier
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#247">[ date ]</a>
+              <a href="thread.html#247">[ thread ]</a>
+              <a href="subject.html#247">[ subject ]</a>
+              <a href="author.html#247">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

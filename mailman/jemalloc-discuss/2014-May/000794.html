@@ -1,0 +1,576 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Use C99 varadic macros instead of GCC ones
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Use%20C99%20varadic%20macros%20instead%20of%20GCC%20ones&In-Reply-To=%3C1400662815-605-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000789.html">
+   <LINK REL="Next"  HREF="000811.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Use C99 varadic macros instead of GCC ones</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Use%20C99%20varadic%20macros%20instead%20of%20GCC%20ones&In-Reply-To=%3C1400662815-605-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Use C99 varadic macros instead of GCC ones">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May 21 02:00:15 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000789.html">[PATCH] Use C99 varadic macros instead of GCC ones
+</A></li>
+        <LI>Next message: <A HREF="000811.html">[PATCH] Use C99 varadic macros instead of GCC ones
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#794">[ date ]</a>
+              <a href="thread.html#794">[ thread ]</a>
+              <a href="subject.html#794">[ subject ]</a>
+              <a href="author.html#794">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ test/include/test/test.h | 384 +++++++++++++++++++++++------------------------
+ test/unit/util.c         |   8 +-
+ 2 files changed, 196 insertions(+), 196 deletions(-)
+
+diff --git a/test/include/test/test.h b/test/include/test/test.h
+index 161fafd..f55bafc 100644
+--- a/test/include/test/test.h
++++ b/test/include/test/test.h
+@@ -1,6 +1,6 @@
+ #define	ASSERT_BUFSIZE	256
+ 
+-#define	assert_cmp(t, a, b, cmp, neg_cmp, pri, fmt...) do {		\
++#define	assert_cmp(t, a, b, cmp, neg_cmp, pri, ...) do {		\
+ 	t a_ = (a);							\
+ 	t b_ = (b);							\
+ 	if (!(a_ cmp b_)) {						\
+@@ -12,205 +12,205 @@
+ 		    &quot;%&quot;pri&quot; &quot;#neg_cmp&quot; %&quot;pri&quot;: &quot;,			\
+ 		    __func__, __FILE__, __LINE__,			\
+ 		    #a, #b, a_, b_);					\
+-		malloc_snprintf(message, sizeof(message), fmt);		\
++		malloc_snprintf(message, sizeof(message), __VA_ARGS__);	\
+ 		p_test_fail(prefix, message);				\
+ 	}								\
+ } while (0)
+ 
+-#define	assert_ptr_eq(a, b, fmt...)	assert_cmp(void *, a, b, ==,	\
+-    !=, &quot;p&quot;, fmt)
+-#define	assert_ptr_ne(a, b, fmt...)	assert_cmp(void *, a, b, !=,	\
+-    ==, &quot;p&quot;, fmt)
+-#define	assert_ptr_null(a, fmt...)	assert_cmp(void *, a, NULL, ==,	\
+-    !=, &quot;p&quot;, fmt)
+-#define	assert_ptr_not_null(a, fmt...)	assert_cmp(void *, a, NULL, !=,	\
+-    ==, &quot;p&quot;, fmt)
++#define	assert_ptr_eq(a, b, ...)	assert_cmp(void *, a, b, ==,	\
++    !=, &quot;p&quot;, __VA_ARGS__)
++#define	assert_ptr_ne(a, b, ...)	assert_cmp(void *, a, b, !=,	\
++    ==, &quot;p&quot;, __VA_ARGS__)
++#define	assert_ptr_null(a, ...)		assert_cmp(void *, a, NULL, ==,	\
++    !=, &quot;p&quot;, __VA_ARGS__)
++#define	assert_ptr_not_null(a, ...)	assert_cmp(void *, a, NULL, !=,	\
++    ==, &quot;p&quot;, __VA_ARGS__)
+ 
+-#define	assert_c_eq(a, b, fmt...)	assert_cmp(char, a, b, ==, !=, &quot;c&quot;, fmt)
+-#define	assert_c_ne(a, b, fmt...)	assert_cmp(char, a, b, !=, ==, &quot;c&quot;, fmt)
+-#define	assert_c_lt(a, b, fmt...)	assert_cmp(char, a, b, &lt;, &gt;=, &quot;c&quot;, fmt)
+-#define	assert_c_le(a, b, fmt...)	assert_cmp(char, a, b, &lt;=, &gt;, &quot;c&quot;, fmt)
+-#define	assert_c_ge(a, b, fmt...)	assert_cmp(char, a, b, &gt;=, &lt;, &quot;c&quot;, fmt)
+-#define	assert_c_gt(a, b, fmt...)	assert_cmp(char, a, b, &gt;, &lt;=, &quot;c&quot;, fmt)
++#define	assert_c_eq(a, b, ...)	assert_cmp(char, a, b, ==, !=, &quot;c&quot;, __VA_ARGS__)
++#define	assert_c_ne(a, b, ...)	assert_cmp(char, a, b, !=, ==, &quot;c&quot;, __VA_ARGS__)
++#define	assert_c_lt(a, b, ...)	assert_cmp(char, a, b, &lt;, &gt;=, &quot;c&quot;, __VA_ARGS__)
++#define	assert_c_le(a, b, ...)	assert_cmp(char, a, b, &lt;=, &gt;, &quot;c&quot;, __VA_ARGS__)
++#define	assert_c_ge(a, b, ...)	assert_cmp(char, a, b, &gt;=, &lt;, &quot;c&quot;, __VA_ARGS__)
++#define	assert_c_gt(a, b, ...)	assert_cmp(char, a, b, &gt;, &lt;=, &quot;c&quot;, __VA_ARGS__)
+ 
+-#define	assert_x_eq(a, b, fmt...)	assert_cmp(int, a, b, ==, !=, &quot;#x&quot;, fmt)
+-#define	assert_x_ne(a, b, fmt...)	assert_cmp(int, a, b, !=, ==, &quot;#x&quot;, fmt)
+-#define	assert_x_lt(a, b, fmt...)	assert_cmp(int, a, b, &lt;, &gt;=, &quot;#x&quot;, fmt)
+-#define	assert_x_le(a, b, fmt...)	assert_cmp(int, a, b, &lt;=, &gt;, &quot;#x&quot;, fmt)
+-#define	assert_x_ge(a, b, fmt...)	assert_cmp(int, a, b, &gt;=, &lt;, &quot;#x&quot;, fmt)
+-#define	assert_x_gt(a, b, fmt...)	assert_cmp(int, a, b, &gt;, &lt;=, &quot;#x&quot;, fmt)
++#define	assert_x_eq(a, b, ...)	assert_cmp(int, a, b, ==, !=, &quot;#x&quot;, __VA_ARGS__)
++#define	assert_x_ne(a, b, ...)	assert_cmp(int, a, b, !=, ==, &quot;#x&quot;, __VA_ARGS__)
++#define	assert_x_lt(a, b, ...)	assert_cmp(int, a, b, &lt;, &gt;=, &quot;#x&quot;, __VA_ARGS__)
++#define	assert_x_le(a, b, ...)	assert_cmp(int, a, b, &lt;=, &gt;, &quot;#x&quot;, __VA_ARGS__)
++#define	assert_x_ge(a, b, ...)	assert_cmp(int, a, b, &gt;=, &lt;, &quot;#x&quot;, __VA_ARGS__)
++#define	assert_x_gt(a, b, ...)	assert_cmp(int, a, b, &gt;, &lt;=, &quot;#x&quot;, __VA_ARGS__)
+ 
+-#define	assert_d_eq(a, b, fmt...)	assert_cmp(int, a, b, ==, !=, &quot;d&quot;, fmt)
+-#define	assert_d_ne(a, b, fmt...)	assert_cmp(int, a, b, !=, ==, &quot;d&quot;, fmt)
+-#define	assert_d_lt(a, b, fmt...)	assert_cmp(int, a, b, &lt;, &gt;=, &quot;d&quot;, fmt)
+-#define	assert_d_le(a, b, fmt...)	assert_cmp(int, a, b, &lt;=, &gt;, &quot;d&quot;, fmt)
+-#define	assert_d_ge(a, b, fmt...)	assert_cmp(int, a, b, &gt;=, &lt;, &quot;d&quot;, fmt)
+-#define	assert_d_gt(a, b, fmt...)	assert_cmp(int, a, b, &gt;, &lt;=, &quot;d&quot;, fmt)
++#define	assert_d_eq(a, b, ...)	assert_cmp(int, a, b, ==, !=, &quot;d&quot;, __VA_ARGS__)
++#define	assert_d_ne(a, b, ...)	assert_cmp(int, a, b, !=, ==, &quot;d&quot;, __VA_ARGS__)
++#define	assert_d_lt(a, b, ...)	assert_cmp(int, a, b, &lt;, &gt;=, &quot;d&quot;, __VA_ARGS__)
++#define	assert_d_le(a, b, ...)	assert_cmp(int, a, b, &lt;=, &gt;, &quot;d&quot;, __VA_ARGS__)
++#define	assert_d_ge(a, b, ...)	assert_cmp(int, a, b, &gt;=, &lt;, &quot;d&quot;, __VA_ARGS__)
++#define	assert_d_gt(a, b, ...)	assert_cmp(int, a, b, &gt;, &lt;=, &quot;d&quot;, __VA_ARGS__)
+ 
+-#define	assert_u_eq(a, b, fmt...)	assert_cmp(int, a, b, ==, !=, &quot;u&quot;, fmt)
+-#define	assert_u_ne(a, b, fmt...)	assert_cmp(int, a, b, !=, ==, &quot;u&quot;, fmt)
+-#define	assert_u_lt(a, b, fmt...)	assert_cmp(int, a, b, &lt;, &gt;=, &quot;u&quot;, fmt)
+-#define	assert_u_le(a, b, fmt...)	assert_cmp(int, a, b, &lt;=, &gt;, &quot;u&quot;, fmt)
+-#define	assert_u_ge(a, b, fmt...)	assert_cmp(int, a, b, &gt;=, &lt;, &quot;u&quot;, fmt)
+-#define	assert_u_gt(a, b, fmt...)	assert_cmp(int, a, b, &gt;, &lt;=, &quot;u&quot;, fmt)
++#define	assert_u_eq(a, b, ...)	assert_cmp(int, a, b, ==, !=, &quot;u&quot;, __VA_ARGS__)
++#define	assert_u_ne(a, b, ...)	assert_cmp(int, a, b, !=, ==, &quot;u&quot;, __VA_ARGS__)
++#define	assert_u_lt(a, b, ...)	assert_cmp(int, a, b, &lt;, &gt;=, &quot;u&quot;, __VA_ARGS__)
++#define	assert_u_le(a, b, ...)	assert_cmp(int, a, b, &lt;=, &gt;, &quot;u&quot;, __VA_ARGS__)
++#define	assert_u_ge(a, b, ...)	assert_cmp(int, a, b, &gt;=, &lt;, &quot;u&quot;, __VA_ARGS__)
++#define	assert_u_gt(a, b, ...)	assert_cmp(int, a, b, &gt;, &lt;=, &quot;u&quot;, __VA_ARGS__)
+ 
+-#define	assert_ld_eq(a, b, fmt...)	assert_cmp(long, a, b, ==,	\
+-    !=, &quot;ld&quot;, fmt)
+-#define	assert_ld_ne(a, b, fmt...)	assert_cmp(long, a, b, !=,	\
+-    ==, &quot;ld&quot;, fmt)
+-#define	assert_ld_lt(a, b, fmt...)	assert_cmp(long, a, b, &lt;,	\
+-    &gt;=, &quot;ld&quot;, fmt)
+-#define	assert_ld_le(a, b, fmt...)	assert_cmp(long, a, b, &lt;=,	\
+-    &gt;, &quot;ld&quot;, fmt)
+-#define	assert_ld_ge(a, b, fmt...)	assert_cmp(long, a, b, &gt;=,	\
+-    &lt;, &quot;ld&quot;, fmt)
+-#define	assert_ld_gt(a, b, fmt...)	assert_cmp(long, a, b, &gt;,	\
+-    &lt;=, &quot;ld&quot;, fmt)
++#define	assert_ld_eq(a, b, ...)	assert_cmp(long, a, b, ==,	\
++    !=, &quot;ld&quot;, __VA_ARGS__)
++#define	assert_ld_ne(a, b, ...)	assert_cmp(long, a, b, !=,	\
++    ==, &quot;ld&quot;, __VA_ARGS__)
++#define	assert_ld_lt(a, b, ...)	assert_cmp(long, a, b, &lt;,	\
++    &gt;=, &quot;ld&quot;, __VA_ARGS__)
++#define	assert_ld_le(a, b, ...)	assert_cmp(long, a, b, &lt;=,	\
++    &gt;, &quot;ld&quot;, __VA_ARGS__)
++#define	assert_ld_ge(a, b, ...)	assert_cmp(long, a, b, &gt;=,	\
++    &lt;, &quot;ld&quot;, __VA_ARGS__)
++#define	assert_ld_gt(a, b, ...)	assert_cmp(long, a, b, &gt;,	\
++    &lt;=, &quot;ld&quot;, __VA_ARGS__)
+ 
+-#define	assert_lu_eq(a, b, fmt...)	assert_cmp(unsigned long,	\
+-    a, b, ==, !=, &quot;lu&quot;, fmt)
+-#define	assert_lu_ne(a, b, fmt...)	assert_cmp(unsigned long,	\
+-    a, b, !=, ==, &quot;lu&quot;, fmt)
+-#define	assert_lu_lt(a, b, fmt...)	assert_cmp(unsigned long,	\
+-    a, b, &lt;, &gt;=, &quot;lu&quot;, fmt)
+-#define	assert_lu_le(a, b, fmt...)	assert_cmp(unsigned long,	\
+-    a, b, &lt;=, &gt;, &quot;lu&quot;, fmt)
+-#define	assert_lu_ge(a, b, fmt...)	assert_cmp(unsigned long,	\
+-    a, b, &gt;=, &lt;, &quot;lu&quot;, fmt)
+-#define	assert_lu_gt(a, b, fmt...)	assert_cmp(unsigned long,	\
+-    a, b, &gt;, &lt;=, &quot;lu&quot;, fmt)
++#define	assert_lu_eq(a, b, ...)	assert_cmp(unsigned long,	\
++    a, b, ==, !=, &quot;lu&quot;, __VA_ARGS__)
++#define	assert_lu_ne(a, b, ...)	assert_cmp(unsigned long,	\
++    a, b, !=, ==, &quot;lu&quot;, __VA_ARGS__)
++#define	assert_lu_lt(a, b, ...)	assert_cmp(unsigned long,	\
++    a, b, &lt;, &gt;=, &quot;lu&quot;, __VA_ARGS__)
++#define	assert_lu_le(a, b, ...)	assert_cmp(unsigned long,	\
++    a, b, &lt;=, &gt;, &quot;lu&quot;, __VA_ARGS__)
++#define	assert_lu_ge(a, b, ...)	assert_cmp(unsigned long,	\
++    a, b, &gt;=, &lt;, &quot;lu&quot;, __VA_ARGS__)
++#define	assert_lu_gt(a, b, ...)	assert_cmp(unsigned long,	\
++    a, b, &gt;, &lt;=, &quot;lu&quot;, __VA_ARGS__)
+ 
+-#define	assert_qd_eq(a, b, fmt...)	assert_cmp(long long, a, b, ==,	\
+-    !=, &quot;qd&quot;, fmt)
+-#define	assert_qd_ne(a, b, fmt...)	assert_cmp(long long, a, b, !=,	\
+-    ==, &quot;qd&quot;, fmt)
+-#define	assert_qd_lt(a, b, fmt...)	assert_cmp(long long, a, b, &lt;,	\
+-    &gt;=, &quot;qd&quot;, fmt)
+-#define	assert_qd_le(a, b, fmt...)	assert_cmp(long long, a, b, &lt;=,	\
+-    &gt;, &quot;qd&quot;, fmt)
+-#define	assert_qd_ge(a, b, fmt...)	assert_cmp(long long, a, b, &gt;=,	\
+-    &lt;, &quot;qd&quot;, fmt)
+-#define	assert_qd_gt(a, b, fmt...)	assert_cmp(long long, a, b, &gt;,	\
+-    &lt;=, &quot;qd&quot;, fmt)
++#define	assert_qd_eq(a, b, ...)	assert_cmp(long long, a, b, ==,	\
++    !=, &quot;qd&quot;, __VA_ARGS__)
++#define	assert_qd_ne(a, b, ...)	assert_cmp(long long, a, b, !=,	\
++    ==, &quot;qd&quot;, __VA_ARGS__)
++#define	assert_qd_lt(a, b, ...)	assert_cmp(long long, a, b, &lt;,	\
++    &gt;=, &quot;qd&quot;, __VA_ARGS__)
++#define	assert_qd_le(a, b, ...)	assert_cmp(long long, a, b, &lt;=,	\
++    &gt;, &quot;qd&quot;, __VA_ARGS__)
++#define	assert_qd_ge(a, b, ...)	assert_cmp(long long, a, b, &gt;=,	\
++    &lt;, &quot;qd&quot;, __VA_ARGS__)
++#define	assert_qd_gt(a, b, ...)	assert_cmp(long long, a, b, &gt;,	\
++    &lt;=, &quot;qd&quot;, __VA_ARGS__)
+ 
+-#define	assert_qu_eq(a, b, fmt...)	assert_cmp(unsigned long long,	\
+-    a, b, ==, !=, &quot;qu&quot;, fmt)
+-#define	assert_qu_ne(a, b, fmt...)	assert_cmp(unsigned long long,	\
+-    a, b, !=, ==, &quot;qu&quot;, fmt)
+-#define	assert_qu_lt(a, b, fmt...)	assert_cmp(unsigned long long,	\
+-    a, b, &lt;, &gt;=, &quot;qu&quot;, fmt)
+-#define	assert_qu_le(a, b, fmt...)	assert_cmp(unsigned long long,	\
+-    a, b, &lt;=, &gt;, &quot;qu&quot;, fmt)
+-#define	assert_qu_ge(a, b, fmt...)	assert_cmp(unsigned long long,	\
+-    a, b, &gt;=, &lt;, &quot;qu&quot;, fmt)
+-#define	assert_qu_gt(a, b, fmt...)	assert_cmp(unsigned long long,	\
+-    a, b, &gt;, &lt;=, &quot;qu&quot;, fmt)
++#define	assert_qu_eq(a, b, ...)	assert_cmp(unsigned long long,	\
++    a, b, ==, !=, &quot;qu&quot;, __VA_ARGS__)
++#define	assert_qu_ne(a, b, ...)	assert_cmp(unsigned long long,	\
++    a, b, !=, ==, &quot;qu&quot;, __VA_ARGS__)
++#define	assert_qu_lt(a, b, ...)	assert_cmp(unsigned long long,	\
++    a, b, &lt;, &gt;=, &quot;qu&quot;, __VA_ARGS__)
++#define	assert_qu_le(a, b, ...)	assert_cmp(unsigned long long,	\
++    a, b, &lt;=, &gt;, &quot;qu&quot;, __VA_ARGS__)
++#define	assert_qu_ge(a, b, ...)	assert_cmp(unsigned long long,	\
++    a, b, &gt;=, &lt;, &quot;qu&quot;, __VA_ARGS__)
++#define	assert_qu_gt(a, b, ...)	assert_cmp(unsigned long long,	\
++    a, b, &gt;, &lt;=, &quot;qu&quot;, __VA_ARGS__)
+ 
+-#define	assert_jd_eq(a, b, fmt...)	assert_cmp(intmax_t, a, b, ==,	\
+-    !=, &quot;jd&quot;, fmt)
+-#define	assert_jd_ne(a, b, fmt...)	assert_cmp(intmax_t, a, b, !=,	\
+-    ==, &quot;jd&quot;, fmt)
+-#define	assert_jd_lt(a, b, fmt...)	assert_cmp(intmax_t, a, b, &lt;,	\
+-    &gt;=, &quot;jd&quot;, fmt)
+-#define	assert_jd_le(a, b, fmt...)	assert_cmp(intmax_t, a, b, &lt;=,	\
+-    &gt;, &quot;jd&quot;, fmt)
+-#define	assert_jd_ge(a, b, fmt...)	assert_cmp(intmax_t, a, b, &gt;=,	\
+-    &lt;, &quot;jd&quot;, fmt)
+-#define	assert_jd_gt(a, b, fmt...)	assert_cmp(intmax_t, a, b, &gt;,	\
+-    &lt;=, &quot;jd&quot;, fmt)
++#define	assert_jd_eq(a, b, ...)	assert_cmp(intmax_t, a, b, ==,	\
++    !=, &quot;jd&quot;, __VA_ARGS__)
++#define	assert_jd_ne(a, b, ...)	assert_cmp(intmax_t, a, b, !=,	\
++    ==, &quot;jd&quot;, __VA_ARGS__)
++#define	assert_jd_lt(a, b, ...)	assert_cmp(intmax_t, a, b, &lt;,	\
++    &gt;=, &quot;jd&quot;, __VA_ARGS__)
++#define	assert_jd_le(a, b, ...)	assert_cmp(intmax_t, a, b, &lt;=,	\
++    &gt;, &quot;jd&quot;, __VA_ARGS__)
++#define	assert_jd_ge(a, b, ...)	assert_cmp(intmax_t, a, b, &gt;=,	\
++    &lt;, &quot;jd&quot;, __VA_ARGS__)
++#define	assert_jd_gt(a, b, ...)	assert_cmp(intmax_t, a, b, &gt;,	\
++    &lt;=, &quot;jd&quot;, __VA_ARGS__)
+ 
+-#define	assert_ju_eq(a, b, fmt...)	assert_cmp(uintmax_t, a, b, ==,	\
+-    !=, &quot;ju&quot;, fmt)
+-#define	assert_ju_ne(a, b, fmt...)	assert_cmp(uintmax_t, a, b, !=,	\
+-    ==, &quot;ju&quot;, fmt)
+-#define	assert_ju_lt(a, b, fmt...)	assert_cmp(uintmax_t, a, b, &lt;,	\
+-    &gt;=, &quot;ju&quot;, fmt)
+-#define	assert_ju_le(a, b, fmt...)	assert_cmp(uintmax_t, a, b, &lt;=,	\
+-    &gt;, &quot;ju&quot;, fmt)
+-#define	assert_ju_ge(a, b, fmt...)	assert_cmp(uintmax_t, a, b, &gt;=,	\
+-    &lt;, &quot;ju&quot;, fmt)
+-#define	assert_ju_gt(a, b, fmt...)	assert_cmp(uintmax_t, a, b, &gt;,	\
+-    &lt;=, &quot;ju&quot;, fmt)
++#define	assert_ju_eq(a, b, ...)	assert_cmp(uintmax_t, a, b, ==,	\
++    !=, &quot;ju&quot;, __VA_ARGS__)
++#define	assert_ju_ne(a, b, ...)	assert_cmp(uintmax_t, a, b, !=,	\
++    ==, &quot;ju&quot;, __VA_ARGS__)
++#define	assert_ju_lt(a, b, ...)	assert_cmp(uintmax_t, a, b, &lt;,	\
++    &gt;=, &quot;ju&quot;, __VA_ARGS__)
++#define	assert_ju_le(a, b, ...)	assert_cmp(uintmax_t, a, b, &lt;=,	\
++    &gt;, &quot;ju&quot;, __VA_ARGS__)
++#define	assert_ju_ge(a, b, ...)	assert_cmp(uintmax_t, a, b, &gt;=,	\
++    &lt;, &quot;ju&quot;, __VA_ARGS__)
++#define	assert_ju_gt(a, b, ...)	assert_cmp(uintmax_t, a, b, &gt;,	\
++    &lt;=, &quot;ju&quot;, __VA_ARGS__)
+ 
+-#define	assert_zd_eq(a, b, fmt...)	assert_cmp(ssize_t, a, b, ==,	\
+-    !=, &quot;zd&quot;, fmt)
+-#define	assert_zd_ne(a, b, fmt...)	assert_cmp(ssize_t, a, b, !=,	\
+-    ==, &quot;zd&quot;, fmt)
+-#define	assert_zd_lt(a, b, fmt...)	assert_cmp(ssize_t, a, b, &lt;,	\
+-    &gt;=, &quot;zd&quot;, fmt)
+-#define	assert_zd_le(a, b, fmt...)	assert_cmp(ssize_t, a, b, &lt;=,	\
+-    &gt;, &quot;zd&quot;, fmt)
+-#define	assert_zd_ge(a, b, fmt...)	assert_cmp(ssize_t, a, b, &gt;=,	\
+-    &lt;, &quot;zd&quot;, fmt)
+-#define	assert_zd_gt(a, b, fmt...)	assert_cmp(ssize_t, a, b, &gt;,	\
+-    &lt;=, &quot;zd&quot;, fmt)
++#define	assert_zd_eq(a, b, ...)	assert_cmp(ssize_t, a, b, ==,	\
++    !=, &quot;zd&quot;, __VA_ARGS__)
++#define	assert_zd_ne(a, b, ...)	assert_cmp(ssize_t, a, b, !=,	\
++    ==, &quot;zd&quot;, __VA_ARGS__)
++#define	assert_zd_lt(a, b, ...)	assert_cmp(ssize_t, a, b, &lt;,	\
++    &gt;=, &quot;zd&quot;, __VA_ARGS__)
++#define	assert_zd_le(a, b, ...)	assert_cmp(ssize_t, a, b, &lt;=,	\
++    &gt;, &quot;zd&quot;, __VA_ARGS__)
++#define	assert_zd_ge(a, b, ...)	assert_cmp(ssize_t, a, b, &gt;=,	\
++    &lt;, &quot;zd&quot;, __VA_ARGS__)
++#define	assert_zd_gt(a, b, ...)	assert_cmp(ssize_t, a, b, &gt;,	\
++    &lt;=, &quot;zd&quot;, __VA_ARGS__)
+ 
+-#define	assert_zu_eq(a, b, fmt...)	assert_cmp(size_t, a, b, ==,	\
+-    !=, &quot;zu&quot;, fmt)
+-#define	assert_zu_ne(a, b, fmt...)	assert_cmp(size_t, a, b, !=,	\
+-    ==, &quot;zu&quot;, fmt)
+-#define	assert_zu_lt(a, b, fmt...)	assert_cmp(size_t, a, b, &lt;,	\
+-    &gt;=, &quot;zu&quot;, fmt)
+-#define	assert_zu_le(a, b, fmt...)	assert_cmp(size_t, a, b, &lt;=,	\
+-    &gt;, &quot;zu&quot;, fmt)
+-#define	assert_zu_ge(a, b, fmt...)	assert_cmp(size_t, a, b, &gt;=,	\
+-    &lt;, &quot;zu&quot;, fmt)
+-#define	assert_zu_gt(a, b, fmt...)	assert_cmp(size_t, a, b, &gt;,	\
+-    &lt;=, &quot;zu&quot;, fmt)
++#define	assert_zu_eq(a, b, ...)	assert_cmp(size_t, a, b, ==,	\
++    !=, &quot;zu&quot;, __VA_ARGS__)
++#define	assert_zu_ne(a, b, ...)	assert_cmp(size_t, a, b, !=,	\
++    ==, &quot;zu&quot;, __VA_ARGS__)
++#define	assert_zu_lt(a, b, ...)	assert_cmp(size_t, a, b, &lt;,	\
++    &gt;=, &quot;zu&quot;, __VA_ARGS__)
++#define	assert_zu_le(a, b, ...)	assert_cmp(size_t, a, b, &lt;=,	\
++    &gt;, &quot;zu&quot;, __VA_ARGS__)
++#define	assert_zu_ge(a, b, ...)	assert_cmp(size_t, a, b, &gt;=,	\
++    &lt;, &quot;zu&quot;, __VA_ARGS__)
++#define	assert_zu_gt(a, b, ...)	assert_cmp(size_t, a, b, &gt;,	\
++    &lt;=, &quot;zu&quot;, __VA_ARGS__)
+ 
+-#define	assert_d32_eq(a, b, fmt...)	assert_cmp(int32_t, a, b, ==,	\
+-    !=, PRId32, fmt)
+-#define	assert_d32_ne(a, b, fmt...)	assert_cmp(int32_t, a, b, !=,	\
+-    ==, PRId32, fmt)
+-#define	assert_d32_lt(a, b, fmt...)	assert_cmp(int32_t, a, b, &lt;,	\
+-    &gt;=, PRId32, fmt)
+-#define	assert_d32_le(a, b, fmt...)	assert_cmp(int32_t, a, b, &lt;=,	\
+-    &gt;, PRId32, fmt)
+-#define	assert_d32_ge(a, b, fmt...)	assert_cmp(int32_t, a, b, &gt;=,	\
+-    &lt;, PRId32, fmt)
+-#define	assert_d32_gt(a, b, fmt...)	assert_cmp(int32_t, a, b, &gt;,	\
+-    &lt;=, PRId32, fmt)
++#define	assert_d32_eq(a, b, ...)	assert_cmp(int32_t, a, b, ==,	\
++    !=, PRId32, __VA_ARGS__)
++#define	assert_d32_ne(a, b, ...)	assert_cmp(int32_t, a, b, !=,	\
++    ==, PRId32, __VA_ARGS__)
++#define	assert_d32_lt(a, b, ...)	assert_cmp(int32_t, a, b, &lt;,	\
++    &gt;=, PRId32, __VA_ARGS__)
++#define	assert_d32_le(a, b, ...)	assert_cmp(int32_t, a, b, &lt;=,	\
++    &gt;, PRId32, __VA_ARGS__)
++#define	assert_d32_ge(a, b, ...)	assert_cmp(int32_t, a, b, &gt;=,	\
++    &lt;, PRId32, __VA_ARGS__)
++#define	assert_d32_gt(a, b, ...)	assert_cmp(int32_t, a, b, &gt;,	\
++    &lt;=, PRId32, __VA_ARGS__)
+ 
+-#define	assert_u32_eq(a, b, fmt...)	assert_cmp(uint32_t, a, b, ==,	\
+-    !=, PRIu32, fmt)
+-#define	assert_u32_ne(a, b, fmt...)	assert_cmp(uint32_t, a, b, !=,	\
+-    ==, PRIu32, fmt)
+-#define	assert_u32_lt(a, b, fmt...)	assert_cmp(uint32_t, a, b, &lt;,	\
+-    &gt;=, PRIu32, fmt)
+-#define	assert_u32_le(a, b, fmt...)	assert_cmp(uint32_t, a, b, &lt;=,	\
+-    &gt;, PRIu32, fmt)
+-#define	assert_u32_ge(a, b, fmt...)	assert_cmp(uint32_t, a, b, &gt;=,	\
+-    &lt;, PRIu32, fmt)
+-#define	assert_u32_gt(a, b, fmt...)	assert_cmp(uint32_t, a, b, &gt;,	\
+-    &lt;=, PRIu32, fmt)
++#define	assert_u32_eq(a, b, ...)	assert_cmp(uint32_t, a, b, ==,	\
++    !=, PRIu32, __VA_ARGS__)
++#define	assert_u32_ne(a, b, ...)	assert_cmp(uint32_t, a, b, !=,	\
++    ==, PRIu32, __VA_ARGS__)
++#define	assert_u32_lt(a, b, ...)	assert_cmp(uint32_t, a, b, &lt;,	\
++    &gt;=, PRIu32, __VA_ARGS__)
++#define	assert_u32_le(a, b, ...)	assert_cmp(uint32_t, a, b, &lt;=,	\
++    &gt;, PRIu32, __VA_ARGS__)
++#define	assert_u32_ge(a, b, ...)	assert_cmp(uint32_t, a, b, &gt;=,	\
++    &lt;, PRIu32, __VA_ARGS__)
++#define	assert_u32_gt(a, b, ...)	assert_cmp(uint32_t, a, b, &gt;,	\
++    &lt;=, PRIu32, __VA_ARGS__)
+ 
+-#define	assert_d64_eq(a, b, fmt...)	assert_cmp(int64_t, a, b, ==,	\
+-    !=, PRId64, fmt)
+-#define	assert_d64_ne(a, b, fmt...)	assert_cmp(int64_t, a, b, !=,	\
+-    ==, PRId64, fmt)
+-#define	assert_d64_lt(a, b, fmt...)	assert_cmp(int64_t, a, b, &lt;,	\
+-    &gt;=, PRId64, fmt)
+-#define	assert_d64_le(a, b, fmt...)	assert_cmp(int64_t, a, b, &lt;=,	\
+-    &gt;, PRId64, fmt)
+-#define	assert_d64_ge(a, b, fmt...)	assert_cmp(int64_t, a, b, &gt;=,	\
+-    &lt;, PRId64, fmt)
+-#define	assert_d64_gt(a, b, fmt...)	assert_cmp(int64_t, a, b, &gt;,	\
+-    &lt;=, PRId64, fmt)
++#define	assert_d64_eq(a, b, ...)	assert_cmp(int64_t, a, b, ==,	\
++    !=, PRId64, __VA_ARGS__)
++#define	assert_d64_ne(a, b, ...)	assert_cmp(int64_t, a, b, !=,	\
++    ==, PRId64, __VA_ARGS__)
++#define	assert_d64_lt(a, b, ...)	assert_cmp(int64_t, a, b, &lt;,	\
++    &gt;=, PRId64, __VA_ARGS__)
++#define	assert_d64_le(a, b, ...)	assert_cmp(int64_t, a, b, &lt;=,	\
++    &gt;, PRId64, __VA_ARGS__)
++#define	assert_d64_ge(a, b, ...)	assert_cmp(int64_t, a, b, &gt;=,	\
++    &lt;, PRId64, __VA_ARGS__)
++#define	assert_d64_gt(a, b, ...)	assert_cmp(int64_t, a, b, &gt;,	\
++    &lt;=, PRId64, __VA_ARGS__)
+ 
+-#define	assert_u64_eq(a, b, fmt...)	assert_cmp(uint64_t, a, b, ==,	\
+-    !=, PRIu64, fmt)
+-#define	assert_u64_ne(a, b, fmt...)	assert_cmp(uint64_t, a, b, !=,	\
+-    ==, PRIu64, fmt)
+-#define	assert_u64_lt(a, b, fmt...)	assert_cmp(uint64_t, a, b, &lt;,	\
+-    &gt;=, PRIu64, fmt)
+-#define	assert_u64_le(a, b, fmt...)	assert_cmp(uint64_t, a, b, &lt;=,	\
+-    &gt;, PRIu64, fmt)
+-#define	assert_u64_ge(a, b, fmt...)	assert_cmp(uint64_t, a, b, &gt;=,	\
+-    &lt;, PRIu64, fmt)
+-#define	assert_u64_gt(a, b, fmt...)	assert_cmp(uint64_t, a, b, &gt;,	\
+-    &lt;=, PRIu64, fmt)
++#define	assert_u64_eq(a, b, ...)	assert_cmp(uint64_t, a, b, ==,	\
++    !=, PRIu64, __VA_ARGS__)
++#define	assert_u64_ne(a, b, ...)	assert_cmp(uint64_t, a, b, !=,	\
++    ==, PRIu64, __VA_ARGS__)
++#define	assert_u64_lt(a, b, ...)	assert_cmp(uint64_t, a, b, &lt;,	\
++    &gt;=, PRIu64, __VA_ARGS__)
++#define	assert_u64_le(a, b, ...)	assert_cmp(uint64_t, a, b, &lt;=,	\
++    &gt;, PRIu64, __VA_ARGS__)
++#define	assert_u64_ge(a, b, ...)	assert_cmp(uint64_t, a, b, &gt;=,	\
++    &lt;, PRIu64, __VA_ARGS__)
++#define	assert_u64_gt(a, b, ...)	assert_cmp(uint64_t, a, b, &gt;,	\
++    &lt;=, PRIu64, __VA_ARGS__)
+ 
+-#define	assert_b_eq(a, b, fmt...) do {					\
++#define	assert_b_eq(a, b, ...) do {					\
+ 	bool a_ = (a);							\
+ 	bool b_ = (b);							\
+ 	if (!(a_ == b_)) {						\
+@@ -222,11 +222,11 @@
+ 		    __func__, __FILE__, __LINE__,			\
+ 		    #a, #b, a_ ? &quot;true&quot; : &quot;false&quot;,			\
+ 		    b_ ? &quot;true&quot; : &quot;false&quot;);				\
+-		malloc_snprintf(message, sizeof(message), fmt);		\
++		malloc_snprintf(message, sizeof(message), __VA_ARGS__);	\
+ 		p_test_fail(prefix, message);				\
+ 	}								\
+ } while (0)
+-#define	assert_b_ne(a, b, fmt...) do {					\
++#define	assert_b_ne(a, b, ...) do {					\
+ 	bool a_ = (a);							\
+ 	bool b_ = (b);							\
+ 	if (!(a_ != b_)) {						\
+@@ -238,14 +238,14 @@
+ 		    __func__, __FILE__, __LINE__,			\
+ 		    #a, #b, a_ ? &quot;true&quot; : &quot;false&quot;,			\
+ 		    b_ ? &quot;true&quot; : &quot;false&quot;);				\
+-		malloc_snprintf(message, sizeof(message), fmt);		\
++		malloc_snprintf(message, sizeof(message), __VA_ARGS__);	\
+ 		p_test_fail(prefix, message);				\
+ 	}								\
+ } while (0)
+-#define	assert_true(a, fmt...)	assert_b_eq(a, true, fmt)
+-#define	assert_false(a, fmt...)	assert_b_eq(a, false, fmt)
++#define	assert_true(a, ...)	assert_b_eq(a, true, __VA_ARGS__)
++#define	assert_false(a, ...)	assert_b_eq(a, false, __VA_ARGS__)
+ 
+-#define	assert_str_eq(a, b, fmt...) do {				\
++#define	assert_str_eq(a, b, ...) do {				\
+ 	if (strcmp((a), (b))) {						\
+ 		char prefix[ASSERT_BUFSIZE];				\
+ 		char message[ASSERT_BUFSIZE];				\
+@@ -254,11 +254,11 @@
+ 		    &quot;(%s) same as (%s) --&gt; &quot;				\
+ 		    &quot;\&quot;%s\&quot; differs from \&quot;%s\&quot;: &quot;,			\
+ 		    __func__, __FILE__, __LINE__, #a, #b, a, b);	\
+-		malloc_snprintf(message, sizeof(message), fmt);		\
++		malloc_snprintf(message, sizeof(message), __VA_ARGS__);	\
+ 		p_test_fail(prefix, message);				\
+ 	}								\
+ } while (0)
+-#define	assert_str_ne(a, b, fmt...) do {				\
++#define	assert_str_ne(a, b, ...) do {				\
+ 	if (!strcmp((a), (b))) {					\
+ 		char prefix[ASSERT_BUFSIZE];				\
+ 		char message[ASSERT_BUFSIZE];				\
+@@ -267,18 +267,18 @@
+ 		    &quot;(%s) differs from (%s) --&gt; &quot;			\
+ 		    &quot;\&quot;%s\&quot; same as \&quot;%s\&quot;: &quot;,				\
+ 		    __func__, __FILE__, __LINE__, #a, #b, a, b);	\
+-		malloc_snprintf(message, sizeof(message), fmt);		\
++		malloc_snprintf(message, sizeof(message), __VA_ARGS__);	\
+ 		p_test_fail(prefix, message);				\
+ 	}								\
+ } while (0)
+ 
+-#define	assert_not_reached(fmt...) do {					\
++#define	assert_not_reached(...) do {					\
+ 	char prefix[ASSERT_BUFSIZE];					\
+ 	char message[ASSERT_BUFSIZE];					\
+ 	malloc_snprintf(prefix, sizeof(prefix),				\
+ 	    &quot;%s:%s:%d: Unreachable code reached: &quot;,			\
+ 	    __func__, __FILE__, __LINE__);				\
+-	malloc_snprintf(message, sizeof(message), fmt);			\
++	malloc_snprintf(message, sizeof(message), __VA_ARGS__);		\
+ 	p_test_fail(prefix, message);					\
+ } while (0)
+ 
+@@ -308,8 +308,8 @@ label_test_end:								\
+ 	p_test_fini();							\
+ }
+ 
+-#define	test(tests...)							\
+-	p_test(tests, NULL)
++#define	test(...)							\
++	p_test(__VA_ARGS__, NULL)
+ 
+ #define	test_skip_if(e) do {						\
+ 	if (e) {							\
+diff --git a/test/unit/util.c b/test/unit/util.c
+index dc3cfe8..c11d598 100644
+--- a/test/unit/util.c
++++ b/test/unit/util.c
+@@ -141,8 +141,8 @@ TEST_BEGIN(test_malloc_snprintf_truncated)
+ 	char buf[BUFLEN];
+ 	int result;
+ 	size_t len;
+-#define TEST(expected_str_untruncated, fmt...) do {			\
+-	result = malloc_snprintf(buf, len, fmt);			\
++#define TEST(expected_str_untruncated, ...) do {			\
++	result = malloc_snprintf(buf, len, __VA_ARGS__);		\
+ 	assert_d_eq(strncmp(buf, expected_str_untruncated, len-1), 0,	\
+ 	    &quot;Unexpected string inequality (\&quot;%s\&quot; vs \&quot;%s\&quot;)&quot;,		\
+ 	    buf, expected_str_untruncated);		\
+@@ -173,8 +173,8 @@ TEST_BEGIN(test_malloc_snprintf)
+ #define	BUFLEN	128
+ 	char buf[BUFLEN];
+ 	int result;
+-#define	TEST(expected_str, fmt...) do {					\
+-	result = malloc_snprintf(buf, sizeof(buf), fmt);		\
++#define	TEST(expected_str, ...) do {					\
++	result = malloc_snprintf(buf, sizeof(buf), __VA_ARGS__);	\
+ 	assert_str_eq(buf, expected_str, &quot;Unexpected output&quot;);		\
+ 	assert_d_eq(result, strlen(expected_str), &quot;Unexpected result&quot;);	\
+ } while (0)
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000789.html">[PATCH] Use C99 varadic macros instead of GCC ones
+</A></li>
+	<LI>Next message: <A HREF="000811.html">[PATCH] Use C99 varadic macros instead of GCC ones
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#794">[ date ]</a>
+              <a href="thread.html#794">[ thread ]</a>
+              <a href="subject.html#794">[ subject ]</a>
+              <a href="author.html#794">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

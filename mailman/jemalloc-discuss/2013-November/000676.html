@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> compatibility with apps using mallopt?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compatibility%20with%20apps%20using%20mallopt%3F&In-Reply-To=%3C20131117224733.GA14643%40dcvr.yhbt.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000677.html">
+   <LINK REL="Next"  HREF="000678.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>compatibility with apps using mallopt?</H1>
+    <B>Eric Wong</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compatibility%20with%20apps%20using%20mallopt%3F&In-Reply-To=%3C20131117224733.GA14643%40dcvr.yhbt.net%3E"
+       TITLE="compatibility with apps using mallopt?">normalperson at yhbt.net
+       </A><BR>
+    <I>Sun Nov 17 14:47:33 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000677.html">jemalloc tuning help
+</A></li>
+        <LI>Next message: <A HREF="000678.html">compatibility with apps using mallopt?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#676">[ date ]</a>
+              <a href="thread.html#676">[ thread ]</a>
+              <a href="subject.html#676">[ subject ]</a>
+              <a href="author.html#676">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi, I'd like to continue providing the option of using jemalloc (and
+other alternative malloc implementations) to glibc/Linux users of
+cmogstored[1].
+
+I have a pending change[2] in cmogstored.git which adds mallopt(3)
+support.  This needed for good out-of-the-box VM usage on modern glibc
+and many disk-bound threads.  cmogstored is not at all dependent on
+malloc performance/scalability, so glibc malloc defaults clash greatly
+with the design of cmogstored.
+
+When I ./configure with LIBS=-ljemalloc, things go bad because the
+mallopt call is still detected and going to glibc even though the glibc
+malloc implementation is not used/linked.
+
+So my question is: what's the best way to avoid mallopt() when using
+glibc if cmogstored is linked to jemalloc (or any non-glibc malloc)?
+
+Or should jemalloc provide a mallopt() function which may
+wrap mallctl() in some cases and/or just do nothing at all?
+
+Thanks for reading.
+
+[1] - <A HREF="http://bogomips.org/cmogstored/README">http://bogomips.org/cmogstored/README</A>
+[2] - <A HREF="http://bogomips.org/cmogstored.git/patch?id=ebf312e250ff">http://bogomips.org/cmogstored.git/patch?id=ebf312e250ff</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000677.html">jemalloc tuning help
+</A></li>
+	<LI>Next message: <A HREF="000678.html">compatibility with apps using mallopt?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#676">[ date ]</a>
+              <a href="thread.html#676">[ thread ]</a>
+              <a href="subject.html#676">[ subject ]</a>
+              <a href="author.html#676">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

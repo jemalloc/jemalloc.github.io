@@ -1,0 +1,2394 @@
+From mh+jemalloc at glandium.org  Wed May  2 00:21:25 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 2 May 2012 09:21:25 +0200
+Subject: [PATCH 7/7] Add support for MSVC
+In-Reply-To: <1335782311-8040-7-git-send-email-mh+jemalloc@glandium.org>
+References: <1335782311-8040-1-git-send-email-mh+jemalloc@glandium.org>
+	<1335782311-8040-7-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <20120502072125.GA2105@glandium.org>
+
+Hi,
+
+Thanks for applying the MSVC patches. When applying this one, you left
+out the following hunk:
+
+> @@ -296,7 +309,7 @@ static const bool config_ivsalloc =
+>   * In addition, this controls the spacing of cacheline-spaced size classes.
+>   */
+>  #define	LG_CACHELINE		6
+> -#define	CACHELINE		((size_t)(1U << LG_CACHELINE))
+> +#define	CACHELINE		64
+>  #define	CACHELINE_MASK		(CACHELINE - 1)
+>  
+>  /* Return the smallest cacheline multiple that is >= s. */
+
+This wasn't a mistake that slipped in there. It is meant to be changed,
+and there's unfortunately no other way: __declspec(align()) only takes
+constants. Not calculated constants.
+
+You can add a static assertion if you want to ensure CACHELINE matches
+LG_CACHELINE (like static const int foo[CACHELINE == 1 << LG_CACHELINE
+? 1 : -1]);
+
+Mike
+
+
+From jasone at canonware.com  Wed May  2 01:26:59 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 2 May 2012 01:26:59 -0700
+Subject: [PATCH 7/7] Add support for MSVC
+In-Reply-To: <20120502072125.GA2105@glandium.org>
+References: <1335782311-8040-1-git-send-email-mh+jemalloc@glandium.org>
+	<1335782311-8040-7-git-send-email-mh+jemalloc@glandium.org>
+	<20120502072125.GA2105@glandium.org>
+Message-ID: <E6C3A0E5-F75F-4CDA-B230-1EB2C4A6007B@canonware.com>
+
+On May 2, 2012, at 12:21 AM, Mike Hommey wrote:
+> Thanks for applying the MSVC patches. When applying this one, you left
+> out the following hunk:
+> 
+>> @@ -296,7 +309,7 @@ static const bool config_ivsalloc =
+>>  * In addition, this controls the spacing of cacheline-spaced size classes.
+>>  */
+>> #define	LG_CACHELINE		6
+>> -#define	CACHELINE		((size_t)(1U << LG_CACHELINE))
+>> +#define	CACHELINE		64
+>> #define	CACHELINE_MASK		(CACHELINE - 1)
+>> 
+>> /* Return the smallest cacheline multiple that is >= s. */
+> 
+> This wasn't a mistake that slipped in there. It is meant to be changed,
+> and there's unfortunately no other way: __declspec(align()) only takes
+> constants. Not calculated constants.
+
+Okay, I just pushed another patch that adds this change, with a comment that explains why it is needed.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed May  2 03:04:52 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 2 May 2012 03:04:52 -0700
+Subject: Last call for 3.0.0
+Message-ID: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+
+I'm doing a final round of testing in preparation for the 3.0.0 release, which I'm hoping to tag in the next 24-36 hours, assuming no stability issues are uncovered.  My testing coverage is best on Linux and FreeBSD; OS X is minimal, and I don't even have a Windows system.  If there are issues that need to be addressed before the release, please let me know ASAP.
+
+Thanks,
+Jason
+
+From mh+jemalloc at glandium.org  Wed May  2 03:20:27 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 2 May 2012 12:20:27 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+Message-ID: <20120502102027.GA12910@glandium.org>
+
+On Wed, May 02, 2012 at 03:04:52AM -0700, Jason Evans wrote:
+> I'm doing a final round of testing in preparation for the 3.0.0
+> release, which I'm hoping to tag in the next 24-36 hours, assuming no
+> stability issues are uncovered.  My testing coverage is best on Linux
+> and FreeBSD; OS X is minimal, and I don't even have a Windows system.
+> If there are issues that need to be addressed before the release,
+> please let me know ASAP.
+
+There is the "Check for VALGRIND_RESIZEINPLACE_BLOCK support" patch.
+And I'm going to send one or two more patches today for other things.
+
+Mike
+
+
+From jasone at canonware.com  Wed May  2 03:27:33 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 2 May 2012 03:27:33 -0700
+Subject: Last call for 3.0.0
+In-Reply-To: <20120502102027.GA12910@glandium.org>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+Message-ID: <3076889F-2746-4EA8-9DDB-214FF482995A@canonware.com>
+
+On May 2, 2012, at 3:20 AM, Mike Hommey wrote:
+> There is the "Check for VALGRIND_RESIZEINPLACE_BLOCK support" patch.
+> And I'm going to send one or two more patches today for other things.
+
+I just committed the valgrind configuration fix; thanks for the reminder.
+
+Jason
+
+
+From mh+jemalloc at glandium.org  Wed May  2 04:15:00 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed,  2 May 2012 13:15:00 +0200
+Subject: Allow je_malloc_message to be overridden when linking statically
+Message-ID: <1335957300-18609-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+If an application wants to override je_malloc_message, it is better to define
+the symbol locally than to change its value in main(), which might be too late
+for various reasons.
+
+Due to je_malloc_message being initialized in util.c, statically linking
+jemalloc with an application defining je_malloc_message fails due to
+"multiple definition of" the symbol.
+
+Defining it without a value (like je_malloc_conf) makes it more easily
+overridable.
+---
+ src/stats.c |   22 +++++++---------------
+ src/util.c  |   10 ++++++----
+ 2 files changed, 13 insertions(+), 19 deletions(-)
+
+diff --git a/src/stats.c b/src/stats.c
+index 2854b30..1234e56 100644
+--- a/src/stats.c
++++ b/src/stats.c
+@@ -295,16 +295,6 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		abort();
+ 	}
+ 
+-	if (write_cb == NULL) {
+-		/*
+-		 * The caller did not provide an alternate write_cb callback
+-		 * function, so use the default one.  malloc_write() is an
+-		 * inline function, so use malloc_message() directly here.
+-		 */
+-		write_cb = je_malloc_message;
+-		cbopaque = NULL;
+-	}
+-
+ 	if (opts != NULL) {
+ 		unsigned i;
+ 
+@@ -330,7 +320,8 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		}
+ 	}
+ 
+-	write_cb(cbopaque, "___ Begin jemalloc statistics ___\n");
++	malloc_cprintf(write_cb, cbopaque,
++	    "___ Begin jemalloc statistics ___\n");
+ 	if (general) {
+ 		int err;
+ 		const char *cpv;
+@@ -375,7 +366,8 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			    "  opt."#n": \"%s\"\n", cpv);		\
+ 		}
+ 
+-		write_cb(cbopaque, "Run-time option settings:\n");
++		malloc_cprintf(write_cb, cbopaque,
++		    "Run-time option settings:\n");
+ 		OPT_WRITE_BOOL(abort)
+ 		OPT_WRITE_SIZE_T(lg_chunk)
+ 		OPT_WRITE_SIZE_T(narenas)
+@@ -425,7 +417,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			    "Min active:dirty page ratio per arena: %u:1\n",
+ 			    (1U << ssv));
+ 		} else {
+-			write_cb(cbopaque,
++			malloc_cprintf(write_cb, cbopaque,
+ 			    "Min active:dirty page ratio per arena: N/A\n");
+ 		}
+ 		if ((err = je_mallctl("arenas.tcache_max", &sv, &ssz, NULL, 0))
+@@ -447,7 +439,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 				    " (2^%zd)\n",
+ 				    (((uint64_t)1U) << ssv), ssv);
+ 			} else {
+-				write_cb(cbopaque,
++				malloc_cprintf(write_cb, cbopaque,
+ 				    "Average profile dump interval: N/A\n");
+ 			}
+ 		}
+@@ -547,5 +539,5 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			}
+ 		}
+ 	}
+-	write_cb(cbopaque, "--- End jemalloc statistics ---\n");
++	malloc_cprintf(write_cb, cbopaque, "--- End jemalloc statistics ---\n");
+ }
+diff --git a/src/util.c b/src/util.c
+index 4f71695..aa65621 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -56,8 +56,7 @@ wrtmessage(void *cbopaque, const char *s)
+ #endif
+ }
+ 
+-JEMALLOC_EXPORT void	(*je_malloc_message)(void *, const char *s) =
+-    wrtmessage;
++JEMALLOC_EXPORT void	(*je_malloc_message)(void *, const char *s);
+ 
+ /*
+  * Wrapper around malloc_message() that avoids the need for
+@@ -67,7 +66,10 @@ void
+ malloc_write(const char *s)
+ {
+ 
+-	je_malloc_message(NULL, s);
++	if (je_malloc_message)
++		je_malloc_message(NULL, s);
++	else
++		wrtmessage(NULL, s);
+ }
+ 
+ /*
+@@ -606,7 +608,7 @@ malloc_vcprintf(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		 * function, so use the default one.  malloc_write() is an
+ 		 * inline function, so use malloc_message() directly here.
+ 		 */
+-		write_cb = je_malloc_message;
++		write_cb = je_malloc_message ? je_malloc_message : wrtmessage;
+ 		cbopaque = NULL;
+ 	}
+ 
+-- 
+1.7.10
+
+
+
+From mh+jemalloc at glandium.org  Wed May  2 04:17:20 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 2 May 2012 13:17:20 +0200
+Subject: Allow je_malloc_message to be overridden when linking statically
+In-Reply-To: <1335957300-18609-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1335957300-18609-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <20120502111720.GA18850@glandium.org>
+
+On Wed, May 02, 2012 at 01:15:00PM +0200, Mike Hommey wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> If an application wants to override je_malloc_message, it is better to define
+> the symbol locally than to change its value in main(), which might be too late
+> for various reasons.
+> 
+> Due to je_malloc_message being initialized in util.c, statically linking
+> jemalloc with an application defining je_malloc_message fails due to
+> "multiple definition of" the symbol.
+> 
+> Defining it without a value (like je_malloc_conf) makes it more easily
+> overridable.
+
+Also, I wonder what is the added value of having the cbopaque value
+passed down to je_malloc_message. It would seem better to drop that
+argument, and use a wrapper to call it.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Wed May  2 07:51:00 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 2 May 2012 16:51:00 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <20120502102027.GA12910@glandium.org>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+Message-ID: <20120502145100.GA32713@glandium.org>
+
+On Wed, May 02, 2012 at 12:20:27PM +0200, Mike Hommey wrote:
+> On Wed, May 02, 2012 at 03:04:52AM -0700, Jason Evans wrote:
+> > I'm doing a final round of testing in preparation for the 3.0.0
+> > release, which I'm hoping to tag in the next 24-36 hours, assuming no
+> > stability issues are uncovered.  My testing coverage is best on Linux
+> > and FreeBSD; OS X is minimal, and I don't even have a Windows system.
+> > If there are issues that need to be addressed before the release,
+> > please let me know ASAP.
+> 
+> There is the "Check for VALGRIND_RESIZEINPLACE_BLOCK support" patch.
+> And I'm going to send one or two more patches today for other things.
+
+I have to write 2 patches for MSVC-related issues that I'll send later
+today.
+
+I also get concerning (kind of) random (but not entirely so) crashes in
+Firefox on Windows when using current jemalloc-dev. I haven't narrowed
+down the problem yet, and probably won't until tomorrow. It might be
+better to hold off a release until things are cleared.
+
+Cheers,
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Wed May  2 12:30:51 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed,  2 May 2012 21:30:51 +0200
+Subject: [PATCH 1/3] Use "hardcoded" dependencies when compiler doesn't
+	support -MM
+Message-ID: <1335987053-8734-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ Makefile.in  |   17 ++++++++++++++---
+ configure.ac |    3 +++
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 94f4869..0c8e76a 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -54,6 +54,7 @@ PIC_CFLAGS = @PIC_CFLAGS@
+ CTARGET = @CTARGET@
+ LDTARGET = @LDTARGET@
+ MKLIB = @MKLIB@
++CC_MM = @CC_MM@
+ 
+ ifeq (macho, $(ABI))
+ TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH="$(objroot)lib"
+@@ -136,9 +137,11 @@ build_doc: $(DOCS)
+ #
+ # Include generated dependency files.
+ #
++ifdef CC_MM
+ -include $(COBJS:%.$(O)=%.d)
+ -include $(CPICOBJS:%.$(O)=%.d)
+ -include $(CTESTOBJS:%.$(O)=%.d)
++endif
+ 
+ $(COBJS): $(objroot)src/%.$(O): $(srcroot)src/%.c
+ $(CPICOBJS): $(objroot)src/%.pic.$(O): $(srcroot)src/%.c
+@@ -149,10 +152,21 @@ ifneq ($(IMPORTLIB),$(SO))
+ $(COBJS): CPPFLAGS += -DDLLEXPORT
+ endif
+ 
++ifndef CC_MM
++# Dependencies
++HEADER_DIRS = $(srcroot)include/jemalloc/internal \
++	$(objroot)include/jemalloc $(objroot)include/jemalloc/internal
++HEADERS = $(wildcard $(foreach dir,$(HEADER_DIRS),$(dir)/*.h))
++$(COBJS) $(CPICOBJS) $(CTESTOBJS): $(HEADERS)
++$(CTESTOBJS): $(objroot)test/jemalloc_test.h
++endif
++
+ $(COBJS) $(CPICOBJS) $(CTESTOBJS): %.$(O):
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(CTARGET) $<
++ifdef CC_MM
+ 	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.$(O)=%.d) $<
++endif
+ 
+ ifneq ($(SOREV),$(SO))
+ %.$(SO) : %.$(SOREV)
+@@ -263,11 +277,8 @@ check: tests
+ clean:
+ 	rm -f $(COBJS)
+ 	rm -f $(CPICOBJS)
+-	rm -f $(COBJS:%.$(O)=%.d)
+-	rm -f $(CPICOBJS:%.$(O)=%.d)
+ 	rm -f $(CTESTOBJS:%.$(O)=%$(EXE))
+ 	rm -f $(CTESTOBJS)
+-	rm -f $(CTESTOBJS:%.$(O)=%.d)
+ 	rm -f $(CTESTOBJS:%.$(O)=%.out)
+ 	rm -f $(DSOS) $(STATIC_LIBS)
+ 
+diff --git a/configure.ac b/configure.ac
+index eeb2a29..3b32b88 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -227,6 +227,7 @@ CTARGET='-o $@'
+ LDTARGET='-o $@'
+ EXTRA_LDFLAGS=
+ MKLIB='ar crus $@'
++CC_MM=1
+ 
+ dnl Platform-specific settings.  abi and RPATH can probably be determined
+ dnl programmatically, but doing so is error-prone, which makes it generally
+@@ -307,6 +308,7 @@ case "${host}" in
+ 	  CTARGET='-Fo$@'
+ 	  LDTARGET='-Fe$@'
+ 	  MKLIB='lib -nologo -out:$@'
++	  CC_MM=
+         else
+ 	  importlib="${so}"
+ 	  DSO_LDFLAGS="-shared"
+@@ -337,6 +339,7 @@ AC_SUBST([PIC_CFLAGS])
+ AC_SUBST([CTARGET])
+ AC_SUBST([LDTARGET])
+ AC_SUBST([MKLIB])
++AC_SUBST([CC_MM])
+ 
+ if test "x$abi" != "xpecoff"; then
+   dnl Heap profiling uses the log(3) function.
+-- 
+1.7.10
+
+
+
+From mh+jemalloc at glandium.org  Wed May  2 12:30:52 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed,  2 May 2012 21:30:52 +0200
+Subject: [PATCH 2/3] Use "standard" printf prefixes instead of MSVC ones in
+	inttypes.h
+In-Reply-To: <1335987053-8734-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1335987053-8734-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <1335987053-8734-2-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+We don't use MSVC's printf, but ours, and it doesn't support the I32 and I64
+prefixes.
+---
+ include/msvc_compat/inttypes.h |  110 +++++++++++++++++++++-------------------
+ 1 file changed, 59 insertions(+), 51 deletions(-)
+
+diff --git a/include/msvc_compat/inttypes.h b/include/msvc_compat/inttypes.h
+index 4b3828a..a4e6b75 100644
+--- a/include/msvc_compat/inttypes.h
++++ b/include/msvc_compat/inttypes.h
+@@ -53,6 +53,14 @@ typedef struct {
+ 
+ #if !defined(__cplusplus) || defined(__STDC_FORMAT_MACROS) // [   See footnote 185 at page 198
+ 
++#ifdef _WIN64
++#  define __PRI64_PREFIX        "l"
++#  define __PRIPTR_PREFIX       "l"
++#else
++#  define __PRI64_PREFIX        "ll"
++#  define __PRIPTR_PREFIX
++#endif
++
+ // The fprintf macros for signed integers are:
+ #define PRId8       "d"
+ #define PRIi8       "i"
+@@ -68,25 +76,25 @@ typedef struct {
+ #define PRIdFAST16   "hd"
+ #define PRIiFAST16   "hi"
+ 
+-#define PRId32       "I32d"
+-#define PRIi32       "I32i"
+-#define PRIdLEAST32  "I32d"
+-#define PRIiLEAST32  "I32i"
+-#define PRIdFAST32   "I32d"
+-#define PRIiFAST32   "I32i"
++#define PRId32       "d"
++#define PRIi32       "i"
++#define PRIdLEAST32  "d"
++#define PRIiLEAST32  "i"
++#define PRIdFAST32   "d"
++#define PRIiFAST32   "i"
+ 
+-#define PRId64       "I64d"
+-#define PRIi64       "I64i"
+-#define PRIdLEAST64  "I64d"
+-#define PRIiLEAST64  "I64i"
+-#define PRIdFAST64   "I64d"
+-#define PRIiFAST64   "I64i"
++#define PRId64       __PRI64_PREFIX "d"
++#define PRIi64       __PRI64_PREFIX "i"
++#define PRIdLEAST64  __PRI64_PREFIX "d"
++#define PRIiLEAST64  __PRI64_PREFIX "i"
++#define PRIdFAST64   __PRI64_PREFIX "d"
++#define PRIiFAST64   __PRI64_PREFIX "i"
+ 
+-#define PRIdMAX     "I64d"
+-#define PRIiMAX     "I64i"
++#define PRIdMAX     __PRI64_PREFIX "d"
++#define PRIiMAX     __PRI64_PREFIX "i"
+ 
+-#define PRIdPTR     "Id"
+-#define PRIiPTR     "Ii"
++#define PRIdPTR     __PRIPTR_PREFIX "d"
++#define PRIiPTR     __PRIPTR_PREFIX "i"
+ 
+ // The fprintf macros for unsigned integers are:
+ #define PRIo8       "o"
+@@ -115,41 +123,41 @@ typedef struct {
+ #define PRIxFAST16   "hx"
+ #define PRIXFAST16   "hX"
+ 
+-#define PRIo32       "I32o"
+-#define PRIu32       "I32u"
+-#define PRIx32       "I32x"
+-#define PRIX32       "I32X"
+-#define PRIoLEAST32  "I32o"
+-#define PRIuLEAST32  "I32u"
+-#define PRIxLEAST32  "I32x"
+-#define PRIXLEAST32  "I32X"
+-#define PRIoFAST32   "I32o"
+-#define PRIuFAST32   "I32u"
+-#define PRIxFAST32   "I32x"
+-#define PRIXFAST32   "I32X"
+-
+-#define PRIo64       "I64o"
+-#define PRIu64       "I64u"
+-#define PRIx64       "I64x"
+-#define PRIX64       "I64X"
+-#define PRIoLEAST64  "I64o"
+-#define PRIuLEAST64  "I64u"
+-#define PRIxLEAST64  "I64x"
+-#define PRIXLEAST64  "I64X"
+-#define PRIoFAST64   "I64o"
+-#define PRIuFAST64   "I64u"
+-#define PRIxFAST64   "I64x"
+-#define PRIXFAST64   "I64X"
+-
+-#define PRIoMAX     "I64o"
+-#define PRIuMAX     "I64u"
+-#define PRIxMAX     "I64x"
+-#define PRIXMAX     "I64X"
+-
+-#define PRIoPTR     "Io"
+-#define PRIuPTR     "Iu"
+-#define PRIxPTR     "Ix"
+-#define PRIXPTR     "IX"
++#define PRIo32       "o"
++#define PRIu32       "u"
++#define PRIx32       "x"
++#define PRIX32       "X"
++#define PRIoLEAST32  "o"
++#define PRIuLEAST32  "u"
++#define PRIxLEAST32  "x"
++#define PRIXLEAST32  "X"
++#define PRIoFAST32   "o"
++#define PRIuFAST32   "u"
++#define PRIxFAST32   "x"
++#define PRIXFAST32   "X"
++
++#define PRIo64       __PRI64_PREFIX "o"
++#define PRIu64       __PRI64_PREFIX "u"
++#define PRIx64       __PRI64_PREFIX "x"
++#define PRIX64       __PRI64_PREFIX "X"
++#define PRIoLEAST64  __PRI64_PREFIX "o"
++#define PRIuLEAST64  __PRI64_PREFIX "u"
++#define PRIxLEAST64  __PRI64_PREFIX "x"
++#define PRIXLEAST64  __PRI64_PREFIX "X"
++#define PRIoFAST64   __PRI64_PREFIX "o"
++#define PRIuFAST64   __PRI64_PREFIX "u"
++#define PRIxFAST64   __PRI64_PREFIX "x"
++#define PRIXFAST64   __PRI64_PREFIX "X"
++
++#define PRIoMAX     __PRI64_PREFIX "o"
++#define PRIuMAX     __PRI64_PREFIX "u"
++#define PRIxMAX     __PRI64_PREFIX "x"
++#define PRIXMAX     __PRI64_PREFIX "X"
++
++#define PRIoPTR     __PRIPTR_PREFIX "o"
++#define PRIuPTR     __PRIPTR_PREFIX "u"
++#define PRIxPTR     __PRIPTR_PREFIX "x"
++#define PRIXPTR     __PRIPTR_PREFIX "X"
+ 
+ // The fscanf macros for signed integers are:
+ #define SCNd8       "d"
+-- 
+1.7.10
+
+
+
+From mh+jemalloc at glandium.org  Wed May  2 12:30:53 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed,  2 May 2012 21:30:53 +0200
+Subject: [PATCH 3/3] Don't use sizeof() on a VARIABLE_ARRAY
+In-Reply-To: <1335987053-8734-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1335987053-8734-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <1335987053-8734-3-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+In the alloca() case, this fails to be the right size.
+---
+ src/stats.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/stats.c b/src/stats.c
+index 1234e56..433b80d 100644
+--- a/src/stats.c
++++ b/src/stats.c
+@@ -494,7 +494,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 				size_t isz;
+ 				unsigned i, ninitialized;
+ 
+-				isz = sizeof(initialized);
++				isz = sizeof(bool) * narenas;
+ 				xmallctl("arenas.initialized", initialized,
+ 				    &isz, NULL, 0);
+ 				for (i = ninitialized = 0; i < narenas; i++) {
+@@ -523,7 +523,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 				size_t isz;
+ 				unsigned i;
+ 
+-				isz = sizeof(initialized);
++				isz = sizeof(bool) * narenas;
+ 				xmallctl("arenas.initialized", initialized,
+ 				    &isz, NULL, 0);
+ 
+-- 
+1.7.10
+
+
+
+From ingvar at redpill-linpro.com  Wed May  2 13:44:23 2012
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Wed, 02 May 2012 22:44:23 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+Message-ID: <1335991463.10739.1.camel@lardal>
+
+on., 02.05.2012 kl. 03.04 -0700, skrev Jason Evans:
+> I'm doing a final round of testing in preparation for the 3.0.0 release, which I'm hoping to tag in the next 24-36 hours, assuming no stability issues are uncovered.  My testing coverage is best on Linux and FreeBSD; OS X is minimal, and I don't even have a Windows system.  If there are issues that need to be addressed before the release, please let me know ASAP.
+
+Not particulary important, but is it possible to get a fix for that
+strange pagesize issue on rhel/ppc64?
+
+Ingvar
+
+
+
+
+From jasone at canonware.com  Wed May  2 16:16:45 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 2 May 2012 16:16:45 -0700
+Subject: Last call for 3.0.0
+In-Reply-To: <1335991463.10739.1.camel@lardal>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<1335991463.10739.1.camel@lardal>
+Message-ID: <4200979F-410F-42FA-8BF0-AC49897EC9F9@canonware.com>
+
+On May 2, 2012, at 1:44 PM, Ingvar Hagelund wrote:
+> on., 02.05.2012 kl. 03.04 -0700, skrev Jason Evans:
+>> I'm doing a final round of testing in preparation for the 3.0.0 release, which I'm hoping to tag in the next 24-36 hours, assuming no stability issues are uncovered.  My testing coverage is best on Linux and FreeBSD; OS X is minimal, and I don't even have a Windows system.  If there are issues that need to be addressed before the release, please let me know ASAP.
+> 
+> Not particulary important, but is it possible to get a fix for that
+> strange pagesize issue on rhel/ppc64?
+
+I think this was fixed as a side effect of the size class simplifications in:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=b172610317babc7f365584ddd7fdaf4eb8d9d04c
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed May  2 16:45:42 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 2 May 2012 16:45:42 -0700
+Subject: Last call for 3.0.0
+In-Reply-To: <20120502145100.GA32713@glandium.org>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+Message-ID: <2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+
+On May 2, 2012, at 7:51 AM, Mike Hommey wrote:
+> I have to write 2 patches for MSVC-related issues that I'll send later
+> today.
+
+I just committed all of your patches; thanks.
+
+> I also get concerning (kind of) random (but not entirely so) crashes in
+> Firefox on Windows when using current jemalloc-dev. I haven't narrowed
+> down the problem yet, and probably won't until tomorrow. It might be
+> better to hold off a release until things are cleared.
+
+
+Some of my tests on Linux are crashing too; memset() within huge_ralloc() is causing a segfault, but I don't know whether the source or the destination is the problem, nor whether the bug is in jemalloc or the application (betting on jemalloc though).  Until that's resolved I won't be cutting a release.  Please let me know if you are able to further characterize the crashes you're seeing; they might be related to what I'm seeing.
+
+Thanks,
+Jason
+
+From mh+jemalloc at glandium.org  Thu May  3 05:12:49 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu,  3 May 2012 14:12:49 +0200
+Subject: Remove -fno-common compiler flag for OS X.
+Message-ID: <1336047169-19251-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+It doesn't allow the je_malloc_message and je_malloc_conf symbols to be
+overridden when linking statically.
+---
+ configure.ac |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 3b32b88..ed7d55b 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -239,7 +239,7 @@ dnl to make happen otherwise.
+ default_munmap="1"
+ case "${host}" in
+   *-*-darwin*)
+-	CFLAGS="$CFLAGS -fno-common"
++	CFLAGS="$CFLAGS"
+ 	abi="macho"
+ 	AC_DEFINE([JEMALLOC_PURGE_MADVISE_FREE], [ ])
+ 	RPATH=""
+-- 
+1.7.10
+
+
+
+From mh+jemalloc at glandium.org  Thu May  3 10:09:20 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 3 May 2012 19:09:20 +0200
+Subject: Deadlock in atexit
+Message-ID: <20120503170920.GA4900@glandium.org>
+
+Hi,
+
+I found a dead-lock with C++ code with stats_print:true. This can happen
+if C++ static instances of classes with destructors. What happens at the
+low level is that the compiler generates a static initializer that calls
+cxa_atexit to register the destructor. In some cases, cxa_atexit calls
+calloc, which, in jemalloc, calls malloc_init_hard, which, when the
+stats_print option is set to true, calls atexit, which ends up in the
+same internal functions cxa_atexit uses. And they set a lock the first
+time, so the second time, it just dead-locks.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Thu May  3 10:24:21 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 3 May 2012 19:24:21 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+Message-ID: <20120503172421.GA10559@glandium.org>
+
+On Wed, May 02, 2012 at 04:45:42PM -0700, Jason Evans wrote:
+> On May 2, 2012, at 7:51 AM, Mike Hommey wrote:
+> > I have to write 2 patches for MSVC-related issues that I'll send
+> > later today.
+> 
+> I just committed all of your patches; thanks.
+> 
+> > I also get concerning (kind of) random (but not entirely so) crashes
+> > in Firefox on Windows when using current jemalloc-dev. I haven't
+> > narrowed down the problem yet, and probably won't until tomorrow. It
+> > might be better to hold off a release until things are cleared.
+> 
+> 
+> Some of my tests on Linux are crashing too; memset() within
+> huge_ralloc() is causing a segfault, but I don't know whether the
+> source or the destination is the problem, nor whether the bug is in
+> jemalloc or the application (betting on jemalloc though).  Until
+> that's resolved I won't be cutting a release.  Please let me know if
+> you are able to further characterize the crashes you're seeing; they
+> might be related to what I'm seeing.
+
+It's rather strange that I get my crashes on Windows only.
+Unfortunately, I can't reproduce locally, so debugging them will have to
+wait for access to one of our test machines. Chances are you'll have a
+patch for your issues before that, so I'll be able to test if that fixes
+my issues.
+
+Cheers,
+
+Mike
+
+
+From jasone at canonware.com  Thu May  3 10:39:15 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 3 May 2012 10:39:15 -0700
+Subject: Last call for 3.0.0
+In-Reply-To: <20120503172421.GA10559@glandium.org>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+	<20120503172421.GA10559@glandium.org>
+Message-ID: <CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+
+On May 3, 2012, at 10:24 AM, Mike Hommey wrote:
+> On Wed, May 02, 2012 at 04:45:42PM -0700, Jason Evans wrote:
+>> On May 2, 2012, at 7:51 AM, Mike Hommey wrote:
+>>> I have to write 2 patches for MSVC-related issues that I'll send
+>>> later today.
+>> 
+>> I just committed all of your patches; thanks.
+>> 
+>>> I also get concerning (kind of) random (but not entirely so) crashes
+>>> in Firefox on Windows when using current jemalloc-dev. I haven't
+>>> narrowed down the problem yet, and probably won't until tomorrow. It
+>>> might be better to hold off a release until things are cleared.
+>> 
+>> Some of my tests on Linux are crashing too; memset() within
+>> huge_ralloc() is causing a segfault, but I don't know whether the
+>> source or the destination is the problem, nor whether the bug is in
+>> jemalloc or the application (betting on jemalloc though).  Until
+>> that's resolved I won't be cutting a release.  Please let me know if
+>> you are able to further characterize the crashes you're seeing; they
+>> might be related to what I'm seeing.
+> 
+> It's rather strange that I get my crashes on Windows only.
+> Unfortunately, I can't reproduce locally, so debugging them will have to
+> wait for access to one of our test machines. Chances are you'll have a
+> patch for your issues before that, so I'll be able to test if that fixes
+> my issues.
+
+I determined last night that the problem I'm hitting is due to a bad interaction between Linux kernel vma fragmentation (adjacent VM areas aren't being coalesced) and mremap(2).  This problem appears to be peculiar to Linux, so I doubt it's related to what you're seeing.  Anyway, the fix/workaround may end up being rather involved, so I'm not optimistic about getting 3.0.0 released before next week.
+
+Jason
+
+From mh+jemalloc at glandium.org  Mon May  7 06:06:51 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 7 May 2012 15:06:51 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+	<20120503172421.GA10559@glandium.org>
+	<CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+Message-ID: <20120507130651.GA16740@glandium.org>
+
+On Thu, May 03, 2012 at 10:39:15AM -0700, Jason Evans wrote:
+> On May 3, 2012, at 10:24 AM, Mike Hommey wrote:
+> > On Wed, May 02, 2012 at 04:45:42PM -0700, Jason Evans wrote:
+> >> On May 2, 2012, at 7:51 AM, Mike Hommey wrote:
+> >>> I have to write 2 patches for MSVC-related issues that I'll send
+> >>> later today.
+> >> 
+> >> I just committed all of your patches; thanks.
+> >> 
+> >>> I also get concerning (kind of) random (but not entirely so)
+> >>> crashes in Firefox on Windows when using current jemalloc-dev. I
+> >>> haven't narrowed down the problem yet, and probably won't until
+> >>> tomorrow. It might be better to hold off a release until things
+> >>> are cleared.
+> >> 
+> >> Some of my tests on Linux are crashing too; memset() within
+> >> huge_ralloc() is causing a segfault, but I don't know whether the
+> >> source or the destination is the problem, nor whether the bug is in
+> >> jemalloc or the application (betting on jemalloc though).  Until
+> >> that's resolved I won't be cutting a release.  Please let me know
+> >> if you are able to further characterize the crashes you're seeing;
+> >> they might be related to what I'm seeing.
+> > 
+> > It's rather strange that I get my crashes on Windows only.
+> > Unfortunately, I can't reproduce locally, so debugging them will
+> > have to wait for access to one of our test machines. Chances are
+> > you'll have a patch for your issues before that, so I'll be able to
+> > test if that fixes my issues.
+> 
+> I determined last night that the problem I'm hitting is due to a bad
+> interaction between Linux kernel vma fragmentation (adjacent VM areas
+> aren't being coalesced) and mremap(2).  This problem appears to be
+> peculiar to Linux, so I doubt it's related to what you're seeing.
+> Anyway, the fix/workaround may end up being rather involved, so I'm
+> not optimistic about getting 3.0.0 released before next week.
+
+So far, I haven't even been able to reproduce the issue on a machine I
+have a shell on, which would allow better debugging. I tried enabling
+debug on jemalloc in my firefox builds, and all that managed to produce
+is trigger an assertion in arena.c:
+ 170         /* Freeing an unallocated pointer can cause assertion failure. */
+ 171         assert(bitmap_get(bitmap, &bin_info->bitmap_info, regind));
+
+... the interesting part being that I'm still seeing the same crash as
+the one I was originally getting, and *not* the assertion above when
+running through our automated tests.
+
+:(
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Mon May  7 07:08:34 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon,  7 May 2012 16:08:34 +0200
+Subject: [PATCH] Export je_memalign and je_valloc
+Message-ID: <1336399714-15503-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+da99e31 removed attributes on je_memalign and je_valloc, while they didn't
+have a definition in the jemalloc.h header, thus making them non-exported.
+Export them again, by defining them in the jemalloc.h header.
+---
+ include/jemalloc/jemalloc.h.in |    9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+index 47a4b9b..ad06948 100644
+--- a/include/jemalloc/jemalloc.h.in
++++ b/include/jemalloc/jemalloc.h.in
+@@ -50,6 +50,15 @@ JEMALLOC_EXPORT void	*je_aligned_alloc(size_t alignment, size_t size)
+ JEMALLOC_EXPORT void	*je_realloc(void *ptr, size_t size);
+ JEMALLOC_EXPORT void	je_free(void *ptr);
+ 
++#ifdef JEMALLOC_OVERRIDE_MEMALIGN
++JEMALLOC_EXPORT void *	je_memalign(size_t alignment, size_t size)
++    JEMALLOC_ATTR(malloc);
++#endif
++
++#ifdef JEMALLOC_OVERRIDE_VALLOC
++JEMALLOC_EXPORT void *	je_valloc(size_t size) JEMALLOC_ATTR(malloc);
++#endif
++
+ JEMALLOC_EXPORT size_t	je_malloc_usable_size(const void *ptr);
+ JEMALLOC_EXPORT void	je_malloc_stats_print(void (*write_cb)(void *,
+     const char *), void *je_cbopaque, const char *opts);
+-- 
+1.7.10
+
+
+
+From mh+jemalloc at glandium.org  Wed May  9 01:38:27 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 9 May 2012 10:38:27 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <20120507130651.GA16740@glandium.org>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+	<20120503172421.GA10559@glandium.org>
+	<CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+	<20120507130651.GA16740@glandium.org>
+Message-ID: <20120509083827.GA13146@glandium.org>
+
+On Mon, May 07, 2012 at 03:06:51PM +0200, Mike Hommey wrote:
+> On Thu, May 03, 2012 at 10:39:15AM -0700, Jason Evans wrote:
+> > On May 3, 2012, at 10:24 AM, Mike Hommey wrote:
+> > > On Wed, May 02, 2012 at 04:45:42PM -0700, Jason Evans wrote:
+> > >> On May 2, 2012, at 7:51 AM, Mike Hommey wrote:
+> > >>> I have to write 2 patches for MSVC-related issues that I'll send
+> > >>> later today.
+> > >> 
+> > >> I just committed all of your patches; thanks.
+> > >> 
+> > >>> I also get concerning (kind of) random (but not entirely so)
+> > >>> crashes in Firefox on Windows when using current jemalloc-dev. I
+> > >>> haven't narrowed down the problem yet, and probably won't until
+> > >>> tomorrow. It might be better to hold off a release until things
+> > >>> are cleared.
+> > >> 
+> > >> Some of my tests on Linux are crashing too; memset() within
+> > >> huge_ralloc() is causing a segfault, but I don't know whether the
+> > >> source or the destination is the problem, nor whether the bug is in
+> > >> jemalloc or the application (betting on jemalloc though).  Until
+> > >> that's resolved I won't be cutting a release.  Please let me know
+> > >> if you are able to further characterize the crashes you're seeing;
+> > >> they might be related to what I'm seeing.
+> > > 
+> > > It's rather strange that I get my crashes on Windows only.
+> > > Unfortunately, I can't reproduce locally, so debugging them will
+> > > have to wait for access to one of our test machines. Chances are
+> > > you'll have a patch for your issues before that, so I'll be able to
+> > > test if that fixes my issues.
+> > 
+> > I determined last night that the problem I'm hitting is due to a bad
+> > interaction between Linux kernel vma fragmentation (adjacent VM areas
+> > aren't being coalesced) and mremap(2).  This problem appears to be
+> > peculiar to Linux, so I doubt it's related to what you're seeing.
+> > Anyway, the fix/workaround may end up being rather involved, so I'm
+> > not optimistic about getting 3.0.0 released before next week.
+> 
+> So far, I haven't even been able to reproduce the issue on a machine I
+> have a shell on, which would allow better debugging. I tried enabling
+> debug on jemalloc in my firefox builds, and all that managed to produce
+> is trigger an assertion in arena.c:
+>  170         /* Freeing an unallocated pointer can cause assertion failure. */
+>  171         assert(bitmap_get(bitmap, &bin_info->bitmap_info, regind));
+> 
+> ... the interesting part being that I'm still seeing the same crash as
+> the one I was originally getting, and *not* the assertion above when
+> running through our automated tests.
+
+I've now been able to reproduce the crashes, and I think I found what
+goes wrong: lack of contiguous virtual memory to allocate chunks. Now,
+I need to see why this happens (that is, is jemalloc failing to
+deallocate some virtual memory or something else is happening?)
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Wed May  9 06:32:51 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 9 May 2012 15:32:51 +0200
+Subject: Something is seriously wrong with --disable-munmap (default on linux)
+Message-ID: <20120509133251.GA18660@glandium.org>
+
+Hi,
+
+Something is seriously wrong with --disable-munmap. What I see in
+Firefox is that it seems free chunks are never reused, or seldomly: I
+end up with a process sucking gigabytes of mapped memory, while jemalloc
+claims it mapped 500M. On 32-bits system, that exhausts the address
+space.
+
+Mike
+
+
+From justin.lebar at gmail.com  Wed May  9 07:27:10 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Wed, 9 May 2012 07:27:10 -0700
+Subject: Last call for 3.0.0
+In-Reply-To: <20120509083827.GA13146@glandium.org>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+	<20120503172421.GA10559@glandium.org>
+	<CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+	<20120507130651.GA16740@glandium.org>
+	<20120509083827.GA13146@glandium.org>
+Message-ID: <CAFWcpZ63sfyQ1QrCF601Xj3d69tRANnz7GsQ9Jeg76CCsYAv5g@mail.gmail.com>
+
+Oh.
+
+Did you port over a different version of chunk_alloc_mmap for Windows?
+ I don't recall seeing that in a patch.
+
+See Mozilla's jemalloc; we have to use a different strategy on Windows
+because Windows requires a 1:1 mapping between VirtualAlloc and
+VirtualFree.
+
+-Justin
+
+On Wed, May 9, 2012 at 1:38 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> On Mon, May 07, 2012 at 03:06:51PM +0200, Mike Hommey wrote:
+>> On Thu, May 03, 2012 at 10:39:15AM -0700, Jason Evans wrote:
+>> > On May 3, 2012, at 10:24 AM, Mike Hommey wrote:
+>> > > On Wed, May 02, 2012 at 04:45:42PM -0700, Jason Evans wrote:
+>> > >> On May 2, 2012, at 7:51 AM, Mike Hommey wrote:
+>> > >>> I have to write 2 patches for MSVC-related issues that I'll send
+>> > >>> later today.
+>> > >>
+>> > >> I just committed all of your patches; thanks.
+>> > >>
+>> > >>> I also get concerning (kind of) random (but not entirely so)
+>> > >>> crashes in Firefox on Windows when using current jemalloc-dev. I
+>> > >>> haven't narrowed down the problem yet, and probably won't until
+>> > >>> tomorrow. It might be better to hold off a release until things
+>> > >>> are cleared.
+>> > >>
+>> > >> Some of my tests on Linux are crashing too; memset() within
+>> > >> huge_ralloc() is causing a segfault, but I don't know whether the
+>> > >> source or the destination is the problem, nor whether the bug is in
+>> > >> jemalloc or the application (betting on jemalloc though). ?Until
+>> > >> that's resolved I won't be cutting a release. ?Please let me know
+>> > >> if you are able to further characterize the crashes you're seeing;
+>> > >> they might be related to what I'm seeing.
+>> > >
+>> > > It's rather strange that I get my crashes on Windows only.
+>> > > Unfortunately, I can't reproduce locally, so debugging them will
+>> > > have to wait for access to one of our test machines. Chances are
+>> > > you'll have a patch for your issues before that, so I'll be able to
+>> > > test if that fixes my issues.
+>> >
+>> > I determined last night that the problem I'm hitting is due to a bad
+>> > interaction between Linux kernel vma fragmentation (adjacent VM areas
+>> > aren't being coalesced) and mremap(2). ?This problem appears to be
+>> > peculiar to Linux, so I doubt it's related to what you're seeing.
+>> > Anyway, the fix/workaround may end up being rather involved, so I'm
+>> > not optimistic about getting 3.0.0 released before next week.
+>>
+>> So far, I haven't even been able to reproduce the issue on a machine I
+>> have a shell on, which would allow better debugging. I tried enabling
+>> debug on jemalloc in my firefox builds, and all that managed to produce
+>> is trigger an assertion in arena.c:
+>> ?170 ? ? ? ? /* Freeing an unallocated pointer can cause assertion failure. */
+>> ?171 ? ? ? ? assert(bitmap_get(bitmap, &bin_info->bitmap_info, regind));
+>>
+>> ... the interesting part being that I'm still seeing the same crash as
+>> the one I was originally getting, and *not* the assertion above when
+>> running through our automated tests.
+>
+> I've now been able to reproduce the crashes, and I think I found what
+> goes wrong: lack of contiguous virtual memory to allocate chunks. Now,
+> I need to see why this happens (that is, is jemalloc failing to
+> deallocate some virtual memory or something else is happening?)
+>
+> Mike
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From mh+jemalloc at glandium.org  Wed May  9 07:45:15 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 9 May 2012 16:45:15 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <CAFWcpZ63sfyQ1QrCF601Xj3d69tRANnz7GsQ9Jeg76CCsYAv5g@mail.gmail.com>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+	<20120503172421.GA10559@glandium.org>
+	<CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+	<20120507130651.GA16740@glandium.org>
+	<20120509083827.GA13146@glandium.org>
+	<CAFWcpZ63sfyQ1QrCF601Xj3d69tRANnz7GsQ9Jeg76CCsYAv5g@mail.gmail.com>
+Message-ID: <20120509144515.GA29232@glandium.org>
+
+On Wed, May 09, 2012 at 07:27:10AM -0700, Justin Lebar wrote:
+> Oh.
+> 
+> Did you port over a different version of chunk_alloc_mmap for Windows?
+>  I don't recall seeing that in a patch.
+
+Yes, I did.
+
+> See Mozilla's jemalloc; we have to use a different strategy on Windows
+> because Windows requires a 1:1 mapping between VirtualAlloc and
+> VirtualFree.
+
+I noticed that. I'll add an assertion on VirtualFree failing to see if
+it could be that.
+
+I've also been able to reproduce a similar issue on linux and osx
+32-bits by enabling xmalloc (hard failures in case of OOM). The linux
+one is apparently due to --disable-munmap not doing quite a good job,
+but I'm not sure where the OSX one comes from (both OSX and Windows have
+--enable-munmap by default).
+
+BTW, I think we should madvise in chunk_dealloc_mmap when not
+munmap()ing.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Wed May  9 07:53:41 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 9 May 2012 16:53:41 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <20120509144515.GA29232@glandium.org>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+	<20120503172421.GA10559@glandium.org>
+	<CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+	<20120507130651.GA16740@glandium.org>
+	<20120509083827.GA13146@glandium.org>
+	<CAFWcpZ63sfyQ1QrCF601Xj3d69tRANnz7GsQ9Jeg76CCsYAv5g@mail.gmail.com>
+	<20120509144515.GA29232@glandium.org>
+Message-ID: <20120509145341.GA29894@glandium.org>
+
+On Wed, May 09, 2012 at 04:45:15PM +0200, Mike Hommey wrote:
+> On Wed, May 09, 2012 at 07:27:10AM -0700, Justin Lebar wrote:
+> > Oh.
+> > 
+> > Did you port over a different version of chunk_alloc_mmap for Windows?
+> >  I don't recall seeing that in a patch.
+> 
+> Yes, I did.
+> 
+> > See Mozilla's jemalloc; we have to use a different strategy on Windows
+> > because Windows requires a 1:1 mapping between VirtualAlloc and
+> > VirtualFree.
+> 
+> I noticed that. I'll add an assertion on VirtualFree failing to see if
+> it could be that.
+
+Actually, as I'm building jemalloc with --enable-debug, there's already
+such an assertion, and I don't hit it.
+
+Mike
+
+
+From justin.lebar at gmail.com  Wed May  9 08:09:02 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Wed, 9 May 2012 08:09:02 -0700
+Subject: Last call for 3.0.0
+In-Reply-To: <20120509145341.GA29894@glandium.org>
+References: <F2891CF3-1158-4984-9AF4-3648B114412D@canonware.com>
+	<20120502102027.GA12910@glandium.org>
+	<20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+	<20120503172421.GA10559@glandium.org>
+	<CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+	<20120507130651.GA16740@glandium.org>
+	<20120509083827.GA13146@glandium.org>
+	<CAFWcpZ63sfyQ1QrCF601Xj3d69tRANnz7GsQ9Jeg76CCsYAv5g@mail.gmail.com>
+	<20120509144515.GA29232@glandium.org>
+	<20120509145341.GA29894@glandium.org>
+Message-ID: <CAFWcpZ7NLv8BReR45ozEizrSGRER8yoZeO3_md_20a6brSQADQ@mail.gmail.com>
+
+> The linux
+> one is apparently due to --disable-munmap not doing quite a good job,
+
+With --disable-munmap, chunk_dealloc_mmap does nothing.  Which means
+chunk_dealloc does nothing...
+
+How is this supposed to work?
+
+On Wed, May 9, 2012 at 7:53 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> On Wed, May 09, 2012 at 04:45:15PM +0200, Mike Hommey wrote:
+>> On Wed, May 09, 2012 at 07:27:10AM -0700, Justin Lebar wrote:
+>> > Oh.
+>> >
+>> > Did you port over a different version of chunk_alloc_mmap for Windows?
+>> > ?I don't recall seeing that in a patch.
+>>
+>> Yes, I did.
+>>
+>> > See Mozilla's jemalloc; we have to use a different strategy on Windows
+>> > because Windows requires a 1:1 mapping between VirtualAlloc and
+>> > VirtualFree.
+>>
+>> I noticed that. I'll add an assertion on VirtualFree failing to see if
+>> it could be that.
+>
+> Actually, as I'm building jemalloc with --enable-debug, there's already
+> such an assertion, and I don't hit it.
+>
+> Mike
+
+
+From mh+jemalloc at glandium.org  Wed May  9 08:22:29 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 9 May 2012 17:22:29 +0200
+Subject: Last call for 3.0.0
+In-Reply-To: <CAFWcpZ7NLv8BReR45ozEizrSGRER8yoZeO3_md_20a6brSQADQ@mail.gmail.com>
+References: <20120502145100.GA32713@glandium.org>
+	<2B08C45B-83EB-4105-BD21-3751FF3AB749@canonware.com>
+	<20120503172421.GA10559@glandium.org>
+	<CC78A771-3F19-4D7F-B57A-313B89F8315A@canonware.com>
+	<20120507130651.GA16740@glandium.org>
+	<20120509083827.GA13146@glandium.org>
+	<CAFWcpZ63sfyQ1QrCF601Xj3d69tRANnz7GsQ9Jeg76CCsYAv5g@mail.gmail.com>
+	<20120509144515.GA29232@glandium.org>
+	<20120509145341.GA29894@glandium.org>
+	<CAFWcpZ7NLv8BReR45ozEizrSGRER8yoZeO3_md_20a6brSQADQ@mail.gmail.com>
+Message-ID: <20120509152229.GA31019@glandium.org>
+
+On Wed, May 09, 2012 at 08:09:02AM -0700, Justin Lebar wrote:
+> > The linux
+> > one is apparently due to --disable-munmap not doing quite a good job,
+> 
+> With --disable-munmap, chunk_dealloc_mmap does nothing.  Which means
+> chunk_dealloc does nothing...
+> 
+> How is this supposed to work?
+
+It's supposed to keep a list of the free chunks and reuse them when
+allocating a new one. cf. chunk_recycle and chunk_record. (Haven't
+looked at the code in detail, but that's likely to be what fails to do
+its job)
+
+Mike
+
+
+From jasone at canonware.com  Wed May  9 11:21:50 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 9 May 2012 11:21:50 -0700
+Subject: Something is seriously wrong with --disable-munmap (default on
+	linux)
+In-Reply-To: <20120509133251.GA18660@glandium.org>
+References: <20120509133251.GA18660@glandium.org>
+Message-ID: <325A649F-68DA-40CE-922D-75B3B5AFCF4E@canonware.com>
+
+On May 9, 2012, at 6:32 AM, Mike Hommey wrote:
+> Something is seriously wrong with --disable-munmap. What I see in
+> Firefox is that it seems free chunks are never reused, or seldomly: I
+> end up with a process sucking gigabytes of mapped memory, while jemalloc
+> claims it mapped 500M. On 32-bits system, that exhausts the address
+> space.
+
+I saw the same thing yesterday on a 64-bit system, though the application was at 729 GiB of virtual memory use and climbing?  I'm looking into this problem more today.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed May  9 15:00:11 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 9 May 2012 15:00:11 -0700
+Subject: Something is seriously wrong with --disable-munmap (default on
+	linux)
+In-Reply-To: <325A649F-68DA-40CE-922D-75B3B5AFCF4E@canonware.com>
+References: <20120509133251.GA18660@glandium.org>
+	<325A649F-68DA-40CE-922D-75B3B5AFCF4E@canonware.com>
+Message-ID: <EC4D4A54-E784-4FBB-9627-74182C497EF8@canonware.com>
+
+On May 9, 2012, at 11:21 AM, Jason Evans wrote:
+> On May 9, 2012, at 6:32 AM, Mike Hommey wrote:
+>> Something is seriously wrong with --disable-munmap. What I see in
+>> Firefox is that it seems free chunks are never reused, or seldomly: I
+>> end up with a process sucking gigabytes of mapped memory, while jemalloc
+>> claims it mapped 500M. On 32-bits system, that exhausts the address
+>> space.
+> 
+> I saw the same thing yesterday on a 64-bit system, though the application was at 729 GiB of virtual memory use and climbing?  I'm looking into this problem more today.
+
+I found and fixed two problems, one of which was Windows-specific:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=de6fbdb72c6e1401b36f8f2073404645bac6cd2b
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=374d26a43bcceb12eb56ed7cc47815d7f933901c
+
+This likely fixes all the virtual memory leaks, but more testing is warranted.
+
+Thanks,
+Jason
+
+From mh+jemalloc at glandium.org  Wed May  9 15:46:55 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 10 May 2012 00:46:55 +0200
+Subject: Something is seriously wrong with --disable-munmap (default on
+	linux)
+In-Reply-To: <EC4D4A54-E784-4FBB-9627-74182C497EF8@canonware.com>
+References: <20120509133251.GA18660@glandium.org>
+	<325A649F-68DA-40CE-922D-75B3B5AFCF4E@canonware.com>
+	<EC4D4A54-E784-4FBB-9627-74182C497EF8@canonware.com>
+Message-ID: <20120509224655.GA11782@glandium.org>
+
+On Wed, May 09, 2012 at 03:00:11PM -0700, Jason Evans wrote:
+> On May 9, 2012, at 11:21 AM, Jason Evans wrote:
+> > On May 9, 2012, at 6:32 AM, Mike Hommey wrote:
+> >> Something is seriously wrong with --disable-munmap. What I see in
+> >> Firefox is that it seems free chunks are never reused, or seldomly: I
+> >> end up with a process sucking gigabytes of mapped memory, while jemalloc
+> >> claims it mapped 500M. On 32-bits system, that exhausts the address
+> >> space.
+> > 
+> > I saw the same thing yesterday on a 64-bit system, though the application was at 729 GiB of virtual memory use and climbing?  I'm looking into this problem more today.
+> 
+> I found and fixed two problems, one of which was Windows-specific:
+> 
+> 	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=de6fbdb72c6e1401b36f8f2073404645bac6cd2b
+> 	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=374d26a43bcceb12eb56ed7cc47815d7f933901c
+> 
+> This likely fixes all the virtual memory leaks, but more testing is warranted.
+
+The first one matches what I was seeing when tracking chunk allocation
+under a debugger on Windows.
+The second one matches what I was seeing on Linux.
+
+Hopefully, this will fix all my current problems. I'm sending that
+version of jemalloc to test and will have results tomorrow.
+
+Thanks.
+
+Mike
+
+PS: FWIW, the last unapplied patches I have are "Remove -fno-common
+compiler flag for OS X" and "Export je_memalign and je_valloc".
+
+
+From jasone at canonware.com  Wed May  9 16:19:09 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 9 May 2012 16:19:09 -0700
+Subject: Something is seriously wrong with --disable-munmap (default on
+	linux)
+In-Reply-To: <20120509224655.GA11782@glandium.org>
+References: <20120509133251.GA18660@glandium.org>
+	<325A649F-68DA-40CE-922D-75B3B5AFCF4E@canonware.com>
+	<EC4D4A54-E784-4FBB-9627-74182C497EF8@canonware.com>
+	<20120509224655.GA11782@glandium.org>
+Message-ID: <27E4A577-7A46-4A50-8BDE-BD4ECF709C9E@canonware.com>
+
+On May 9, 2012, at 3:46 PM, Mike Hommey wrote:
+> PS: FWIW, the last unapplied patches I have are "Remove -fno-common
+> compiler flag for OS X" and "Export je_memalign and je_valloc".
+
+Applied now; thanks.
+
+Jason
+
+
+
+From mh+jemalloc at glandium.org  Thu May 10 02:51:24 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 10 May 2012 11:51:24 +0200
+Subject: More aggressive page purging
+Message-ID: <20120510095124.GA27406@glandium.org>
+
+Hi,
+
+madvise(MADV_FREE), on OSX, is not quite like madvise(MADV_DONTNEED) on
+Linux: it doesn't actually do anything until the kernel really needs to
+because of some memory pressure (or at least it looks like so). This
+means that even when triggering an arenas.purge with mallctl, we can't
+rely on the RSS value we get.
+
+One way to make pages purging more aggressive is to use mmap(MAP_FIXED)
+instead of madvise. As far as I can tell, it doesn't have an effect on
+performance, at least not on Firefox.
+
+Do you think we could reasonably switch pages_purge to use
+mmap(MAP_FIXED) on OSX, or would you prefer a configure option?
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Thu May 10 02:52:48 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 10 May 2012 11:52:48 +0200
+Subject: Something is seriously wrong with --disable-munmap (default on
+	linux)
+In-Reply-To: <EC4D4A54-E784-4FBB-9627-74182C497EF8@canonware.com>
+References: <20120509133251.GA18660@glandium.org>
+	<325A649F-68DA-40CE-922D-75B3B5AFCF4E@canonware.com>
+	<EC4D4A54-E784-4FBB-9627-74182C497EF8@canonware.com>
+Message-ID: <20120510095248.GB27406@glandium.org>
+
+On Wed, May 09, 2012 at 03:00:11PM -0700, Jason Evans wrote:
+> On May 9, 2012, at 11:21 AM, Jason Evans wrote:
+> > On May 9, 2012, at 6:32 AM, Mike Hommey wrote:
+> >> Something is seriously wrong with --disable-munmap. What I see in
+> >> Firefox is that it seems free chunks are never reused, or seldomly: I
+> >> end up with a process sucking gigabytes of mapped memory, while jemalloc
+> >> claims it mapped 500M. On 32-bits system, that exhausts the address
+> >> space.
+> > 
+> > I saw the same thing yesterday on a 64-bit system, though the application was at 729 GiB of virtual memory use and climbing?  I'm looking into this problem more today.
+> 
+> I found and fixed two problems, one of which was Windows-specific:
+> 
+> 	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=de6fbdb72c6e1401b36f8f2073404645bac6cd2b
+> 	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=374d26a43bcceb12eb56ed7cc47815d7f933901c
+> 
+> This likely fixes all the virtual memory leaks, but more testing is warranted.
+
+This apparently fixed all the remaining issues I had with Firefox.
+
+Thanks,
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Thu May 10 03:00:18 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 10 May 2012 12:00:18 +0200
+Subject: More aggressive page purging
+In-Reply-To: <20120510095124.GA27406@glandium.org>
+References: <20120510095124.GA27406@glandium.org>
+Message-ID: <20120510100018.GA28554@glandium.org>
+
+On Thu, May 10, 2012 at 11:51:24AM +0200, Mike Hommey wrote:
+> Hi,
+> 
+> madvise(MADV_FREE), on OSX, is not quite like madvise(MADV_DONTNEED) on
+> Linux: it doesn't actually do anything until the kernel really needs to
+> because of some memory pressure (or at least it looks like so). This
+> means that even when triggering an arenas.purge with mallctl, we can't
+> rely on the RSS value we get.
+> 
+> One way to make pages purging more aggressive is to use mmap(MAP_FIXED)
+> instead of madvise. As far as I can tell, it doesn't have an effect on
+> performance, at least not on Firefox.
+> 
+> Do you think we could reasonably switch pages_purge to use
+> mmap(MAP_FIXED) on OSX, or would you prefer a configure option?
+
+In fact, it seems I talked too soon. it seems there *is* a performance
+impact. However, I think having mallctl("arenas.purge") trigger
+mmap(MAP_FIXED) instead of madvise() on OSX would be helpful, and
+wouldn't hurt.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Thu May 10 06:50:25 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 10 May 2012 15:50:25 +0200
+Subject: More aggressive page purging
+In-Reply-To: <20120510100018.GA28554@glandium.org>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+Message-ID: <20120510135025.GA2867@glandium.org>
+
+On Thu, May 10, 2012 at 12:00:18PM +0200, Mike Hommey wrote:
+> On Thu, May 10, 2012 at 11:51:24AM +0200, Mike Hommey wrote:
+> > Hi,
+> > 
+> > madvise(MADV_FREE), on OSX, is not quite like madvise(MADV_DONTNEED) on
+> > Linux: it doesn't actually do anything until the kernel really needs to
+> > because of some memory pressure (or at least it looks like so). This
+> > means that even when triggering an arenas.purge with mallctl, we can't
+> > rely on the RSS value we get.
+> > 
+> > One way to make pages purging more aggressive is to use mmap(MAP_FIXED)
+> > instead of madvise. As far as I can tell, it doesn't have an effect on
+> > performance, at least not on Firefox.
+> > 
+> > Do you think we could reasonably switch pages_purge to use
+> > mmap(MAP_FIXED) on OSX, or would you prefer a configure option?
+> 
+> In fact, it seems I talked too soon. it seems there *is* a performance
+> impact. However, I think having mallctl("arenas.purge") trigger
+> mmap(MAP_FIXED) instead of madvise() on OSX would be helpful, and
+> wouldn't hurt.
+
+As a matter of fact, pages_purge also doesn't decrease RSS on Windows.
+We do have two different ways to handle the situation in Firefox with
+the old jemalloc: decommit (for windows) and double purge (for OSX).
+
+In both cases, a flag is added to the flags stored with a run address.
+
+- Decommit: when a page is purged, it is decommitted (which means
+  the address space is still reserved, but accesses will trigger an
+  exception), and flagged as such. When allocating from such decommitted
+  pages, jemalloc needs to commit them beforehand.
+
+- Double purge: when a page is purged, madvise(MADV_FREE) is used, which
+  means the OS is free to drop the page in memory pressure situations.
+  The page is flagged as decommitted. When allocating from that page, it
+  is unmarked as decommitted. Nothing else needs to happen on the page
+  (desides maybe emptying it if we zeroing is enabled). There is an
+  additional function that triggers a full purge, in which case we scan
+  the arenas for the decommitted pages, and mmap(MAP_FIXED) over them.
+
+I think we should have one of the above in jemalloc3 to handle both
+platforms. As there is really nothing to "lightly" decommit on OSX, we
+should go with the latter, with the function triggerring the "decommit"
+being mallctl("arenas.purge").
+
+Since this requires an additional flag, we basically have two choices:
+reuse the "large" flag, which is unused in unallocated runs. Or we can
+use any one of the bits [4-11].
+
+What do you think?
+
+Mike
+
+
+From jasone at canonware.com  Thu May 10 11:19:07 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 10 May 2012 11:19:07 -0700
+Subject: More aggressive page purging
+In-Reply-To: <20120510135025.GA2867@glandium.org>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+	<20120510135025.GA2867@glandium.org>
+Message-ID: <D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+
+On May 10, 2012, at 6:50 AM, Mike Hommey wrote:
+> On Thu, May 10, 2012 at 12:00:18PM +0200, Mike Hommey wrote:
+>> On Thu, May 10, 2012 at 11:51:24AM +0200, Mike Hommey wrote:
+>>> Hi,
+>>> 
+>>> madvise(MADV_FREE), on OSX, is not quite like madvise(MADV_DONTNEED) on
+>>> Linux: it doesn't actually do anything until the kernel really needs to
+>>> because of some memory pressure (or at least it looks like so). This
+>>> means that even when triggering an arenas.purge with mallctl, we can't
+>>> rely on the RSS value we get.
+>>> 
+>>> One way to make pages purging more aggressive is to use mmap(MAP_FIXED)
+>>> instead of madvise. As far as I can tell, it doesn't have an effect on
+>>> performance, at least not on Firefox.
+>>> 
+>>> Do you think we could reasonably switch pages_purge to use
+>>> mmap(MAP_FIXED) on OSX, or would you prefer a configure option?
+>> 
+>> In fact, it seems I talked too soon. it seems there *is* a performance
+>> impact. However, I think having mallctl("arenas.purge") trigger
+>> mmap(MAP_FIXED) instead of madvise() on OSX would be helpful, and
+>> wouldn't hurt.
+> 
+> As a matter of fact, pages_purge also doesn't decrease RSS on Windows.
+> We do have two different ways to handle the situation in Firefox with
+> the old jemalloc: decommit (for windows) and double purge (for OSX).
+> 
+> In both cases, a flag is added to the flags stored with a run address.
+> 
+> - Decommit: when a page is purged, it is decommitted (which means
+>  the address space is still reserved, but accesses will trigger an
+>  exception), and flagged as such. When allocating from such decommitted
+>  pages, jemalloc needs to commit them beforehand.
+> 
+> - Double purge: when a page is purged, madvise(MADV_FREE) is used, which
+>  means the OS is free to drop the page in memory pressure situations.
+>  The page is flagged as decommitted. When allocating from that page, it
+>  is unmarked as decommitted. Nothing else needs to happen on the page
+>  (desides maybe emptying it if we zeroing is enabled). There is an
+>  additional function that triggers a full purge, in which case we scan
+>  the arenas for the decommitted pages, and mmap(MAP_FIXED) over them.
+> 
+> I think we should have one of the above in jemalloc3 to handle both
+> platforms. As there is really nothing to "lightly" decommit on OSX, we
+> should go with the latter, with the function triggerring the "decommit"
+> being mallctl("arenas.purge").
+> 
+> Since this requires an additional flag, we basically have two choices:
+> reuse the "large" flag, which is unused in unallocated runs. Or we can
+> use any one of the bits [4-11].
+> 
+> What do you think?
+
+
+I don't see the point in double purge on OS X (or FreeBSD, which behaves similarly), assuming that the kernel actually does the right think under memory pressure.  All it does is make 'top' output easier to interpret,  yet jemalloc provides adequate statistics to accurately assess the application's actual active memory footprint (and Firefox even exposes those statistics, right?).  IMO MADV_FREE is a feature, not a bug.  Indeed, on Linux, MADV_DONTNEED is a performance headache that we've had to work around in various ways at Facebook, with mixed success.
+
+My memory of Windows virtual memory semantics is fuzzy, but my recollection is that the decommit support we put into jemalloc for Firefox was motivated primarily by inadequate operating system statistics for Windows XP that confused our understanding of actual memory usage.  The VirtualAlloc() documentation indicates that MEM_RESET has the same semantics as MADV_FREE, which is (again IMO) a good thing.
+
+In summary, I don't think there's a problem here to fix.  Am I missing something?
+
+Thanks,
+Jason
+
+From mh+jemalloc at glandium.org  Thu May 10 11:46:14 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 10 May 2012 20:46:14 +0200
+Subject: More aggressive page purging
+In-Reply-To: <D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+	<20120510135025.GA2867@glandium.org>
+	<D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+Message-ID: <20120510184614.GA30292@glandium.org>
+
+On Thu, May 10, 2012 at 11:19:07AM -0700, Jason Evans wrote:
+> I don't see the point in double purge on OS X (or FreeBSD, which
+> behaves similarly), assuming that the kernel actually does the right
+> think under memory pressure.  All it does is make 'top' output easier
+> to interpret,  yet jemalloc provides adequate statistics to accurately
+> assess the application's actual active memory footprint (and Firefox
+> even exposes those statistics, right?).  IMO MADV_FREE is a feature,
+> not a bug.  Indeed, on Linux, MADV_DONTNEED is a performance headache
+> that we've had to work around in various ways at Facebook, with mixed
+> success.
+> 
+> My memory of Windows virtual memory semantics is fuzzy, but my
+> recollection is that the decommit support we put into jemalloc for
+> Firefox was motivated primarily by inadequate operating system
+> statistics for Windows XP that confused our understanding of actual
+> memory usage.  The VirtualAlloc() documentation indicates that
+> MEM_RESET has the same semantics as MADV_FREE, which is (again IMO) a
+> good thing.
+
+It has the same semantics, which is why I'm suggesting both could use
+the same thing.
+
+> In summary, I don't think there's a problem here to fix.  Am I missing
+> something?
+
+We could use RSS - number of madvised pages, for sure, but that doesn't
+quite help with people looking at their task manager ans seeing memory
+usage 1GB higher than what it actually is. (And it doesn't help to make
+the numbers Firefox itself reports believable)
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Thu May 10 11:53:21 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 10 May 2012 20:53:21 +0200
+Subject: More aggressive page purging
+In-Reply-To: <D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+	<20120510135025.GA2867@glandium.org>
+	<D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+Message-ID: <20120510185321.GA32113@glandium.org>
+
+On Thu, May 10, 2012 at 11:19:07AM -0700, Jason Evans wrote:
+> I don't see the point in double purge on OS X (or FreeBSD, which
+> behaves similarly), assuming that the kernel actually does the right
+> think under memory pressure.  All it does is make 'top' output easier
+> to interpret,  yet jemalloc provides adequate statistics to accurately
+> assess the application's actual active memory footprint (and Firefox
+> even exposes those statistics, right?).  IMO MADV_FREE is a feature,
+> not a bug.  Indeed, on Linux, MADV_DONTNEED is a performance headache
+> that we've had to work around in various ways at Facebook, with mixed
+> success.
+
+BTW, madvise(MADV_FREE) shows up pretty high in profiling on OSX under
+some circumstances with Firefox, so even that semantic has performance
+headaches.
+
+Mike
+
+
+From justin.lebar at gmail.com  Thu May 10 11:55:26 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Thu, 10 May 2012 11:55:26 -0700
+Subject: More aggressive page purging
+In-Reply-To: <20120510184614.GA30292@glandium.org>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+	<20120510135025.GA2867@glandium.org>
+	<D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+	<20120510184614.GA30292@glandium.org>
+Message-ID: <CAFWcpZ5tBruswZ_UqFitS_hFwy9si3j-cdKA7+-oV_3jWpUNiA@mail.gmail.com>
+
+>> In summary, I don't think there's a problem here to fix. ?Am I missing
+>> something?
+>
+> We could use RSS - number of madvised pages, for sure, but that doesn't
+> quite help with people looking at their task manager ans seeing memory
+> usage 1GB higher than what it actually is. (And it doesn't help to make
+> the numbers Firefox itself reports believable)
+
+Yeah, the perception problem ("I looked at the task manager and
+Firefox sux!") is a real one that, from MemShrink's perspective, we
+need to solve.
+
+But also, |RSS minus madvised memory| is wrong as soon as any of the
+madvised memory is kicked out due to memory pressure.  So without
+double-purge semantics, I don't see how you'd be able to reliably
+measure "hard" memory usage.
+
+-Justin
+
+
+From jasone at canonware.com  Fri May 11 16:16:16 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 11 May 2012 16:16:16 -0700
+Subject: More aggressive page purging
+In-Reply-To: <CAFWcpZ5tBruswZ_UqFitS_hFwy9si3j-cdKA7+-oV_3jWpUNiA@mail.gmail.com>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+	<20120510135025.GA2867@glandium.org>
+	<D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+	<20120510184614.GA30292@glandium.org>
+	<CAFWcpZ5tBruswZ_UqFitS_hFwy9si3j-cdKA7+-oV_3jWpUNiA@mail.gmail.com>
+Message-ID: <B4575C08-BF3B-44B4-AA94-A0BFFBE89BAD@canonware.com>
+
+On May 10, 2012, at 11:55 AM, Justin Lebar wrote:
+>>> In summary, I don't think there's a problem here to fix.  Am I missing
+>>> something?
+>> 
+>> We could use RSS - number of madvised pages, for sure, but that doesn't
+>> quite help with people looking at their task manager ans seeing memory
+>> usage 1GB higher than what it actually is. (And it doesn't help to make
+>> the numbers Firefox itself reports believable)
+> 
+> Yeah, the perception problem ("I looked at the task manager and
+> Firefox sux!") is a real one that, from MemShrink's perspective, we
+> need to solve.
+
+It's unfortunate that the operating systems don't expose statistics that provide clarity here.  I don't want to make aggressive purging default behavior, but I'm open to patches that make this a configuration-time behavior after the 3.0.0 release (probably today or tomorrow).
+
+Re: stealing a bit for 'decommit', overloading the 'large' bit is probably the easiest approach.  The recent arena_mapbits_*() refactoring should make decommit support much easier to add.
+
+> But also, |RSS minus madvised memory| is wrong as soon as any of the
+> madvised memory is kicked out due to memory pressure.  So without
+> double-purge semantics, I don't see how you'd be able to reliably
+> measure "hard" memory usage.
+
+jemalloc maintains 'allocated', 'active', and 'mapped' statistics.  'active' ignores a bit of internally allocated metadata memory, but it is very close to being RSS minus madvise'd memory minus non-malloc memory (libraries, other mapped files, etc.).
+
+Jason
+
+From justin.lebar at gmail.com  Fri May 11 18:26:55 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Fri, 11 May 2012 18:26:55 -0700
+Subject: More aggressive page purging
+In-Reply-To: <B4575C08-BF3B-44B4-AA94-A0BFFBE89BAD@canonware.com>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+	<20120510135025.GA2867@glandium.org>
+	<D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+	<20120510184614.GA30292@glandium.org>
+	<CAFWcpZ5tBruswZ_UqFitS_hFwy9si3j-cdKA7+-oV_3jWpUNiA@mail.gmail.com>
+	<B4575C08-BF3B-44B4-AA94-A0BFFBE89BAD@canonware.com>
+Message-ID: <CAFWcpZ7Vwm9QDSxtKS9WNapTsuzGFfV6_RbAOkzV73HkemwMSg@mail.gmail.com>
+
+On May 11, 2012 5:16 PM, "Jason Evans" <jasone at canonware.com> wrote:
+>
+> On May 10, 2012, at 11:55 AM, Justin Lebar wrote:
+> >>> In summary, I don't think there's a problem here to fix.  Am I missing
+> >>> something?
+> >>
+> >> We could use RSS - number of madvised pages, for sure, but that doesn't
+> >> quite help with people looking at their task manager ans seeing memory
+> >> usage 1GB higher than what it actually is. (And it doesn't help to make
+> >> the numbers Firefox itself reports believable)
+> >
+> > Yeah, the perception problem ("I looked at the task manager and
+> > Firefox sux!") is a real one that, from MemShrink's perspective, we
+> > need to solve.
+>
+> It's unfortunate that the operating systems don't expose statistics that
+provide clarity here.  I don't want to make aggressive purging default
+behavior,
+
+To be clear, what we do at moment is purge only right before we query the
+OS for our RSS. In practice, this happens whenever we load about:memory or
+run a telemetry ping, which happens every few (five?) minutes when the
+browser is idle.
+
+Its not ideal from the standpoint of a user looking at the task manager,
+but at least our stats are correct.
+
+I think we'd want the same behavior, purging only upon a malctl, rather
+than automatically.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120511/eb50459f/attachment.html>
+
+From mh+jemalloc at glandium.org  Fri May 11 21:56:24 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Sat, 12 May 2012 06:56:24 +0200
+Subject: More aggressive page purging
+In-Reply-To: <CAFWcpZ7Vwm9QDSxtKS9WNapTsuzGFfV6_RbAOkzV73HkemwMSg@mail.gmail.com>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+	<20120510135025.GA2867@glandium.org>
+	<D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+	<20120510184614.GA30292@glandium.org>
+	<CAFWcpZ5tBruswZ_UqFitS_hFwy9si3j-cdKA7+-oV_3jWpUNiA@mail.gmail.com>
+	<B4575C08-BF3B-44B4-AA94-A0BFFBE89BAD@canonware.com>
+	<CAFWcpZ7Vwm9QDSxtKS9WNapTsuzGFfV6_RbAOkzV73HkemwMSg@mail.gmail.com>
+Message-ID: <20120512045624.GA20921@glandium.org>
+
+On Fri, May 11, 2012 at 06:26:55PM -0700, Justin Lebar wrote:
+> On May 11, 2012 5:16 PM, "Jason Evans" <jasone at canonware.com> wrote:
+> >
+> > On May 10, 2012, at 11:55 AM, Justin Lebar wrote:
+> > >>> In summary, I don't think there's a problem here to fix.  Am I missing
+> > >>> something?
+> > >>
+> > >> We could use RSS - number of madvised pages, for sure, but that doesn't
+> > >> quite help with people looking at their task manager ans seeing memory
+> > >> usage 1GB higher than what it actually is. (And it doesn't help to make
+> > >> the numbers Firefox itself reports believable)
+> > >
+> > > Yeah, the perception problem ("I looked at the task manager and
+> > > Firefox sux!") is a real one that, from MemShrink's perspective, we
+> > > need to solve.
+> >
+> > It's unfortunate that the operating systems don't expose statistics that
+> provide clarity here.  I don't want to make aggressive purging default
+> behavior,
+> 
+> To be clear, what we do at moment is purge only right before we query the
+> OS for our RSS. In practice, this happens whenever we load about:memory or
+> run a telemetry ping, which happens every few (five?) minutes when the
+> browser is idle.
+> 
+> Its not ideal from the standpoint of a user looking at the task manager,
+> but at least our stats are correct.
+
+I think we could also (or at least try to) run it after some GCs.
+
+> I think we'd want the same behavior, purging only upon a malctl, rather
+> than automatically.
+
+That's what I was suggesting, using the existing arenas.purge control.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Fri May 11 21:58:53 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Sat, 12 May 2012 06:58:53 +0200
+Subject: More aggressive page purging
+In-Reply-To: <B4575C08-BF3B-44B4-AA94-A0BFFBE89BAD@canonware.com>
+References: <20120510095124.GA27406@glandium.org>
+	<20120510100018.GA28554@glandium.org>
+	<20120510135025.GA2867@glandium.org>
+	<D43A86A1-41DB-4016-A4C5-286FD50A7B9D@canonware.com>
+	<20120510184614.GA30292@glandium.org>
+	<CAFWcpZ5tBruswZ_UqFitS_hFwy9si3j-cdKA7+-oV_3jWpUNiA@mail.gmail.com>
+	<B4575C08-BF3B-44B4-AA94-A0BFFBE89BAD@canonware.com>
+Message-ID: <20120512045853.GB20921@glandium.org>
+
+On Fri, May 11, 2012 at 04:16:16PM -0700, Jason Evans wrote:
+> jemalloc maintains 'allocated', 'active', and 'mapped' statistics.
+> 'active' ignores a bit of internally allocated metadata memory, but it
+> is very close to being RSS minus madvise'd memory minus non-malloc
+> memory (libraries, other mapped files, etc.).
+
+'active' doesn't track e.g. huge allocations that are only partially
+used. e.g malloc(5M) will report 8M of active.
+
+Mike
+
+
+From amolpise15 at gmail.com  Wed May 16 00:41:45 2012
+From: amolpise15 at gmail.com (amol pise)
+Date: Wed, 16 May 2012 13:11:45 +0530
+Subject: jemalloc performance tunning for Embedded Platform
+Message-ID: <CANUf=CD6V=UnFRCwQFCVBhhbEEZ3Umncxcm+mzViYq4uamKK+g@mail.gmail.com>
+
+Dear All,
+
+I am planning to use jemalloc library for the embedded platform (ARM and MIPS).
+I wanted to know the areas where we can tunned its performance for
+Embedded platforms ?
+
+Your suggestions and inputs are very important for me to go ahead.
+
+I realy appriciated the help in this regards.
+
+Waiting for the reply.
+
+Thank You,
+Amol Pise
+
+
+From jasone at canonware.com  Wed May 16 11:51:02 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 16 May 2012 11:51:02 -0700
+Subject: jemalloc performance tunning for Embedded Platform
+In-Reply-To: <CANUf=CD6V=UnFRCwQFCVBhhbEEZ3Umncxcm+mzViYq4uamKK+g@mail.gmail.com>
+References: <CANUf=CD6V=UnFRCwQFCVBhhbEEZ3Umncxcm+mzViYq4uamKK+g@mail.gmail.com>
+Message-ID: <F3625146-B62B-4EA9-851E-36D0BBBEEE58@canonware.com>
+
+On May 16, 2012, at 12:41 AM, amol pise wrote:
+> I am planning to use jemalloc library for the embedded platform (ARM and MIPS).
+> I wanted to know the areas where we can tunned its performance for
+> Embedded platforms ?
+> 
+> Your suggestions and inputs are very important for me to go ahead.
+> 
+> I realy appriciated the help in this regards.
+> 
+> Waiting for the reply.
+
+You probably want to disable every optional feature at configuration time.  Depending on the virtual memory system for your embedded platform, you may want to reduce the chunk size.  I can't think of any other general guidelines that apply to all embedded use cases.
+
+Jason
+
+From amolpise15 at gmail.com  Thu May 17 06:34:45 2012
+From: amolpise15 at gmail.com (amol pise)
+Date: Thu, 17 May 2012 19:04:45 +0530
+Subject: jemalloc performance tunning for Embedded Platform
+In-Reply-To: <F3625146-B62B-4EA9-851E-36D0BBBEEE58@canonware.com>
+References: <CANUf=CD6V=UnFRCwQFCVBhhbEEZ3Umncxcm+mzViYq4uamKK+g@mail.gmail.com>
+	<F3625146-B62B-4EA9-851E-36D0BBBEEE58@canonware.com>
+Message-ID: <CANUf=CDPSpb8muA58230D2SgaRK5wMP8R=FQUk3sJg1bb7M79Q@mail.gmail.com>
+
+Dear Jason,
+
+Thank you very much for your quick response.
+As you suggested I changed the chunk size  i.e. LG_CHUNK_DEFAULT value
+from 22 to 20 ,  But still the speed performance on MIPS target with
+jemalloc not improved.
+
+My current configuration is as below:
+{{{
+enable_autogen='1'
+enable_debug='0'
+enable_dss='0'
+enable_dynamic_page_shift='0'
+enable_fill='0'
+enable_lazy_lock='0'
+enable_prof='0'
+enable_stats='0'
+enable_swap='0'
+enable_sysv='0'
+enable_tcache='1'
+enable_tiny='1'
+enable_tls='1'
+enable_xmalloc='0'
+}}}
+
+I also come across the following thread
+https://bugzilla.mozilla.org/show_bug.cgi?id=446096
+"Integrate upstream jemalloc optimizations", here you suggested to Remove the
+red-black trees which improves the allocation speed. It means adopting
+the fix in the patch improves the performance.
+
+Please let me know if my understanding is wrong.
+
+Thank You,
+Amol Pise
+
+On 5/17/12, Jason Evans <jasone at canonware.com> wrote:
+> On May 16, 2012, at 12:41 AM, amol pise wrote:
+>> I am planning to use jemalloc library for the embedded platform (ARM and
+>> MIPS).
+>> I wanted to know the areas where we can tunned its performance for
+>> Embedded platforms ?
+>>
+>> Your suggestions and inputs are very important for me to go ahead.
+>>
+>> I realy appriciated the help in this regards.
+>>
+>> Waiting for the reply.
+>
+> You probably want to disable every optional feature at configuration time.
+> Depending on the virtual memory system for your embedded platform, you may
+> want to reduce the chunk size.  I can't think of any other general
+> guidelines that apply to all embedded use cases.
+>
+> Jason
+
+
+From ingvar at redpill-linpro.com  Fri May 18 12:06:45 2012
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Fri, 18 May 2012 21:06:45 +0200 (CEST)
+Subject: jemalloc 3.0.0 released
+In-Reply-To: <C0E721BB-A5B5-484C-BA68-69DE9C8B82CF@canonware.com>
+Message-ID: <1805249546.3505059.1337368005279.JavaMail.root@claudius.linpro.no>
+
+Jason Evans wrote
+> jemalloc 3.0.0 is now available.  Although this version adds some
+> major new features, the primary focus is on internal code cleanup
+> that facilitates maintainability and portability, most of which is
+> not reflected in the ChangeLog.  This is the first release to
+> incorporate substantial contributions from numerous other
+> developers, and the result is a more broadly useful allocator (see
+> the git revision history for contribution details).  Note that the
+> license has been unified, thanks to Facebook granting a license
+> under the same terms as the other copyright holders (see COPYING).
+
+
+Packages for epel5, epel6, fedora 15, 16, 17 and rawhide are built
+and on their way to a Fedora mirror close to you. They will cook
+some days in testing before they reach the stable branches.
+
+Please test and report karma through Koji at 
+https://admin.fedoraproject.org/updates/search/jemalloc-3.0.0
+
+In addition to the obvious new upstream release, this package
+has got a patch for epel5/ppc, making it finally possible to
+release an update for epel5.
+
+Ingvar
+
+
+From orion at cora.nwra.com  Wed May 23 14:48:59 2012
+From: orion at cora.nwra.com (Orion Poplawski)
+Date: Wed, 23 May 2012 15:48:59 -0600
+Subject: sge_execd segfaults in ptmalloc_lock_all during fork
+Message-ID: <4FBD5B4B.703@cora.nwra.com>
+
+I'm seeing sge_execd segfaults in ptmalloc_lock_all during fork on Fedora 17 
+with jemalloc 3.0.0.  See https://bugzilla.redhat.com/show_bug.cgi?id=824646 
+for details.
+
+-- 
+Orion Poplawski
+Technical Manager                     303-415-9701 x222
+NWRA, Boulder Office                  FAX: 303-415-9702
+3380 Mitchell Lane                       orion at nwra.com
+Boulder, CO 80301                   http://www.nwra.com
+
+
+From jasone at canonware.com  Wed May 23 16:11:15 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 May 2012 16:11:15 -0700
+Subject: sge_execd segfaults in ptmalloc_lock_all during fork
+In-Reply-To: <4FBD5B4B.703@cora.nwra.com>
+References: <4FBD5B4B.703@cora.nwra.com>
+Message-ID: <CFF7126D-BE8C-4B97-9572-7DB8320DC08B@canonware.com>
+
+On May 23, 2012, at 2:48 PM, Orion Poplawski wrote:
+> I'm seeing sge_execd segfaults in ptmalloc_lock_all during fork on Fedora 17 with jemalloc 3.0.0.  See https://bugzilla.redhat.com/show_bug.cgi?id=824646 for details.
+
+In my own build of jemalloc, I see via nm(1) that in libjemalloc[_pic].a and jemalloc.o, the __*_hook symbols are read-only data ('R'), but they should be writable ('D'), as they are in libjemalloc.so.1.  This problem arises because jemalloc mistakenly declares the hooks as const, so they are indeed read-only (whoops).  Here's the fix:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=5c710cee783a44061fa2c467ffd8984b8047b90e
+
+Thanks,
+Jason
+
+From ingvar at redpill-linpro.com  Thu May 24 00:52:36 2012
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Thu, 24 May 2012 09:52:36 +0200
+Subject: sge_execd segfaults in ptmalloc_lock_all during fork
+In-Reply-To: <CFF7126D-BE8C-4B97-9572-7DB8320DC08B@canonware.com>
+References: <4FBD5B4B.703@cora.nwra.com>
+	<CFF7126D-BE8C-4B97-9572-7DB8320DC08B@canonware.com>
+Message-ID: <1337845956.12212.19.camel@yum.linpro.no>
+
+on., 23.05.2012 kl. 16.11 -0700, skrev Jason Evans:
+> On May 23, 2012, at 2:48 PM, Orion Poplawski wrote:
+> > I'm seeing sge_execd segfaults in ptmalloc_lock_all during fork on Fedora 17 with jemalloc 3.0.0.  See https://bugzilla.redhat.com/show_bug.cgi?id=824646 for details.
+> 
+> In my own build of jemalloc, I see via nm(1) that in libjemalloc[_pic].a and jemalloc.o, the __*_hook symbols are read-only data ('R'), but they should be writable ('D'), as they are in libjemalloc.so.1.  This problem arises because jemalloc mistakenly declares the hooks as const, so they are indeed read-only (whoops).  Here's the fix:
+> 
+> 	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=5c710cee783a44061fa2c467ffd8984b8047b90e
+
+
+A scratch build for fedora 17 with that patch is available here:
+
+http://koji.fedoraproject.org/koji/taskinfo?taskID=4097345
+
+Please test.
+
+Ingvar
+
+
+
+
+From orion at cora.nwra.com  Thu May 24 08:10:31 2012
+From: orion at cora.nwra.com (Orion Poplawski)
+Date: Thu, 24 May 2012 09:10:31 -0600
+Subject: sge_execd segfaults in ptmalloc_lock_all during fork
+In-Reply-To: <1337845956.12212.19.camel@yum.linpro.no>
+References: <4FBD5B4B.703@cora.nwra.com>
+	<CFF7126D-BE8C-4B97-9572-7DB8320DC08B@canonware.com>
+	<1337845956.12212.19.camel@yum.linpro.no>
+Message-ID: <4FBE4F67.8070404@cora.nwra.com>
+
+On 05/24/2012 01:52 AM, Ingvar Hagelund wrote:
+> on., 23.05.2012 kl. 16.11 -0700, skrev Jason Evans:
+>> On May 23, 2012, at 2:48 PM, Orion Poplawski wrote:
+>>> I'm seeing sge_execd segfaults in ptmalloc_lock_all during fork on Fedora 17 with jemalloc 3.0.0.  See https://bugzilla.redhat.com/show_bug.cgi?id=824646 for details.
+>>
+>> In my own build of jemalloc, I see via nm(1) that in libjemalloc[_pic].a and jemalloc.o, the __*_hook symbols are read-only data ('R'), but they should be writable ('D'), as they are in libjemalloc.so.1.  This problem arises because jemalloc mistakenly declares the hooks as const, so they are indeed read-only (whoops).  Here's the fix:
+>>
+>> 	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=5c710cee783a44061fa2c467ffd8984b8047b90e
+>
+>
+> A scratch build for fedora 17 with that patch is available here:
+>
+> http://koji.fedoraproject.org/koji/taskinfo?taskID=4097345
+>
+> Please test.
+>
+> Ingvar
+>
+
+Looks good so far.  Thanks all!
+
+-- 
+Orion Poplawski
+Technical Manager                     303-415-9701 x222
+NWRA, Boulder Office                  FAX: 303-415-9702
+3380 Mitchell Lane                       orion at nwra.com
+Boulder, CO 80301                   http://www.nwra.com
+
+
+From tfengjun at gmail.com  Fri May 25 02:02:30 2012
+From: tfengjun at gmail.com (Jokea)
+Date: Fri, 25 May 2012 17:02:30 +0800
+Subject: dead lock in forked child
+Message-ID: <4FBF4AA6.1000701@gmail.com>
+
+I've found that a forked child runs into dead lock in a multithreaded
+application.
+The test code is:
+
+[root at localhost]# cat a.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include "include/jemalloc/jemalloc.h"
+
+void *worker(void *arg) {
+int j;
+char *p;
+
+while (1) {
+for (j=1; j<5000; ++j) {
+p = je_malloc(j);
+je_free(p);
+}
+}
+return NULL;
+}
+
+int main(int argc, char **argv) {
+int pid;
+int j;
+char *p;
+pthread_t tid;
+int n = 20;
+
+if (argc > 1)
+n = atoi(argv[1]);
+
+for (j=0; j<10; ++j)
+pthread_create(&tid, NULL, worker, NULL);
+
+int i = 0;
+while (i++<n) {
+if ((pid = fork()) == 0) {
+/* child */
+fprintf(stderr, "child %d\n", i);
+int cnt;
+for (cnt=0; cnt<100; ++cnt) {
+for (j=1; j<5000; ++j) {
+p = je_malloc(j);
+je_free(p);
+}
+}
+exit(0);
+}
+usleep(10000);
+}
+
+sleep(1);
+while (n--) {
+fprintf(stderr, "%d children running...\n", n+1);
+pid = wait(NULL);
+}
+return 0;
+}
+
+1. jemalloc is configured using:
+# ./configure CFLAGS=-std=gnu99 -Wall -pipe -g3 -O2 -funroll-loops
+--with-jemalloc-prefix=je_ --enable-cc-silence && make lib/libjemalloc.a
+
+2. compile the test code using:
+# gcc -g -ggdb -o 3.0.0 a.c lib/libjemalloc.a -lpthread -ldl
+
+3. run the test:
+[root at localhost]# ./3.0.0 4
+child 1
+child 2
+child 3
+child 4
+4 children running...
+3 children running...
+2 children running...
+^C
+[root at localhost]#
+
+4. Two children are blocked, backtrace:
+first:
+(gdb) bt
+#0 malloc_init_hard () at src/jemalloc.c:626
+#1 0x0000000000402f75 in malloc_init (size=1) at src/jemalloc.c:282
+#2 je_malloc (size=1) at src/jemalloc.c:804
+#3 0x00000000004011f3 in main (argc=2, argv=0x7fffa509d888) at a.c:40
+
+second:
+(gdb) bt
+#0 0x0000003e4ea0d594 in __lll_lock_wait () from /lib64/libpthread.so.0
+#1 0x0000003e4ea08e8a in _L_lock_1034 () from /lib64/libpthread.so.0
+#2 0x0000003e4ea08d4c in pthread_mutex_lock () from /lib64/libpthread.so.0
+#3 0x000000000040148f in malloc_mutex_lock () at
+include/jemalloc/internal/mutex.h:77
+#4 malloc_init_hard () at src/jemalloc.c:611
+#5 0x0000000000402f75 in malloc_init (size=1) at src/jemalloc.c:282
+#6 je_malloc (size=1) at src/jemalloc.c:804
+#7 0x00000000004011f3 in main (argc=2, argv=0x7fffa509d888) at a.c:40
+
+I've tested the code against jemalloc-2.2.5 and jemalloc-3.0.0, they
+shows the same result.
+The default libc malloc does not have this issue.
+
+System info:
+CentOS-5.4 x86_64,
+
+Regards,
+tfengjun
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120525/63b7bedc/attachment.html>
+
+From antirez at gmail.com  Fri May 25 02:31:29 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Fri, 25 May 2012 11:31:29 +0200
+Subject: dead lock in forked child
+In-Reply-To: <4FBF4AA6.1000701@gmail.com>
+References: <4FBF4AA6.1000701@gmail.com>
+Message-ID: <CA+XzkVfdvo40ArMzbueayM_1iVczwd0-mb-cPrWSBYectudSsw@mail.gmail.com>
+
+On Fri, May 25, 2012 at 11:02 AM, Jokea <tfengjun at gmail.com> wrote:
+
+> I've found that a forked child runs into dead lock in a multithreaded
+> application.
+
+Hello,
+
+just to add that this behavior also happens in Redis, so it is
+potentially affecting many users and we saw this bug happening in the
+real world.
+What appears to happen is that, since fork() only duplicates the
+thread calling it, if another thread happens to hold the lock at the
+time we fork(), the child will still have the lock as hold but no one
+will release it (since the other thread does not exist in the new
+process).
+
+Apparently just before forking() jemalloc should do something to make
+sure that no lock is hold.
+
+In the specific case of Redis, if this bug is not going to be fixed,
+we have the alternative of making sure allocation is not performed at
+the time we fork, but this is only currently possible because we do
+very little with threads.
+
+Cheers,
+Salvatore
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+? ? ? ?? David Gelernter
+
+
+From me at kylehuey.com  Fri May 25 08:54:16 2012
+From: me at kylehuey.com (Kyle Huey)
+Date: Fri, 25 May 2012 08:54:16 -0700
+Subject: dead lock in forked child
+In-Reply-To: <CA+XzkVfdvo40ArMzbueayM_1iVczwd0-mb-cPrWSBYectudSsw@mail.gmail.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<CA+XzkVfdvo40ArMzbueayM_1iVczwd0-mb-cPrWSBYectudSsw@mail.gmail.com>
+Message-ID: <CAP045ApT--54Us_uj8P=8YTxwN17geHkLyMQhM8dxLEMFCPNMw@mail.gmail.com>
+
+On Fri, May 25, 2012 at 2:31 AM, Salvatore Sanfilippo <antirez at gmail.com>wrote:
+
+> Apparently just before forking() jemalloc should do something to make
+> sure that no lock is hold.
+>
+
+Firefox's fork of jemalloc has code to do this.  See
+https://bugzilla.mozilla.org/show_bug.cgi?id=460933#c30 and other comments
+in that bug.
+
+- Kyle
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120525/c2913f1d/attachment.html>
+
+From me at kylehuey.com  Fri May 25 09:00:28 2012
+From: me at kylehuey.com (Kyle Huey)
+Date: Fri, 25 May 2012 09:00:28 -0700
+Subject: dead lock in forked child
+In-Reply-To: <CAP045ApT--54Us_uj8P=8YTxwN17geHkLyMQhM8dxLEMFCPNMw@mail.gmail.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<CA+XzkVfdvo40ArMzbueayM_1iVczwd0-mb-cPrWSBYectudSsw@mail.gmail.com>
+	<CAP045ApT--54Us_uj8P=8YTxwN17geHkLyMQhM8dxLEMFCPNMw@mail.gmail.com>
+Message-ID: <CAP045Aq5K_F1DtC8Hs=8M52ViMiNvDq-0jowbo4j2z0CwhR-cA@mail.gmail.com>
+
+On Fri, May 25, 2012 at 8:54 AM, Kyle Huey <me at kylehuey.com> wrote:
+
+> On Fri, May 25, 2012 at 2:31 AM, Salvatore Sanfilippo <antirez at gmail.com>wrote:
+>
+>> Apparently just before forking() jemalloc should do something to make
+>> sure that no lock is hold.
+>>
+>
+> Firefox's fork of jemalloc has code to do this.  See
+> https://bugzilla.mozilla.org/show_bug.cgi?id=460933#c30 and other
+> comments in that bug.
+>
+
+Though, it appears that the standalone jemalloc has this too.
+
+- Kyle
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120525/defd132a/attachment.html>
+
+From antirez at gmail.com  Fri May 25 09:10:44 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Fri, 25 May 2012 18:10:44 +0200
+Subject: dead lock in forked child
+In-Reply-To: <CAP045Aq5K_F1DtC8Hs=8M52ViMiNvDq-0jowbo4j2z0CwhR-cA@mail.gmail.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<CA+XzkVfdvo40ArMzbueayM_1iVczwd0-mb-cPrWSBYectudSsw@mail.gmail.com>
+	<CAP045ApT--54Us_uj8P=8YTxwN17geHkLyMQhM8dxLEMFCPNMw@mail.gmail.com>
+	<CAP045Aq5K_F1DtC8Hs=8M52ViMiNvDq-0jowbo4j2z0CwhR-cA@mail.gmail.com>
+Message-ID: <CA+XzkVchsAdXx7GqvaBKmCwKON=+AJe+cGUZd41YGwqPt1FJhg@mail.gmail.com>
+
+On Fri, May 25, 2012 at 6:00 PM, Kyle Huey <me at kylehuey.com> wrote:
+
+Though, it appears that the standalone jemalloc has this too.
+>
+
+Indeed, it is protected by the following defines:
+
+#if (!defined(JEMALLOC_MUTEX_INIT_CB) && !defined(JEMALLOC_ZONE) \
+    && !defined(_WIN32))
+
+So I think it gets compiled by default on Linux, but not on osx.
+
+Still apparently the test code produces the bug (against 3.0.0 as well).
+
+Cheers,
+Salvatore
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence against
+complexity.
+       ? David Gelernter
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120525/bc05add1/attachment.html>
+

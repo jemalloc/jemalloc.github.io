@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> realloc stack use under O0 for x86_64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3CB25377EB-9CEC-48D4-BA59-94ABCEB4D204%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001081.html">
+   <LINK REL="Next"  HREF="001082.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>realloc stack use under O0 for x86_64</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3CB25377EB-9CEC-48D4-BA59-94ABCEB4D204%40indiana.edu%3E"
+       TITLE="realloc stack use under O0 for x86_64">ldalessa at indiana.edu
+       </A><BR>
+    <I>Wed Mar 25 17:57:28 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001081.html">realloc stack use under O0 for x86_64
+</A></li>
+        <LI>Next message: <A HREF="001082.html">realloc stack use under O0 for x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1080">[ date ]</a>
+              <a href="thread.html#1080">[ thread ]</a>
+              <a href="subject.html#1080">[ subject ]</a>
+              <a href="author.html#1080">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On Mar 25, 2015, at 8:34 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;<i> We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> ```asm
+</I>&gt;&gt;<i> 0000000000070e48 &lt;realloc&gt;:
+</I>&gt;&gt;<i>  70e48:       55                      push   %rbp
+</I>&gt;&gt;<i>  70e49:       48 89 e5                mov    %rsp,%rbp
+</I>&gt;&gt;<i>  70e4c:       53                      push   %rbx
+</I>&gt;&gt;<i>  70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+</I>&gt;&gt;<i> ```
+</I>&gt;<i> 
+</I>&gt;<i> Wow, that's far more stack space than I can imagine an explanation for.  What version of jemalloc is this happening with, which OS, compiler, etc.?
+</I>
+Hi Jason,
+
+This was with
+
+jemalloc: 562d266511053a51406e91c78eba640cb46ad9c8
+./configure CFLAGS=&quot;-O0 -g&#8221;
+
+uname -a
+Linux #### 3.2.0-59-generic #90-Ubuntu SMP Tue Jan 7 22:43:51 UTC 2014 x86_64 x86_64 x86_64 GNU/Linux
+
+* gcc 4.9.2
+
+[original]
+
+* gcc 4.6.4
+
+0000000000070a26 &lt;realloc&gt;:
+   70a26:       55                      push   %rbp
+   70a27:       48 89 e5                mov    %rsp,%rbp
+   70a2a:       53                      push   %rbx
+   70a2b:       48 81 ec 18 5f 00 00    sub    $0x5f18,%rsp
+
+* clang-3.6.0
+
+000000000000aea0 &lt;realloc&gt;:
+    aea0:       55                      push   %rbp
+    aea1:       48 89 e5                mov    %rsp,%rbp
+    aea4:       41 56                   push   %r14
+    aea6:       53                      push   %rbx
+    aea7:       48 81 ec c0 13 00 00    sub    $0x13c0,%rsp
+
+Linux #### 3.0.101-0.31.1_1.0502.8394-cray_ari_s #1 SMP Wed Sep 10 04:03:41 UTC 2014 x86_64 x86_64 x86_64 GNU/Linux:
+
+* icc version 15.0.1 (gcc version 4.3.0 compatibility)
+
+000000000007f2b7 &lt;realloc&gt;:
+   7f2b7:       55                      push   %rbp
+   7f2b8:       48 89 e5                mov    %rsp,%rbp
+   7f2bb:       48 81 ec e0 79 00 00    sub    $0x79e0,%rsp
+
+I&#8217;d be surprised if you didn&#8217;t see something like this with any gcc/LInux/CFLAGS=&#8220;-O0 -g&#8221; build.
+
+Luke
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001081.html">realloc stack use under O0 for x86_64
+</A></li>
+	<LI>Next message: <A HREF="001082.html">realloc stack use under O0 for x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1080">[ date ]</a>
+              <a href="thread.html#1080">[ thread ]</a>
+              <a href="subject.html#1080">[ subject ]</a>
+              <a href="author.html#1080">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

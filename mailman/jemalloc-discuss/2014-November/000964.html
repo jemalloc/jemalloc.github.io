@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Allocation latency during fork
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Allocation%20latency%20during%20fork&In-Reply-To=%3C54592363.2060902%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000963.html">
+   <LINK REL="Next"  HREF="000966.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Allocation latency during fork</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Allocation%20latency%20during%20fork&In-Reply-To=%3C54592363.2060902%40gmail.com%3E"
+       TITLE="Allocation latency during fork">danielmicay at gmail.com
+       </A><BR>
+    <I>Tue Nov  4 11:05:07 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000963.html">Allocation latency during fork
+</A></li>
+        <LI>Next message: <A HREF="000966.html">[PATCH] Fix test breakage on 32-bit systems
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#964">[ date ]</a>
+              <a href="thread.html#964">[ thread ]</a>
+              <a href="subject.html#964">[ subject ]</a>
+              <a href="author.html#964">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 04/11/14 03:55 AM, Salvatore Sanfilippo wrote:
+&gt;<i> Hello, finally I discovered the cause of the issue, so I want to follow up.
+</I>&gt;<i> 
+</I>&gt;<i> For some reason I did not investigated, libc malloc allocates memory
+</I>&gt;<i> in a way does not allow transparent huge pages to work for that
+</I>&gt;<i> region.
+</I>&gt;<i> Jemalloc allocated memory instead is targeted by transparent huge
+</I>&gt;<i> pages, so when the feature is enabled, after fork, we have processes
+</I>&gt;<i> sharing the same huge pages.
+</I>&gt;<i> 
+</I>&gt;<i> Once one of the processes starts writing to many pages in a very fast
+</I>&gt;<i> way, multiple page faults occur, triggering the copy-on-write of
+</I>&gt;<i> almost all the process space (It takes a few thousands writes to COW a
+</I>&gt;<i> 2GB process, for example). Since huge pages copying is slow, thousands
+</I>&gt;<i> of copy operations sum up to hundreds of milliseconds.
+</I>&gt;<i> 
+</I>&gt;<i> Disabling transparent huge pages makes the problem go away.
+</I>&gt;<i> 
+</I>&gt;<i> From the point of view of jemalloc, would be cool to have some option
+</I>&gt;<i> in order to mmap memory so that it is not targeted by THP regardless
+</I>&gt;<i> of the kernel global settings.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Salvatore
+</I>
+I have an issue filed about adding tunables for transparent huge page
+hints with the default chunk allocator:
+
+<A HREF="https://github.com/jemalloc/jemalloc/issues/140">https://github.com/jemalloc/jemalloc/issues/140</A>
+
+AFAIK huge pages are quicker to copy than the equivalent number of small
+pages, but there's the overhead of compaction / defragmentation.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141104/ea399e95/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141104/ea399e95/attachment.sig</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000963.html">Allocation latency during fork
+</A></li>
+	<LI>Next message: <A HREF="000966.html">[PATCH] Fix test breakage on 32-bit systems
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#964">[ date ]</a>
+              <a href="thread.html#964">[ thread ]</a>
+              <a href="subject.html#964">[ subject ]</a>
+              <a href="author.html#964">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

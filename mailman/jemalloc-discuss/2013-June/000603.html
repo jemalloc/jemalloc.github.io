@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Frequent segfaults in 2.2.5
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Frequent%20segfaults%20in%202.2.5&In-Reply-To=%3CCAF05Cc_4xvtFu3uUFJUOC%2BUxcuoq5dG6aDYpqxAdu_7nFc6EwQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000601.html">
+   <LINK REL="Next"  HREF="000606.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Frequent segfaults in 2.2.5</H1>
+    <B>Rogier 'DocWilco' Mulhuijzen</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Frequent%20segfaults%20in%202.2.5&In-Reply-To=%3CCAF05Cc_4xvtFu3uUFJUOC%2BUxcuoq5dG6aDYpqxAdu_7nFc6EwQ%40mail.gmail.com%3E"
+       TITLE="Frequent segfaults in 2.2.5">rogier+jemalloc at fastly.com
+       </A><BR>
+    <I>Wed Jun  5 16:24:05 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000601.html">Frequent segfaults in 2.2.5
+</A></li>
+        <LI>Next message: <A HREF="000606.html">Porting jemalloc to Android
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#603">[ date ]</a>
+              <a href="thread.html#603">[ thread ]</a>
+              <a href="subject.html#603">[ subject ]</a>
+              <a href="author.html#603">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Upgraded libnuma, startup problem went away. We'll see if this improves
+longterm stability.
+
+
+On Tue, Jun 4, 2013 at 12:14 AM, Rogier 'DocWilco' Mulhuijzen &lt;
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">rogier+jemalloc at fastly.com</A>&gt; wrote:
+
+&gt;<i> We added --enable-fill and junk:true to the mix and ran headlong into a
+</I>&gt;<i> wall of libnuma init code. Looks like glibc malloc followed by jemalloc
+</I>&gt;<i> free. But even backporting the glibc hooks code from 3.x didn't help.
+</I>&gt;<i>
+</I>&gt;<i> We'll try 3.4 in the morning, see where that takes us.
+</I>&gt;<i>
+</I>&gt;<i> Thanks for the pointers so far. :)
+</I>&gt;<i>
+</I>&gt;<i> Cheers,
+</I>&gt;<i>
+</I>&gt;<i>       Doc
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On Mon, Jun 3, 2013 at 9:11 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> On Jun 3, 2013, at 8:19 PM, Rogier 'DocWilco' Mulhuijzen &lt;
+</I>&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">rogier+jemalloc at fastly.com</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> We're currently using jemalloc 2.2.5 statically linked into a private
+</I>&gt;&gt;<i> fork of Varnish with a very high rate of malloc/calloc/free, and we're
+</I>&gt;&gt;<i> seeing segfaults on a somewhat frequent basis. (one a day on a group of 6
+</I>&gt;&gt;<i> hosts.)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> We had the same segfaults with 2.2.3, and upgrading to 2.2.5 seems not to
+</I>&gt;&gt;<i> have helped.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> (Also, we tried upgrading to 3.3.1 and things just got worse, tried
+</I>&gt;&gt;<i> enabling debugging which made it even more worse. Under time pressure, we
+</I>&gt;&gt;<i> dropped down to 2.2.5)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I should mention that I backported the mmap strategy from 3.3.1 into
+</I>&gt;&gt;<i> 2.2.5, to prevent VM fragmentation, which was causing us to run into
+</I>&gt;&gt;<i> vm.max_map_count.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> So, to the meat of the problem! (We saw these in both 2.2.3 without the
+</I>&gt;&gt;<i> mmap strategy backported, and 2.2.5 with mmap strategy backported.)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Unfortunately, we don't have core files (we're running with 153G
+</I>&gt;&gt;<i> resident, and 4075G virtual process size on one of the hosts that I'm
+</I>&gt;&gt;<i> looking at right now) so the internal Varnish (libgcc based) backtrace is
+</I>&gt;&gt;<i> all we have:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> *0x483894*: arena_tcache_fill_small+1a4
+</I>&gt;&gt;<i> 0x4916b9: tcache_alloc_small_hard+19
+</I>&gt;&gt;<i> 0x4841bf: arena_malloc+1bf
+</I>&gt;&gt;<i> 0x47b498: calloc+218
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Looking that up:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> # addr2line -e /usr/sbin/varnishd -i 0x483894
+</I>&gt;&gt;<i> /varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:101
+</I>&gt;&gt;<i> /varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:140
+</I>&gt;&gt;<i> /varnish-cache/lib/libjemalloc/src/arena.c:264
+</I>&gt;&gt;<i> /varnish-cache/lib/libjemalloc/src/arena.c:1395
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Which looks like:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 97 goff = bit &gt;&gt; LG_BITMAP_GROUP_NBITS;
+</I>&gt;&gt;<i> 98 gp = &amp;bitmap[goff];
+</I>&gt;&gt;<i> 99 g = *gp;
+</I>&gt;&gt;<i> 100 assert(g &amp; (1LU &lt;&lt; (bit &amp; BITMAP_GROUP_NBITS_MASK)));
+</I>&gt;&gt;<i> *101* g ^= 1LU &lt;&lt; (bit &amp; BITMAP_GROUP_NBITS_MASK);
+</I>&gt;&gt;<i> 102 *gp = g;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Which makes no sense at first, since there's no deref being done there,
+</I>&gt;&gt;<i> but a disassembly (thanks Devon) shows:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>   483883:       48 c1 ef 06             shr    $0x6,%rdi
+</I>&gt;&gt;<i>   483887:       83 e1 3f                and    $0x3f,%ecx
+</I>&gt;&gt;<i>   48388a:       4c 8d 04 fa             lea    (%rdx,%rdi,8),%r8
+</I>&gt;&gt;<i>   48388e:       49 d3 e1                shl    %cl,%r9
+</I>&gt;&gt;<i>   483891:       4c 89 c9                mov    %r9,%rcx
+</I>&gt;&gt;<i>   *483894*:       49 33 08                xor    (%r8),%rcx
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The optimizer got rid of g and just does the xor straight on *gp. So gp
+</I>&gt;&gt;<i> is an illegal address. According to our segfault handler, it's NULL.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> For gp to be NULL, both bitmap and goff need to be NULL. And bitmap being
+</I>&gt;&gt;<i> NULL is somewhat impossible due to:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> if ((run = bin-&gt;runcur) != NULL &amp;&amp; run-&gt;nfree &gt; 0)
+</I>&gt;&gt;<i>  ptr = arena_run_reg_alloc(run, &amp;arena_bin_info[binind]);
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> bitmap is an offset to run, so both the offset and the run need to be
+</I>&gt;&gt;<i> NULL (or perfectly matched to cancel eachother out, but also unlikely.)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> bin-&gt;runcur and bin-&gt;bitmap_offset both being NULL seems _very_ unlikely.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> And that's about as far as we've gotten.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Help?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> This sort of crash can happen as a distant result of a double-free.  For
+</I>&gt;&gt;<i> example:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 1) free(p)
+</I>&gt;&gt;<i> 2) free(p) corrupts run counters, causing the run to be deallocated.
+</I>&gt;&gt;<i> 3) free(q) causes the deallocated run to be placed back in service, but
+</I>&gt;&gt;<i> with definite corruption.
+</I>&gt;&gt;<i> 4) malloc(&#8230;) tries to allocate from run, but run metadata are in a bad
+</I>&gt;&gt;<i> state.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> My suggestion is to enable assertions (something like: CFLAGS=-O3
+</I>&gt;&gt;<i> ./configure --enable-debug --disable-tcache), disable tcache (which can
+</I>&gt;&gt;<i> keep double free bugs from exercising the assertions), and look for the
+</I>&gt;&gt;<i> source of corruption.  I'll be surprised if the problem deviates
+</I>&gt;&gt;<i> substantially from the above, but if it does, then my next bet will be a
+</I>&gt;&gt;<i> buffer overflow corrupting run metadata.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Jason
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130605/333118d2/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130605/333118d2/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000601.html">Frequent segfaults in 2.2.5
+</A></li>
+	<LI>Next message: <A HREF="000606.html">Porting jemalloc to Android
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#603">[ date ]</a>
+              <a href="thread.html#603">[ thread ]</a>
+              <a href="subject.html#603">[ subject ]</a>
+              <a href="author.html#603">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

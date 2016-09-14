@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Bus Address Crash in ckh unit test
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bus%20Address%20Crash%20in%20ckh%20unit%20test&In-Reply-To=%3CCANtHk4kdWjwyNF7am%2B7w5b8QS9DFLwQMnSMmGesexxOX6oQd%3DA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001257.html">
+   <LINK REL="Next"  HREF="001269.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Bus Address Crash in ckh unit test</H1>
+    <B>Christopher Ferris</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bus%20Address%20Crash%20in%20ckh%20unit%20test&In-Reply-To=%3CCANtHk4kdWjwyNF7am%2B7w5b8QS9DFLwQMnSMmGesexxOX6oQd%3DA%40mail.gmail.com%3E"
+       TITLE="Bus Address Crash in ckh unit test">cferris at google.com
+       </A><BR>
+    <I>Thu Feb  4 13:42:26 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001257.html">Bus Address Crash in ckh unit test
+</A></li>
+        <LI>Next message: <A HREF="001269.html">Bus Address Crash in ckh unit test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1261">[ date ]</a>
+              <a href="thread.html#1261">[ thread ]</a>
+              <a href="subject.html#1261">[ subject ]</a>
+              <a href="author.html#1261">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Here's the CL I submitted to our git respository:
+
+<A HREF="https://android-review.googlesource.com/#/c/200798/">https://android-review.googlesource.com/#/c/200798/</A>
+
+I think this is portable, but I've only verified that this works on gcc
+4.9/current clang.
+
+On a sort of related note, there is a typo in jemalloc/internal/ckh.h. The
+prototype for ckh_search, has the second parameter as seachkey instead of
+searchkey.
+
+Christopher
+
+On Mon, Feb 1, 2016 at 3:51 PM, Christopher Ferris &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cferris at google.com</A>&gt;
+wrote:
+
+&gt;<i> When I compiled the ckh unit test with a newer version of clang, it was
+</I>&gt;<i> crashing. I tracked the problem down to an implicit assumption that a value
+</I>&gt;<i> passed to chk_search is 4 byte aligned. Specifically, the code in
+</I>&gt;<i> test/unit/ckh.c, the test test_count_insert_search_remove, makes this call:
+</I>&gt;<i>
+</I>&gt;<i>   assert_true(ckh_search(&amp;ckh, missing, NULL, NULL),
+</I>&gt;<i>       &quot;Unexpected ckh_search() success&quot;);
+</I>&gt;<i>
+</I>&gt;<i> The problem is that the definition of missing is:
+</I>&gt;<i>
+</I>&gt;<i>   char *missing = &quot;A string not in the hash table.&quot;;
+</I>&gt;<i>
+</I>&gt;<i> Which means missing is not guaranteed to be of any alignment.
+</I>&gt;<i>
+</I>&gt;<i> I'm not sure on what platforms jemalloc needs to be compiled, so I think
+</I>&gt;<i> that something like this:
+</I>&gt;<i>
+</I>&gt;<i>   #define HASH_TABLE_STRING &quot;A string not in the hash table.&quot;
+</I>&gt;<i>   union { char char_data[sizeof(HASH_TABLE_STRING)]; uint32_t uint_data; }
+</I>&gt;<i> missing;
+</I>&gt;<i>   memcpy(missing.char_data, HASH_TABLE_STRING, sizeof(HASH_TABLE_STRING));
+</I>&gt;<i>   .
+</I>&gt;<i>   .
+</I>&gt;<i>   .
+</I>&gt;<i>   assert_true(ckh_search(&amp;ckh, missing.char_data, NULL, NULL),
+</I>&gt;<i>       &quot;Unexpected ckh_search() success&quot;);
+</I>&gt;<i>
+</I>&gt;<i> Would guarantee the needed alignment.
+</I>&gt;<i>
+</I>&gt;<i> Does this seem reasonable?
+</I>&gt;<i>
+</I>&gt;<i> Christopher
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160204/fe8f4343/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160204/fe8f4343/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001257.html">Bus Address Crash in ckh unit test
+</A></li>
+	<LI>Next message: <A HREF="001269.html">Bus Address Crash in ckh unit test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1261">[ date ]</a>
+              <a href="thread.html#1261">[ thread ]</a>
+              <a href="subject.html#1261">[ subject ]</a>
+              <a href="author.html#1261">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

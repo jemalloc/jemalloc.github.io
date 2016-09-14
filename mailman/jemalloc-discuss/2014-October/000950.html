@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> RFC: TCMalloc-style new/delete hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3C543D4E08.50903%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000949.html">
+   <LINK REL="Next"  HREF="000952.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>RFC: TCMalloc-style new/delete hooks</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3C543D4E08.50903%40gmail.com%3E"
+       TITLE="RFC: TCMalloc-style new/delete hooks">danielmicay at gmail.com
+       </A><BR>
+    <I>Tue Oct 14 09:23:36 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000949.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+        <LI>Next message: <A HREF="000952.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#950">[ date ]</a>
+              <a href="thread.html#950">[ thread ]</a>
+              <a href="subject.html#950">[ subject ]</a>
+              <a href="author.html#950">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 14/10/14 12:13 PM, David Rigby wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+</I>&gt;<i> 
+</I>&gt;<i> One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc&#8217;s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application. 
+</I>&gt;<i> 
+</I>&gt;<i> We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread&#8217;s current bucket from TLS and increment/decrement the total used as appropriate.
+</I>&gt;<i> 
+</I>&gt;<i> To allow us to work with jemalloc, I&#8217;ve implemented[1] equivalent functionality in jemalloc.
+</I>&gt;<i> 
+</I>&gt;<i> I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I&#8217;m proposing setting narenas=1 when we deploy).
+</I>&gt;<i> 
+</I>&gt;<i> How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream? 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Thanks,
+</I>&gt;<i> 
+</I>&gt;<i> Dave Rigby
+</I>
+It seems like you could accomplish the same thing by setting a jemalloc
+prefix and then making wrappers without the prefix externally.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141014/aea7688c/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141014/aea7688c/attachment.sig</A>&gt;
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000949.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+	<LI>Next message: <A HREF="000952.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#950">[ date ]</a>
+              <a href="thread.html#950">[ thread ]</a>
+              <a href="subject.html#950">[ subject ]</a>
+              <a href="author.html#950">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

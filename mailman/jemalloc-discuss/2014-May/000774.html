@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Crash during malloc(), with profiling enabled
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20during%20malloc%28%29%2C%20with%20profiling%20enabled&In-Reply-To=%3CCAMh%2BOQp%2Bk%3DpwDM%3DiO%2Bk6juQV-thh6teWes-qMm_AAPZr9bw1kw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000772.html">
+   <LINK REL="Next"  HREF="000776.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Crash during malloc(), with profiling enabled</H1>
+    <B>Martin Ivanov</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20during%20malloc%28%29%2C%20with%20profiling%20enabled&In-Reply-To=%3CCAMh%2BOQp%2Bk%3DpwDM%3DiO%2Bk6juQV-thh6teWes-qMm_AAPZr9bw1kw%40mail.gmail.com%3E"
+       TITLE="Crash during malloc(), with profiling enabled">martin.ivanov at gmail.com
+       </A><BR>
+    <I>Thu May  8 08:19:59 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000772.html">[question] stats print and prof dump #79
+</A></li>
+        <LI>Next message: <A HREF="000776.html">Crash during malloc(), with profiling enabled
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#774">[ date ]</a>
+              <a href="thread.html#774">[ thread ]</a>
+              <a href="subject.html#774">[ subject ]</a>
+              <a href="author.html#774">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi.
+
+I have been experimenting recently with jemalloc heap profiling, as way to
+debug memory leaks, but unfortunately it crashes quite frequently.
+CPU architecture is PPC , below is a typical backtraces I get - looks like
+the stack is corrupted.
+
+
+Program terminated with signal 11, Segmentation fault.
+
+#0  0x0ffaab14 in je_prof_backtrace (bt=dwarf2_read_address: Corrupted
+DWARF expression.
+) at prof.c:398
+..
+#3  0x0ff7691c in je_choose_arena (arena=&lt;value optimized out&gt;)
+    at src/jemalloc/internal/jemalloc_internal.h:711
+#4  je_tcache_get (create=&lt;value optimized out&gt;) at
+src/jemalloc/internal/tcache.h:242
+#5  je_arena_malloc (try_tcache=&lt;value optimized out&gt;, zero=&lt;value
+optimized out&gt;, size=&lt;value optimized out&gt;,
+    arena=&lt;value optimized out&gt;) at src/jemalloc/internal/arena.h:956
+#6  je_imalloct (arena=&lt;value optimized out&gt;, try_tcache=&lt;value optimized
+out&gt;, size=&lt;value optimized out&gt;)
+    at src/jemalloc/internal/jemalloc_internal.h:771
+#7  imallocx (arena=&lt;value optimized out&gt;, try_tcache=&lt;value optimized
+out&gt;, zero=&lt;value optimized out&gt;,
+    alignment=&lt;value optimized out&gt;, usize=&lt;value optimized out&gt;) at
+jemalloc.c:1421
+#8  imallocx_prof_sample (usize=dwarf2_read_address: Corrupted DWARF
+expression.
+) at jemalloc.c:1436
+...
+
+Can anyone tell if this is a known problem and if can be overcome ?
+
+
+Regards,
+Martin.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140508/edc3ed12/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140508/edc3ed12/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000772.html">[question] stats print and prof dump #79
+</A></li>
+	<LI>Next message: <A HREF="000776.html">Crash during malloc(), with profiling enabled
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#774">[ date ]</a>
+              <a href="thread.html#774">[ thread ]</a>
+              <a href="subject.html#774">[ subject ]</a>
+              <a href="author.html#774">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

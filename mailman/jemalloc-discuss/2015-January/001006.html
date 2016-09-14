@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> feature request: aligned_realloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20feature%20request%3A%20aligned_realloc&In-Reply-To=%3C54C08B44.2020502%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001005.html">
+   <LINK REL="Next"  HREF="001007.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>feature request: aligned_realloc</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20feature%20request%3A%20aligned_realloc&In-Reply-To=%3C54C08B44.2020502%40gmail.com%3E"
+       TITLE="feature request: aligned_realloc">danielmicay at gmail.com
+       </A><BR>
+    <I>Wed Jan 21 21:31:48 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001005.html">feature request: aligned_realloc
+</A></li>
+        <LI>Next message: <A HREF="001007.html">feature request: aligned_realloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1006">[ date ]</a>
+              <a href="thread.html#1006">[ thread ]</a>
+              <a href="subject.html#1006">[ subject ]</a>
+              <a href="author.html#1006">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 22/01/15 12:21 AM, Jeff Hammond wrote:
+&gt;<i> I don't see aligned_realloc anywhere in jemalloc.  I wonder if this is
+</I>&gt;<i> a feature you would be willing to support?  A colleague of mine was
+</I>&gt;<i> interested in it recently, and it wasn't obvious how one would do an
+</I>&gt;<i> efficient implementation on top of the standard API calls.
+</I>&gt;<i> 
+</I>&gt;<i> There are other implementations of this already.  While I am nothing
+</I>&gt;<i> resembling a fan of Windows, I would argue that a function signature
+</I>&gt;<i> compatible with MSVC is desirable.
+</I>&gt;<i> 
+</I>&gt;<i> Microsoft: <A HREF="https://msdn.microsoft.com/en-us/library/y69db7sx.aspx">https://msdn.microsoft.com/en-us/library/y69db7sx.aspx</A>
+</I>&gt;<i> Boost:SIMD (not yet part of Boost):
+</I>&gt;<i> <A HREF="http://nt2.metascale.fr/doc/html/boost/simd/aligned_realloc.html">http://nt2.metascale.fr/doc/html/boost/simd/aligned_realloc.html</A>
+</I>&gt;<i> MRPT: <A HREF="http://reference.mrpt.org/svn/group__mrpt__memory.html#gaa0dd8ec272a9f40a191342057c185bd9">http://reference.mrpt.org/svn/group__mrpt__memory.html#gaa0dd8ec272a9f40a191342057c185bd9</A>
+</I>&gt;<i> Eigen: <A HREF="http://docs.ros.org/hydro/api/win_eigen/html/namespaceEigen_1_1internal.html#a2a45fbd9d5eaa2c84e561fceaf39d139">http://docs.ros.org/hydro/api/win_eigen/html/namespaceEigen_1_1internal.html#a2a45fbd9d5eaa2c84e561fceaf39d139</A>
+</I>&gt;<i> OpenUH: <A HREF="http://www2.cs.uh.edu/~estrabd/OpenUH/r593/html-libopenmp/d4/d8c/a00035.html">http://www2.cs.uh.edu/~estrabd/OpenUH/r593/html-libopenmp/d4/d8c/a00035.html</A>
+</I>&gt;<i> 
+</I>&gt;<i> Is this a reasonable request?  I don't feel qualified to implement
+</I>&gt;<i> this, otherwise I really would try to do it myself and contribute the
+</I>&gt;<i> patch.
+</I>&gt;<i> 
+</I>&gt;<i> Thanks,
+</I>&gt;<i> 
+</I>&gt;<i> Jeff
+</I>
+It's provided by rallocx. The Windows family of functions is different
+because you can't mix them with the regular API. You could also use the
+in-place realloc function (xallocx) and copy on your own if it fails,
+which can be more flexible.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150122/a861180a/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150122/a861180a/attachment.sig</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001005.html">feature request: aligned_realloc
+</A></li>
+	<LI>Next message: <A HREF="001007.html">feature request: aligned_realloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1006">[ date ]</a>
+              <a href="thread.html#1006">[ thread ]</a>
+              <a href="subject.html#1006">[ subject ]</a>
+              <a href="author.html#1006">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

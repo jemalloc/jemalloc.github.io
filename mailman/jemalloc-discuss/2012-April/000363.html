@@ -1,0 +1,530 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Add support for MSVC
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Add%20support%20for%20MSVC&In-Reply-To=%3C1335782311-8040-7-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000365.html">
+   <LINK REL="Next"  HREF="000366.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Add support for MSVC</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Add%20support%20for%20MSVC&In-Reply-To=%3C1335782311-8040-7-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 7/7] Add support for MSVC">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 30 03:38:31 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000365.html">[PATCH 6/7] Import msinttypes
+</A></li>
+        <LI>Next message: <A HREF="000366.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#363">[ date ]</a>
+              <a href="thread.html#363">[ thread ]</a>
+              <a href="subject.html#363">[ subject ]</a>
+              <a href="author.html#363">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+Tested with MSVC 8 32 and 64 bits.
+---
+ Makefile.in                                      |   21 +++++++--
+ configure.ac                                     |   54 ++++++++++++++++++++--
+ include/compat/stdbool.h                         |   16 +++++++
+ include/compat/strings.h                         |   22 +++++++++
+ include/jemalloc/internal/atomic.h               |   24 ++++++++++
+ include/jemalloc/internal/jemalloc_internal.h.in |   23 +++++++--
+ include/jemalloc/jemalloc_defs.h.in              |   10 ++++
+ src/jemalloc.c                                   |   11 ++++-
+ src/tsd.c                                        |    8 ++++
+ 9 files changed, 173 insertions(+), 16 deletions(-)
+ create mode 100644 include/compat/stdbool.h
+ create mode 100644 include/compat/strings.h
+
+diff --git a/Makefile.in b/Makefile.in
+index a351a1f..08541a7 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -26,9 +26,11 @@ abs_objroot := @abs_objroot@
+ CPPFLAGS := @CPPFLAGS@ -I$(srcroot)include -I$(objroot)include
+ CFLAGS := @CFLAGS@
+ LDFLAGS := @LDFLAGS@
++EXTRA_LDFLAGS := @EXTRA_LDFLAGS@
+ LIBS := @LIBS@
+ RPATH_EXTRA := @RPATH_EXTRA@
+ SO := @so@
++IMPORTLIB := @importlib@
+ O := @o@
+ A := @a@
+ EXE := @exe@
+@@ -49,6 +51,9 @@ enable_experimental := @enable_experimental@
+ DSO_LDFLAGS = @DSO_LDFLAGS@
+ SOREV = @SOREV@
+ PIC_CFLAGS = @PIC_CFLAGS@
++CTARGET = @CTARGET@
++LDTARGET = @LDTARGET@
++MKLIB = @MKLIB@
+ 
+ ifeq (macho, $(ABI))
+ TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=&quot;$(objroot)lib&quot;
+@@ -77,9 +82,13 @@ CSRCS := $(srcroot)src/jemalloc.c $(srcroot)src/arena.c $(srcroot)src/atomic.c \
+ ifeq (macho, $(ABI))
+ CSRCS += $(srcroot)src/zone.c
+ endif
++ifeq ($(IMPORTLIB),$(SO))
+ STATIC_LIBS := $(objroot)lib/$(LIBJEMALLOC).$(A)
++endif
+ ifdef PIC_CFLAGS
+ STATIC_LIBS += $(objroot)lib/$(LIBJEMALLOC)_pic.$(A)
++else
++STATIC_LIBS += $(objroot)lib/$(LIBJEMALLOC)_s.$(A)
+ endif
+ DSOS := $(objroot)lib/$(LIBJEMALLOC).$(SOREV)
+ ifneq ($(SOREV),$(SO))
+@@ -129,6 +138,9 @@ $(CPICOBJS): $(objroot)src/%.pic.$(O): $(srcroot)src/%.c
+ $(CPICOBJS): CFLAGS += $(PIC_CFLAGS)
+ $(CTESTOBJS): $(objroot)test/%.$(O): $(srcroot)test/%.c
+ $(CTESTOBJS): CPPFLAGS += -I$(objroot)test
++ifneq ($(IMPORTLIB),$(SO))
++$(COBJS): CPPFLAGS += -DDLLEXPORT
++endif
+ 
+ # Dependencies
+ HEADER_DIRS = $(srcroot)include/jemalloc/internal \
+@@ -139,7 +151,7 @@ $(CTESTOBJS): $(objroot)test/jemalloc_test.h
+ 
+ $(COBJS) $(CPICOBJS) $(CTESTOBJS): %.$(O):
+ 	@mkdir -p $(@D)
+-	$(CC) $(CFLAGS) -c $(CPPFLAGS) -o $@ $&lt;
++	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(CTARGET) $&lt;
+ 
+ ifneq ($(SOREV),$(SO))
+ %.$(SO) : %.$(SOREV)
+@@ -149,20 +161,21 @@ endif
+ 
+ $(objroot)lib/$(LIBJEMALLOC).$(SOREV) : $(if $(PIC_CFLAGS),$(CPICOBJS),$(COBJS))
+ 	@mkdir -p $(@D)
+-	$(CC) $(DSO_LDFLAGS) $(call RPATH,$(RPATH_EXTRA)) -o $@ $+ $(LDFLAGS) $(LIBS)
++	$(CC) $(DSO_LDFLAGS) $(call RPATH,$(RPATH_EXTRA)) $(LDTARGET) $+ $(LDFLAGS) $(LIBS) $(EXTRA_LDFLAGS)
+ 
+ $(objroot)lib/$(LIBJEMALLOC)_pic.$(A) : $(CPICOBJS)
+ $(objroot)lib/$(LIBJEMALLOC).$(A) : $(COBJS)
++$(objroot)lib/$(LIBJEMALLOC)_s.$(A) : $(COBJS)
+ 
+ $(STATIC_LIBS):
+ 	@mkdir -p $(@D)
+-	ar crus $@ $+
++	$(MKLIB) $+
+ 
+ $(objroot)test/bitmap$(EXE): $(objroot)src/bitmap.$(O)
+ 
+ $(objroot)test/%$(EXE): $(objroot)test/%.$(O) $(objroot)src/util.$(O) $(DSOS)
+ 	@mkdir -p $(@D)
+-	$(CC) -o $@ $(filter %.$(O),$^) $(call RPATH,$(objroot)lib) -L$(objroot)lib -ljemalloc$(install_suffix) $(filter -lpthread,$(LIBS))
++	$(CC) $(LDTARGET) $(filter %.$(O),$^) $(call RPATH,$(objroot)lib) $(objroot)lib/$(LIBJEMALLOC).$(IMPORTLIB) $(filter -lpthread,$(LIBS)) $(EXTRA_LDFLAGS)
+ 
+ build_lib_shared: $(DSOS)
+ build_lib_static: $(STATIC_LIBS)
+diff --git a/configure.ac b/configure.ac
+index 6e74238..500e21c 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -111,6 +111,19 @@ dnl If CFLAGS isn't defined, set CFLAGS to something reasonable.  Otherwise,
+ dnl just prevent autoconf from molesting CFLAGS.
+ CFLAGS=$CFLAGS
+ AC_PROG_CC
++if test &quot;x$GCC&quot; != &quot;xyes&quot; ; then
++  AC_CACHE_CHECK([whether compiler is MSVC],
++                 [je_cv_msvc],
++                 [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],
++                                                     [
++#ifndef _MSC_VER
++  int fail[-1];
++#endif
++])],
++                               [je_cv_msvc=yes],
++                               [je_cv_msvc=no])])
++fi
++
+ if test &quot;x$CFLAGS&quot; = &quot;x&quot; ; then
+   no_CFLAGS=&quot;yes&quot;
+   if test &quot;x$GCC&quot; = &quot;xyes&quot; ; then
+@@ -118,6 +131,12 @@ if test &quot;x$CFLAGS&quot; = &quot;x&quot; ; then
+     JE_CFLAGS_APPEND([-Wall])
+     JE_CFLAGS_APPEND([-pipe])
+     JE_CFLAGS_APPEND([-g3])
++  elif test &quot;x$je_cv_msvc&quot; = &quot;xyes&quot; ; then
++    CC=&quot;$CC -nologo&quot;
++    JE_CFLAGS_APPEND([-Zi])
++    JE_CFLAGS_APPEND([-MT])
++    JE_CFLAGS_APPEND([-W3])
++    CPPFLAGS=&quot;$CPPFLAGS -I${srcroot}/include/compat&quot;
+   fi
+ fi
+ dnl Append EXTRA_CFLAGS to CFLAGS, if defined.
+@@ -195,6 +214,7 @@ AC_DEFINE_UNQUOTED([CPU_SPINWAIT], [$CPU_SPINWAIT])
+ 
+ LD_PRELOAD_VAR=&quot;LD_PRELOAD&quot;
+ so=&quot;so&quot;
++importlib=&quot;${so}&quot;
+ o=&quot;$ac_objext&quot;
+ a=&quot;a&quot;
+ exe=&quot;$ac_exeext&quot;
+@@ -203,9 +223,10 @@ DSO_LDFLAGS='-shared -Wl,-soname,$(@F)'
+ RPATH='-Wl,-rpath,$(1)'
+ SOREV=&quot;${so}.${rev}&quot;
+ PIC_CFLAGS='-fPIC -DPIC'
+-
+-dnl Heap profiling uses the log(3) function.
+-LIBS=&quot;$LIBS -lm&quot;
++CTARGET='-o $@'
++LDTARGET='-o $@'
++EXTRA_LDFLAGS=
++MKLIB='ar crus $@'
+ 
+ dnl Platform-specific settings.  abi and RPATH can probably be determined
+ dnl programmatically, but doing so is error-prone, which makes it generally
+@@ -223,6 +244,7 @@ case &quot;${host}&quot; in
+ 	RPATH=&quot;&quot;
+ 	LD_PRELOAD_VAR=&quot;DYLD_INSERT_LIBRARIES&quot;
+ 	so=&quot;dylib&quot;
++	importlib=&quot;${so}&quot;
+ 	force_tls=&quot;0&quot;
+ 	DSO_LDFLAGS='-shared -Wl,-dylib_install_name,$(@F)'
+ 	SOREV=&quot;${rev}.${so}&quot;
+@@ -278,7 +300,17 @@ case &quot;${host}&quot; in
+ 	force_tls=&quot;0&quot;
+ 	RPATH=&quot;&quot;
+ 	so=&quot;dll&quot;
+-	DSO_LDFLAGS=&quot;-shared&quot;
++	if test &quot;x$je_cv_msvc&quot; = &quot;xyes&quot; ; then
++	  importlib=&quot;lib&quot;
++	  DSO_LDFLAGS=&quot;-LD&quot;
++	  EXTRA_LDFLAGS=&quot;-link -DEBUG&quot;
++	  CTARGET='-Fo$@'
++	  LDTARGET='-Fe$@'
++	  MKLIB='lib -nologo -out:$@'
++        else
++	  importlib=&quot;${so}&quot;
++	  DSO_LDFLAGS=&quot;-shared&quot;
++	fi
+ 	a=&quot;lib&quot;
+ 	libprefix=&quot;&quot;
+ 	SOREV=&quot;${so}&quot;
+@@ -293,13 +325,23 @@ AC_SUBST([abi])
+ AC_SUBST([RPATH])
+ AC_SUBST([LD_PRELOAD_VAR])
+ AC_SUBST([so])
++AC_SUBST([importlib])
+ AC_SUBST([o])
+ AC_SUBST([a])
+ AC_SUBST([exe])
+ AC_SUBST([libprefix])
+ AC_SUBST([DSO_LDFLAGS])
++AC_SUBST([EXTRA_LDFLAGS])
+ AC_SUBST([SOREV])
+ AC_SUBST([PIC_CFLAGS])
++AC_SUBST([CTARGET])
++AC_SUBST([LDTARGET])
++AC_SUBST([MKLIB])
++
++if test &quot;x$abi&quot; != &quot;xpecoff&quot;; then
++  dnl Heap profiling uses the log(3) function.
++  LIBS=&quot;$LIBS -lm&quot;
++fi
+ 
+ JE_COMPILABLE([__attribute__ syntax],
+               [static __attribute__((unused)) void foo(void){}],
+@@ -530,6 +572,8 @@ if test &quot;x$enable_debug&quot; = &quot;x0&quot; -a &quot;x$no_CFLAGS&quot; = &quot;xyes&quot; ; then
+     if test &quot;x$GCC&quot; = &quot;xyes&quot; ; then
+       JE_CFLAGS_APPEND([-O3])
+       JE_CFLAGS_APPEND([-funroll-loops])
++    elif test &quot;x$je_cv_msvc&quot; = &quot;xyes&quot; ; then
++      JE_CFLAGS_APPEND([-O2])
+     else
+       JE_CFLAGS_APPEND([-O])
+     fi
+@@ -833,11 +877,11 @@ AC_CACHE_CHECK([STATIC_PAGE_SHIFT],
+                [je_cv_static_page_shift],
+                AC_RUN_IFELSE([AC_LANG_PROGRAM(
+ [[
++#include &lt;strings.h&gt;
+ #ifdef _WIN32
+ #include &lt;windows.h&gt;
+ #else
+ #include &lt;unistd.h&gt;
+-#include &lt;strings.h&gt;
+ #endif
+ #include &lt;stdio.h&gt;
+ ]],
+diff --git a/include/compat/stdbool.h b/include/compat/stdbool.h
+new file mode 100644
+index 0000000..da9ee8b
+--- /dev/null
++++ b/include/compat/stdbool.h
+@@ -0,0 +1,16 @@
++#ifndef stdbool_h
++#define stdbool_h
++
++#include &lt;wtypes.h&gt;
++
++/* MSVC doesn't define _Bool or bool in C, but does have BOOL */
++/* Note this doesn't pass autoconf's test because (bool) 0.5 != true */
++typedef BOOL _Bool;
++
++#define bool _Bool
++#define true 1
++#define false 0
++
++#define __bool_true_false_are_defined 1
++
++#endif /* stdbool_h */
+diff --git a/include/compat/strings.h b/include/compat/strings.h
+new file mode 100644
+index 0000000..6ad8039
+--- /dev/null
++++ b/include/compat/strings.h
+@@ -0,0 +1,22 @@
++#ifndef strings_h
++#define strings_h
++
++/* MSVC doesn't define ffs/ffsl. This dummy strings.h header is provided
++ * for both */
++#include &lt;intrin.h&gt;
++#pragma intrinsic(_BitScanForward)
++static __forceinline int ffsl(long x)
++{
++	unsigned long i;
++
++	if (_BitScanForward(&amp;i, x))
++		return (i + 1);
++	return (0);
++}
++
++static __forceinline int ffs(int x)
++{
++	return ffsl(x);
++}
++
++#endif
+diff --git a/include/jemalloc/internal/atomic.h b/include/jemalloc/internal/atomic.h
+index 016c472..4b6f623 100644
+--- a/include/jemalloc/internal/atomic.h
++++ b/include/jemalloc/internal/atomic.h
+@@ -47,6 +47,18 @@ atomic_sub_uint64(uint64_t *p, uint64_t x)
+ 
+ 	return (__sync_sub_and_fetch(p, x));
+ }
++#elif (defined(_MSC_VER))
++JEMALLOC_INLINE uint64_t
++atomic_add_uint64(uint64_t *p, uint64_t x)
++{
++       return InterlockedExchangeAdd64(p, x);
++}
++
++JEMALLOC_INLINE uint64_t
++atomic_sub_uint64(uint64_t *p, uint64_t x)
++{
++       return InterlockedExchangeAdd64(p, -x);
++}
+ #elif (defined(JEMALLOC_OSATOMIC))
+ JEMALLOC_INLINE uint64_t
+ atomic_add_uint64(uint64_t *p, uint64_t x)
+@@ -145,6 +157,18 @@ atomic_sub_uint32(uint32_t *p, uint32_t x)
+ 
+ 	return (__sync_sub_and_fetch(p, x));
+ }
++#elif (defined(_MSC_VER))
++JEMALLOC_INLINE uint32_t
++atomic_add_uint32(uint32_t *p, uint32_t x)
++{
++       return InterlockedExchangeAdd(p, x);
++}
++
++JEMALLOC_INLINE uint32_t
++atomic_sub_uint32(uint32_t *p, uint32_t x)
++{
++       return InterlockedExchangeAdd(p, -x);
++}
+ #elif (defined(JEMALLOC_OSATOMIC))
+ JEMALLOC_INLINE uint32_t
+ atomic_add_uint32(uint32_t *p, uint32_t x)
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index d4c4b4c..97c1794 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -1,6 +1,5 @@
+ #ifndef JEMALLOC_INTERNAL_H
+ #define JEMALLOC_INTERNAL_H
+-#include &lt;sys/param.h&gt;
+ #include &lt;math.h&gt;
+ #ifdef _WIN32
+ #  include &lt;windows.h&gt;
+@@ -13,6 +12,7 @@
+ #  undef ERANGE
+ #  define ERANGE ERROR_INVALID_DATA
+ #else
++#  include &lt;sys/param.h&gt;
+ #  include &lt;sys/mman.h&gt;
+ #  include &lt;sys/syscall.h&gt;
+ #  if !defined(SYS_write) &amp;&amp; defined(__NR_write)
+@@ -41,7 +41,17 @@
+ #include &lt;string.h&gt;
+ #include &lt;strings.h&gt;
+ #include &lt;ctype.h&gt;
+-#include &lt;unistd.h&gt;
++#ifdef _MSC_VER
++#  include &lt;io.h&gt;
++typedef intptr_t ssize_t;
++#  define PATH_MAX 1024
++#  define STDERR_FILENO 2
++#  define __func__ __FUNCTION__
++/* Disable warnings about deprecated system functions */
++#  pragma warning(disable: 4996)
++#else
++#  include &lt;unistd.h&gt;
++#endif
+ #include &lt;fcntl.h&gt;
+ 
+ #define	JEMALLOC_NO_DEMANGLE
+@@ -221,6 +231,9 @@ static const bool config_ivsalloc =
+ #else
+ #  define JEMALLOC_ENABLE_INLINE
+ #  define JEMALLOC_INLINE static inline
++#  ifdef _MSC_VER
++#    define inline _inline
++#  endif
+ #endif
+ 
+ /* Smallest size class to support. */
+@@ -232,7 +245,7 @@ static const bool config_ivsalloc =
+  * classes).
+  */
+ #ifndef LG_QUANTUM
+-#  ifdef __i386__
++#  if (defined(__i386__) || defined(_M_IX86))
+ #    define LG_QUANTUM		4
+ #  endif
+ #  ifdef __ia64__
+@@ -244,7 +257,7 @@ static const bool config_ivsalloc =
+ #  ifdef __sparc64__
+ #    define LG_QUANTUM		4
+ #  endif
+-#  if (defined(__amd64__) || defined(__x86_64__))
++#  if (defined(__amd64__) || defined(__x86_64__) || defined(_M_X64))
+ #    define LG_QUANTUM		4
+ #  endif
+ #  ifdef __arm__
+@@ -296,7 +309,7 @@ static const bool config_ivsalloc =
+  * In addition, this controls the spacing of cacheline-spaced size classes.
+  */
+ #define	LG_CACHELINE		6
+-#define	CACHELINE		((size_t)(1U &lt;&lt; LG_CACHELINE))
++#define	CACHELINE		64
+ #define	CACHELINE_MASK		(CACHELINE - 1)
+ 
+ /* Return the smallest cacheline multiple that is &gt;= s. */
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 3e1f047..f110ed3 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -109,6 +109,16 @@
+ #  define JEMALLOC_ALIGNED(s) JEMALLOC_ATTR(aligned(s))
+ #  define JEMALLOC_SECTION(s) JEMALLOC_ATTR(section(s))
+ #  define JEMALLOC_NOINLINE JEMALLOC_ATTR(noinline)
++#elif _MSC_VER
++#  define JEMALLOC_ATTR(s)
++#ifdef DLLEXPORT
++#  define EXPORT __declspec(dllexport)
++#else
++#  define EXPORT __declspec(dllimport)
++#endif
++#  define JEMALLOC_ALIGNED(s) __declspec(align(s))
++#  define JEMALLOC_SECTION(s) __declspec(allocate(s))
++#  define JEMALLOC_NOINLINE __declspec(noinline)
+ #else
+ #  define JEMALLOC_ATTR(s)
+ #  define EXPORT
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index fa24b05..40c775d 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -56,12 +56,19 @@ static bool			malloc_initializer = NO_INITIALIZER;
+ static malloc_mutex_t	init_lock;
+ 
+ JEMALLOC_ATTR(constructor)
+-static void
+-init_init_lock()
++static void WINAPI
++_init_init_lock(void)
+ {
+ 
+ 	malloc_mutex_init(&amp;init_lock);
+ }
++
++#ifdef _MSC_VER
++#  pragma section(&quot;.CRT$XCU&quot;, read)
++JEMALLOC_SECTION(&quot;.CRT$XCU&quot;) JEMALLOC_ATTR(used)
++static const void (WINAPI *init_init_lock)(void) = _init_init_lock;
++#endif
++
+ #else
+ static malloc_mutex_t	init_lock = MALLOC_MUTEX_INITIALIZER;
+ #endif
+diff --git a/src/tsd.c b/src/tsd.c
+index cee57c9..84492b3 100644
+--- a/src/tsd.c
++++ b/src/tsd.c
+@@ -93,6 +93,14 @@ _tls_callback(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+ 	return (true);
+ }
+ 
++#ifdef _MSC_VER
++#  ifdef _M_IX86
++#    pragma comment(linker, &quot;/INCLUDE:__tls_used&quot;)
++#  else
++#    pragma comment(linker, &quot;/INCLUDE:_tls_used&quot;)
++#  endif
++#  pragma section(&quot;.CRT$XLY&quot;,long,read)
++#endif
+ JEMALLOC_SECTION(&quot;.CRT$XLY&quot;) JEMALLOC_ATTR(used)
+ static const BOOL	(WINAPI *tls_callback)(HINSTANCE hinstDLL,
+     DWORD fdwReason, LPVOID lpvReserved) = _tls_callback;
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000365.html">[PATCH 6/7] Import msinttypes
+</A></li>
+	<LI>Next message: <A HREF="000366.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#363">[ date ]</a>
+              <a href="thread.html#363">[ thread ]</a>
+              <a href="subject.html#363">[ subject ]</a>
+              <a href="author.html#363">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

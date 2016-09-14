@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Default *make install* failing with the absence of doc/jemalloc.html
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Default%20%2Amake%20install%2A%20failing%20with%20the%20absence%20of%20doc/jemalloc.html&In-Reply-To=%3CCAChfooyVGFsm0Xu-n3wQa50Gt8kadNUgp2wCMv8T5VHg9EV5cA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000590.html">
+   <LINK REL="Next"  HREF="000592.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Default *make install* failing with the absence of doc/jemalloc.html</H1>
+    <B>Karthik KN</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Default%20%2Amake%20install%2A%20failing%20with%20the%20absence%20of%20doc/jemalloc.html&In-Reply-To=%3CCAChfooyVGFsm0Xu-n3wQa50Gt8kadNUgp2wCMv8T5VHg9EV5cA%40mail.gmail.com%3E"
+       TITLE="Default *make install* failing with the absence of doc/jemalloc.html">karthikkn.ceg at gmail.com
+       </A><BR>
+    <I>Mon May 27 08:24:32 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000590.html">which version of libunwind is recommended? 
+</A></li>
+        <LI>Next message: <A HREF="000592.html">Default *make install* failing with the absence of	doc/jemalloc.html
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#591">[ date ]</a>
+              <a href="thread.html#591">[ thread ]</a>
+              <a href="subject.html#591">[ subject ]</a>
+              <a href="author.html#591">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi team,
+
+I tried compiling the jemalloc from source and after configure and make ,
+make install fails with the following error.
+
+install -m 644 doc/jemalloc.html /usr/local/share/doc/jemalloc
+install: cannot stat `doc/jemalloc.html': No such file or directory
+make: *** [install_doc_html] Error 1
+
+The following are my machine details.
+
+Linux karthik-pc 3.2.0-23-generic-pae #36-Ubuntu SMP Tue Apr 10 22:19:09
+UTC 2012 i686 i686 i386 GNU/Linux
+
+I am not sure why the html file is NOT generated in the expected location.
+Am I missing something here?
+
+
+Thanks,
+karthik.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130527/047ea9f9/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130527/047ea9f9/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000590.html">which version of libunwind is recommended? 
+</A></li>
+	<LI>Next message: <A HREF="000592.html">Default *make install* failing with the absence of	doc/jemalloc.html
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#591">[ date ]</a>
+              <a href="thread.html#591">[ thread ]</a>
+              <a href="subject.html#591">[ subject ]</a>
+              <a href="author.html#591">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

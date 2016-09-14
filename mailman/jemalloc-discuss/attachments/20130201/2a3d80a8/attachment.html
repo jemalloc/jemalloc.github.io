@@ -1,0 +1,17 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Fri,&nbsp;Feb&nbsp;1,&nbsp;2013&nbsp;at&nbsp;1:32&nbsp;AM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;im&quot;&gt;On&nbsp;Jan&nbsp;31,&nbsp;2013,&nbsp;at&nbsp;8:54&nbsp;AM,&nbsp;Vinay&nbsp;Y&nbsp;S&nbsp;wrote:&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&nbsp;class=&quot;im&quot;&gt;&lt;br&gt;<br>
+&gt;&nbsp;I&nbsp;also&nbsp;saw&nbsp;the&nbsp;&#39;medium&#39;&nbsp;size&nbsp;class&nbsp;in&nbsp;the&nbsp;git&nbsp;log&nbsp;as&nbsp;well&nbsp;as&nbsp;on&nbsp;this&nbsp;mailing&nbsp;list&nbsp;discussions.&nbsp;Is&nbsp;there&nbsp;a&nbsp;way&nbsp;to&nbsp;re-introduce&nbsp;that&nbsp;back&nbsp;with,&nbsp;maybe,&nbsp;build-time&nbsp;configurable&nbsp;tradeoffs&nbsp;for&nbsp;memory&nbsp;efficiency&nbsp;vs&nbsp;(?)&nbsp;lock-free&nbsp;purging?&lt;br&gt;<br>
+<br>
+<br>
+&lt;br&gt;<br>
+&lt;/div&gt;As&nbsp;it&nbsp;happens,&nbsp;I&#39;ve&nbsp;been&nbsp;working&nbsp;on&nbsp;ways&nbsp;to&nbsp;reintroduce&nbsp;medium&nbsp;size&nbsp;classes&nbsp;over&nbsp;the&nbsp;past&nbsp;few&nbsp;days.&nbsp; The&nbsp;short&nbsp;synopsis&nbsp;is&nbsp;that&nbsp;I&nbsp;think&nbsp;it&nbsp;is&nbsp;possible&nbsp;to&nbsp;reintroduce&nbsp;medium&nbsp;size&nbsp;classes&nbsp;without&nbsp;dirty&nbsp;page&nbsp;purging&nbsp;sacrifices,&nbsp;but&nbsp;it&nbsp;is&nbsp;going&nbsp;to&nbsp;be&nbsp;complicated&nbsp;to&nbsp;maintain&nbsp;high&nbsp;concurrency&nbsp;between&nbsp;allocation/deallocation&nbsp;and&nbsp;dirty&nbsp;page&nbsp;purging.&nbsp; The&nbsp;current&nbsp;code&nbsp;protects&nbsp;all&nbsp;dirty&nbsp;page&nbsp;tracking&nbsp;with&nbsp;the&nbsp;arena&nbsp;mutex,&nbsp;but&nbsp;dirty&nbsp;page&nbsp;purging&nbsp;for&nbsp;medium&nbsp;size&nbsp;classes&nbsp;will&nbsp;require&nbsp;a&nbsp;different&nbsp;approach,&nbsp;probably&nbsp;based&nbsp;on&nbsp;atomic&nbsp;operations.&lt;br&gt;<br>
+<br>
+<br>
+&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;div&nbsp;style&gt;Awesome.&nbsp;Would&nbsp;love&nbsp;to&nbsp;help&nbsp;out&nbsp;in&nbsp;any&nbsp;way&nbsp;possible.&nbsp;If&nbsp;you&nbsp;can&nbsp;make&nbsp;any&nbsp;in-progress&nbsp;versions&nbsp;available,&nbsp;I&nbsp;can&nbsp;help&nbsp;with&nbsp;testing&nbsp;on&nbsp;72GB&nbsp;servers&nbsp;with&nbsp;membase&nbsp;workload&nbsp;and&nbsp;publish&nbsp;results.&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;style&gt;Thanks,&lt;/div&gt;&lt;div&nbsp;style&gt;Vinay&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

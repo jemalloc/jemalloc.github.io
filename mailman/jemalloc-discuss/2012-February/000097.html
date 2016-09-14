@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add build options to disable either static or shared library	by default
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20build%20options%20to%20disable%20either%20static%20or%20shared%20library%0A%09by%20default&In-Reply-To=%3C1330013113-15048-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000100.html">
+   <LINK REL="Next"  HREF="000098.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add build options to disable either static or shared library	by default</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20build%20options%20to%20disable%20either%20static%20or%20shared%20library%0A%09by%20default&In-Reply-To=%3C1330013113-15048-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Add build options to disable either static or shared library	by default">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Feb 23 08:05:13 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000100.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+        <LI>Next message: <A HREF="000098.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#97">[ date ]</a>
+              <a href="thread.html#97">[ thread ]</a>
+              <a href="subject.html#97">[ subject ]</a>
+              <a href="author.html#97">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+
+We (Mozilla)'re most probably going to include jemalloc's build system
+to avoid any trouble, and it would be easier for us if calling make
+would only create the static library.
+
+ Makefile.in  |    7 ++++++-
+ configure.ac |   18 ++++++++++++++++++
+ 2 files changed, 24 insertions(+), 1 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index ca4365e..536fd3a 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -76,7 +76,12 @@ CTESTS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at test</A>/allocated.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at test</A>/allocm.c \
+ .SECONDARY : $(CTESTS:@srcroot@%.c=@objroot@%.o)
+ 
+ # Default target.
+-all: $(DSOS) $(STATIC_LIBS)
++ifeq (1, @enable_shared@)
++all: $(DSOS)
++endif
++ifeq (1, @enable_static@)
++all: $(STATIC_LIBS)
++endif
+ 
+ dist: doc
+ 
+diff --git a/configure.ac b/configure.ac
+index 4cc7d6f..c82f079 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -272,6 +272,24 @@ if test &quot;x${mremap_fixed}&quot; = &quot;xyes&quot; ; then
+   AC_DEFINE([JEMALLOC_MREMAP_FIXED])
+ fi
+ 
++AC_ARG_ENABLE([static],
++  [AS_HELP_STRING([--disable-static], [Do not build a static library by default])])
++if test &quot;x$enable_static&quot; = &quot;xno&quot; ; then
++  enable_static=&quot;0&quot;
++else
++  enable_static=&quot;1&quot;
++fi
++AC_SUBST([enable_static])
++
++AC_ARG_ENABLE([shared],
++  [AS_HELP_STRING([--disable-shared], [Do not build a shared library by default])])
++if test &quot;x$enable_shared&quot; = &quot;xno&quot; ; then
++  enable_shared=&quot;0&quot;
++else
++  enable_shared=&quot;1&quot;
++fi
++AC_SUBST([enable_shared])
++
+ dnl Support optional additions to rpath.
+ AC_ARG_WITH([rpath],
+   [AS_HELP_STRING([--with-rpath=&lt;rpath&gt;], [Colon-separated rpath (ELF systems only)])],
+-- 
+1.7.9.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000100.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+	<LI>Next message: <A HREF="000098.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#97">[ date ]</a>
+              <a href="thread.html#97">[ thread ]</a>
+              <a href="subject.html#97">[ subject ]</a>
+              <a href="author.html#97">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

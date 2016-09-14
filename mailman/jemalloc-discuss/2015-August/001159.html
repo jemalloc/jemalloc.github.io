@@ -1,0 +1,807 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Semi-dual use of dynamic and static jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Semi-dual%20use%20of%20dynamic%20and%20static%20jemalloc&In-Reply-To=%3CCAGQTitNNkVuxYEWb7WNAqt0O%2BNYDyVRmJj0wRqPqoAphGQ9eTw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001158.html">
+   <LINK REL="Next"  HREF="001156.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Semi-dual use of dynamic and static jemalloc</H1>
+    <B>Roel Van de Paar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Semi-dual%20use%20of%20dynamic%20and%20static%20jemalloc&In-Reply-To=%3CCAGQTitNNkVuxYEWb7WNAqt0O%2BNYDyVRmJj0wRqPqoAphGQ9eTw%40mail.gmail.com%3E"
+       TITLE="Semi-dual use of dynamic and static jemalloc">roel.vandepaar at percona.com
+       </A><BR>
+    <I>Mon Aug 31 16:52:02 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001158.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+        <LI>Next message: <A HREF="001156.html">jemalloc-queries
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1159">[ date ]</a>
+              <a href="thread.html#1159">[ thread ]</a>
+              <a href="subject.html#1159">[ subject ]</a>
+              <a href="author.html#1159">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Also adding a full list here
+
+$ readelf -W -s ./lib/mysql/plugin/ha_tokudb.so | egrep 'malloc|free'
+    20: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND bitmap_free
+   131: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND my_free
+   224: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND my_malloc
+   282: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND my_hash_free
+   396: 000000000019d88e    37 FUNC    GLOBAL DEFAULT   11
+_Z30toku_mempool_get_next_free_ptrPK7mempool
+   432: 00000000001041c6    73 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table24verify_no_free_blocknumsEv
+   457: 00000000001d441c   838 FUNC    GLOBAL DEFAULT   11
+_Z20toku_xmalloc_alignedmm
+   542: 00000000000c5fbd    26 FUNC    GLOBAL DEFAULT   11
+db_env_set_func_free
+   563: 0000000000198028   158 FUNC    GLOBAL DEFAULT   11
+_ZN7bn_data29mempool_malloc_and_update_dmtEmPPv
+   603: 000000000019b20e   199 FUNC    WEAK   DEFAULT   11
+_ZN4toku3dmtI13klpair_structPS1_NS_16klpair_dmtwriterEE25node_malloc_and_set_valueERKS3_
+   631: 0000000000159c50   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP14file_map_tupleS2_Lb0EE11node_mallocEv
+   649: 0000000000129a76    26 FUNC    WEAK   DEFAULT   11
+_ZN4toku21scoped_malloc_alignedD1Ev
+   664: 00000000001123c6   386 FUNC    GLOBAL DEFAULT   11
+_ZN14cachefile_list15free_stale_dataEP7evictor
+   680: 0000000000103fae   460 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table23_free_blocknum_unlockedEP10blocknum_sP2ftb
+   682: 00000000001bae6c    42 FUNC    GLOBAL DEFAULT   11
+_Z11pqueue_freeP11ft_pqueue_t
+   693: 0000000000103440    98 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table29_translation_prevents_freeingEPNS_11translationE10blocknum_sPNS_22block_translation_pairE
+   716: 00000000001d4bf9    26 FUNC    GLOBAL DEFAULT   11
+_Z23toku_malloc_usable_sizePv
+   741: 00000000001033dc    65 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table10block_freeEm
+   752: 0000000000132dc8    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtI20referenced_xid_tuplePS1_Lb0EE9node_freeEj
+   756: 0000000000103ef8   182 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table29_free_blocknum_in_translationEPNS_11translationE10blocknum_s
+   833: 00000000001a4d80   562 FUNC    GLOBAL DEFAULT   11
+_ZN8memarena17malloc_from_arenaEm
+   902: 00000000001d3f36   453 FUNC    GLOBAL DEFAULT   11 _Z9toku_freePv
+   921: 00000000001a18e4   254 FUNC    GLOBAL DEFAULT   11
+_Z23toku_scoped_malloc_initv
+   975: 00000000001a1e92    86 FUNC    WEAK   DEFAULT   11
+_ZNK4toku8tl_stack14get_free_spaceEv
+   978: 0000000000497688     8 OBJECT  GLOBAL DEFAULT   27 malloc_conf
+  1057: 00000000001054c6    18 FUNC    WEAK   DEFAULT   11
+_ZNK4toku13scoped_malloc3getEv
+  1064: 00000000001937c6    41 FUNC    GLOBAL DEFAULT   11
+_Z23toku_malloc_in_rollbackP17rollback_log_nodem
+  1071: 00000000001d4c7d    32 FUNC    GLOBAL DEFAULT   11
+_Z20toku_set_func_mallocPFPvmE
+  1103: 000000000013332c   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP7tokutxnS2_Lb0EE11node_mallocEv
+  1118: 0000000000498340     8 OBJECT  GLOBAL DEFAULT   27 malloc_message
+  1147: 000000000048ea28     8 OBJECT  GLOBAL DEFAULT   26 __free_hook
+  1218: 00000000001d66b6    26 FUNC    GLOBAL DEFAULT   11 _Z9os_mallocm
+  1246: 00000000001154a6   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP9cachefileS2_Lb0EE11node_mallocEv
+  1251: 00000000001a17fa   150 FUNC    GLOBAL DEFAULT   11
+_ZN4toku13scoped_mallocC1Em
+  1294: 00000000000a4430  1410 FUNC    GLOBAL DEFAULT   11 free
+  1366: 00000000001a1890    84 FUNC    GLOBAL DEFAULT   11
+_ZN4toku13scoped_mallocD2Ev
+  1464: 0000000000129932   306 FUNC    WEAK   DEFAULT   11
+_ZN4toku21scoped_malloc_alignedC2Emm
+  1472: 000000000010330a   121 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table27_is_valid_freeable_blocknumEPNS_11translationE10blocknum_s
+  1523: 000000000009d2b0     5 FUNC    GLOBAL DEFAULT   11
+malloc_stats_print
+  1558: 00000000001a19f2   266 FUNC    GLOBAL DEFAULT   11
+_Z30toku_scoped_malloc_destroy_setv
+  1562: 000000000010417a    75 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table13free_blocknumEP10blocknum_sP2ftb
+  1671: 00000000001d67e1    26 FUNC    GLOBAL DEFAULT   11 _Z7os_freePv
+  1683: 00000000001a1afc    82 FUNC    GLOBAL DEFAULT   11
+_Z30toku_scoped_malloc_destroy_keyv
+  1697: 0000000000099dcc    82 FUNC    WEAK   DEFAULT   11 _ZN6String4freeEv
+  1711: 000000000012af86   128 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIiiLb1EE11node_mallocEv
+  1733: 000000000018a45c    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIiiLb1EE9node_freeEj
+  1760: 0000000000129a64    18 FUNC    WEAK   DEFAULT   11
+_ZNK4toku21scoped_malloc_aligned3getEv
+  1802: 00000000001951f2   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP2ftS2_Lb0EE11node_mallocEv
+  1864: 00000000001d4c9d    21 FUNC    GLOBAL DEFAULT   11
+_Z26toku_set_func_xmalloc_onlyPFPvmE
+  1901: 0000000000160d2a    38 FUNC    GLOBAL DEFAULT   11
+_Z13toku_ule_freeP3ule
+  1940: 0000000000133dfc   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtI20referenced_xid_tuplePS1_Lb0EE11node_mallocEv
+  1990: 0000000000180c22    79 FUNC    GLOBAL DEFAULT   11
+_Z16toku_ftnode_freePP6ftnode
+  2000: 00000000001d40fb   801 FUNC    GLOBAL DEFAULT   11 _Z12toku_xmallocm
+  2028: 0000000000133b26    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP7tokutxnS2_Lb0EE9node_freeEj
+  2035: 000000000009aaf6    14 FUNC    WEAK   DEFAULT   11
+_ZN7handler28free_foreign_key_create_infoEPc
+  2052: 0000000000103384    88 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table31_verify_valid_freeable_blocknumEPNS_11translationE10blocknum_s
+  2158: 00000000001b4f34   104 FUNC    GLOBAL DEFAULT   11
+_ZN15block_allocator11_trace_freeEm
+  2169: 00000000000d2eb6   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP9__toku_dbS2_Lb0EE11node_mallocEv
+  2193: 00000000001d2cb3   978 FUNC    GLOBAL DEFAULT   11 _Z11toku_mallocm
+  2211: 000000000019d8c5    32 FUNC    GLOBAL DEFAULT   11
+_Z26toku_mempool_get_free_sizePK7mempool
+  2234: 0000000000129a76    26 FUNC    WEAK   DEFAULT   11
+_ZN4toku21scoped_malloc_alignedD2Ev
+  2250: 00000000000d545e   142 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtI17txn_lt_key_rangesS1_Lb0EE11node_mallocEv
+  2284: 000000000019dac0   238 FUNC    GLOBAL DEFAULT   11
+_Z18toku_mempool_mfreeP7mempoolPvm
+  2447: 000000000019cd70   111 FUNC    WEAK   DEFAULT   11
+_ZN4toku3dmtI13klpair_structPS1_NS_16klpair_dmtwriterEE9node_freeERKNS_12dmt_internal7subtreeE
+  2451: 00000000001d3085  1005 FUNC    GLOBAL DEFAULT   11
+_Z19toku_malloc_alignedmm
+  2501: 00000000001d66d0    72 FUNC    GLOBAL DEFAULT   11
+_Z17os_malloc_alignedmm
+  2515: 000000000009e5b0  5253 FUNC    GLOBAL DEFAULT   11 mallocx
+  2607: 0000000000104210   244 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table21free_unused_blocknumsE10blocknum_s
+  2616: 000000000048ea30     8 OBJECT  GLOBAL DEFAULT   26 __malloc_hook
+  2623: 00000000000a0440  1930 FUNC    GLOBAL DEFAULT   11 malloc
+  2628: 00000000000c5f89    26 FUNC    GLOBAL DEFAULT   11
+db_env_set_func_malloc
+  2636: 00000000001d4cb2    21 FUNC    GLOBAL DEFAULT   11
+_Z25toku_set_func_malloc_onlyPFPvmE
+  2685: 0000000000139b3d    81 FUNC    GLOBAL DEFAULT   11
+_Z25toku_logger_free_logfilesPPci
+  2715: 0000000000189c88   128 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIiiLb0EE11node_mallocEv
+  2754: 00000000001a1890    84 FUNC    GLOBAL DEFAULT   11
+_ZN4toku13scoped_mallocD1Ev
+  2783: 00000000000d3238    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP9__toku_dbS2_Lb0EE9node_freeEj
+  2798: 00000000001597f0    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP14file_map_tupleS2_Lb0EE9node_freeEj
+  2813: 00000000001a17fa   150 FUNC    GLOBAL DEFAULT   11
+_ZN4toku13scoped_mallocC2Em
+  2863: 00000000001a19e2    16 FUNC    GLOBAL DEFAULT   11
+_Z26toku_scoped_malloc_destroyv
+  2878: 000000000019d8f7   457 FUNC    GLOBAL DEFAULT   11
+_Z19toku_mempool_mallocP7mempoolm
+  2943: 00000000001b4414   274 FUNC    GLOBAL DEFAULT   11
+_ZN15block_allocator10free_blockEm
+  2947: 0000000000129932   306 FUNC    WEAK   DEFAULT   11
+_ZN4toku21scoped_malloc_alignedC1Emm
+  2969: 000000000009d130   175 FUNC    GLOBAL DEFAULT   11
+malloc_usable_size
+  3016: 00000000000fcac9    38 FUNC    GLOBAL DEFAULT   11
+_Z12toku_ft_freeP2ft
+  3075: 00000000001d67fb   133 FUNC    GLOBAL DEFAULT   11
+_Z21os_malloc_usable_sizePKv
+  3107: 000000000016f159   590 FUNC    GLOBAL DEFAULT   11
+_Z33toku_log_free_log_entry_resourcesP9log_entry
+  3169: 0000000000115284    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP9cachefileS2_Lb0EE9node_freeEj
+  3179: 00000000001d4d11    21 FUNC    GLOBAL DEFAULT   11
+_Z18toku_set_func_freePFvPvE
+   114: 00000000000607af    34 FUNC    LOCAL  DEFAULT   11
+_ZL16tokudb_my_mallocmi
+   116: 0000000000060809    33 FUNC    LOCAL  DEFAULT   11
+_ZL14tokudb_my_freePv
+   118: 000000000006084c   702 FUNC    LOCAL  DEFAULT   11
+_ZL22tokudb_my_multi_mallociz
+   219: 000000000048ed90     4 OBJECT  LOCAL  DEFAULT   27
+_ZL21tokudb_check_jemalloc
+   220: 000000000048d4e0    64 OBJECT  LOCAL  DEFAULT   26
+_ZL27mysql_sysvar_check_jemalloc
+   235: 0000000000062c3f   206 FUNC    LOCAL  DEFAULT   11
+_ZL21free_key_and_col_infoP19st_key_and_col_info
+   239: 0000000000062fa2   797 FUNC    LOCAL  DEFAULT   11
+_ZL10free_shareP12TOKUDB_SHARE
+   240: 00000000001e9b96    11 OBJECT  LOCAL  DEFAULT   13
+_ZZL10free_shareP12TOKUDB_SHAREE12__FUNCTION__
+   830: 00000000001eb470     8 OBJECT  LOCAL  DEFAULT   13
+_ZZL43tokudb_report_fractal_tree_block_map_for_dbPK10__toku_dbtS1_P5TABLEP3THDE12size_is_free
+   832: 00000000001eb480     8 OBJECT  LOCAL  DEFAULT   13
+_ZZL43tokudb_report_fractal_tree_block_map_for_dbPK10__toku_dbtS1_P5TABLEP3THDE13freelist_null
+   833: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS jemalloc.pic.o
+   834: 000000000009c420  3007 FUNC    LOCAL  DEFAULT   11 malloc_conf_init
+   836: 000000000009d3f0   793 FUNC    LOCAL  DEFAULT   11 malloc_init_hard
+   838: 000000000048f180     1 OBJECT  LOCAL  DEFAULT   27
+malloc_initialized
+   839: 000000000048f1c8     8 OBJECT  LOCAL  DEFAULT   27
+malloc_initializer
+   840: 000000000009d710    94 FUNC    LOCAL  DEFAULT   11
+jemalloc_constructor
+   872: 00000000000a9830  1080 FUNC    LOCAL  DEFAULT   11
+arena_bin_malloc_hard
+   894: 00000000000ad690     6 FUNC    LOCAL  DEFAULT   11 opt_xmalloc_ctl
+   940: 00000000000ae2e0    98 FUNC    LOCAL  DEFAULT   11
+config_xmalloc_ctl
+   966: 00000000000aefb0   231 FUNC    LOCAL  DEFAULT   11
+stats_arenas_i_lruns_j_nmalloc_ctl
+   974: 00000000000af730   231 FUNC    LOCAL  DEFAULT   11
+stats_arenas_i_bins_j_nmalloc_ctl
+   978: 00000000000afad0   215 FUNC    LOCAL  DEFAULT   11
+stats_arenas_i_large_nmalloc_ctl
+   982: 00000000000afe50   215 FUNC    LOCAL  DEFAULT   11
+stats_arenas_i_small_nmalloc_ctl
+   993: 00000000000b07d0   183 FUNC    LOCAL  DEFAULT   11
+stats_huge_nmalloc_ctl
+  1405: 00000000001f036b    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP9__toku_dbS2_Lb0EE11node_mallocEvE12__FUNCTION__
+  1407: 00000000001f03f0    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP9__toku_dbS2_Lb0EE9node_freeEjE12__FUNCTION__
+  1500: 00000000001f0e33    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtI17txn_lt_key_rangesS1_Lb0EE11node_mallocEvE12__FUNCTION__
+  1676: 00000000000db31d    81 FUNC    LOCAL  DEFAULT   11
+_ZL11free_inamesPPci
+  1677: 00000000000db36e   201 FUNC    LOCAL  DEFAULT   11
+_ZL21free_loader_resourcesP13__toku_loader
+  1678: 00000000000db437    45 FUNC    LOCAL  DEFAULT   11
+_ZL11free_loaderP13__toku_loader
+  1918: 00000000000e1990   225 FUNC    LOCAL  DEFAULT   11
+_ZL22free_indexer_resourcesP14__toku_indexer
+  1919: 00000000000e1a71    53 FUNC    LOCAL  DEFAULT   11
+_ZL12free_indexerP14__toku_indexer
+  2178: 00000000001f58b0    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIPNS_8locktreeES2_Lb0EE9node_freeEjE12__FUNCTION__
+  2179: 00000000001f5851    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIPNS_8locktreeES2_Lb0EE11node_mallocEvE12__FUNCTION__
+  2252: 00000000001f639a    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIPNS_12lock_requestES2_Lb0EE11node_mallocEvE12__FUNCTION__
+  2254: 00000000001f63f0    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIPNS_12lock_requestES2_Lb0EE9node_freeEjE12__FUNCTION__
+  2370: 00000000001f7653    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIPNS_18txnid_range_bufferES2_Lb0EE11node_mallocEvE12__FUNCTION__
+  2372: 00000000001f7690    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIPNS_18txnid_range_bufferES2_Lb0EE9node_freeEjE12__FUNCTION__
+  2586: 00000000000fd193    38 FUNC    LOCAL  DEFAULT   11
+_ZL7ft_freeP9cachefilePv
+  2807: 00000000001fb320    28 OBJECT  LOCAL  DEFAULT   13
+_ZZN11block_table27_is_valid_freeable_blocknumEPNS_11translationE10blocknum_sE12__FUNCTION__
+  2808: 00000000001fb340    32 OBJECT  LOCAL  DEFAULT   13
+_ZZN11block_table31_verify_valid_freeable_blocknumEPNS_11translationE10blocknum_sE12__FUNCTION__
+  2813: 00000000001fb3f0    30 OBJECT  LOCAL  DEFAULT   13
+_ZZN11block_table29_free_blocknum_in_translationEPNS_11translationE10blocknum_sE12__FUNCTION__
+  2814: 00000000001fb410    24 OBJECT  LOCAL  DEFAULT   13
+_ZZN11block_table23_free_blocknum_unlockedEP10blocknum_sP2ftbE12__FUNCTION__
+  2815: 00000000001fb430    25 OBJECT  LOCAL  DEFAULT   13
+_ZZN11block_table24verify_no_free_blocknumsEvE12__FUNCTION__
+  2816: 00000000001fb450    22 OBJECT  LOCAL  DEFAULT   13
+_ZZN11block_table21free_unused_blocknumsE10blocknum_sE12__FUNCTION__
+  2839: 00000000001fb060     8 OBJECT  LOCAL  DEFAULT   13
+_ZL13freelist_null
+  2840: 00000000001fb068     8 OBJECT  LOCAL  DEFAULT   13 _ZL12size_is_free
+  2952: 0000000000107b5a   416 FUNC    LOCAL  DEFAULT   11
+_ZL20cachetable_free_pairP6ctpair
+  3073: 00000000001fd1d0    16 OBJECT  LOCAL  DEFAULT   13
+_ZZN14cachefile_list15free_stale_dataEP7evictorE12__FUNCTION__
+  3085: 00000000001fd110    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP9cachefileS2_Lb0EE9node_freeEjE12__FUNCTION__
+  3086: 00000000001fd0e7    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP9cachefileS2_Lb0EE11node_mallocEvE12__FUNCTION__
+  3484: 0000000000206090    22 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku21scoped_malloc_alignedC1EmmE12__FUNCTION__
+  3589: 00000000002062ba    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIiiLb1EE11node_mallocEvE12__FUNCTION__
+  3738: 0000000000207670    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtI20referenced_xid_tuplePS1_Lb0EE9node_freeEjE12__FUNCTION__
+  3739: 0000000000207863    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP7tokutxnS2_Lb0EE11node_mallocEvE12__FUNCTION__
+  3741: 0000000000207880    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtImmLb0EE11node_mallocEvE12__FUNCTION__
+  3742: 00000000002079a0    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP7tokutxnS2_Lb0EE9node_freeEjE12__FUNCTION__
+  3743: 00000000002079c0    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtImmLb0EE9node_freeEjE12__FUNCTION__
+  3745: 0000000000207643    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtI20referenced_xid_tuplePS1_Lb0EE11node_mallocEvE12__FUNCTION__
+  4215: 000000000014cdad   137 FUNC    LOCAL  DEFAULT   11
+_ZL34ftnode_fetch_callback_and_free_bfeP9cachefileP6ctpairi10blocknum_sjPPvS5_P11pair_attr_sPiS4_
+  4216: 000000000014ce36    97 FUNC    LOCAL  DEFAULT   11
+_ZL31ftnode_pf_callback_and_free_bfePvS_S_iP11pair_attr_s
+  4503: 000000000020d080    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP14file_map_tupleS2_Lb0EE9node_freeEjE12__FUNCTION__
+  4505: 000000000020d04c    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP14file_map_tupleS2_Lb0EE11node_mallocEvE12__FUNCTION__
+  5020: 0000000000166d00    10 FUNC    LOCAL  DEFAULT   11
+_ZL15toku_free_TXNIDm
+  5021: 0000000000166d0a    23 FUNC    LOCAL  DEFAULT   11
+_ZL20toku_free_TXNID_PAIR12txnid_pair_s
+  5022: 0000000000166d21    10 FUNC    LOCAL  DEFAULT   11
+_ZL13toku_free_LSN10__toku_lsn
+  5023: 0000000000166d2b    10 FUNC    LOCAL  DEFAULT   11
+_ZL18toku_free_uint64_tm
+  5024: 0000000000166d35     9 FUNC    LOCAL  DEFAULT   11
+_ZL18toku_free_uint32_tj
+  5025: 0000000000166d3e    11 FUNC    LOCAL  DEFAULT   11
+_ZL17toku_free_uint8_th
+  5026: 0000000000166d49     9 FUNC    LOCAL  DEFAULT   11
+_ZL17toku_free_FILENUM7FILENUM
+  5027: 0000000000166d52    10 FUNC    LOCAL  DEFAULT   11
+_ZL18toku_free_BLOCKNUM10blocknum_s
+  5028: 0000000000166d5c    11 FUNC    LOCAL  DEFAULT   11
+_ZL14toku_free_boolb
+  5029: 0000000000166d67    26 FUNC    LOCAL  DEFAULT   11
+_ZL14toku_free_XIDPP13toku_xa_xid_s
+  5030: 0000000000166d81    38 FUNC    LOCAL  DEFAULT   11
+_ZL20toku_free_BYTESTRING10BYTESTRING
+  5031: 0000000000166da7    38 FUNC    LOCAL  DEFAULT   11
+_ZL18toku_free_FILENUMS8FILENUMS
+  5103: 000000000016e918    46 FUNC    LOCAL  DEFAULT   11
+_ZL50toku_log_free_log_entry_begin_checkpoint_resourcesP24logtype_begin_checkpoint
+  5104: 000000000016e946    74 FUNC    LOCAL  DEFAULT   11
+_ZL48toku_log_free_log_entry_end_checkpoint_resourcesP22logtype_end_checkpoint
+  5105: 000000000016e990    81 FUNC    LOCAL  DEFAULT   11
+_ZL44toku_log_free_log_entry_fassociate_resourcesP18logtype_fassociate
+  5106: 000000000016e9e1   195 FUNC    LOCAL  DEFAULT   11
+_ZL44toku_log_free_log_entry_xstillopen_resourcesP18logtype_xstillopen
+  5107: 000000000016eaa4   188 FUNC    LOCAL  DEFAULT   11
+_ZL52toku_log_free_log_entry_xstillopenprepared_resourcesP26logtype_xstillopenprepared
+  5108: 000000000016eb60    60 FUNC    LOCAL  DEFAULT   11
+_ZL40toku_log_free_log_entry_xbegin_resourcesP14logtype_xbegin
+  5109: 000000000016eb9c    37 FUNC    LOCAL  DEFAULT   11
+_ZL41toku_log_free_log_entry_xcommit_resourcesP15logtype_xcommit
+  5110: 000000000016ebc1    53 FUNC    LOCAL  DEFAULT   11
+_ZL42toku_log_free_log_entry_xprepare_resourcesP16logtype_xprepare
+  5111: 000000000016ebf6    37 FUNC    LOCAL  DEFAULT   11
+_ZL40toku_log_free_log_entry_xabort_resourcesP14logtype_xabort
+  5112: 000000000016ec1b   142 FUNC    LOCAL  DEFAULT   11
+_ZL41toku_log_free_log_entry_fcreate_resourcesP15logtype_fcreate
+  5113: 000000000016eca9    63 FUNC    LOCAL  DEFAULT   11
+_ZL39toku_log_free_log_entry_fopen_resourcesP13logtype_fopen
+  5114: 000000000016ece8    49 FUNC    LOCAL  DEFAULT   11
+_ZL40toku_log_free_log_entry_fclose_resourcesP14logtype_fclose
+  5115: 000000000016ed19    51 FUNC    LOCAL  DEFAULT   11
+_ZL41toku_log_free_log_entry_fdelete_resourcesP15logtype_fdelete
+  5116: 000000000016ed4c    93 FUNC    LOCAL  DEFAULT   11
+_ZL44toku_log_free_log_entry_enq_insert_resourcesP18logtype_enq_insert
+  5117: 000000000016eda9    93 FUNC    LOCAL  DEFAULT   11
+_ZL57toku_log_free_log_entry_enq_insert_no_overwrite_resourcesP31logtype_enq_insert_no_overwrite
+  5118: 000000000016ee06    72 FUNC    LOCAL  DEFAULT   11
+_ZL48toku_log_free_log_entry_enq_delete_any_resourcesP22logtype_enq_delete_any
+  5119: 000000000016ee4e   114 FUNC    LOCAL  DEFAULT   11
+_ZL53toku_log_free_log_entry_enq_insert_multiple_resourcesP27logtype_enq_insert_multiple
+  5120: 000000000016eec0   114 FUNC    LOCAL  DEFAULT   11
+_ZL53toku_log_free_log_entry_enq_delete_multiple_resourcesP27logtype_enq_delete_multiple
+  5121: 000000000016ef32    51 FUNC    LOCAL  DEFAULT   11
+_ZL41toku_log_free_log_entry_comment_resourcesP15logtype_comment
+  5122: 000000000016ef65    30 FUNC    LOCAL  DEFAULT   11
+_ZL51toku_log_free_log_entry_shutdown_up_to_19_resourcesP25logtype_shutdown_up_to_19
+  5123: 000000000016ef83    46 FUNC    LOCAL  DEFAULT   11
+_ZL42toku_log_free_log_entry_shutdown_resourcesP16logtype_shutdown
+  5124: 000000000016efb1    72 FUNC    LOCAL  DEFAULT   11
+_ZL38toku_log_free_log_entry_load_resourcesP12logtype_load
+  5125: 000000000016eff9    58 FUNC    LOCAL  DEFAULT   11
+_ZL43toku_log_free_log_entry_hot_index_resourcesP17logtype_hot_index
+  5126: 000000000016f033    93 FUNC    LOCAL  DEFAULT   11
+_ZL44toku_log_free_log_entry_enq_update_resourcesP18logtype_enq_update
+  5127: 000000000016f090    90 FUNC    LOCAL  DEFAULT   11
+_ZL53toku_log_free_log_entry_enq_updatebroadcast_resourcesP27logtype_enq_updatebroadcast
+  5128: 000000000016f0ea   111 FUNC    LOCAL  DEFAULT   11
+_ZL52toku_log_free_log_entry_change_fdescriptor_resourcesP26logtype_change_fdescriptor
+  5734: 0000000000215853    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIiiLb0EE11node_mallocEvE12__FUNCTION__
+  5736: 0000000000215910    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIiiLb1EE9node_freeEjE12__FUNCTION__
+  5739: 00000000002158e2    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIiiLb1EE11node_mallocEvE12__FUNCTION__
+  6272: 0000000000219903    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIP2ftS2_Lb0EE11node_mallocEvE12__FUNCTION__
+  6463: 000000000021b820    30 OBJECT  LOCAL  DEFAULT   13
+_ZZN7bn_data29mempool_malloc_and_update_dmtEmPPvE12__FUNCTION__
+  6488: 000000000021b770    26 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3dmtI13klpair_structPS1_NS_16klpair_dmtwriterEE25node_malloc_and_set_valueERKS3_E12__FUNCTION__
+  6531: 000000000021bd50    20 OBJECT  LOCAL  DEFAULT   13
+_ZZ19toku_mempool_mallocP7mempoolmE12__FUNCTION__
+  6532: 000000000021bd70    19 OBJECT  LOCAL  DEFAULT   13
+_ZZ18toku_mempool_mfreeP7mempoolPvmE12__FUNCTION__
+  6645: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS scoped_malloc.cc
+  6661: 000000000021d824    15 OBJECT  LOCAL  DEFAULT   13
+_ZZNK4toku8tl_stack14get_free_spaceEvE12__FUNCTION__
+  6663: 000000000021d890    24 OBJECT  LOCAL  DEFAULT   13
+_ZZ23toku_scoped_malloc_initvE12__FUNCTION__
+  6664: 000000000021d8d0    31 OBJECT  LOCAL  DEFAULT   13
+_ZZ30toku_scoped_malloc_destroy_setvE12__FUNCTION__
+  6665: 000000000021d8f0    31 OBJECT  LOCAL  DEFAULT   13
+_ZZ30toku_scoped_malloc_destroy_keyvE12__FUNCTION__
+  6715: 000000000021e180    18 OBJECT  LOCAL  DEFAULT   13
+_ZZN8memarena17malloc_from_arenaEmE12__FUNCTION__
+  6787: 00000000001a6e72   166 FUNC    LOCAL  DEFAULT   11
+_ZL12free_counterm
+  6788: 000000000021ec90    13 OBJECT  LOCAL  DEFAULT   13
+_ZZL12free_countermE12__FUNCTION__
+  7031: 00000000002207c1    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtIPNS_3wfg4nodeES3_Lb0EE11node_mallocEvE12__FUNCTION__
+  7082: 0000000000220fd0    10 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtImmLb0EE9node_freeEjE12__FUNCTION__
+  7083: 0000000000220f87    12 OBJECT  LOCAL  DEFAULT   13
+_ZZN4toku3omtImmLb0EE11node_mallocEvE12__FUNCTION__
+  7267: 0000000000222f0e    11 OBJECT  LOCAL  DEFAULT   13
+_ZZN15block_allocator10free_blockEmE12__FUNCTION__
+  7806: 00000000001cc0f0    66 FUNC    LOCAL  DEFAULT   11
+free_properties.isra.0
+  7891: 00000000004955a8     8 OBJECT  LOCAL  DEFAULT   27 _ZL8t_malloc
+  7892: 00000000004955b0     8 OBJECT  LOCAL  DEFAULT   27
+_ZL16t_malloc_aligned
+  7893: 00000000004955b8     8 OBJECT  LOCAL  DEFAULT   27 _ZL9t_xmalloc
+  7894: 00000000004955c0     8 OBJECT  LOCAL  DEFAULT   27
+_ZL17t_xmalloc_aligned
+  7895: 00000000004955c8     8 OBJECT  LOCAL  DEFAULT   27 _ZL6t_free
+  7902: 00000000001d2afb    40 FUNC    LOCAL  DEFAULT   11
+_ZL21my_malloc_usable_sizePv
+  7907: 000000000022f078    13 OBJECT  LOCAL  DEFAULT   13
+_ZZ12toku_xmallocmE12__FUNCTION__
+  7908: 000000000022f090    21 OBJECT  LOCAL  DEFAULT   13
+_ZZ20toku_xmalloc_alignedmmE12__FUNCTION__
+  7932: 00000000004975e8     8 OBJECT  LOCAL  DEFAULT   27
+_ZL14malloc_stats_f
+  7960: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS os_malloc.cc
+  7965: 0000000000497620     8 OBJECT  LOCAL  DEFAULT   27
+_ZL20malloc_usable_size_f
+  8058: 00000000000ee676   138 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtIPNS_12lock_requestES2_Lb0EE11node_mallocEv
+  8078: 00000000000eb662    68 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtIPNS_8locktreeES2_Lb0EE9node_freeEj
+  8081: 00000000000c20d0     2 FUNC    LOCAL  DEFAULT   11
+je_malloc_tsd_no_cleanup
+  8096: 00000000000b6490     5 FUNC    LOCAL  DEFAULT   11
+je_malloc_mutex_postfork_parent
+  8120: 00000000000c0d80    39 FUNC    LOCAL  DEFAULT   11 je_malloc_write
+  8200: 00000000000c20e0    29 FUNC    LOCAL  DEFAULT   11
+je_malloc_tsd_cleanup_register
+  8220: 00000000000f59f6    68 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtIPNS_18txnid_range_bufferES2_Lb0EE9node_freeEj
+  8235: 00000000000b5f70    21 FUNC    LOCAL  DEFAULT   11 je_huge_malloc
+  8249: 00000000000eb8be   138 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtIPNS_8locktreeES2_Lb0EE11node_mallocEv
+  8266: 000000000009fc90     7 FUNC    LOCAL  DEFAULT   11 je_a0malloc
+  8272: 00000000000c1f60   139 FUNC    LOCAL  DEFAULT   11 je_malloc_cprintf
+  8299: 0000000000133b6a    68 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtImmLb0EE9node_freeEj
+  8310: 00000000000b64b0   148 FUNC    LOCAL  DEFAULT   11
+je_malloc_mutex_init
+  8337: 00000000000ee9b0    68 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtIPNS_12lock_requestES2_Lb0EE9node_freeEj
+  8350: 00000000000c1ec0   156 FUNC    LOCAL  DEFAULT   11 je_malloc_printf
+  8368: 00000000000c2110    91 FUNC    LOCAL  DEFAULT   11
+je_malloc_tsd_dalloc
+  8370: 000000000009d0d0    90 FUNC    LOCAL  DEFAULT   11
+je_jemalloc_prefork
+  8396: 00000000000c1070  3487 FUNC    LOCAL  DEFAULT   11
+je_malloc_vsnprintf
+  8459: 00000000001ae0c4   138 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtIPNS_3wfg4nodeES3_Lb0EE11node_mallocEv
+  8484: 00000000000b64a0     5 FUNC    LOCAL  DEFAULT   11
+je_malloc_mutex_prefork
+  8494: 000000000009d010    89 FUNC    LOCAL  DEFAULT   11
+je_jemalloc_postfork_child
+  8509: 00000000001337ec   138 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtImmLb0EE11node_mallocEv
+  8518: 00000000004982c8     8 OBJECT  LOCAL  DEFAULT   27 je_huge_nmalloc
+  8533: 000000000009c3a0   118 FUNC    LOCAL  DEFAULT   11 je_a0free
+  8559: 00000000000f56bc   138 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3omtIPNS_18txnid_range_bufferES2_Lb0EE11node_mallocEv
+  8587: 00000000001e1f07    38 FUNC    LOCAL  DEFAULT   11 zcfree
+  8598: 00000000000f05e6   107 FUNC    LOCAL  DEFAULT   11
+_ZN4toku8treenode4freeEPS0_
+  8621: 000000000048f173     1 OBJECT  LOCAL  DEFAULT   27 je_opt_xmalloc
+  8633: 00000000001ad044    42 FUNC    LOCAL  DEFAULT   11
+_ZN4toku3wfg4node4freeEPS1_
+  8634: 00000000000c2170   169 FUNC    LOCAL  DEFAULT   11
+je_malloc_tsd_malloc
+  8659: 000000000009d070    89 FUNC    LOCAL  DEFAULT   11
+je_jemalloc_postfork_parent
+  8662: 00000000000c2100    11 FUNC    LOCAL  DEFAULT   11
+je_malloc_tsd_boot
+  8673: 00000000001c62f0    37 FUNC    LOCAL  DEFAULT   11 lzma_free
+  8684: 00000000000b6550    55 FUNC    LOCAL  DEFAULT   11
+je_malloc_mutex_postfork_child
+  8691: 00000000000a9f60   909 FUNC    LOCAL  DEFAULT   11
+je_arena_malloc_small
+  8726: 00000000000c0db0   585 FUNC    LOCAL  DEFAULT   11
+je_malloc_strtoumax
+  8737: 00000000000a7ee0   250 FUNC    LOCAL  DEFAULT   11
+je_arena_malloc_large
+  8739: 00000000000c1e10   163 FUNC    LOCAL  DEFAULT   11
+je_malloc_vcprintf
+  8754: 00000000000c1ff0   139 FUNC    LOCAL  DEFAULT   11
+je_malloc_snprintf
+  8805: 00000000001d4c7d    32 FUNC    GLOBAL DEFAULT   11
+_Z20toku_set_func_mallocPFPvmE
+  8819: 0000000000129a76    26 FUNC    WEAK   DEFAULT   11
+_ZN4toku21scoped_malloc_alignedD2Ev
+  8836: 00000000001a4d80   562 FUNC    GLOBAL DEFAULT   11
+_ZN8memarena17malloc_from_arenaEm
+  8848: 00000000001d67e1    26 FUNC    GLOBAL DEFAULT   11 _Z7os_freePv
+  8852: 000000000009d130   175 FUNC    GLOBAL DEFAULT   11
+malloc_usable_size
+  8949: 0000000000103440    98 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table29_translation_prevents_freeingEPNS_11translationE10blocknum_sPNS_22block_translation_pairE
+  8972: 0000000000133b26    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP7tokutxnS2_Lb0EE9node_freeEj
+  8976: 000000000019d8f7   457 FUNC    GLOBAL DEFAULT   11
+_Z19toku_mempool_mallocP7mempoolm
+  8992: 00000000001937c6    41 FUNC    GLOBAL DEFAULT   11
+_Z23toku_malloc_in_rollbackP17rollback_log_nodem
+  9002: 000000000018a45c    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIiiLb1EE9node_freeEj
+  9008: 00000000001d441c   838 FUNC    GLOBAL DEFAULT   11
+_Z20toku_xmalloc_alignedmm
+  9040: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND bitmap_free
+  9047: 00000000001a1afc    82 FUNC    GLOBAL DEFAULT   11
+_Z30toku_scoped_malloc_destroy_keyv
+  9162: 0000000000160d2a    38 FUNC    GLOBAL DEFAULT   11
+_Z13toku_ule_freeP3ule
+  9168: 0000000000103fae   460 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table23_free_blocknum_unlockedEP10blocknum_sP2ftb
+  9194: 00000000001a1890    84 FUNC    GLOBAL DEFAULT   11
+_ZN4toku13scoped_mallocD1Ev
+  9239: 0000000000103ef8   182 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table29_free_blocknum_in_translationEPNS_11translationE10blocknum_s
+  9342: 00000000001054c6    18 FUNC    WEAK   DEFAULT   11
+_ZNK4toku13scoped_malloc3getEv
+  9400: 00000000001033dc    65 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table10block_freeEm
+  9444: 00000000001597f0    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP14file_map_tupleS2_Lb0EE9node_freeEj
+  9447: 000000000009d2b0     5 FUNC    GLOBAL DEFAULT   11
+malloc_stats_print
+  9455: 00000000001d40fb   801 FUNC    GLOBAL DEFAULT   11 _Z12toku_xmallocm
+  9530: 00000000000a0440  1930 FUNC    GLOBAL DEFAULT   11 malloc
+  9545: 00000000001a1e92    86 FUNC    WEAK   DEFAULT   11
+_ZNK4toku8tl_stack14get_free_spaceEv
+  9607: 00000000001d4cb2    21 FUNC    GLOBAL DEFAULT   11
+_Z25toku_set_func_malloc_onlyPFPvmE
+  9654: 000000000019cd70   111 FUNC    WEAK   DEFAULT   11
+_ZN4toku3dmtI13klpair_structPS1_NS_16klpair_dmtwriterEE9node_freeERKNS_12dmt_internal7subtreeE
+  9667: 000000000019b20e   199 FUNC    WEAK   DEFAULT   11
+_ZN4toku3dmtI13klpair_structPS1_NS_16klpair_dmtwriterEE25node_malloc_and_set_valueERKS3_
+  9679: 00000000000d3238    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP9__toku_dbS2_Lb0EE9node_freeEj
+  9697: 00000000001a19e2    16 FUNC    GLOBAL DEFAULT   11
+_Z26toku_scoped_malloc_destroyv
+  9738: 000000000048ea30     8 OBJECT  GLOBAL DEFAULT   26 __malloc_hook
+  9772: 0000000000497688     8 OBJECT  GLOBAL DEFAULT   27 malloc_conf
+  9784: 0000000000104210   244 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table21free_unused_blocknumsE10blocknum_s
+  9834: 0000000000198028   158 FUNC    GLOBAL DEFAULT   11
+_ZN7bn_data29mempool_malloc_and_update_dmtEmPPv
+  9855: 00000000000c5f89    26 FUNC    GLOBAL DEFAULT   11
+db_env_set_func_malloc
+  9882: 000000000009aaf6    14 FUNC    WEAK   DEFAULT   11
+_ZN7handler28free_foreign_key_create_infoEPc
+  9884: 0000000000129a76    26 FUNC    WEAK   DEFAULT   11
+_ZN4toku21scoped_malloc_alignedD1Ev
+  9918: 00000000001bae6c    42 FUNC    GLOBAL DEFAULT   11
+_Z11pqueue_freeP11ft_pqueue_t
+  9979: 00000000001d4bf9    26 FUNC    GLOBAL DEFAULT   11
+_Z23toku_malloc_usable_sizePv
+ 10090: 00000000001d67fb   133 FUNC    GLOBAL DEFAULT   11
+_Z21os_malloc_usable_sizePKv
+ 10137: 000000000012af86   128 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIiiLb1EE11node_mallocEv
+ 10152: 00000000001d3f36   453 FUNC    GLOBAL DEFAULT   11 _Z9toku_freePv
+ 10167: 0000000000132dc8    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtI20referenced_xid_tuplePS1_Lb0EE9node_freeEj
+ 10168: 000000000019d88e    37 FUNC    GLOBAL DEFAULT   11
+_Z30toku_mempool_get_next_free_ptrPK7mempool
+ 10193: 0000000000180c22    79 FUNC    GLOBAL DEFAULT   11
+_Z16toku_ftnode_freePP6ftnode
+ 10208: 00000000001a1890    84 FUNC    GLOBAL DEFAULT   11
+_ZN4toku13scoped_mallocD2Ev
+ 10305: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND my_free
+ 10314: 0000000000133dfc   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtI20referenced_xid_tuplePS1_Lb0EE11node_mallocEv
+ 10323: 00000000001b4f34   104 FUNC    GLOBAL DEFAULT   11
+_ZN15block_allocator11_trace_freeEm
+ 10340: 0000000000159c50   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP14file_map_tupleS2_Lb0EE11node_mallocEv
+ 10429: 0000000000139b3d    81 FUNC    GLOBAL DEFAULT   11
+_Z25toku_logger_free_logfilesPPci
+ 10532: 00000000001951f2   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP2ftS2_Lb0EE11node_mallocEv
+ 10685: 00000000001d66b6    26 FUNC    GLOBAL DEFAULT   11 _Z9os_mallocm
+ 10787: 0000000000498340     8 OBJECT  GLOBAL DEFAULT   27 malloc_message
+ 10822: 00000000001d4d11    21 FUNC    GLOBAL DEFAULT   11
+_Z18toku_set_func_freePFvPvE
+ 10837: 000000000010417a    75 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table13free_blocknumEP10blocknum_sP2ftb
+ 10872: 00000000000c5fbd    26 FUNC    GLOBAL DEFAULT   11
+db_env_set_func_free
+ 10893: 0000000000115284    68 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP9cachefileS2_Lb0EE9node_freeEj
+ 10894: 00000000001d2cb3   978 FUNC    GLOBAL DEFAULT   11 _Z11toku_mallocm
+ 10952: 0000000000099dcc    82 FUNC    WEAK   DEFAULT   11 _ZN6String4freeEv
+ 10954: 00000000000d545e   142 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtI17txn_lt_key_rangesS1_Lb0EE11node_mallocEv
+ 11020: 0000000000103384    88 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table31_verify_valid_freeable_blocknumEPNS_11translationE10blocknum_s
+ 11025: 00000000001a18e4   254 FUNC    GLOBAL DEFAULT   11
+_Z23toku_scoped_malloc_initv
+ 11093: 00000000001a17fa   150 FUNC    GLOBAL DEFAULT   11
+_ZN4toku13scoped_mallocC2Em
+ 11169: 00000000001154a6   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP9cachefileS2_Lb0EE11node_mallocEv
+ 11220: 00000000000fcac9    38 FUNC    GLOBAL DEFAULT   11
+_Z12toku_ft_freeP2ft
+ 11252: 00000000001d4c9d    21 FUNC    GLOBAL DEFAULT   11
+_Z26toku_set_func_xmalloc_onlyPFPvmE
+ 11260: 00000000001a17fa   150 FUNC    GLOBAL DEFAULT   11
+_ZN4toku13scoped_mallocC1Em
+ 11277: 00000000001041c6    73 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table24verify_no_free_blocknumsEv
+ 11284: 00000000001d66d0    72 FUNC    GLOBAL DEFAULT   11
+_Z17os_malloc_alignedmm
+ 11296: 000000000016f159   590 FUNC    GLOBAL DEFAULT   11
+_Z33toku_log_free_log_entry_resourcesP9log_entry
+ 11315: 000000000013332c   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP7tokutxnS2_Lb0EE11node_mallocEv
+ 11357: 0000000000129932   306 FUNC    WEAK   DEFAULT   11
+_ZN4toku21scoped_malloc_alignedC2Emm
+ 11365: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND my_malloc
+ 11469: 00000000001123c6   386 FUNC    GLOBAL DEFAULT   11
+_ZN14cachefile_list15free_stale_dataEP7evictor
+ 11474: 0000000000189c88   128 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIiiLb0EE11node_mallocEv
+ 11486: 000000000019d8c5    32 FUNC    GLOBAL DEFAULT   11
+_Z26toku_mempool_get_free_sizePK7mempool
+ 11515: 000000000048ea28     8 OBJECT  GLOBAL DEFAULT   26 __free_hook
+ 11590: 00000000000a4430  1410 FUNC    GLOBAL DEFAULT   11 free
+ 11615: 00000000000d2eb6   138 FUNC    WEAK   DEFAULT   11
+_ZN4toku3omtIP9__toku_dbS2_Lb0EE11node_mallocEv
+ 11623: 000000000009e5b0  5253 FUNC    GLOBAL DEFAULT   11 mallocx
+ 11627: 00000000001a19f2   266 FUNC    GLOBAL DEFAULT   11
+_Z30toku_scoped_malloc_destroy_setv
+ 11667: 0000000000129932   306 FUNC    WEAK   DEFAULT   11
+_ZN4toku21scoped_malloc_alignedC1Emm
+ 11674: 0000000000129a64    18 FUNC    WEAK   DEFAULT   11
+_ZNK4toku21scoped_malloc_aligned3getEv
+ 11697: 000000000019dac0   238 FUNC    GLOBAL DEFAULT   11
+_Z18toku_mempool_mfreeP7mempoolPvm
+ 11780: 00000000001d3085  1005 FUNC    GLOBAL DEFAULT   11
+_Z19toku_malloc_alignedmm
+ 11798: 000000000010330a   121 FUNC    GLOBAL DEFAULT   11
+_ZN11block_table27_is_valid_freeable_blocknumEPNS_11translationE10blocknum_s
+ 11857: 00000000001b4414   274 FUNC    GLOBAL DEFAULT   11
+_ZN15block_allocator10free_blockEm
+ 11923: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND my_hash_free
+
+On Tue, Sep 1, 2015 at 9:40 AM, Roel Van de Paar &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">roel.vandepaar at percona.com</A>
+&gt;<i> wrote:
+</I>
+&gt;<i> Hi Florian, Others,
+</I>&gt;<i>
+</I>&gt;<i> Any ideas/suggestions? Thank you
+</I>&gt;<i>
+</I>&gt;<i> On Tue, Aug 25, 2015 at 10:24 AM, Roel Van de Paar &lt;
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">roel.vandepaar at percona.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Hi Florian,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thank you for the reply. My reply inline.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On Tue, Aug 25, 2015 at 5:13 AM, Florian Weimer &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">fw at deneb.enyo.de</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> * Roel Van de Paar:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> &gt; What happens if jemalloc is LD_PRELOAD'ed for an executable where such
+</I>&gt;&gt;&gt;<i> &gt; executable uses a .so library, which in turn is statically linked with
+</I>&gt;&gt;&gt;<i> &gt; jemalloc?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> That depends on what kind of symbols the libary exports.  What does
+</I>&gt;&gt;&gt;<i> &#8220;eu-readelf -s&#8221; or &#8220;readelf -W -s&#8221; show?  If jemalloc symbols are
+</I>&gt;&gt;&gt;<i> listed there, quite bad things can happen.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> [<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">roel at localhost</A>
+</I>&gt;&gt;<i> Percona-Server-5.6.25-rel73.2-f9f2b02.Linux.x86_64-debug]$ readelf -W -s
+</I>&gt;&gt;<i> ./lib/mysql/plugin/ha_tokudb.so | grep jemalloc
+</I>&gt;&gt;<i>    219: 000000000048ed90     4 OBJECT  LOCAL  DEFAULT   27
+</I>&gt;&gt;<i> _ZL21tokudb_check_jemalloc
+</I>&gt;&gt;<i>    220: 000000000048d4e0    64 OBJECT  LOCAL  DEFAULT   26
+</I>&gt;&gt;<i> _ZL27mysql_sysvar_check_jemalloc
+</I>&gt;&gt;<i>    833: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS jemalloc.pic.o
+</I>&gt;&gt;<i>    840: 000000000009d710    94 FUNC    LOCAL  DEFAULT   11
+</I>&gt;&gt;<i> jemalloc_constructor
+</I>&gt;&gt;<i>   8370: 000000000009d0d0    90 FUNC    LOCAL  DEFAULT   11
+</I>&gt;&gt;<i> je_jemalloc_prefork
+</I>&gt;&gt;<i>   8494: 000000000009d010    89 FUNC    LOCAL  DEFAULT   11
+</I>&gt;&gt;<i> je_jemalloc_postfork_child
+</I>&gt;&gt;<i>   8659: 000000000009d070    89 FUNC    LOCAL  DEFAULT   11
+</I>&gt;&gt;<i> je_jemalloc_postfork_parent
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Are these jemalloc symbols?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Also, anyone any idea on the other questions too?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> --
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Kind Regards,
+</I>&gt;&gt;<i> God Bless,
+</I>&gt;&gt;<i> --
+</I>&gt;&gt;<i> Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+</I>&gt;&gt;<i> Tel: +61 2 8004 1288 (UTC+10)
+</I>&gt;&gt;<i> Mob: +61 427 141 635 (UTC+10)
+</I>&gt;&gt;<i> Skype: percona.rvandepaar
+</I>&gt;&gt;<i> <A HREF="http://www.percona.com/services.html">http://www.percona.com/services.html</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Looking for Replication with Data Consistency?
+</I>&gt;&gt;<i> Try Percona XtraDB Cluster
+</I>&gt;&gt;<i> &lt;<A HREF="http://www.percona.com/software/percona-xtradb-cluster">http://www.percona.com/software/percona-xtradb-cluster</A>&gt;!
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i>
+</I>&gt;<i> Kind Regards,
+</I>&gt;<i> God Bless,
+</I>&gt;<i> --
+</I>&gt;<i> Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+</I>&gt;<i> Tel: +61 2 8004 1288 (UTC+10)
+</I>&gt;<i> Mob: +61 427 141 635 (UTC+10)
+</I>&gt;<i> Skype: percona.rvandepaar
+</I>&gt;<i> <A HREF="http://www.percona.com/services.html">http://www.percona.com/services.html</A>
+</I>&gt;<i>
+</I>&gt;<i> Looking for Replication with Data Consistency?
+</I>&gt;<i> Try Percona XtraDB Cluster
+</I>&gt;<i> &lt;<A HREF="http://www.percona.com/software/percona-xtradb-cluster">http://www.percona.com/software/percona-xtradb-cluster</A>&gt;!
+</I>&gt;<i>
+</I>
+
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: percona.rvandepaar
+<A HREF="http://www.percona.com/services.html">http://www.percona.com/services.html</A>
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+&lt;<A HREF="http://www.percona.com/software/percona-xtradb-cluster">http://www.percona.com/software/percona-xtradb-cluster</A>&gt;!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150901/734d5fc8/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150901/734d5fc8/attachment-0001.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001158.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+	<LI>Next message: <A HREF="001156.html">jemalloc-queries
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1159">[ date ]</a>
+              <a href="thread.html#1159">[ thread ]</a>
+              <a href="subject.html#1159">[ subject ]</a>
+              <a href="author.html#1159">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

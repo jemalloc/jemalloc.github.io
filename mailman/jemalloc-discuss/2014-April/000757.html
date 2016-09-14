@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> mremap with modern Linux kernel
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mremap%20with%20modern%20Linux%20kernel&In-Reply-To=%3C362FC467-4ED9-485D-ABA1-C3AA938D22F6%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000756.html">
+   <LINK REL="Next"  HREF="000758.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>mremap with modern Linux kernel</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mremap%20with%20modern%20Linux%20kernel&In-Reply-To=%3C362FC467-4ED9-485D-ABA1-C3AA938D22F6%40canonware.com%3E"
+       TITLE="mremap with modern Linux kernel">jasone at canonware.com
+       </A><BR>
+    <I>Fri Apr 25 15:21:53 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000756.html">mremap with modern Linux kernel
+</A></li>
+        <LI>Next message: <A HREF="000758.html">mremap with modern Linux kernel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#757">[ date ]</a>
+              <a href="thread.html#757">[ thread ]</a>
+              <a href="subject.html#757">[ subject ]</a>
+              <a href="author.html#757">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 25, 2014, at 2:55 AM, Daniel Micay &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">danielmicay at gmail.com</A>&gt; wrote:
+&gt;<i> This option was originally disabled by default due to fragmentation
+</I>&gt;<i> issues. It provides a significant performance win for Rust's vectors at
+</I>&gt;<i> very large sizes, so I'm curious about the severity of this issue and
+</I>&gt;<i> whether it is still around in the latest Linux kernel releases.
+</I>
+As far as I know, this problem still exists in Linux.  The problem is that Linux doesn't have a reliable way to find the first fit for an mmap() request other than linear scan, so it uses heuristics to decide where to start the scan.  It's quite easy to trigger pathological behavior where a chunk of memory is unmapped, but the kernel doesn't revise its scan start point, and the VM map hole remains indefinitely.  The more holes there are, the more mapped regions there are to linearly scan.  I don't remember what the common triggers of linear scans are, but they definitely happen enough to cause a performance issue, at least for some of the heavily loaded network server applications Facebook runs.
+
+One way to reduce the impact of huge reallocs would be to use exponential size class increases, rather than linear increases.  jemalloc will always round up to the nearest multiple of the chunk size, but it it were to instead use e.g. [4, 8, 16, 32, 64, ...] MiB as size classes, the realloc overhead would amortize away.  I've been thinking about exploring this strategy for large size classes, [4 KiB .. 4 MiB), and I just wrote up a tracking issue that also keeps your use case in mind: 
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues/77">https://github.com/jemalloc/jemalloc/issues/77</A>
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000756.html">mremap with modern Linux kernel
+</A></li>
+	<LI>Next message: <A HREF="000758.html">mremap with modern Linux kernel
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#757">[ date ]</a>
+              <a href="thread.html#757">[ thread ]</a>
+              <a href="subject.html#757">[ subject ]</a>
+              <a href="author.html#757">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

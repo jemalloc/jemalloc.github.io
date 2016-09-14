@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warnings%20when%20doing%20calloc%20in%20jemalloc%203.4&In-Reply-To=%3CC18B0E43-B0DB-444A-A486-9CD366E16604%40netskope.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000612.html">
+   <LINK REL="Next"  HREF="000614.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4</H1>
+    <B>Piyush Patel</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warnings%20when%20doing%20calloc%20in%20jemalloc%203.4&In-Reply-To=%3CC18B0E43-B0DB-444A-A486-9CD366E16604%40netskope.com%3E"
+       TITLE="valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4">piyush at netskope.com
+       </A><BR>
+    <I>Mon Jul  8 09:23:40 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000612.html">High amount of private clean data in smaps
+</A></li>
+        <LI>Next message: <A HREF="000614.html">valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#613">[ date ]</a>
+              <a href="thread.html#613">[ thread ]</a>
+              <a href="subject.html#613">[ subject ]</a>
+              <a href="author.html#613">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've ran into similar issue that Daniel Mezzato ran into(email thread around Dec 11, 2012).  I get following warnings:
+
+==28997== Conditional jump or move depends on uninitialised value(s)
+==28997==    at 0x4E438C1: arena_run_split (arena.c:454)
+==28997==    by 0x4E441DF: arena_run_alloc_helper (arena.c:645)
+==28997==    by 0x4E469ED: arena_malloc_large (arena.c:665)
+==28997==    by 0x4E3BA48: calloc (arena.h:930)
+==28997==    by 0x400661: main (jemalloc_test.cpp:8)
+==28997== 
+==28997== Conditional jump or move depends on uninitialised value(s)
+==28997==    at 0x4E438E9: arena_run_split (arena.c:454)
+==28997==    by 0x4E441DF: arena_run_alloc_helper (arena.c:645)
+==28997==    by 0x4E469ED: arena_malloc_large (arena.c:665)
+==28997==    by 0x4E3BA48: calloc (arena.h:930)
+==28997==    by 0x400661: main (jemalloc_test.cpp:8)
+
+
+Wondering if these are benin or something I need to worry about.
+
+Below are details of the program and my system
+-----------------------------------------------------------------------------------
+The small program does following:
+int
+main(int argc, char** argv)
+{
+    char *str = (char*)calloc(8192, 1);
+    free(str);
+
+    return 0;
+}
+
+
+It's compiled as:
+g++  -g -L&lt;path to jemalloc&gt;   jemalloc_test.cpp   -o jemalloc_test -ljemalloc
+
+Valgrind 3.8.1 run as:
+valgrind --leak-check=full --soname-synonyms=somalloc=NONE ./jemalloc_test
+
+My system info:
+----------------------------
+gcc -v
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6/lto-wrapper
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu/Linaro 4.6.3-1ubuntu5' --with-bugurl=<A HREF="file:///usr/share/doc/gcc-4.6/README.Bugs">file:///usr/share/doc/gcc-4.6/README.Bugs</A> --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.6 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --enable-plugin --enable-objc-gc --disable-werror --with-arch-32=i686 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.6.3 (Ubuntu/Linaro 4.6.3-1ubuntu5) 
+
+valgrind --version
+valgrind-3.8.1
+
+jemalloc: 3.4.0
+
+ uname -a
+Linux piyush-personal 3.2.0-29-generic #46-Ubuntu SMP Fri Jul 27 17:03:23 UTC 2012 x86_64 x86_64 x86_64 GNU/Linux
+
+Thanks,
+Piyush
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000612.html">High amount of private clean data in smaps
+</A></li>
+	<LI>Next message: <A HREF="000614.html">valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#613">[ date ]</a>
+              <a href="thread.html#613">[ thread ]</a>
+              <a href="subject.html#613">[ subject ]</a>
+              <a href="author.html#613">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

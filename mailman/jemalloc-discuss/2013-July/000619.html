@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Using jemalloc with static link
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Using%20jemalloc%20with%20static%20link&In-Reply-To=%3CCAEiri95Zn_4219sLBu7u_rC60WbuihJkEQGxcuwxG83EYBYJhA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000618.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Using jemalloc with static link</H1>
+    <B>Colin Hercus</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Using%20jemalloc%20with%20static%20link&In-Reply-To=%3CCAEiri95Zn_4219sLBu7u_rC60WbuihJkEQGxcuwxG83EYBYJhA%40mail.gmail.com%3E"
+       TITLE="Using jemalloc with static link">colin at novocraft.com
+       </A><BR>
+    <I>Fri Jul 19 20:02:30 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000618.html">Using jemalloc with static link
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#619">[ date ]</a>
+              <a href="thread.html#619">[ thread ]</a>
+              <a href="subject.html#619">[ subject ]</a>
+              <a href="author.html#619">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>HI Jason,
+
+I'll see if I can use your idea for dynamically linking. There's a few
+libraries i would need to do this for but if I can sort this out it would
+be good. At the moment I have statically linked releases for a few
+different Linux builds.
+
+With regard the is_malloc(je_malloc), I tried commenting out the #if &amp;
+#endif lines but the program still used glibc malloc, I guess this may be
+order of loading the libraries so I will try with jemalloc first. I'll let
+you know if that works.
+
+Thanks for your advice and help.
+Colin
+
+On 20 July 2013 02:27, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Jul 19, 2013, at 12:41 AM, Colin Hercus &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">colin at novocraft.com</A>&gt; wrote:
+</I>&gt;<i> &gt; I am trying to test a HPC appl'n with jemalloc to see if it can reduce
+</I>&gt;<i> memory fragmentation and slow memory growth of a long running
+</I>&gt;<i> multi-threaded app.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; This application is statically linked as it's not open source and we
+</I>&gt;<i> need one binary distribution to run on multiple Linux versions.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; If I configure jemalloc without a jemalloc prefix (je_) and link with
+</I>&gt;<i> -static -ljemalloc I get linker errors for multiply defined symbols
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; g++  -m64 -Wl,--eh-frame-hdr -o ./bin/xxxx ./obj/xxxx.o  .....   -static
+</I>&gt;<i> -pthread -lcrypto -lz -lbz2 -ldl  -ljemalloc -lunwind
+</I>&gt;<i> -Wl,-Map=gccmaps/xxxx.map
+</I>&gt;<i>
+</I>&gt;<i> There's a good chance that you can make the errors go away by putting
+</I>&gt;<i> -ljemalloc earlier in the link line.  It looks to me like libcrypto is
+</I>&gt;<i> pulling in the glibc malloc symbols, and by the time the libjemalloc
+</I>&gt;<i> portion of linking occurs, it's too late for jemalloc to provide the
+</I>&gt;<i> symbols.  That said, pure static linking is pretty perilous, and I
+</I>&gt;<i> recommend dynamically linking against the system libraries, and linking to
+</I>&gt;<i> static libraries by specifying e.g. libjemalloc_pic.a along with the .o
+</I>&gt;<i> object files (and/or .a archives) in your project.  glibc in particular
+</I>&gt;<i> does an excellent job of maintaining symbol compatibility across many years
+</I>&gt;<i> of releases, so you can ship around a binary that is dynamically linked
+</I>&gt;<i> against glibc with fewer issues than you will run into with a statically
+</I>&gt;<i> linked-in glibc.  glibc protects you from a rather unstable Linux kernel
+</I>&gt;<i> interface, and if you try to run your static binary on top of a
+</I>&gt;<i> substantially different kernel, hilarity will ensue.
+</I>&gt;<i>
+</I>&gt;<i> &gt; If I build with a prefix of je_ then linking is okay but memory
+</I>&gt;<i> allocation is via glibc malloc. The same is true if I dynamically link
+</I>&gt;<i> without a prefix.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Is there any simple easy way to get je_malloc to hook itself in as a
+</I>&gt;<i> replacement for malloc the way tcmalloc does?
+</I>&gt;<i>
+</I>&gt;<i> jemalloc *does* hook itself in as a replacement for glibc malloc, but only
+</I>&gt;<i> if no prefix is specified. =)  You can make a one line change to
+</I>&gt;<i> src/jemalloc.c to unconditionally enable hooking.  Replace:
+</I>&gt;<i>
+</I>&gt;<i> #if ((is_malloc(je_malloc) == 1) &amp;&amp; defined(__GLIBC__) &amp;&amp;
+</I>&gt;<i> !defined(__UCLIBC__))
+</I>&gt;<i>
+</I>&gt;<i> with:
+</I>&gt;<i>
+</I>&gt;<i> #if 1
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130720/606f17e3/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130720/606f17e3/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000618.html">Using jemalloc with static link
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#619">[ date ]</a>
+              <a href="thread.html#619">[ thread ]</a>
+              <a href="subject.html#619">[ subject ]</a>
+              <a href="author.html#619">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

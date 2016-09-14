@@ -1,0 +1,16 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Hi,&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;With&nbsp;jemalloc&nbsp;3.5.0&nbsp;we&nbsp;have&nbsp;a&nbsp;testsuite&nbsp;regression&nbsp;on&nbsp;openSUSE&nbsp;13.1/i586&nbsp;with&nbsp;gcc&nbsp;4.8.1, &lt;/div&gt;&lt;div&gt;configured&nbsp;with&nbsp;./configure&nbsp;--enable-cc-silence&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;make&nbsp;check&nbsp;fails:&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;test_stats_chunks:test/unit/stats.c:41:&nbsp;Failed&nbsp;assertion:&nbsp;(jet_mallctl(&quot;stats.chunks.total&quot;,&nbsp;&amp;total,&nbsp;&amp;sz,&nbsp;((void&nbsp;*)0),&nbsp;0))&nbsp;==&nbsp;(expected)&nbsp;--&gt;&nbsp;22&nbsp;!=&nbsp;0:&nbsp;test_stats_chunks&lt;/div&gt;&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;test_stats_arenas_bins:test/unit/stats.c:291:&nbsp;Failed&nbsp;assertion:&nbsp;(jet_mallctl(&quot;stats.arenas.0.bins.0.curruns&quot;,&nbsp;&amp;curruns,&nbsp;&amp;sz,&nbsp;((void&nbsp;*)0),&nbsp;0))&nbsp;==&nbsp;(expected)&nbsp;--&gt;&nbsp;22&nbsp;!=&nbsp;0:&nbsp;test_stats_arenas_bins&lt;/div&gt;<br>
+<br>
+&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;test_stats_arenas_lruns:test/unit/stats.c:343:&nbsp;Failed&nbsp;assertion:&nbsp;(jet_mallctl(&quot;stats.arenas.0.lruns.0.curruns&quot;,&nbsp;&amp;curruns,&nbsp;&amp;sz,&nbsp;((void&nbsp;*)0),&nbsp;0))&nbsp;==&nbsp;(expected)&nbsp;--&gt;&nbsp;22&nbsp;!=&nbsp;0:&nbsp;test_stats_arenas_lruns&lt;/div&gt;<br>
+<br>
+&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;test_oom_errors:test/integration/aligned_alloc.c:59:&nbsp;Failed&nbsp;assertion:&nbsp;(p&nbsp;!=&nbsp;((void&nbsp;*)0)&nbsp;||&nbsp;je_get_errno()&nbsp;!=&nbsp;12)&nbsp;==&nbsp;(false)&nbsp;--&gt;&nbsp;true&nbsp;!=&nbsp;false:&nbsp;test_oom_errors&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;<br>
+&lt;div&gt;test_alignment_errors:test/integration/mallocx.c:53:&nbsp;Failed&nbsp;assertion:&nbsp;(p)&nbsp;==&nbsp;(NULL)&nbsp;--&gt;&nbsp;0x40000000&nbsp;!=&nbsp;0x0:&nbsp;test_alignment_errors&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;test_oom_errors:test/integration/posix_memalign.c:53:&nbsp;Failed&nbsp;assertion:&nbsp;(posix_memalign(&amp;p,&nbsp;alignment,&nbsp;size))&nbsp;!=&nbsp;(0)&nbsp;--&gt;&nbsp;0&nbsp;==&nbsp;0:&nbsp;test_oom_errors&lt;/div&gt;<br>
+<br>
+&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;64bit&nbsp;builds&nbsp;are&nbsp;fine.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

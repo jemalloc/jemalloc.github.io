@@ -1,0 +1,260 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> One run extending into another in jemalloc-3.5.1 ?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20One%20run%20extending%20into%20another%20in%20jemalloc-3.5.1%20%3F&In-Reply-To=%3CSN1PR0701MB1967695A7D37DD3B290753AEB26E0%40SN1PR0701MB1967.namprd07.prod.outlook.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001283.html">
+   <LINK REL="Next"  HREF="001285.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>One run extending into another in jemalloc-3.5.1 ?</H1>
+    <B>Chaitanya Patti</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20One%20run%20extending%20into%20another%20in%20jemalloc-3.5.1%20%3F&In-Reply-To=%3CSN1PR0701MB1967695A7D37DD3B290753AEB26E0%40SN1PR0701MB1967.namprd07.prod.outlook.com%3E"
+       TITLE="One run extending into another in jemalloc-3.5.1 ?">cpatti at tintri.com
+       </A><BR>
+    <I>Thu Apr 21 09:35:54 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001283.html">One run extending into another in jemalloc-3.5.1 ?
+</A></li>
+        <LI>Next message: <A HREF="001285.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured with	--disable-munmap
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1284">[ date ]</a>
+              <a href="thread.html#1284">[ thread ]</a>
+              <a href="subject.html#1284">[ subject ]</a>
+              <a href="author.html#1284">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I thought I would provide more detail about what we are seeing:
+
+(gdb) p arena_bin_info[11]
+$16 = {
+  reg_size = 224, 
+  redzone_size = 0, 
+  reg_interval = 224, 
+  run_size = 16384, 
+  nregs = 72, 
+  bitmap_offset = 16, 
+  bitmap_info = {
+    nbits = 72, 
+    nlevels = 2, 
+    levels = {{
+        group_offset = 0
+      }, {
+        group_offset = 2
+      }, {
+        group_offset = 3
+      }, {
+        group_offset = 0
+      }, {
+        group_offset = 0
+      }}
+  }, 
+  ctx0_offset = 0, 
+  reg0_offset = 256
+}
+
+The above arena_bin_info says that the run size of this size class is 16384 (
+i.e. 4 pages ). 
+
+Also, there is a header of 256 (reg0_offset) on the first page.
+And there are contiguous alloctions of 224 bytes after that.
+
+So, the offset, within the page, of every allocation on the first page is of
+the form ( 256 + 224 * n).
+The offset, within the page, of every allocation on the second page will be of
+the form ( 192 + 224 * n ).
+The offset, within the page, of every allocation on the third page will be of
+the form ( 128 + 224 * n ).
+The offset, within the page, of every allocation on the fourth page will be of
+the form ( 64 + 224 * n ).
+
+We see that 200 byte objects ( these will fall in the reg_size = 224 bin ) have been allocated at the following addresses:
+
+0x7f1edc7a1380
+0x7f1edc7a1460
+0x7f1edc7a1540
+0x7f1edc7a17e0
+0x7f1edc7a18c0
+0x7f1edc7a1a80
+0x7f1edc7a1b60
+0x7f1edc7a1c40
+
+The above addresses, do not fit any of
+these forms we mentioned above ( x + 224 * n ). 
+So, they cannot be pointing to addresses in this size class.
+
+But if we consider that a fifth page were allowed in a run of this size class,
+then, the offset, within the page, of every allocation in that fifth page will
+be of the form ( 224 * n ), and that fits the addresses we have!
+
+If we were to consider the page starting at 0x7f1edc7a1000 as the fifth page,
+then the first page has to be at 0x7f1edc79d000.
+
+And sure enough there is a run starting at 0x7f1edc79d000 :
+
+(gdb) p (arena_run_t *) 0x7f1edc79d000
+$134 = (arena_run_t *) 0x7f1edc79d000
+(gdb) p *$134
+$135 = {
+  bin = 0x7f22a1c3ece8, 
+  nextind = 72, 
+  nfree = 0
+}
+
+And the bin it points to:
+
+(gdb) p $134.bin
+$141 = (arena_bin_t *) 0x7f22a1c3ece8
+
+Is the bin at index 11 in arena-&gt;bins:
+
+(gdb) p &amp;arena-&gt;bins[11]
+$142 = (arena_bin_t *) 0x7f22a1c3ece8
+
+So, this is a bin for allocations up to 224 bytes in size.
+
+And, although this bin should have only 4 pages, it somehow seems to &quot;extend&quot;
+into the fifth page, and overwrite another run.
+
+The objects we are interested in have 0x01 as the first byte, and 
+0x20 as the 26th byte, and the 9th and 10th byte combine to form an increasing
+&quot;block number&quot;.
+Let us look for our special pattern in the 4th page:
+
+We find many matches with the following matches seen towards the end:
+
+0x7f1edc7a0660: 0x01    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0668: 0xd0    0x01    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0670: 0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0678: 0x00    0x20    0x00    0x00    0x00    0xa1    0xbb    0x58
+
+
+0x7f1edc7a0740: 0x01    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0748: 0xd1    0x01    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0750: 0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0758: 0x00    0x20    0x00    0x00    0x00    0xa1    0xbb    0x58
+
+
+0x7f1edc7a0820: 0x01    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0828: 0xd2    0x01    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0830: 0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a0838: 0x00    0x20    0x00    0x00    0x00    0x85    0xed    0x58
+
+As can be seen the &quot;block number&quot; that can be seen on the second lines is 
+increasing like 0x1d0, 0x1d1, 0x1d2.
+
+And we know that the first match of this pattern on 
+the page at 0x7f1edc7a1000 ( the &quot;fifth&quot; page ), is at 0x7f1edc7a1380, and the
+&quot;blockNumber&quot; we see in it is 0x1d3:
+
+0x7f1edc7a1380: 0x01    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a1388: 0xd3    0x01    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a1390: 0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7f1edc7a1398: 0x00    0x20    0x00    0x00    0x00    0x00    0x00    0x00
+
+So, there is a progression of block numbers from the fourth page to the &quot;fifth&quot;
+page of the run.
+
+And we know that what we are calling the &quot;fifth&quot; page here is the beginning of
+another run for allocations up to size 32:
+
+
+(gdb) p run
+$31 = (arena_run_t *) 0x7f1edc7a1000 ==&gt; this is the &quot;fifth&quot; page
+
+(gdb) p run-&gt;bin
+$33 = (arena_bin_t *) 0x7f22a1c3e790
+
+(gdb) p arena-&gt;bins[2]
+$37 = (arena_bin_t *) 0x7f22a1c3e790  ==&gt; same as run-&gt;bin in above line
+
+(gdb) p arena_bin_info[2]
+$38 = {
+  reg_size = 32, 
+  redzone_size = 0, 
+  reg_interval = 32, 
+  run_size = 4096, 
+  nregs = 126, 
+  bitmap_offset = 16, 
+  bitmap_info = {
+    nbits = 126, 
+    nlevels = 2, 
+    levels = {{
+        group_offset = 0
+      }, {
+        group_offset = 2
+      }, {
+        group_offset = 3
+      }, {
+        group_offset = 0
+      }, {
+        group_offset = 0
+      }}
+  }, 
+  ctx0_offset = 0, 
+  reg0_offset = 64
+}
+
+So, when allocations in this &quot;fifth&quot; page are de-allocated, they are put in the
+tcache bin for allocations of size between 16 and 32. That explains the wrong
+tcache bin that we see. 
+
+Please let us know what you think.
+
+Thanks a lot!
+
+--Chaitanya.
+________________________________________
+From: Chaitanya Patti
+Sent: Tuesday, April 19, 2016 11:26 AM
+To: Jason Evans
+Cc: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+Subject: Re: One run extending into another in jemalloc-3.5.1 ?
+
+Let us say &quot;run1&quot; has extended into &quot;run2&quot;. Are you saying that the metadata of run1 has been corrupted by a double free ?
+
+--Chaitanya
+
+&gt;<i> On Apr 19, 2016, at 10:01, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> On Apr 18, 2016, at 11:12 PM, Chaitanya Patti &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cpatti at tintri.com</A>&gt; wrote:
+</I>&gt;&gt;<i> I am debugging a memory de-allocation issue. We are using jemalloc version 3.5.1. It looks like a run with reg_size 224 and total size of 4 pages has &quot;extended&quot; into an adjacent run, and corrupted the adjacent run. Has such an issue been seen before ?
+</I>&gt;<i>
+</I>&gt;<i> That usually means that a double free corrupted metadata for the adjacent run.  If you have a repeatable test case, try running with a debug build of jemalloc, and disable tcache, so that assertions immediately detect double frees.
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I></PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001283.html">One run extending into another in jemalloc-3.5.1 ?
+</A></li>
+	<LI>Next message: <A HREF="001285.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured with	--disable-munmap
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1284">[ date ]</a>
+              <a href="thread.html#1284">[ thread ]</a>
+              <a href="subject.html#1284">[ subject ]</a>
+              <a href="author.html#1284">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

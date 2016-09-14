@@ -1,0 +1,89 @@
+>From c864e4bf6099c51088df412de70a951c939ef5a5 Mon Sep 17 00:00:00 2001
+From: Alessandro Pignotti <a.pignotti@sssup.it>
+Date: Mon, 20 Aug 2012 13:26:49 +0200
+Subject: [PATCH 3/4] Add a method to iterate over objects allocated in an
+ arena
+
+---
+ include/jemalloc/internal/arena.h |    1 +
+ src/arena.c                       |   55 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 56 insertions(+)
+
+diff --git a/include/jemalloc/internal/arena.h b/include/jemalloc/internal/arena.h
+index 1f67e27..aae9c6f 100644
+--- a/include/jemalloc/internal/arena.h
++++ b/include/jemalloc/internal/arena.h
+@@ -444,6 +444,7 @@ void	arena_boot(void);
+ void	arena_prefork(arena_t *arena);
+ void	arena_postfork_parent(arena_t *arena);
+ void	arena_postfork_child(arena_t *arena);
++void	arena_iterate_regions(arena_t *arena, void (*callback)(void*, void*), void* arg);
+ 
+ #endif /* JEMALLOC_H_EXTERNS */
+ /******************************************************************************/
+diff --git a/src/arena.c b/src/arena.c
+index 9e7e2c4..421b1d3 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -2231,3 +2231,58 @@ arena_postfork_child(arena_t *arena)
+ 		malloc_mutex_postfork_child(&arena->bins[i].lock);
+ 	malloc_mutex_postfork_child(&arena->lock);
+ }
++
++void
++arena_iterate_regions(arena_t *arena, void (*callback)(void*, void*), void* arg)
++{
++	arena_chunk_t* chunk;
++	ql_foreach(chunk, &arena->chunks, link_chunks)
++	{
++		int i;
++		size_t region_interval;
++		bitmap_t* bitmap;
++		bitmap_info_t* bitmapinfo;
++		uintptr_t regions;
++		int bitmap_index = 0;
++		/* Iterate over each page of the chunk, skipping the header ones */
++		for(i=0;i<(chunk_npages-map_bias);i++)
++		{
++			uintptr_t page_start;
++			if(!(chunk->map[i].bits&CHUNK_MAP_ALLOCATED))
++				continue;
++			page_start = ((uintptr_t)chunk)+((i+map_bias) << LG_PAGE);
++			if(chunk->map[i].bits&CHUNK_MAP_LARGE)
++			{
++				size_t run_size = chunk->map[i].bits & 0xfffff000;
++				callback(arg, page_start);
++				/* Skip the needed amount of pages */
++				i+=(run_size >> LG_PAGE)-1;
++			}
++			else
++			{
++				uintptr_t page_end = ((uintptr_t)chunk)+((i+map_bias+1) << LG_PAGE);
++				size_t page_offset = (chunk->map[i].bits >> 12);
++				if(page_offset == 0)
++				{
++					/* Get new run data */
++					arena_bin_info_t* bininfo;
++					size_t binind = (chunk->map[i].bits & CHUNK_MAP_BININD_MASK) >> CHUNK_MAP_BININD_SHIFT;
++					bininfo = &arena_bin_info[binind];
++					region_interval = bininfo->reg_interval;
++					regions = page_start + bininfo->reg0_offset;
++					bitmap = page_start + bininfo->bitmap_offset;
++					bitmapinfo = &bininfo->bitmap_info;
++					bitmap_index = 0;
++				}
++				for(;regions < page_end;regions+=region_interval)
++				{
++					if(bitmap_get(bitmap,bitmapinfo,bitmap_index))
++					{
++						callback(arg, (void*)regions);
++					}
++					bitmap_index++;
++				}
++			}
++		}
++	}
++}
+-- 
+1.7.9.5
+

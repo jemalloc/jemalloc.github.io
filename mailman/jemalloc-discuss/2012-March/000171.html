@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Use __sync_add_and_fetch and __sync_sub_and_fetch when they	are available
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Use%20__sync_add_and_fetch%20and%20__sync_sub_and_fetch%20when%20they%0A%09are%20available&In-Reply-To=%3C1332774221-20788-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000147.html">
+   <LINK REL="Next"  HREF="000181.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Use __sync_add_and_fetch and __sync_sub_and_fetch when they	are available</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Use%20__sync_add_and_fetch%20and%20__sync_sub_and_fetch%20when%20they%0A%09are%20available&In-Reply-To=%3C1332774221-20788-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Use __sync_add_and_fetch and __sync_sub_and_fetch when they	are available">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Mar 26 08:03:41 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000147.html">Android issues
+</A></li>
+        <LI>Next message: <A HREF="000181.html">[PATCH] Use __sync_add_and_fetch and __sync_sub_and_fetch when	they are available
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#171">[ date ]</a>
+              <a href="thread.html#171">[ thread ]</a>
+              <a href="subject.html#171">[ subject ]</a>
+              <a href="author.html#171">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+These functions may be available as inlines or as libgcc functions. In the
+former case, a __GCC_HAVE_SYNC_COMPARE_AND_SWAP_n macro is defined. But we
+still want to use these functions in the latter case, when we don't have
+our own implementation.
+---
+ configure.ac                        |   34 ++++++++++++++++++++++++++++++++++
+ include/jemalloc/internal/atomic.h  |   18 +++++++++++++++---
+ include/jemalloc/jemalloc_defs.h.in |   16 ++++++++++++++++
+ 3 files changed, 65 insertions(+), 3 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 478ae9d..5999a33 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -887,6 +887,40 @@ if test &quot;x${je_cv_osatomic}&quot; = &quot;xyes&quot; ; then
+ fi
+ 
+ dnl ============================================================================
++dnl Check whether __sync_{add,sub}_and_fetch() are available despite
++dnl __GCC_HAVE_SYNC_COMPARE_AND_SWAP_n macros being undefined.
++
++AC_DEFUN([JE_SYNC_COMPARE_AND_SWAP_CHECK],[
++  AC_CACHE_CHECK([whether to force $1-bit __sync_{add,sub}_and_fetch()],
++               [je_cv_sync_compare_and_swap_$2],
++               [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
++                                                    #include &lt;stdint.h&gt;
++                                                   ],
++                                                   [
++                                                    #ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_$2
++                                                    {
++                                                       uint$1_t x$1 = 0;
++                                                       __sync_add_and_fetch(&amp;x$1, 42);
++                                                       __sync_sub_and_fetch(&amp;x$1, 1);
++                                                    }
++                                                    #else
++                                                    #error __GCC_HAVE_SYNC_COMPARE_AND_SWAP_$2 is defined, no need to force
++                                                    #endif
++                                                   ])],
++                               [je_cv_sync_compare_and_swap_$2=yes],
++                               [je_cv_sync_compare_and_swap_$2=no])])
++
++  if test &quot;x${je_cv_sync_compare_and_swap_$2}&quot; = &quot;xyes&quot; ; then
++    AC_DEFINE([JE_FORCE_SYNC_COMPARE_AND_SWAP_$2], [ ])
++  fi
++])
++
++if test &quot;x${je_cv_osatomic}&quot; != &quot;xyes&quot; ; then
++  JE_SYNC_COMPARE_AND_SWAP_CHECK(32, 4)
++  JE_SYNC_COMPARE_AND_SWAP_CHECK(64, 8)
++fi
++
++dnl ============================================================================
+ dnl Check for spinlock(3) operations as provided on Darwin.
+ 
+ JE_COMPILABLE([Darwin OSSpin*()], [
+diff --git a/include/jemalloc/internal/atomic.h b/include/jemalloc/internal/atomic.h
+index 7a9cb61..d8f6ca5 100644
+--- a/include/jemalloc/internal/atomic.h
++++ b/include/jemalloc/internal/atomic.h
+@@ -87,6 +87,20 @@ atomic_sub_uint64(uint64_t *p, uint64_t x)
+ 
+ 	return (x);
+ }
++#elif (defined(JE_FORCE_SYNC_COMPARE_AND_SWAP_8))
++JEMALLOC_INLINE uint64_t
++atomic_add_uint64(uint64_t *p, uint64_t x)
++{
++
++	return (__sync_add_and_fetch(p, x));
++}
++
++JEMALLOC_INLINE uint64_t
++atomic_sub_uint64(uint64_t *p, uint64_t x)
++{
++
++	return (__sync_sub_and_fetch(p, x));
++}
+ #else
+ #  if (LG_SIZEOF_PTR == 3)
+ #    error &quot;Missing implementation for 64-bit atomic operations&quot;
+@@ -150,9 +164,7 @@ atomic_sub_uint32(uint32_t *p, uint32_t x)
+ 
+ 	return (x);
+ }
+-#elif (defined __SH4__ || defined __mips__) &amp;&amp; (__GNUC__ &gt; 4 ||		\
+-    (__GNUC__ == 4 &amp;&amp; (__GNUC_MINOR__ &gt; 1 || (__GNUC_MINOR__ == 1 &amp;&amp;	\
+-    __GNUC_PATCHLEVEL__ &gt; 1))))
++#elif (defined(JE_FORCE_SYNC_COMPARE_AND_SWAP_4))
+ JEMALLOC_INLINE uint32_t
+ atomic_add_uint32(uint32_t *p, uint32_t x)
+ {
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index f150413..e4bfa04 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -54,6 +54,22 @@
+ #undef JEMALLOC_OSATOMIC
+ 
+ /*
++ * Defined if __sync_add_and_fetch(uint32_t *, uint32_t) and
++ * __sync_sub_and_fetch(uint32_t *, uint32_t) are available, despite
++ * __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 not being defined (which means the
++ * functions are defined in libgcc instead of being inlines)
++ */
++#undef JE_FORCE_SYNC_COMPARE_AND_SWAP_4
++
++/*
++ * Defined if __sync_add_and_fetch(uint64_t *, uint64_t) and
++ * __sync_sub_and_fetch(uint64_t *, uint64_t) are available, despite
++ * __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8 not being defined (which means the
++ * functions are defined in libgcc instead of being inlines)
++ */
++#undef JE_FORCE_SYNC_COMPARE_AND_SWAP_8
++
++/*
+  * Defined if OSSpin*() functions are available, as provided by Darwin, and
+  * documented in the spinlock(3) manual page.
+  */
+-- 
+1.7.9.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000147.html">Android issues
+</A></li>
+	<LI>Next message: <A HREF="000181.html">[PATCH] Use __sync_add_and_fetch and __sync_sub_and_fetch when	they are available
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#171">[ date ]</a>
+              <a href="thread.html#171">[ thread ]</a>
+              <a href="subject.html#171">[ subject ]</a>
+              <a href="author.html#171">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

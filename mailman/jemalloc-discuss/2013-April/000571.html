@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Fragmentation with jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Fragmentation%20with%20jemalloc&In-Reply-To=%3CCAKtxisVw5PAV2kCb8QyPCUSC58gK31Qn%3DRTGKOcT2wvZPMKL9w%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000572.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Fragmentation with jemalloc</H1>
+    <B>vandana shah</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Fragmentation%20with%20jemalloc&In-Reply-To=%3CCAKtxisVw5PAV2kCb8QyPCUSC58gK31Qn%3DRTGKOcT2wvZPMKL9w%40mail.gmail.com%3E"
+       TITLE="Fragmentation with jemalloc">shah.vandana at gmail.com
+       </A><BR>
+    <I>Sun Apr 21 22:01:49 PDT 2013</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000572.html">Fragmentation with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#571">[ date ]</a>
+              <a href="thread.html#571">[ thread ]</a>
+              <a href="subject.html#571">[ subject ]</a>
+              <a href="author.html#571">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I have been trying to use jemalloc for my application and observed that the
+rss of the process keeps on increasing.
+
+I ran the application with valgrind to confirm that there are no memory
+leaks.
+
+To investigate more, I collected jemalloc stats after running the test for
+few days and here is the summary for a run with narenas:1, tcache:false,
+lg_chunk:24
+
+ Arenas: 1
+ Pointer size: 8
+ Quantum size: 16
+ Page size: 4096
+ Min active:dirty page ratio per arena: 8:1
+ Maximum thread-cached size class: 32768
+ Chunk size: 16777216 (2^24)
+ Allocated: 24364176040, active: 24578334720, mapped: 66739765248
+ Current active ceiling: 24578621440
+ chunks: nchunks   highchunks    curchunks
+            3989         3978         3978
+ huge: nmalloc      ndalloc    allocated
+             3            2    117440512
+
+ arenas[0]:
+ assigned threads: 17
+ dss allocation precedence: disabled
+ dirty pages: 5971898:64886 active:dirty, 354265 sweeps, 18261119 madvises,
+1180858954 purged
+
+While in this state, the RSS of the process was at 54GB.
+
+Questions:
+1) The difference between RSS and jemalloc active is huge (more than 30GB).
+In my test, the difference was quite less in the beginning (say 4 GB) and
+it went on increasing with time. That seems too high to account for
+jemalloc data structures, overhead etc. What else gets accounted in process
+RSS - active?
+2) The allocations are fairly random, sized between 8 bytes and 2MB. Are
+there any known issues of fragmentation for particular allocation sizes?
+3) Is there a way to tune the allocations and reduce the difference?
+
+Will appreciate any help to understand this better,
+
+Thanks,
+Vandana
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130422/774f20c4/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130422/774f20c4/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000572.html">Fragmentation with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#571">[ date ]</a>
+              <a href="thread.html#571">[ thread ]</a>
+              <a href="subject.html#571">[ subject ]</a>
+              <a href="author.html#571">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

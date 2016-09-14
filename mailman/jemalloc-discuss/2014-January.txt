@@ -1,0 +1,1584 @@
+From i at eivanov.com  Tue Jan 14 07:07:49 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Tue, 14 Jan 2014 19:07:49 +0400
+Subject: Possible glitch with prof_accum ouput (or maybe pprof)
+Message-ID: <CAO6Ho0ek3Cx55rYSKDvqum9WH67vz_vX1Z_BEyF1rVMjej=7hQ@mail.gmail.com>
+
+Hi,
+
+When I use prof_accum I get stacks like this one:
+
+0: 0 [100: 1228800] @ 0x7fe9ed4c6c88 0x400b37 0x400b59 0x400b69
+0x400b7e 0x400c04 0x7fe9ec9a8d1d 0x4008e9
+0: 0 [100: 60211200] @ 0x7fe9ed4c6c88 0x400b07 0x400b6e 0x400b7e
+0x400c04 0x7fe9ec9a8d1d 0x4008e9
+0: 0 [100: 1228800] @ 0x7fe9ed4c6c88 0x400b37 0x400b79 0x400c04
+0x7fe9ec9a8d1d 0x4008e9
+
+100 function calls and bytes allocated are correct, but first counters
+are "0: 0". I don't know, what they count, but these zeroes make pprof
+to ignore these lines.
+
+
+-- 
+Cheers,
+Evgeniy
+
+
+From jasone at canonware.com  Tue Jan 14 10:11:44 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 14 Jan 2014 10:11:44 -0800
+Subject: Possible glitch with prof_accum ouput (or maybe pprof)
+In-Reply-To: <CAO6Ho0ek3Cx55rYSKDvqum9WH67vz_vX1Z_BEyF1rVMjej=7hQ@mail.gmail.com>
+References: <CAO6Ho0ek3Cx55rYSKDvqum9WH67vz_vX1Z_BEyF1rVMjej=7hQ@mail.gmail.com>
+Message-ID: <E8F7368B-66F8-4574-BA51-4F5A9B1FC7C4@canonware.com>
+
+On Jan 14, 2014, at 7:07 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+> When I use prof_accum I get stacks like this one:
+> 
+> 0: 0 [100: 1228800] @ 0x7fe9ed4c6c88 0x400b37 0x400b59 0x400b69
+> 0x400b7e 0x400c04 0x7fe9ec9a8d1d 0x4008e9
+> 0: 0 [100: 60211200] @ 0x7fe9ed4c6c88 0x400b07 0x400b6e 0x400b7e
+> 0x400c04 0x7fe9ec9a8d1d 0x4008e9
+> 0: 0 [100: 1228800] @ 0x7fe9ed4c6c88 0x400b37 0x400b79 0x400c04
+> 0x7fe9ec9a8d1d 0x4008e9
+> 
+> 100 function calls and bytes allocated are correct, but first counters
+> are "0: 0". I don't know, what they count, but these zeroes make pprof
+> to ignore these lines.
+
+The zeros are the current allocations/bytes counters; the corresponding cumulative counters are tracking allocations that no longer exist.  In order to make pprof use the cumulative counters rather than the current counters, you need to specify --alloc_space or --alloc_objects (--inuse_space is the default).
+
+Jason
+
+From jasone at canonware.com  Tue Jan 14 10:16:52 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 14 Jan 2014 10:16:52 -0800
+Subject: Pthread spinlock support
+In-Reply-To: <Pine.LNX.4.64.1312301450060.2564@artemis>
+References: <Pine.LNX.4.64.1312301450060.2564@artemis>
+Message-ID: <A16DA966-33BA-4027-9515-C91099BC01FE@canonware.com>
+
+On Dec 30, 2013, at 5:23 AM, valtteri at rahkonen.fi wrote:
+> I noticed that the OSX version of the jemalloc uses spin locks and decided to implement support for the pthread spin locks that can be used in Linux. At least in my case there is huge benefit because I run a single thread in a specific core that has not that much other activity and pthread mutex lock contention seems to always schedule the thread away from execution, so spin locking seems to give more stable result while adding bit more CPU load. Most likely in more general case this would not be wanted, because there would be more threads/processes running on same core and thus the scheduling might give execution time for some other important threads like the one having the lock taken.
+> 
+> What do you think, is this something that could be merged to the upstream? My patch implements new configure script option --enable-pthread-spinlock that turns on the pthread spin lock i.e. the spin locks are not used by default because of the scheduling benefit with normal use.
+
+The only reason jemalloc uses spinlocks on OS X is that normal pthread mutex creation uses malloc() internally, and that causes bootstrapping issues.  Under all the real-world scenarios I've examined, mutex contention is negligible.  Furthermore, on Linux jemalloc uses adaptive mutexes, which IIRC spin before blocking.  Do you have an application for which your patch makes a significant difference?
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Jan 14 10:22:56 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 14 Jan 2014 10:22:56 -0800
+Subject: Profiling memory allocations in run-time in production
+In-Reply-To: <CAO6Ho0ejkEdj4v82uetNV51gt5a=7L6z0N9u8D3WPMhbTz6spw@mail.gmail.com>
+References: <CAO6Ho0ejkEdj4v82uetNV51gt5a=7L6z0N9u8D3WPMhbTz6spw@mail.gmail.com>
+Message-ID: <0BF7FDA4-2433-438A-BC4D-E3CF6AE517C2@canonware.com>
+
+On Dec 22, 2013, at 11:41 PM, Evgeniy Ivanov <i at eivanov.com> wrote:
+> I need to profile my application running in production. Is it
+> performance safe to build jemalloc with "--enable-prof", start
+> application with profiling disabled and enable it for short time
+> (probably via mallctl() call), when I need? I'm mostly interested in
+> stacks, i.e. opt.prof_accum. Or are there better alternatives in
+> Linux? I've tried perf, but it just counts stacks and doesn't care
+> about amount of memory allocated. There is also stap, but I haven't
+> try it yet.
+
+Yes, you can use jemalloc's heap profiling as you describe, with essentially no performance impact while heap profiling is inactive.  You may even be able to leave heap profiling active all the time with little performance impact, depending on how heavily your application uses malloc.  At Facebook we leave heap profiling active all the time for a wide variety of server applications; there are only a couple of exceptions I'm aware of for which the performance impact is unacceptable (heavy malloc use, ~2% slowdown when heap profiling is active).
+
+Jason
+
+From i at eivanov.com  Wed Jan 15 01:09:18 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Wed, 15 Jan 2014 13:09:18 +0400
+Subject: Profiling memory allocations in run-time in production
+In-Reply-To: <0BF7FDA4-2433-438A-BC4D-E3CF6AE517C2@canonware.com>
+References: <CAO6Ho0ejkEdj4v82uetNV51gt5a=7L6z0N9u8D3WPMhbTz6spw@mail.gmail.com>
+	<0BF7FDA4-2433-438A-BC4D-E3CF6AE517C2@canonware.com>
+Message-ID: <CAO6Ho0dPXC-zVheWQu4v-=t5c1YcM7MkRNHWvrMcFj_5CMrPGw@mail.gmail.com>
+
+What settings had you been using and what had been measured, when you
+got 2% slowdown? In our test (latency related) I got following
+results:
+normal jemalloc: %99 <= 87 usec (Avg: 65 usec)
+inactive profiling: %99 <= 88 usec (Avg: 66 usec)
+
+MALLOC_CONF="prof:true,prof_active:true,lg_prof_sample:19,prof_accum:true,prof_prefix:jeprof.out"
+prof-libgcc: %99 <= 125 usec (Avg: 70 usec)
+prof-libunwind: %99 <= 146 usec (Avg: 76 usec)
+
+So in average slowdown is 6% for libgcc and 15% for libunwind. But for
+distribution (99% < X) slowdown is 42% or 65% depending on library,
+which is huge difference. For 64 Kb numbers are dramatic: 154% (99% <
+X) performance lose.
+
+Do I miss something in configuration?
+
+
+On Tue, Jan 14, 2014 at 10:22 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Dec 22, 2013, at 11:41 PM, Evgeniy Ivanov <i at eivanov.com> wrote:
+>> I need to profile my application running in production. Is it
+>> performance safe to build jemalloc with "--enable-prof", start
+>> application with profiling disabled and enable it for short time
+>> (probably via mallctl() call), when I need? I'm mostly interested in
+>> stacks, i.e. opt.prof_accum. Or are there better alternatives in
+>> Linux? I've tried perf, but it just counts stacks and doesn't care
+>> about amount of memory allocated. There is also stap, but I haven't
+>> try it yet.
+>
+> Yes, you can use jemalloc's heap profiling as you describe, with essentially no performance impact while heap profiling is inactive.  You may even be able to leave heap profiling active all the time with little performance impact, depending on how heavily your application uses malloc.  At Facebook we leave heap profiling active all the time for a wide variety of server applications; there are only a couple of exceptions I'm aware of for which the performance impact is unacceptable (heavy malloc use, ~2% slowdown when heap profiling is active).
+>
+> Jason
+
+
+
+-- 
+Cheers,
+Evgeniy
+
+
+From i at eivanov.com  Wed Jan 15 01:12:16 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Wed, 15 Jan 2014 13:12:16 +0400
+Subject: Possible glitch with prof_accum ouput (or maybe pprof)
+In-Reply-To: <E8F7368B-66F8-4574-BA51-4F5A9B1FC7C4@canonware.com>
+References: <CAO6Ho0ek3Cx55rYSKDvqum9WH67vz_vX1Z_BEyF1rVMjej=7hQ@mail.gmail.com>
+	<E8F7368B-66F8-4574-BA51-4F5A9B1FC7C4@canonware.com>
+Message-ID: <CAO6Ho0eGm9T5e1xTwSFWNWKKDJ8bFuvd1MvXeByOZgCrfQ-oMQ@mail.gmail.com>
+
+Jason, thanks a lot!
+
+On Tue, Jan 14, 2014 at 10:11 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Jan 14, 2014, at 7:07 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+>> When I use prof_accum I get stacks like this one:
+>>
+>> 0: 0 [100: 1228800] @ 0x7fe9ed4c6c88 0x400b37 0x400b59 0x400b69
+>> 0x400b7e 0x400c04 0x7fe9ec9a8d1d 0x4008e9
+>> 0: 0 [100: 60211200] @ 0x7fe9ed4c6c88 0x400b07 0x400b6e 0x400b7e
+>> 0x400c04 0x7fe9ec9a8d1d 0x4008e9
+>> 0: 0 [100: 1228800] @ 0x7fe9ed4c6c88 0x400b37 0x400b79 0x400c04
+>> 0x7fe9ec9a8d1d 0x4008e9
+>>
+>> 100 function calls and bytes allocated are correct, but first counters
+>> are "0: 0". I don't know, what they count, but these zeroes make pprof
+>> to ignore these lines.
+>
+> The zeros are the current allocations/bytes counters; the corresponding cumulative counters are tracking allocations that no longer exist.  In order to make pprof use the cumulative counters rather than the current counters, you need to specify --alloc_space or --alloc_objects (--inuse_space is the default).
+>
+> Jason
+
+
+
+-- 
+Cheers,
+Evgeniy
+
+
+From jasone at canonware.com  Wed Jan 15 08:39:01 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 15 Jan 2014 08:39:01 -0800
+Subject: Profiling memory allocations in run-time in production
+In-Reply-To: <CAO6Ho0dPXC-zVheWQu4v-=t5c1YcM7MkRNHWvrMcFj_5CMrPGw@mail.gmail.com>
+References: <CAO6Ho0ejkEdj4v82uetNV51gt5a=7L6z0N9u8D3WPMhbTz6spw@mail.gmail.com>
+	<0BF7FDA4-2433-438A-BC4D-E3CF6AE517C2@canonware.com>
+	<CAO6Ho0dPXC-zVheWQu4v-=t5c1YcM7MkRNHWvrMcFj_5CMrPGw@mail.gmail.com>
+Message-ID: <A89237A1-AFF4-49B5-9D1B-1EAC4C16166E@canonware.com>
+
+On Jan 15, 2014, at 1:09 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+> On Tue, Jan 14, 2014 at 10:22 PM, Jason Evans <jasone at canonware.com> wrote:
+>> On Dec 22, 2013, at 11:41 PM, Evgeniy Ivanov <i at eivanov.com> wrote:
+>>> I need to profile my application running in production. Is it
+>>> performance safe to build jemalloc with "--enable-prof", start
+>>> application with profiling disabled and enable it for short time
+>>> (probably via mallctl() call), when I need? I'm mostly interested in
+>>> stacks, i.e. opt.prof_accum. Or are there better alternatives in
+>>> Linux? I've tried perf, but it just counts stacks and doesn't care
+>>> about amount of memory allocated. There is also stap, but I haven't
+>>> try it yet.
+>> 
+>> Yes, you can use jemalloc's heap profiling as you describe, with essentially no performance impact while heap profiling is inactive.  You may even be able to leave heap profiling active all the time with little performance impact, depending on how heavily your application uses malloc.  At Facebook we leave heap profiling active all the time for a wide variety of server applications; there are only a couple of exceptions I'm aware of for which the performance impact is unacceptable (heavy malloc use, ~2% slowdown when heap profiling is active).
+> 
+> What settings had you been using and what had been measured, when you
+> got 2% slowdown?
+
+My vague recollection is that the app was heavily multi-threaded, and spent about 10% of its total time in malloc.  Therefore a 2% overall slowdown corresponded to a ~20% slowdown in jemalloc itself.  Note that size class distribution matters to heap profiling performance because there are two sources of overhead (counter maintenance and backtracing), but I don?t remember what the distribution looked like.  We were using a version of libunwind that had a backtrace caching mechanism built in (it was never accepted upstream, and libunwind?s current caching mechanism cannot safely be used by malloc).
+
+> In our test (latency related) I got following
+> results:
+> normal jemalloc: %99 <= 87 usec (Avg: 65 usec)
+> inactive profiling: %99 <= 88 usec (Avg: 66 usec)
+> 
+> MALLOC_CONF="prof:true,prof_active:true,lg_prof_sample:19,prof_accum:true,prof_prefix:jeprof.out?
+
+We usually use prof_accum:false, mainly because complicated call graphs can cause a huge number of retained backtraces, but otherwise your settings match.
+
+> prof-libgcc: %99 <= 125 usec (Avg: 70 usec)
+> prof-libunwind: %99 <= 146 usec (Avg: 76 usec)
+> 
+> So in average slowdown is 6% for libgcc and 15% for libunwind. But for
+> distribution (99% < X) slowdown is 42% or 65% depending on library,
+> which is huge difference. For 64 Kb numbers are dramatic: 154% (99% <
+> X) performance lose.
+> 
+> Do I miss something in configuration?
+
+If your application is spending ~10-30% of its time in malloc, then your numbers sound reasonable.  You may find that a lower sampling rate (e.g. lg_prof_sample:21) drops backtracing overhead enough that performance is acceptable.  I?ve experimented in the past with lower sampling rates, and for long-running applications I?ve found that the heap profiles are still totally usable, because total allocation volume is high.
+
+Jason
+
+From i at eivanov.com  Thu Jan 16 06:10:29 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Thu, 16 Jan 2014 18:10:29 +0400
+Subject: Profiling memory allocations in run-time in production
+In-Reply-To: <A89237A1-AFF4-49B5-9D1B-1EAC4C16166E@canonware.com>
+References: <CAO6Ho0ejkEdj4v82uetNV51gt5a=7L6z0N9u8D3WPMhbTz6spw@mail.gmail.com>
+	<0BF7FDA4-2433-438A-BC4D-E3CF6AE517C2@canonware.com>
+	<CAO6Ho0dPXC-zVheWQu4v-=t5c1YcM7MkRNHWvrMcFj_5CMrPGw@mail.gmail.com>
+	<A89237A1-AFF4-49B5-9D1B-1EAC4C16166E@canonware.com>
+Message-ID: <CAO6Ho0ckFHUC6HJzcccOkogw_uFh+jCwMVDuLfY6VKmkyz3TUQ@mail.gmail.com>
+
+On Wed, Jan 15, 2014 at 8:39 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Jan 15, 2014, at 1:09 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+>> On Tue, Jan 14, 2014 at 10:22 PM, Jason Evans <jasone at canonware.com> wrote:
+>>> On Dec 22, 2013, at 11:41 PM, Evgeniy Ivanov <i at eivanov.com> wrote:
+>>>> I need to profile my application running in production. Is it
+>>>> performance safe to build jemalloc with "--enable-prof", start
+>>>> application with profiling disabled and enable it for short time
+>>>> (probably via mallctl() call), when I need? I'm mostly interested in
+>>>> stacks, i.e. opt.prof_accum. Or are there better alternatives in
+>>>> Linux? I've tried perf, but it just counts stacks and doesn't care
+>>>> about amount of memory allocated. There is also stap, but I haven't
+>>>> try it yet.
+>>>
+>>> Yes, you can use jemalloc's heap profiling as you describe, with essentially no performance impact while heap profiling is inactive.  You may even be able to leave heap profiling active all the time with little performance impact, depending on how heavily your application uses malloc.  At Facebook we leave heap profiling active all the time for a wide variety of server applications; there are only a couple of exceptions I'm aware of for which the performance impact is unacceptable (heavy malloc use, ~2% slowdown when heap profiling is active).
+>>
+>> What settings had you been using and what had been measured, when you
+>> got 2% slowdown?
+>
+> My vague recollection is that the app was heavily multi-threaded, and spent about 10% of its total time in malloc.  Therefore a 2% overall slowdown corresponded to a ~20% slowdown in jemalloc itself.  Note that size class distribution matters to heap profiling performance because there are two sources of overhead (counter maintenance and backtracing), but I don?t remember what the distribution looked like.  We were using a version of libunwind that had a backtrace caching mechanism built in (it was never accepted upstream, and libunwind?s current caching mechanism cannot safely be used by malloc).
+>
+>> In our test (latency related) I got following
+>> results:
+>> normal jemalloc: %99 <= 87 usec (Avg: 65 usec)
+>> inactive profiling: %99 <= 88 usec (Avg: 66 usec)
+>>
+>> MALLOC_CONF="prof:true,prof_active:true,lg_prof_sample:19,prof_accum:true,prof_prefix:jeprof.out?
+>
+> We usually use prof_accum:false, mainly because complicated call graphs can cause a huge number of retained backtraces, but otherwise your settings match.
+
+Stacks is our primary point of interest. Using DTrace we trace each
+malloc, but skip the ones, which request less than 16 Kb. DTrace
+overhead on Solaris is just 13%. Not sure if allocation statistics
+might be useful for us.
+
+>> prof-libgcc: %99 <= 125 usec (Avg: 70 usec)
+>> prof-libunwind: %99 <= 146 usec (Avg: 76 usec)
+>>
+>> So in average slowdown is 6% for libgcc and 15% for libunwind. But for
+>> distribution (99% < X) slowdown is 42% or 65% depending on library,
+>> which is huge difference. For 64 Kb numbers are dramatic: 154% (99% <
+>> X) performance lose.
+>>
+>> Do I miss something in configuration?
+>
+> If your application is spending ~10-30% of its time in malloc, then your numbers sound reasonable.  You may find that a lower sampling rate (e.g. lg_prof_sample:21) drops backtracing overhead enough that performance is acceptable.  I?ve experimented in the past with lower sampling rates, and for long-running applications I?ve found that the heap profiles are still totally usable, because total allocation volume is high.
+
+Tested on one of our workloads. For lg_prof_sample:20 we get 18%
+slowdown, and for lg_prof_sample:21 it is just 4.5%, which is
+absolutely acceptable.
+
+
+Jason, thanks a lot for your answers! jemalloc is really awesome and
+powerful thing!
+
+
+-- 
+Cheers,
+Evgeniy
+
+
+From i at eivanov.com  Mon Jan 20 01:03:43 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Mon, 20 Jan 2014 13:03:43 +0400
+Subject: Deadlock during application startup (jemalloc with prof:true)
+Message-ID: <CAO6Ho0drNGubtoBLUZMn4gZ1BK9XEa1sMLzogW1G0WGFpdxT2w@mail.gmail.com>
+
+Hi!
+
+I got a following deadlock:
+
+#0  __lll_lock_wait_private () at
+../nptl/sysdeps/unix/sysv/linux/x86_64/lowlevellock.S:95
+#1  0x00007f6f72cc048f in _L_lock_16 () from
+/home/eiva/prefix/glibc-2.16/lib/libc.so.6
+#2  0x00007f6f72cc02d1 in __new_exitfn (listp=0x7f6f73030c80 <lock>)
+at cxa_atexit.c:78
+#3  0x00007f6f72cc0424 in __internal_atexit (func=0x7f6f7371aad0
+<prof_fdump>, arg=0x0, d=0x7f6f73932570, listp=<optimized out>) at
+cxa_atexit.c:34
+#4  0x00007f6f7371a9d7 in prof_boot2 () at
+/export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/prof.c:1212
+#5  0x00007f6f736f3c4e in malloc_init_hard () at
+/export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:790
+#6  0x00007f6f736effc4 in malloc_init () at
+/export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:306
+#7  0x00007f6f736f0698 in calloc (num=1, size=1040) at
+/export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:1036
+#8  0x00007f6f72cc03ba in __new_exitfn (listp=0x7f6f7302f5a8
+<__exit_funcs>) at cxa_atexit.c:100
+#9  0x00007f6f72cc0424 in __internal_atexit (func=0x3972062ae0
+<std::ios_base::Init::~Init()>, arg=0x7f6f736ea9c8 <_ZStL8__ioinit>,
+d=0x7f6f736df170, listp=<optimized out>) at cxa_atexit.c:34
+#10 0x00007f6f7342336e in __cxx_global_var_init () at
+/usr/lib/gcc/x86_64-redhat-linux/4.4.7/../../../../include/c++/4.4.7/iostream:72
+#11 0x00007f6f73423389 in global constructors keyed to a() () at
+/tb/builds/thd/sbn/2.6/src/thirdparty/quickfix/1.12.4/src/src/C++/SocketInitiator.cpp:54
+#12 0x00007f6f7348aa36 in __do_global_ctors_aux () from
+//home/eiva/git/tb/build.x86_64-unknown-linux/platform/lib64/libquickfix.so.10
+#13 0x00007f6f733cdb43 in _init () from
+//home/eiva/git/tb/build.x86_64-unknown-linux/platform/lib64/libquickfix.so.10
+#14 0x00007ffff9915058 in ?? ()
+#15 0x00007f6f73953849 in call_init (l=0x7f6f73b65540,
+argc=1936584824, argv=0x7ffff9915048, env=0x7ffff9915058) at
+dl-init.c:69
+#16 0x00007f6f73953987 in _dl_init (main_map=0x7f6f73b691c8, argc=1,
+argv=0x7ffff9915048, env=0x7ffff9915058) at dl-init.c:133
+#17 0x00007f6f73945b2a in _dl_start_user () from
+/home/eiva/prefix/glibc-2.16/lib/ld-2.16.so
+#18 0x0000000000000001 in ?? ()
+#19 0x00007ffff9917072 in ?? ()
+#20 0x0000000000000000 in ?? ()
+
+It is always reproducible with libquickfix-1.12.4 linked against my
+application (libc-2.12 and libc-2.16).
+MALLOC_CONF="prof:true"
+
+Is it issue in jemalloc or in glibc?
+
+
+-- 
+Cheers,
+Evgeniy
+
+
+From jasone at canonware.com  Tue Jan 21 10:12:43 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 21 Jan 2014 10:12:43 -0800
+Subject: Deadlock during application startup (jemalloc with prof:true)
+In-Reply-To: <CAO6Ho0drNGubtoBLUZMn4gZ1BK9XEa1sMLzogW1G0WGFpdxT2w@mail.gmail.com>
+References: <CAO6Ho0drNGubtoBLUZMn4gZ1BK9XEa1sMLzogW1G0WGFpdxT2w@mail.gmail.com>
+Message-ID: <8026BAA0-77AE-4EFD-AE2F-626B98BCCF60@canonware.com>
+
+On Jan 20, 2014, at 1:03 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+> I got a following deadlock:
+> 
+> #0  __lll_lock_wait_private () at
+> ../nptl/sysdeps/unix/sysv/linux/x86_64/lowlevellock.S:95
+> #1  0x00007f6f72cc048f in _L_lock_16 () from
+> /home/eiva/prefix/glibc-2.16/lib/libc.so.6
+> #2  0x00007f6f72cc02d1 in __new_exitfn (listp=0x7f6f73030c80 <lock>)
+> at cxa_atexit.c:78
+> #3  0x00007f6f72cc0424 in __internal_atexit (func=0x7f6f7371aad0
+> <prof_fdump>, arg=0x0, d=0x7f6f73932570, listp=<optimized out>) at
+> cxa_atexit.c:34
+> #4  0x00007f6f7371a9d7 in prof_boot2 () at
+> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/prof.c:1212
+> #5  0x00007f6f736f3c4e in malloc_init_hard () at
+> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:790
+> #6  0x00007f6f736effc4 in malloc_init () at
+> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:306
+> #7  0x00007f6f736f0698 in calloc (num=1, size=1040) at
+> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:1036
+> #8  0x00007f6f72cc03ba in __new_exitfn (listp=0x7f6f7302f5a8
+> <__exit_funcs>) at cxa_atexit.c:100
+> #9  0x00007f6f72cc0424 in __internal_atexit (func=0x3972062ae0
+> <std::ios_base::Init::~Init()>, arg=0x7f6f736ea9c8 <_ZStL8__ioinit>,
+> d=0x7f6f736df170, listp=<optimized out>) at cxa_atexit.c:34
+> #10 0x00007f6f7342336e in __cxx_global_var_init () at
+> /usr/lib/gcc/x86_64-redhat-linux/4.4.7/../../../../include/c++/4.4.7/iostream:72
+> #11 0x00007f6f73423389 in global constructors keyed to a() () at
+> /tb/builds/thd/sbn/2.6/src/thirdparty/quickfix/1.12.4/src/src/C++/SocketInitiator.cpp:54
+> #12 0x00007f6f7348aa36 in __do_global_ctors_aux () from
+> //home/eiva/git/tb/build.x86_64-unknown-linux/platform/lib64/libquickfix.so.10
+> #13 0x00007f6f733cdb43 in _init () from
+> //home/eiva/git/tb/build.x86_64-unknown-linux/platform/lib64/libquickfix.so.10
+> #14 0x00007ffff9915058 in ?? ()
+> #15 0x00007f6f73953849 in call_init (l=0x7f6f73b65540,
+> argc=1936584824, argv=0x7ffff9915048, env=0x7ffff9915058) at
+> dl-init.c:69
+> #16 0x00007f6f73953987 in _dl_init (main_map=0x7f6f73b691c8, argc=1,
+> argv=0x7ffff9915048, env=0x7ffff9915058) at dl-init.c:133
+> #17 0x00007f6f73945b2a in _dl_start_user () from
+> /home/eiva/prefix/glibc-2.16/lib/ld-2.16.so
+> #18 0x0000000000000001 in ?? ()
+> #19 0x00007ffff9917072 in ?? ()
+> #20 0x0000000000000000 in ?? ()
+> 
+> It is always reproducible with libquickfix-1.12.4 linked against my
+> application (libc-2.12 and libc-2.16).
+> MALLOC_CONF="prof:true"
+> 
+> Is it issue in jemalloc or in glibc?
+
+libquickfix is registering an atexit() function inside a library initializer, prior to any other allocation having triggered jemalloc initialization.  During jemalloc initialization, there are two potential atexit() calls, one for heap profiling and one for printing stats at exit.  The deadlock here is occurring due to glibc's atexit() code holding a lock during the calloc() call that triggers jemalloc initialization, and jemalloc trying to call back into the atexit() code.
+
+There's little jemalloc can do about this except to avoid atexit().  However, you may still be able to use heap profiling in conjunction with libquickfix.  I vaguely recall that it is possible to specify precedences for library initializers; you can probably free(malloc(1)) inside a high priority library initializer inside your own application code and cause jemalloc to be initialized prior to libquickfix, in which case the recursive atexit() deadlock will be avoided.
+
+Jason
+
+From nate at verse.com  Wed Jan 15 21:22:09 2014
+From: nate at verse.com (Nathan Kurz)
+Date: Wed, 15 Jan 2014 21:22:09 -0800
+Subject: SSD backing
+Message-ID: <CAFAN8vxt-ZF=gF9GYqP-fk+YrTrTTCTerT_JofnKphN-q1e7aA@mail.gmail.com>
+
+Several months ago, Jason Evans wrote:
+> Also of relevance: the SSD backing feature you added existed
+> in 2.x versions of jemalloc, but I removed it because no one
+> ever claimed to have found it useful.
+
+I'm just learning about this now, but if it's what I want it to be,
+this seems like a very useful feature.   Do you have a description of
+it written up, or a link to the code that last used it?
+
+What I've been wanting for quite a while is a modern malloc() that
+does all of it's allocations from one or a small number of arenas of
+mmap() files.  All the meta-information (free-lists, locking, etc.)
+should be stored in the arena itself.
+
+It would be used as a shared memory segment between processes.   The
+main use case would be holding index records for real time search.
+There would be a limited number of writers but many readers.
+
+The entry point for the reader processes would be at some known offset
+that holds an index (or index of indexes).  All the rest of
+allocations would be would be accessible from there.  New readers
+could jump in at any point, old ones could die, but as long as the OS
+doesn't crash at the wrong point the data would be synced to disk.
+
+Thanks!
+
+--nate
+
+
+From akuts at yandex-team.ru  Tue Jan 21 02:46:27 2014
+From: akuts at yandex-team.ru (Alexey Kuts)
+Date: Tue, 21 Jan 2014 13:46:27 +0300
+Subject: hang in jemalloc()
+Message-ID: <52DE5003.3060705@yandex-team.ru>
+
+Hi,
+
+sometimes (maybe once per day) we have
+an annoying hang in jemalloc().
+
+jemalloc-version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+
+
+#0  0x00007f6bd681a89c in __lll_lock_wait () from 
+/lib/x86_64-linux-gnu/libpthread.so.0
+#1  0x00007f6bd6816080 in _L_lock_903 () from 
+/lib/x86_64-linux-gnu/libpthread.so.0
+#2  0x00007f6bd6815f19 in pthread_mutex_lock () from 
+/lib/x86_64-linux-gnu/libpthread.so.0
+#3  0x0000000000459127 in malloc_mutex_lock (mutex=0x7f6bd4400a08) at 
+include/jemalloc/internal/mutex.h:77
+#4  tcache_bin_flush_small (tbin=<optimized out>, binind=15, rem=3, 
+tcache=0x7f6bd4006000) at src/tcache.c:105
+#5  0x000000000045958d in tcache_event_hard (tcache=0x7f6bd4006000) at 
+src/tcache.c:39
+#6  0x0000000000437ebe in tcache_event (tcache=0x7f6bd4006000) at 
+include/jemalloc/internal/tcache.h:271
+#7  tcache_alloc_large (size=<optimized out>, tcache=<optimized out>, 
+zero=<optimized out>) at include/jemalloc/internal/tcache.h:383
+#8  arena_malloc (zero=false, size=<optimized out>, arena=0x0, 
+try_tcache=true) at include/jemalloc/internal/arena.h:944
+#9  imallocx (arena=0x0, try_tcache=true, size=<optimized out>) at 
+include/jemalloc/internal/jemalloc_internal.h:798
+#10 imalloc (size=<optimized out>) at 
+include/jemalloc/internal/jemalloc_internal.h:807
+#11 jemalloc (size=<optimized out>) at src/jemalloc.c:887
+#12 0x00007f6bd6d3bad8 in xmlStrndup () from 
+/usr/lib/x86_64-linux-gnu/libxml2.so.2
+#13 0x00007f6bd6ce3029 in xmlNodeListGetString () from 
+/usr/lib/x86_64-linux-gnu/libxml2.so.2
+#14 0x00007f6bd6d0038f in xmlValidateElement () from 
+/usr/lib/x86_64-linux-gnu/libxml2.so.2
+#15 0x00007f6bd6d0034e in xmlValidateElement () from 
+/usr/lib/x86_64-linux-gnu/libxml2.so.2
+#16 0x00007f6bd6d0034e in xmlValidateElement () from 
+/usr/lib/x86_64-linux-gnu/libxml2.so.2
+#17 0x00007f6bd6d00528 in xmlValidateDtd () from 
+/usr/lib/x86_64-linux-gnu/libxml2.so.2
+#18 0x00007f6bd7005355 in xmlpp::DtdValidator::validate(xmlpp::Document 
+const*) () from /usr/lib/libxml++-2.6.so.2
+
+Will appreciate any hints or suggestions
+
+-- 
+Kuts Alexey
+
+
+From esmet at tokutek.com  Wed Jan 22 10:30:42 2014
+From: esmet at tokutek.com (John Esmet)
+Date: Wed, 22 Jan 2014 13:30:42 -0500
+Subject: hang in jemalloc()
+In-Reply-To: <52DE5003.3060705@yandex-team.ru>
+References: <52DE5003.3060705@yandex-team.ru>
+Message-ID: <CABQjj0=eav_jk-7yHi+ig0gjpWEa0NmNR1JcCjz_U0Fd8ctM+Q@mail.gmail.com>
+
+Hi Alexey,
+
+I have run into similar issues (exorbitantly long wait times for the malloc
+mutex). The only way I could reduce the pain was to either reduce the
+number of threads, or reduce the amount of malloc/free() done by the
+application.
+
+If you're using a library (like this xml one) it may be hard to reduce the
+number of malloc/frees() actually done.
+
+Can you try getting a full set of stack traces on the next stall (for all
+threads?). I have a feeling that your particular stack trace may be held up
+behind an arena_flush() but it'd be good to know for sure.
+
+
+On Tue, Jan 21, 2014 at 5:46 AM, Alexey Kuts <akuts at yandex-team.ru> wrote:
+
+> Hi,
+>
+> sometimes (maybe once per day) we have
+> an annoying hang in jemalloc().
+>
+> jemalloc-version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+> Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+>
+>
+> #0  0x00007f6bd681a89c in __lll_lock_wait () from /lib/x86_64-linux-gnu/
+> libpthread.so.0
+> #1  0x00007f6bd6816080 in _L_lock_903 () from /lib/x86_64-linux-gnu/
+> libpthread.so.0
+> #2  0x00007f6bd6815f19 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/
+> libpthread.so.0
+> #3  0x0000000000459127 in malloc_mutex_lock (mutex=0x7f6bd4400a08) at
+> include/jemalloc/internal/mutex.h:77
+> #4  tcache_bin_flush_small (tbin=<optimized out>, binind=15, rem=3,
+> tcache=0x7f6bd4006000) at src/tcache.c:105
+> #5  0x000000000045958d in tcache_event_hard (tcache=0x7f6bd4006000) at
+> src/tcache.c:39
+> #6  0x0000000000437ebe in tcache_event (tcache=0x7f6bd4006000) at
+> include/jemalloc/internal/tcache.h:271
+> #7  tcache_alloc_large (size=<optimized out>, tcache=<optimized out>,
+> zero=<optimized out>) at include/jemalloc/internal/tcache.h:383
+> #8  arena_malloc (zero=false, size=<optimized out>, arena=0x0,
+> try_tcache=true) at include/jemalloc/internal/arena.h:944
+> #9  imallocx (arena=0x0, try_tcache=true, size=<optimized out>) at
+> include/jemalloc/internal/jemalloc_internal.h:798
+> #10 imalloc (size=<optimized out>) at include/jemalloc/internal/
+> jemalloc_internal.h:807
+> #11 jemalloc (size=<optimized out>) at src/jemalloc.c:887
+> #12 0x00007f6bd6d3bad8 in xmlStrndup () from /usr/lib/x86_64-linux-gnu/
+> libxml2.so.2
+> #13 0x00007f6bd6ce3029 in xmlNodeListGetString () from
+> /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #14 0x00007f6bd6d0038f in xmlValidateElement () from
+> /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #15 0x00007f6bd6d0034e in xmlValidateElement () from
+> /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #16 0x00007f6bd6d0034e in xmlValidateElement () from
+> /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #17 0x00007f6bd6d00528 in xmlValidateDtd () from /usr/lib/x86_64-linux-gnu/
+> libxml2.so.2
+> #18 0x00007f6bd7005355 in xmlpp::DtdValidator::validate(xmlpp::Document
+> const*) () from /usr/lib/libxml++-2.6.so.2
+>
+> Will appreciate any hints or suggestions
+>
+> --
+> Kuts Alexey
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140122/0936af7d/attachment.html>
+
+From rnsanchez at wait4.org  Wed Jan 22 15:10:02 2014
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Wed, 22 Jan 2014 21:10:02 -0200
+Subject: hang in jemalloc()
+In-Reply-To: <52DE5003.3060705@yandex-team.ru>
+References: <52DE5003.3060705@yandex-team.ru>
+Message-ID: <20140122211002.103117e8@darkbook.lan.box>
+
+Hello Alexey,
+
+On Tue, 21 Jan 2014 13:46:27 +0300
+Alexey Kuts <akuts at yandex-team.ru> wrote:
+
+> sometimes (maybe once per day) we have
+> an annoying hang in jemalloc().
+> 
+> jemalloc-version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+> Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+
+Any chance you're using glibc <= 2.11?  If so, I'd try ruling glibc out
+first.
+
+Cheers
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+
+From i at eivanov.com  Thu Jan 23 01:03:41 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Thu, 23 Jan 2014 13:03:41 +0400
+Subject: Deadlock during application startup (jemalloc with prof:true)
+In-Reply-To: <8026BAA0-77AE-4EFD-AE2F-626B98BCCF60@canonware.com>
+References: <CAO6Ho0drNGubtoBLUZMn4gZ1BK9XEa1sMLzogW1G0WGFpdxT2w@mail.gmail.com>
+	<8026BAA0-77AE-4EFD-AE2F-626B98BCCF60@canonware.com>
+Message-ID: <CAO6Ho0fSJFxdw9GBApLv4y2UQHpQU_g4NBePpvnAT4jd2d5aSA@mail.gmail.com>
+
+Jason, thank you for explanation! We linked libquickfix against
+jemalloc and it helped because of changed initialization order.
+
+On Tue, Jan 21, 2014 at 10:12 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Jan 20, 2014, at 1:03 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+>> I got a following deadlock:
+>>
+>> #0  __lll_lock_wait_private () at
+>> ../nptl/sysdeps/unix/sysv/linux/x86_64/lowlevellock.S:95
+>> #1  0x00007f6f72cc048f in _L_lock_16 () from
+>> /home/eiva/prefix/glibc-2.16/lib/libc.so.6
+>> #2  0x00007f6f72cc02d1 in __new_exitfn (listp=0x7f6f73030c80 <lock>)
+>> at cxa_atexit.c:78
+>> #3  0x00007f6f72cc0424 in __internal_atexit (func=0x7f6f7371aad0
+>> <prof_fdump>, arg=0x0, d=0x7f6f73932570, listp=<optimized out>) at
+>> cxa_atexit.c:34
+>> #4  0x00007f6f7371a9d7 in prof_boot2 () at
+>> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/prof.c:1212
+>> #5  0x00007f6f736f3c4e in malloc_init_hard () at
+>> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:790
+>> #6  0x00007f6f736effc4 in malloc_init () at
+>> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:306
+>> #7  0x00007f6f736f0698 in calloc (num=1, size=1040) at
+>> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:1036
+>> #8  0x00007f6f72cc03ba in __new_exitfn (listp=0x7f6f7302f5a8
+>> <__exit_funcs>) at cxa_atexit.c:100
+>> #9  0x00007f6f72cc0424 in __internal_atexit (func=0x3972062ae0
+>> <std::ios_base::Init::~Init()>, arg=0x7f6f736ea9c8 <_ZStL8__ioinit>,
+>> d=0x7f6f736df170, listp=<optimized out>) at cxa_atexit.c:34
+>> #10 0x00007f6f7342336e in __cxx_global_var_init () at
+>> /usr/lib/gcc/x86_64-redhat-linux/4.4.7/../../../../include/c++/4.4.7/iostream:72
+>> #11 0x00007f6f73423389 in global constructors keyed to a() () at
+>> /tb/builds/thd/sbn/2.6/src/thirdparty/quickfix/1.12.4/src/src/C++/SocketInitiator.cpp:54
+>> #12 0x00007f6f7348aa36 in __do_global_ctors_aux () from
+>> //home/eiva/git/tb/build.x86_64-unknown-linux/platform/lib64/libquickfix.so.10
+>> #13 0x00007f6f733cdb43 in _init () from
+>> //home/eiva/git/tb/build.x86_64-unknown-linux/platform/lib64/libquickfix.so.10
+>> #14 0x00007ffff9915058 in ?? ()
+>> #15 0x00007f6f73953849 in call_init (l=0x7f6f73b65540,
+>> argc=1936584824, argv=0x7ffff9915048, env=0x7ffff9915058) at
+>> dl-init.c:69
+>> #16 0x00007f6f73953987 in _dl_init (main_map=0x7f6f73b691c8, argc=1,
+>> argv=0x7ffff9915048, env=0x7ffff9915058) at dl-init.c:133
+>> #17 0x00007f6f73945b2a in _dl_start_user () from
+>> /home/eiva/prefix/glibc-2.16/lib/ld-2.16.so
+>> #18 0x0000000000000001 in ?? ()
+>> #19 0x00007ffff9917072 in ?? ()
+>> #20 0x0000000000000000 in ?? ()
+>>
+>> It is always reproducible with libquickfix-1.12.4 linked against my
+>> application (libc-2.12 and libc-2.16).
+>> MALLOC_CONF="prof:true"
+>>
+>> Is it issue in jemalloc or in glibc?
+>
+> libquickfix is registering an atexit() function inside a library initializer, prior to any other allocation having triggered jemalloc initialization.  During jemalloc initialization, there are two potential atexit() calls, one for heap profiling and one for printing stats at exit.  The deadlock here is occurring due to glibc's atexit() code holding a lock during the calloc() call that triggers jemalloc initialization, and jemalloc trying to call back into the atexit() code.
+>
+> There's little jemalloc can do about this except to avoid atexit().  However, you may still be able to use heap profiling in conjunction with libquickfix.  I vaguely recall that it is possible to specify precedences for library initializers; you can probably free(malloc(1)) inside a high priority library initializer inside your own application code and cause jemalloc to be initialized prior to libquickfix, in which case the recursive atexit() deadlock will be avoided.
+>
+> Jason
+
+
+
+-- 
+Cheers,
+Evgeniy
+
+
+From akuts at yandex-team.ru  Thu Jan 23 02:20:41 2014
+From: akuts at yandex-team.ru (Alexey Kuts)
+Date: Thu, 23 Jan 2014 13:20:41 +0300
+Subject: hang in jemalloc()
+In-Reply-To: <20140122211002.103117e8@darkbook.lan.box>
+References: <52DE5003.3060705@yandex-team.ru>
+	<20140122211002.103117e8@darkbook.lan.box>
+Message-ID: <52E0ECF9.3090600@yandex-team.ru>
+
+We have glibc 2.32.3-0ubuntu1
+
+dpkg -l | grep libglib2
+libglib2.0-0                                    2.32.3-0ubuntu1
+
+23.01.2014 2:10, Ricardo Nabinger Sanchez ?????:
+> Hello Alexey,
+>
+> On Tue, 21 Jan 2014 13:46:27 +0300
+> Alexey Kuts<akuts at yandex-team.ru>  wrote:
+>
+>> sometimes (maybe once per day) we have
+>> an annoying hang in jemalloc().
+>>
+>> jemalloc-version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+>> Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+>
+> Any chance you're using glibc<= 2.11?  If so, I'd try ruling glibc out
+> first.
+>
+> Cheers
+>
+
+
+
+From akuts at yandex-team.ru  Thu Jan 23 02:21:56 2014
+From: akuts at yandex-team.ru (Alexey Kuts)
+Date: Thu, 23 Jan 2014 13:21:56 +0300
+Subject: hang in jemalloc()
+In-Reply-To: <CABQjj0=eav_jk-7yHi+ig0gjpWEa0NmNR1JcCjz_U0Fd8ctM+Q@mail.gmail.com>
+References: <52DE5003.3060705@yandex-team.ru>
+	<CABQjj0=eav_jk-7yHi+ig0gjpWEa0NmNR1JcCjz_U0Fd8ctM+Q@mail.gmail.com>
+Message-ID: <52E0ED44.9010901@yandex-team.ru>
+
+our case is always single threaded (it-is mapreduce-job).
+
+22.01.2014 21:30, John Esmet ?????:
+> Hi Alexey,
+>
+> I have run into similar issues (exorbitantly long wait times for the
+> malloc mutex). The only way I could reduce the pain was to either reduce
+> the number of threads, or reduce the amount of malloc/free() done by the
+> application.
+>
+> If you're using a library (like this xml one) it may be hard to reduce
+> the number of malloc/frees() actually done.
+>
+> Can you try getting a full set of stack traces on the next stall (for
+> all threads?). I have a feeling that your particular stack trace may be
+> held up behind an arena_flush() but it'd be good to know for sure.
+>
+>
+> On Tue, Jan 21, 2014 at 5:46 AM, Alexey Kuts <akuts at yandex-team.ru
+> <mailto:akuts at yandex-team.ru>> wrote:
+>
+>     Hi,
+>
+>     sometimes (maybe once per day) we have
+>     an annoying hang in jemalloc().
+>
+>     jemalloc-version: 3.4.1-0-__g0135fb806e4137dc9cdf152541926__a2bc95e33f0
+>     Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+>
+>
+>     #0  0x00007f6bd681a89c in __lll_lock_wait () from
+>     /lib/x86_64-linux-gnu/__libpthread.so.0
+>     #1  0x00007f6bd6816080 in _L_lock_903 () from
+>     /lib/x86_64-linux-gnu/__libpthread.so.0
+>     #2  0x00007f6bd6815f19 in pthread_mutex_lock () from
+>     /lib/x86_64-linux-gnu/__libpthread.so.0
+>     #3  0x0000000000459127 in malloc_mutex_lock (mutex=0x7f6bd4400a08)
+>     at include/jemalloc/internal/__mutex.h:77
+>     #4  tcache_bin_flush_small (tbin=<optimized out>, binind=15, rem=3,
+>     tcache=0x7f6bd4006000) at src/tcache.c:105
+>     #5  0x000000000045958d in tcache_event_hard (tcache=0x7f6bd4006000)
+>     at src/tcache.c:39
+>     #6  0x0000000000437ebe in tcache_event (tcache=0x7f6bd4006000) at
+>     include/jemalloc/internal/__tcache.h:271
+>     #7  tcache_alloc_large (size=<optimized out>, tcache=<optimized
+>     out>, zero=<optimized out>) at include/jemalloc/internal/__tcache.h:383
+>     #8  arena_malloc (zero=false, size=<optimized out>, arena=0x0,
+>     try_tcache=true) at include/jemalloc/internal/__arena.h:944
+>     #9  imallocx (arena=0x0, try_tcache=true, size=<optimized out>) at
+>     include/jemalloc/internal/__jemalloc_internal.h:798
+>     #10 imalloc (size=<optimized out>) at
+>     include/jemalloc/internal/__jemalloc_internal.h:807
+>     #11 jemalloc (size=<optimized out>) at src/jemalloc.c:887
+>     #12 0x00007f6bd6d3bad8 in xmlStrndup () from
+>     /usr/lib/x86_64-linux-gnu/__libxml2.so.2
+>     #13 0x00007f6bd6ce3029 in xmlNodeListGetString () from
+>     /usr/lib/x86_64-linux-gnu/__libxml2.so.2
+>     #14 0x00007f6bd6d0038f in xmlValidateElement () from
+>     /usr/lib/x86_64-linux-gnu/__libxml2.so.2
+>     #15 0x00007f6bd6d0034e in xmlValidateElement () from
+>     /usr/lib/x86_64-linux-gnu/__libxml2.so.2
+>     #16 0x00007f6bd6d0034e in xmlValidateElement () from
+>     /usr/lib/x86_64-linux-gnu/__libxml2.so.2
+>     #17 0x00007f6bd6d00528 in xmlValidateDtd () from
+>     /usr/lib/x86_64-linux-gnu/__libxml2.so.2
+>     #18 0x00007f6bd7005355 in
+>     xmlpp::DtdValidator::validate(__xmlpp::Document const*) () from
+>     /usr/lib/libxml++-2.6.so.2
+>
+>     Will appreciate any hints or suggestions
+>
+>     --
+>     Kuts Alexey
+>     _________________________________________________
+>     jemalloc-discuss mailing list
+>     jemalloc-discuss at canonware.com <mailto:jemalloc-discuss at canonware.com>
+>     http://www.canonware.com/__mailman/listinfo/jemalloc-__discuss
+>     <http://www.canonware.com/mailman/listinfo/jemalloc-discuss>
+>
+>
+
+-- 
+??? ???????
+http://staff.yandex-team.ru/akuts
+
+
+From normalperson at yhbt.net  Thu Jan 23 16:35:27 2014
+From: normalperson at yhbt.net (Eric Wong)
+Date: Fri, 24 Jan 2014 00:35:27 +0000
+Subject: Pthread spinlock support
+In-Reply-To: <A16DA966-33BA-4027-9515-C91099BC01FE@canonware.com>
+References: <Pine.LNX.4.64.1312301450060.2564@artemis>
+	<A16DA966-33BA-4027-9515-C91099BC01FE@canonware.com>
+Message-ID: <20140124003527.GA26503@dcvr.yhbt.net>
+
+Jason Evans <jasone at canonware.com> wrote:
+> Furthermore, on Linux jemalloc uses adaptive mutexes,
+> which IIRC spin before blocking.
+
+Heh, I just attempted to write some other code using
+PTHREAD_MUTEX_ADAPTIVE_NP based on this comment and realized
+PTHREAD_MUTEX_ADAPTIVE_NP is not a macro and the adaptive mutex doesn't
+get used on Linux jemalloc.
+
+
+From jasone at canonware.com  Thu Jan 23 18:00:22 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 23 Jan 2014 18:00:22 -0800
+Subject: hang in jemalloc()
+In-Reply-To: <52DE5003.3060705@yandex-team.ru>
+References: <52DE5003.3060705@yandex-team.ru>
+Message-ID: <19490EA1-100E-468A-A379-5112E7027699@canonware.com>
+
+On Jan 21, 2014, at 2:46 AM, Alexey Kuts <akuts at yandex-team.ru> wrote:
+> sometimes (maybe once per day) we have
+> an annoying hang in jemalloc().
+> 
+> jemalloc-version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+> Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+> 
+> 
+> #0  0x00007f6bd681a89c in __lll_lock_wait () from /lib/x86_64-linux-gnu/libpthread.so.0
+> #1  0x00007f6bd6816080 in _L_lock_903 () from /lib/x86_64-linux-gnu/libpthread.so.0
+> #2  0x00007f6bd6815f19 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libpthread.so.0
+> #3  0x0000000000459127 in malloc_mutex_lock (mutex=0x7f6bd4400a08) at include/jemalloc/internal/mutex.h:77
+> #4  tcache_bin_flush_small (tbin=<optimized out>, binind=15, rem=3, tcache=0x7f6bd4006000) at src/tcache.c:105
+> #5  0x000000000045958d in tcache_event_hard (tcache=0x7f6bd4006000) at src/tcache.c:39
+> #6  0x0000000000437ebe in tcache_event (tcache=0x7f6bd4006000) at include/jemalloc/internal/tcache.h:271
+> #7  tcache_alloc_large (size=<optimized out>, tcache=<optimized out>, zero=<optimized out>) at include/jemalloc/internal/tcache.h:383
+> #8  arena_malloc (zero=false, size=<optimized out>, arena=0x0, try_tcache=true) at include/jemalloc/internal/arena.h:944
+> #9  imallocx (arena=0x0, try_tcache=true, size=<optimized out>) at include/jemalloc/internal/jemalloc_internal.h:798
+> #10 imalloc (size=<optimized out>) at include/jemalloc/internal/jemalloc_internal.h:807
+> #11 jemalloc (size=<optimized out>) at src/jemalloc.c:887
+> #12 0x00007f6bd6d3bad8 in xmlStrndup () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #13 0x00007f6bd6ce3029 in xmlNodeListGetString () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #14 0x00007f6bd6d0038f in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #15 0x00007f6bd6d0034e in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #16 0x00007f6bd6d0034e in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #17 0x00007f6bd6d00528 in xmlValidateDtd () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+> #18 0x00007f6bd7005355 in xmlpp::DtdValidator::validate(xmlpp::Document const*) () from /usr/lib/libxml++-2.6.so.2
+> 
+> Will appreciate any hints or suggestions
+
+I just audited the mutex operations, and I see no way that a bin mutex can enter the locked state without later being unlocked.  Is your application using the allocator inside signal handlers, by any chance?
+
+Jason
+
+From valtteri at rahkonen.fi  Thu Jan 23 18:50:26 2014
+From: valtteri at rahkonen.fi (valtteri at rahkonen.fi)
+Date: Fri, 24 Jan 2014 04:50:26 +0200 (EET)
+Subject: Pthread spinlock support
+In-Reply-To: <A16DA966-33BA-4027-9515-C91099BC01FE@canonware.com>
+References: <Pine.LNX.4.64.1312301450060.2564@artemis>
+	<A16DA966-33BA-4027-9515-C91099BC01FE@canonware.com>
+Message-ID: <Pine.LNX.4.64.1401240417350.21390@artemis>
+
+On Tue, 14 Jan 2014, Jason Evans wrote:
+
+> On Dec 30, 2013, at 5:23 AM, valtteri at rahkonen.fi wrote:
+>> I noticed that the OSX version of the jemalloc uses spin locks and decided to implement support for the pthread spin locks that can be used in Linux. At least in my case there is huge benefit because I run a single thread in a specific core that has not that much other activity and pthread mutex lock contention seems to always schedule the thread away from execution, so spin locking seems to give more stable result while adding bit more CPU load. Most likely in more general case this would not be wanted, because there would be more threads/processes running on same core and thus the scheduling might give execution time for some other important threads like the one having the lock taken.
+>>
+>> What do you think, is this something that could be merged to the upstream? My patch implements new configure script option --enable-pthread-spinlock that turns on the pthread spin lock i.e. the spin locks are not used by default because of the scheduling benefit with normal use.
+>
+> The only reason jemalloc uses spinlocks on OS X is that normal pthread mutex creation uses malloc() internally, and that causes bootstrapping issues.  Under all the real-world scenarios I've examined, mutex contention is negligible.  Furthermore, on Linux jemalloc uses adaptive mutexes, which IIRC spin before blocking.  Do you have an application for which your patch makes a significant difference?
+>
+> Thanks,
+> Jason
+
+Hi Jason,
+
+I have a case where I have a specialized thread running in it's own CPU 
+and there is not be that much activity in same CPU core. I have internal 
+memory allocator that allows the process to increase up to certain limit 
+and after the predefined limit the application starts to do it's onw 
+garbage collecting i.e. the thread cache can be mostly empty when the 
+process size is allowed to grow. This means that the global arena is 
+accessed a lot and when there is lot of CPU's the locks start to matter. 
+When running my application I don't typically see full CPU load when there 
+is lot of CPU's because eventually the mutex will put the process away 
+from execution and with spinlock's that obviously doens't happen. There 
+is definetely a measurable difference with different locking methods.
+
+In the more general setup using spinlocks is probably not that good 
+because then the other execution in the same CPU is prevented but with my 
+specialized case the spinlock do matter.
+
+-- 
+Valtteri Rahkonen
+valtteri at rahkonen.fi
+http://www.rahkonen.fi
++358 40 5077041
+
+
+From akuts at yandex-team.ru  Fri Jan 24 04:05:47 2014
+From: akuts at yandex-team.ru (Alexey Kuts)
+Date: Fri, 24 Jan 2014 15:05:47 +0300
+Subject: hang in jemalloc()
+In-Reply-To: <19490EA1-100E-468A-A379-5112E7027699@canonware.com>
+References: <52DE5003.3060705@yandex-team.ru>
+	<19490EA1-100E-468A-A379-5112E7027699@canonware.com>
+Message-ID: <52E2571B.2090608@yandex-team.ru>
+
+we don't set any signal handlers,
+also grepping source code of lixml2.7.6
+i didn't find any sign of signal setting (except of SIGFPE in trionan.h)
+
+
+24.01.2014 5:00, Jason Evans ?????:
+> On Jan 21, 2014, at 2:46 AM, Alexey Kuts<akuts at yandex-team.ru>  wrote:
+>> sometimes (maybe once per day) we have
+>> an annoying hang in jemalloc().
+>>
+>> jemalloc-version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+>> Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+>>
+>>
+>> #0  0x00007f6bd681a89c in __lll_lock_wait () from /lib/x86_64-linux-gnu/libpthread.so.0
+>> #1  0x00007f6bd6816080 in _L_lock_903 () from /lib/x86_64-linux-gnu/libpthread.so.0
+>> #2  0x00007f6bd6815f19 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libpthread.so.0
+>> #3  0x0000000000459127 in malloc_mutex_lock (mutex=0x7f6bd4400a08) at include/jemalloc/internal/mutex.h:77
+>> #4  tcache_bin_flush_small (tbin=<optimized out>, binind=15, rem=3, tcache=0x7f6bd4006000) at src/tcache.c:105
+>> #5  0x000000000045958d in tcache_event_hard (tcache=0x7f6bd4006000) at src/tcache.c:39
+>> #6  0x0000000000437ebe in tcache_event (tcache=0x7f6bd4006000) at include/jemalloc/internal/tcache.h:271
+>> #7  tcache_alloc_large (size=<optimized out>, tcache=<optimized out>, zero=<optimized out>) at include/jemalloc/internal/tcache.h:383
+>> #8  arena_malloc (zero=false, size=<optimized out>, arena=0x0, try_tcache=true) at include/jemalloc/internal/arena.h:944
+>> #9  imallocx (arena=0x0, try_tcache=true, size=<optimized out>) at include/jemalloc/internal/jemalloc_internal.h:798
+>> #10 imalloc (size=<optimized out>) at include/jemalloc/internal/jemalloc_internal.h:807
+>> #11 jemalloc (size=<optimized out>) at src/jemalloc.c:887
+>> #12 0x00007f6bd6d3bad8 in xmlStrndup () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+>> #13 0x00007f6bd6ce3029 in xmlNodeListGetString () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+>> #14 0x00007f6bd6d0038f in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+>> #15 0x00007f6bd6d0034e in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+>> #16 0x00007f6bd6d0034e in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+>> #17 0x00007f6bd6d00528 in xmlValidateDtd () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+>> #18 0x00007f6bd7005355 in xmlpp::DtdValidator::validate(xmlpp::Document const*) () from /usr/lib/libxml++-2.6.so.2
+>>
+>> Will appreciate any hints or suggestions
+>
+> I just audited the mutex operations, and I see no way that a bin mutex can enter the locked state without later being unlocked.  Is your application using the allocator inside signal handlers, by any chance?
+>
+> Jason
+
+Kuts Alexey
+
+
+From rnsanchez at wait4.org  Sat Jan 25 04:05:58 2014
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Sat, 25 Jan 2014 10:05:58 -0200
+Subject: hang in jemalloc()
+In-Reply-To: <52E0ECF9.3090600@yandex-team.ru>
+References: <52DE5003.3060705@yandex-team.ru>
+	<20140122211002.103117e8@darkbook.lan.box>
+	<52E0ECF9.3090600@yandex-team.ru>
+Message-ID: <20140125100558.384049f9@darkbook.lan.box>
+
+Hello Alexey,
+
+On Thu, 23 Jan 2014 13:20:41 +0300
+Alexey Kuts <akuts at yandex-team.ru> wrote:
+
+> We have glibc 2.32.3-0ubuntu1
+> 
+> dpkg -l | grep libglib2
+> libglib2.0-0                                    2.32.3-0ubuntu1
+
+That is not glibc.  :-)
+
+Latest stable is 2.18, for reference.
+
+Cheers
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+
+From normalperson at yhbt.net  Sat Jan 25 18:14:29 2014
+From: normalperson at yhbt.net (Eric Wong)
+Date: Sun, 26 Jan 2014 02:14:29 +0000
+Subject: proposal to include jemalloc in Ruby
+Message-ID: <20140126021429.GB4281@dcvr.yhbt.net>
+
+Hi all, I thought I'd let everybody here know there's a proposal to ship
+jemalloc out-of-the-box for mainline Ruby:
+
+https://bugs.ruby-lang.org/issues/9113
+https://bugs.ruby-lang.org/issues/9113.atom
+
+Comments/feedback/corrections would be appreciated.
+You can also subscribe to ruby-core mailing list to comment:
+http://lists.ruby-lang.org/cgi-bin/mailman/listinfo/ruby-core
+
+
+From jasone at canonware.com  Mon Jan 27 17:49:06 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 27 Jan 2014 17:49:06 -0800
+Subject: SSD backing
+In-Reply-To: <CAFAN8vxt-ZF=gF9GYqP-fk+YrTrTTCTerT_JofnKphN-q1e7aA@mail.gmail.com>
+References: <CAFAN8vxt-ZF=gF9GYqP-fk+YrTrTTCTerT_JofnKphN-q1e7aA@mail.gmail.com>
+Message-ID: <62EB98AA-95AD-4FC1-A53E-AD832DE0B803@canonware.com>
+
+On Jan 15, 2014, at 9:22 PM, Nathan Kurz <nate at verse.com> wrote:
+Several months ago, Jason Evans wrote:
+>> Also of relevance: the SSD backing feature you added existed
+>> in 2.x versions of jemalloc, but I removed it because no one
+>> ever claimed to have found it useful.
+> 
+> I'm just learning about this now, but if it's what I want it to be,
+> this seems like a very useful feature.   Do you have a description of
+> it written up, or a link to the code that last used it?
+> 
+> What I've been wanting for quite a while is a modern malloc() that
+> does all of it's allocations from one or a small number of arenas of
+> mmap() files.  All the meta-information (free-lists, locking, etc.)
+> should be stored in the arena itself.
+> 
+> It would be used as a shared memory segment between processes.   The
+> main use case would be holding index records for real time search.
+> There would be a limited number of writers but many readers.
+
+Several people have expressed interest in an allocator that can be completely shared among processes via shared memory, but the 'swap' feature in jemalloc didn't support that, because there were quite a few static variables, spread across numerous compilation units, and all of those variables would have to be refactored for the shared memory allocator scenario.
+
+Jason
+
+From ismail at donmez.ws  Tue Jan 28 00:57:08 2014
+From: ismail at donmez.ws (=?UTF-8?B?xLBzbWFpbCBEw7ZubWV6?=)
+Date: Tue, 28 Jan 2014 10:57:08 +0200
+Subject: jemalloc 3.5.0 regressions on i586
+Message-ID: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+
+Hi,
+
+With jemalloc 3.5.0 we have a testsuite regression on openSUSE 13.1/i586
+with gcc 4.8.1,
+configured with ./configure --enable-cc-silence
+
+make check fails:
+
+test_stats_chunks:test/unit/stats.c:41: Failed assertion:
+(jet_mallctl("stats.chunks.total", &total, &sz, ((void *)0), 0)) ==
+(expected) --> 22 != 0: test_stats_chunks
+
+test_stats_arenas_bins:test/unit/stats.c:291: Failed assertion:
+(jet_mallctl("stats.arenas.0.bins.0.curruns", &curruns, &sz, ((void *)0),
+0)) == (expected) --> 22 != 0: test_stats_arenas_bins
+
+test_stats_arenas_lruns:test/unit/stats.c:343: Failed assertion:
+(jet_mallctl("stats.arenas.0.lruns.0.curruns", &curruns, &sz, ((void *)0),
+0)) == (expected) --> 22 != 0: test_stats_arenas_lruns
+
+test_oom_errors:test/integration/aligned_alloc.c:59: Failed assertion: (p
+!= ((void *)0) || je_get_errno() != 12) == (false) --> true != false:
+test_oom_errors
+
+test_alignment_errors:test/integration/mallocx.c:53: Failed assertion: (p)
+== (NULL) --> 0x40000000 != 0x0: test_alignment_errors
+
+test_oom_errors:test/integration/posix_memalign.c:53: Failed assertion:
+(posix_memalign(&p, alignment, size)) != (0) --> 0 == 0: test_oom_errors
+
+64bit builds are fine.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140128/da6d38db/attachment.html>
+
+From jasone at canonware.com  Tue Jan 28 18:13:11 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Jan 2014 18:13:11 -0800
+Subject: jemalloc 3.5.0 regressions on i586
+In-Reply-To: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+References: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+Message-ID: <269596CC-CDFE-4918-AF3E-D5D88C298A7A@canonware.com>
+
+On Jan 28, 2014, at 12:57 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+> With jemalloc 3.5.0 we have a testsuite regression on openSUSE 13.1/i586 with gcc 4.8.1, 
+> configured with ./configure --enable-cc-silence
+> 
+> make check fails:
+> 
+> test_stats_chunks:test/unit/stats.c:41: Failed assertion: (jet_mallctl("stats.chunks.total", &total, &sz, ((void *)0), 0)) == (expected) --> 22 != 0: test_stats_chunks
+> 
+> test_stats_arenas_bins:test/unit/stats.c:291: Failed assertion: (jet_mallctl("stats.arenas.0.bins.0.curruns", &curruns, &sz, ((void *)0), 0)) == (expected) --> 22 != 0: test_stats_arenas_bins
+> 
+> test_stats_arenas_lruns:test/unit/stats.c:343: Failed assertion: (jet_mallctl("stats.arenas.0.lruns.0.curruns", &curruns, &sz, ((void *)0), 0)) == (expected) --> 22 != 0: test_stats_arenas_lruns
+
+The stats failures are all due to mallctl argument size mismatches, fixed here:
+
+	https://github.com/jemalloc/jemalloc/commit/2b51a3e9e9bfebf081d25dfa92f3cd89e4a8ed73
+
+> test_oom_errors:test/integration/aligned_alloc.c:59: Failed assertion: (p != ((void *)0) || je_get_errno() != 12) == (false) --> true != false: test_oom_errors
+> 
+> test_alignment_errors:test/integration/mallocx.c:53: Failed assertion: (p) == (NULL) --> 0x40000000 != 0x0: test_alignment_errors
+> 
+> test_oom_errors:test/integration/posix_memalign.c:53: Failed assertion: (posix_memalign(&p, alignment, size)) != (0) --> 0 == 0: test_oom_errors
+> 
+> 64bit builds are fine.
+
+
+Wow, the machine is actually satisfying an mmap() request of size 0xd0000000 (3.5 GiB) in order for this to be happening.  The tests are flawed, and they "pass" on 64-bit systems because of the virtual memory hole in the middle of the 64-bit address space.  Fixed here:
+
+	https://github.com/jemalloc/jemalloc/commit/a184d3fcdecfaaf694029fb375d023882aea444e
+
+In the case of mallocx(), this is technically undefined territory, so just removed that test, but for aligned_alloc() and posix_memalign(), I increased the request size enough to guarantee failure.
+
+In summary, these failures are all due to test bugs, rather than bugs in the library itself.
+
+Thanks,
+Jason
+
+From edsiper at gmail.com  Tue Jan 28 19:49:08 2014
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Tue, 28 Jan 2014 21:49:08 -0600
+Subject: memcpy warnings on 3.5.0
+Message-ID: <CAMAQhePZ1Cdfgb30ULFGNqLPg1Rd3fYY1RLjT4ugWTwo5iZfaA@mail.gmail.com>
+
+Hi,
+
+are these warnings relevants ?
+
+In function 'memcpy',
+    inlined from 'je_prof_boot0' at src/prof.c:1289:8:
+/usr/include/x86_64-linux-gnu/bits/string3.h:51:3: warning: call to
+__builtin___memcpy_chk will always overflow destination buffer [enabled by
+default]
+   return __builtin___memcpy_chk (__dest, __src, __len, __bos0 (__dest));
+   ^
+In file included from /usr/include/string.h:638:0,
+                 from include/jemalloc/internal/jemalloc_internal.h:41,
+                 from src/prof.c:2:
+In function 'memcpy',
+    inlined from 'je_prof_boot0' at src/prof.c:1289:8:
+/usr/include/x86_64-linux-gnu/bits/string3.h:51:3: warning: call to
+__builtin___memcpy_chk will always overflow destination buffer [enabled by
+default]
+   return __builtin___memcpy_chk (__dest, __src, __len, __bos0 (__dest));
+
+regards,
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140128/ed2ab01e/attachment.html>
+
+From jasone at canonware.com  Tue Jan 28 23:00:09 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Jan 2014 23:00:09 -0800
+Subject: memcpy warnings on 3.5.0
+In-Reply-To: <CAMAQhePZ1Cdfgb30ULFGNqLPg1Rd3fYY1RLjT4ugWTwo5iZfaA@mail.gmail.com>
+References: <CAMAQhePZ1Cdfgb30ULFGNqLPg1Rd3fYY1RLjT4ugWTwo5iZfaA@mail.gmail.com>
+Message-ID: <629B268B-4D2D-498F-9A21-12765019AB51@canonware.com>
+
+On Jan 28, 2014, at 7:49 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> are these warnings relevants ?
+> 
+> In function ?memcpy?,
+>     inlined from ?je_prof_boot0? at src/prof.c:1289:8:
+> /usr/include/x86_64-linux-gnu/bits/string3.h:51:3: warning: call to __builtin___memcpy_chk will always overflow destination buffer [enabled by default]
+>    return __builtin___memcpy_chk (__dest, __src, __len, __bos0 (__dest));
+>    ^
+> In file included from /usr/include/string.h:638:0,
+>                  from include/jemalloc/internal/jemalloc_internal.h:41,
+>                  from src/prof.c:2:
+> In function ?memcpy?,
+>     inlined from ?je_prof_boot0? at src/prof.c:1289:8:
+> /usr/include/x86_64-linux-gnu/bits/string3.h:51:3: warning: call to __builtin___memcpy_chk will always overflow destination buffer [enabled by default]
+>    return __builtin___memcpy_chk (__dest, __src, __len, __bos0 (__dest));
+
+My guess is that you don?t have heap profiling enabled (?enable-prof), and that the compiler is complaining about what is effectively dead code.  An easy solution is to protect the memcpy() with a conditional:
+
+	if (config_prof)
+
+I?ll make a note to do something like this in order to silence the warnings.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Jan 28 23:07:22 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Jan 2014 23:07:22 -0800
+Subject: memcpy warnings on 3.5.0
+In-Reply-To: <629B268B-4D2D-498F-9A21-12765019AB51@canonware.com>
+References: <CAMAQhePZ1Cdfgb30ULFGNqLPg1Rd3fYY1RLjT4ugWTwo5iZfaA@mail.gmail.com>
+	<629B268B-4D2D-498F-9A21-12765019AB51@canonware.com>
+Message-ID: <6FB10892-C996-42EA-B5C3-B7508129C2C8@canonware.com>
+
+On Jan 28, 2014, at 11:00 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Jan 28, 2014, at 7:49 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+>> are these warnings relevants ?
+> 
+> My guess is that you don?t have heap profiling enabled (?enable-prof), and that the compiler is complaining about what is effectively dead code.  An easy solution is to protect the memcpy() with a conditional:
+> 
+> 	if (config_prof)
+> 
+> I?ll make a note to do something like this in order to silence the warnings.
+
+I took a slightly different approach:
+
+	https://github.com/jemalloc/jemalloc/commit/5f60afa01eb2cf7d44024d162a1ecc6cceedcca1
+
+Jason
+
+From edsiper at gmail.com  Tue Jan 28 23:10:01 2014
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Wed, 29 Jan 2014 01:10:01 -0600
+Subject: memcpy warnings on 3.5.0
+In-Reply-To: <6FB10892-C996-42EA-B5C3-B7508129C2C8@canonware.com>
+References: <CAMAQhePZ1Cdfgb30ULFGNqLPg1Rd3fYY1RLjT4ugWTwo5iZfaA@mail.gmail.com>
+	<629B268B-4D2D-498F-9A21-12765019AB51@canonware.com>
+	<6FB10892-C996-42EA-B5C3-B7508129C2C8@canonware.com>
+Message-ID: <CAMAQheMsaz0ri4-xqOTUJ=e7k0-adNp6N8EcMRcenqy628vj8g@mail.gmail.com>
+
+> > My guess is that you don't have heap profiling enabled (--enable-prof),
+> and that the compiler is complaining about what is effectively dead code.
+>  An easy solution is to protect the memcpy() with a conditional:
+> >
+> >       if (config_prof)
+> >
+> > I'll make a note to do something like this in order to silence the
+> warnings.
+>
+> I took a slightly different approach:
+>
+>
+> https://github.com/jemalloc/jemalloc/commit/5f60afa01eb2cf7d44024d162a1ecc6cceedcca1
+>
+> Jason
+
+
+thanks for your quick response. would make any problem that patch if i set
+my own prefix like --with-jemalloc-prefix=je_ ?
+
+regards,
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/e7b97622/attachment.html>
+
+From jasone at canonware.com  Tue Jan 28 23:12:36 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Jan 2014 23:12:36 -0800
+Subject: memcpy warnings on 3.5.0
+In-Reply-To: <CAMAQheMsaz0ri4-xqOTUJ=e7k0-adNp6N8EcMRcenqy628vj8g@mail.gmail.com>
+References: <CAMAQhePZ1Cdfgb30ULFGNqLPg1Rd3fYY1RLjT4ugWTwo5iZfaA@mail.gmail.com>
+	<629B268B-4D2D-498F-9A21-12765019AB51@canonware.com>
+	<6FB10892-C996-42EA-B5C3-B7508129C2C8@canonware.com>
+	<CAMAQheMsaz0ri4-xqOTUJ=e7k0-adNp6N8EcMRcenqy628vj8g@mail.gmail.com>
+Message-ID: <80764DA2-1542-4DAE-9AA9-4BF4FEBA690B@canonware.com>
+
+On Jan 28, 2014, at 11:10 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+>         https://github.com/jemalloc/jemalloc/commit/5f60afa01eb2cf7d44024d162a1ecc6cceedcca1
+> 
+> would make any problem that patch if i set my own prefix like --with-jemalloc-prefix=je_ ?
+
+Nope, that won?t cause any interaction with this fix.
+
+Cheers,
+Jason
+
+From ismail at donmez.ws  Wed Jan 29 04:28:24 2014
+From: ismail at donmez.ws (=?UTF-8?B?xLBzbWFpbCBEw7ZubWV6?=)
+Date: Wed, 29 Jan 2014 14:28:24 +0200
+Subject: jemalloc 3.5.0 regressions on i586
+In-Reply-To: <269596CC-CDFE-4918-AF3E-D5D88C298A7A@canonware.com>
+References: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+	<269596CC-CDFE-4918-AF3E-D5D88C298A7A@canonware.com>
+Message-ID: <CAJ1KOAjS3=tYMtcZkxgHuJTs5RQaMpZWMcw8a-vtuKVJ4cHObQ@mail.gmail.com>
+
+Hi,
+
+
+On Wed, Jan 29, 2014 at 4:13 AM, Jason Evans <jasone at canonware.com> wrote:
+>
+> The stats failures are all due to mallctl argument size mismatches, fixed
+> here:
+>
+>
+> https://github.com/jemalloc/jemalloc/commit/2b51a3e9e9bfebf081d25dfa92f3cd89e4a8ed73
+>
+> > test_oom_errors:test/integration/aligned_alloc.c:59: Failed assertion:
+> (p != ((void *)0) || je_get_errno() != 12) == (false) --> true != false:
+> test_oom_errors
+> >
+> > test_alignment_errors:test/integration/mallocx.c:53: Failed assertion:
+> (p) == (NULL) --> 0x40000000 != 0x0: test_alignment_errors
+> >
+> > test_oom_errors:test/integration/posix_memalign.c:53: Failed assertion:
+> (posix_memalign(&p, alignment, size)) != (0) --> 0 == 0: test_oom_errors
+> >
+> > 64bit builds are fine.
+>
+>
+> Wow, the machine is actually satisfying an mmap() request of size
+> 0xd0000000 (3.5 GiB) in order for this to be happening.  The tests are
+> flawed, and they "pass" on 64-bit systems because of the virtual memory
+> hole in the middle of the 64-bit address space.  Fixed here:
+>
+>
+> https://github.com/jemalloc/jemalloc/commit/a184d3fcdecfaaf694029fb375d023882aea444e
+>
+> In the case of mallocx(), this is technically undefined territory, so just
+> removed that test, but for aligned_alloc() and posix_memalign(), I
+> increased the request size enough to guarantee failure.
+>
+> In summary, these failures are all due to test bugs, rather than bugs in
+> the library itself.
+>
+
+After addings these two patches I have 2 new failures:
+
+thd_start:test/unit/prof_accum.c:83: Failed assertion:
+(bt_count_prev+(i-i_prev)) <= (bt_count) --> 6 > 1: thd_start
+
+and
+
+[test_alignment_errors:test/integration/allocm.c:60: Failed assertion:
+(allocm(&p, &rsz, sz, (ffs(alignment)-1))) != (0) --> 0 == 0:
+test_alignment_errors
+
+Thanks,
+ismail
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/c7659f16/attachment.html>
+
+From jasone at canonware.com  Wed Jan 29 11:09:29 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 29 Jan 2014 11:09:29 -0800
+Subject: jemalloc 3.5.0 regressions on i586
+In-Reply-To: <CAJ1KOAjS3=tYMtcZkxgHuJTs5RQaMpZWMcw8a-vtuKVJ4cHObQ@mail.gmail.com>
+References: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+	<269596CC-CDFE-4918-AF3E-D5D88C298A7A@canonware.com>
+	<CAJ1KOAjS3=tYMtcZkxgHuJTs5RQaMpZWMcw8a-vtuKVJ4cHObQ@mail.gmail.com>
+Message-ID: <522772D6-9A65-473F-BA36-CF8699B3F2BC@canonware.com>
+
+On Jan 29, 2014, at 4:28 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+> I have 2 new failures:
+> 
+> thd_start:test/unit/prof_accum.c:83: Failed assertion: (bt_count_prev+(i-i_prev)) <= (bt_count) --> 6 > 1: thd_start
+
+I'm guessing that this is due to the compiler being especially intelligent regarding mutual recursion for alloc_[01](), and I just added noinline attributes for those functions:
+
+	https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62
+
+However, if the compiler is being that smart, it may also be smart enough to do tail call optimization despite an attempt in the code to thwart optimization.  It appears that the gcc flag to disable this is -fno-optimize-sibling-calls, but I'm reluctant to resort to that unless the noinline attribute fails to do the job.
+
+> [test_alignment_errors:test/integration/allocm.c:60: Failed assertion: (allocm(&p, &rsz, sz, (ffs(alignment)-1))) != (0) --> 0 == 0: test_alignment_errors
+
+This is the equivalent failure to the mallocx failure you hit before.  Fixed:
+
+	https://github.com/jemalloc/jemalloc/commit/2850e90d0d42d0e2b54864949bfa41c59c3a8dc9
+
+Testing is hard.  I am continually amazed by how much variation there is in compiler warnings and other behaviors, even between minor compiler revisions.  That said, most of the issues you hit are unique to 32-bit systems, so I really need to set up a 32-bit test system prior to the next release.
+
+Thanks,
+Jason
+
+From ismail at donmez.ws  Wed Jan 29 11:17:20 2014
+From: ismail at donmez.ws (=?UTF-8?B?xLBzbWFpbCBEw7ZubWV6?=)
+Date: Wed, 29 Jan 2014 21:17:20 +0200
+Subject: jemalloc 3.5.0 regressions on i586
+In-Reply-To: <522772D6-9A65-473F-BA36-CF8699B3F2BC@canonware.com>
+References: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+	<269596CC-CDFE-4918-AF3E-D5D88C298A7A@canonware.com>
+	<CAJ1KOAjS3=tYMtcZkxgHuJTs5RQaMpZWMcw8a-vtuKVJ4cHObQ@mail.gmail.com>
+	<522772D6-9A65-473F-BA36-CF8699B3F2BC@canonware.com>
+Message-ID: <CAJ1KOAi9uGEwHbEwCMcOGOQaqFjLfrgDz8D=YBmeqipERspbyg@mail.gmail.com>
+
+Hi,
+
+
+On Wed, Jan 29, 2014 at 9:09 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jan 29, 2014, at 4:28 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+> > I have 2 new failures:
+> >
+> > thd_start:test/unit/prof_accum.c:83: Failed assertion:
+> (bt_count_prev+(i-i_prev)) <= (bt_count) --> 6 > 1: thd_start
+>
+> I'm guessing that this is due to the compiler being especially intelligent
+> regarding mutual recursion for alloc_[01](), and I just added noinline
+> attributes for those functions:
+>
+>
+> https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62
+>
+> However, if the compiler is being that smart, it may also be smart enough
+> to do tail call optimization despite an attempt in the code to thwart
+> optimization.  It appears that the gcc flag to disable this is
+> -fno-optimize-sibling-calls, but I'm reluctant to resort to that unless the
+> noinline attribute fails to do the job.
+>
+
+This one is still failing, also adding -fno-optimize-sibling-calls to
+CFLAGS didn't fix it.
+
+>
+> > [test_alignment_errors:test/integration/allocm.c:60: Failed assertion:
+> (allocm(&p, &rsz, sz, (ffs(alignment)-1))) != (0) --> 0 == 0:
+> test_alignment_errors
+>
+> This is the equivalent failure to the mallocx failure you hit before.
+>  Fixed:
+>
+>
+> https://github.com/jemalloc/jemalloc/commit/2850e90d0d42d0e2b54864949bfa41c59c3a8dc9
+>
+> Testing is hard.  I am continually amazed by how much variation there is
+> in compiler warnings and other behaviors, even between minor compiler
+> revisions.  That said, most of the issues you hit are unique to 32-bit
+> systems, so I really need to set up a 32-bit test system prior to the next
+> release.
+>
+
+This is working as expected :)
+
+Regards.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/1e879b96/attachment.html>
+
+From jasone at canonware.com  Wed Jan 29 11:24:07 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 29 Jan 2014 11:24:07 -0800
+Subject: jemalloc 3.5.0 regressions on i586
+In-Reply-To: <CAJ1KOAi9uGEwHbEwCMcOGOQaqFjLfrgDz8D=YBmeqipERspbyg@mail.gmail.com>
+References: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+	<269596CC-CDFE-4918-AF3E-D5D88C298A7A@canonware.com>
+	<CAJ1KOAjS3=tYMtcZkxgHuJTs5RQaMpZWMcw8a-vtuKVJ4cHObQ@mail.gmail.com>
+	<522772D6-9A65-473F-BA36-CF8699B3F2BC@canonware.com>
+	<CAJ1KOAi9uGEwHbEwCMcOGOQaqFjLfrgDz8D=YBmeqipERspbyg@mail.gmail.com>
+Message-ID: <D7959B44-87A3-4B82-AB00-723FAFBDD6A6@canonware.com>
+
+On Jan 29, 2014, at 11:17 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+> On Wed, Jan 29, 2014 at 9:09 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Jan 29, 2014, at 4:28 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+> > I have 2 new failures:
+> >
+> > thd_start:test/unit/prof_accum.c:83: Failed assertion: (bt_count_prev+(i-i_prev)) <= (bt_count) --> 6 > 1: thd_start
+> 
+> I'm guessing that this is due to the compiler being especially intelligent regarding mutual recursion for alloc_[01](), and I just added noinline attributes for those functions:
+> 
+>         https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62
+> 
+> However, if the compiler is being that smart, it may also be smart enough to do tail call optimization despite an attempt in the code to thwart optimization.  It appears that the gcc flag to disable this is -fno-optimize-sibling-calls, but I'm reluctant to resort to that unless the noinline attribute fails to do the job.
+> 
+> This one is still failing, also adding -fno-optimize-sibling-calls to CFLAGS didn't fix it.
+
+Did -fno-optimize-sibling-calls make it through to the compilation commands?  If not, try using EXTRA_CFLAGS instead.  Assuming -fno-optimize-sibling-calls is actually getting used, I'm out of ideas as to how this is failing, and I may need to set up an equivalent environment to dig in further.
+
+Thanks,
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/81448414/attachment.html>
+
+From ismail at donmez.ws  Wed Jan 29 11:36:01 2014
+From: ismail at donmez.ws (=?UTF-8?B?xLBzbWFpbCBEw7ZubWV6?=)
+Date: Wed, 29 Jan 2014 21:36:01 +0200
+Subject: jemalloc 3.5.0 regressions on i586
+In-Reply-To: <D7959B44-87A3-4B82-AB00-723FAFBDD6A6@canonware.com>
+References: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+	<269596CC-CDFE-4918-AF3E-D5D88C298A7A@canonware.com>
+	<CAJ1KOAjS3=tYMtcZkxgHuJTs5RQaMpZWMcw8a-vtuKVJ4cHObQ@mail.gmail.com>
+	<522772D6-9A65-473F-BA36-CF8699B3F2BC@canonware.com>
+	<CAJ1KOAi9uGEwHbEwCMcOGOQaqFjLfrgDz8D=YBmeqipERspbyg@mail.gmail.com>
+	<D7959B44-87A3-4B82-AB00-723FAFBDD6A6@canonware.com>
+Message-ID: <CAJ1KOAi5qMy0CdCzRHK--pVMwC4qDbpZ7tm4HMg1vqQZjU5MPg@mail.gmail.com>
+
+Hi,
+
+
+On Wed, Jan 29, 2014 at 9:24 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jan 29, 2014, at 11:17 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+>
+> On Wed, Jan 29, 2014 at 9:09 PM, Jason Evans <jasone at canonware.com> wrote:
+>
+>> On Jan 29, 2014, at 4:28 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+>> > I have 2 new failures:
+>> >
+>> > thd_start:test/unit/prof_accum.c:83: Failed assertion:
+>> (bt_count_prev+(i-i_prev)) <= (bt_count) --> 6 > 1: thd_start
+>>
+>> I'm guessing that this is due to the compiler being especially
+>> intelligent regarding mutual recursion for alloc_[01](), and I just added
+>> noinline attributes for those functions:
+>>
+>>
+>> https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62
+>>
+>> However, if the compiler is being that smart, it may also be smart enough
+>> to do tail call optimization despite an attempt in the code to thwart
+>> optimization.  It appears that the gcc flag to disable this is
+>> -fno-optimize-sibling-calls, but I'm reluctant to resort to that unless the
+>> noinline attribute fails to do the job.
+>>
+>
+> This one is still failing, also adding -fno-optimize-sibling-calls to
+> CFLAGS didn't fix it.
+>
+>
+> Did -fno-optimize-sibling-calls make it through to the compilation
+> commands?  If not, try using EXTRA_CFLAGS instead.  Assuming -fno-optimize-sibling-calls
+> is actually getting used, I'm out of ideas as to how this is failing, and I
+> may need to set up an equivalent environment to dig in further.
+>
+>
+Its there: CFLAGS             : -O2 -fno-optimize-sibling-calls -std=gnu99
+-fvisibility=hidden , just removing the -O2 fixes the problem. So its
+indeed an optimization problem, so how about compiling the tests with -O0
+instead?
+
+Regards.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/e94b3d32/attachment.html>
+

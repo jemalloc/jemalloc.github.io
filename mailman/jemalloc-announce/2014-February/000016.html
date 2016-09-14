@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3.5.1 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%203.5.1%20released&In-Reply-To=%3C4C3732D4-FC99-4F05-8B4A-21A355B1A8F3%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3.5.1 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%203.5.1%20released&In-Reply-To=%3C4C3732D4-FC99-4F05-8B4A-21A355B1A8F3%40canonware.com%3E"
+       TITLE="jemalloc 3.5.1 released">jasone at canonware.com
+       </A><BR>
+    <I>Tue Feb 25 17:10:35 PST 2014</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#16">[ date ]</a>
+              <a href="thread.html#16">[ thread ]</a>
+              <a href="subject.html#16">[ subject ]</a>
+              <a href="author.html#16">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 3.5.1 is now available.  This version primarily addresses minor bugs in test code.
+
+Bug fixes:
+- Configure Solaris/Illumos to use MADV_FREE.
+- Fix junk filling for mremap(2)-based huge reallocation.  This is only relevant if configuring with the --enable-mremap option specified.
+- Avoid compilation failure if 'restrict' C99 keyword is not supported by the compiler.
+- Add a configure test for SSE2 rather than assuming it is usable on i686 systems.  This fixes test compilation errors, especially on 32-bit Linux systems.
+- Fix mallctl argument size mismatches (size_t vs. uint64_t) in the stats unit test.
+- Fix/remove flawed alignment-related overflow tests.
+- Prevent compiler optimizations that could change backtraces in the prof_accum unit test.
+
+For the complete ChangeLog, see:
+	<A HREF="http://www.canonware.com/jemalloc/ChangeLog.html">http://www.canonware.com/jemalloc/ChangeLog.html</A>
+
+Direct download:
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-3.5.1.tar.bz2">http://www.canonware.com/download/jemalloc/jemalloc-3.5.1.tar.bz2</A>
+
+Starting point for general information:
+	<A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+
+Browsable revision history:
+	<A HREF="https://github.com/jemalloc/jemalloc/tree/3.5.1">https://github.com/jemalloc/jemalloc/tree/3.5.1</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#16">[ date ]</a>
+              <a href="thread.html#16">[ thread ]</a>
+              <a href="subject.html#16">[ subject ]</a>
+              <a href="author.html#16">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

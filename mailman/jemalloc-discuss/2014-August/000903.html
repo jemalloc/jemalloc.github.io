@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20&In-Reply-To=%3C520CBF1D-AF6E-40ED-9890-F707694E42A1%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000902.html">
+   <LINK REL="Next"  HREF="000906.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1></H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20&In-Reply-To=%3C520CBF1D-AF6E-40ED-9890-F707694E42A1%40canonware.com%3E"
+       TITLE="">jasone at canonware.com
+       </A><BR>
+    <I>Tue Aug  5 16:10:59 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000902.html">No subject
+</A></li>
+        <LI>Next message: <A HREF="000906.html">
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#903">[ date ]</a>
+              <a href="thread.html#903">[ thread ]</a>
+              <a href="subject.html#903">[ subject ]</a>
+              <a href="author.html#903">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Aug 5, 2014, at 10:35 AM, <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">gholley at CeBiTec.Uni-Bielefeld.DE</A> wrote:
+&gt;<i> I&#8217;m currently working on a data structure allowing the storage of a
+</I>&gt;<i> dynamic set of short DNA sequences plus annotations.
+</I>&gt;<i> Here are few details : the data structure is written in C, tests are
+</I>&gt;<i> currently run on Ubuntu 14.04 64 bits, everything is single threaded and
+</I>&gt;<i> Valgrind indicates that the program which manipulates the data structure
+</I>&gt;<i> has no memory leaks.
+</I>&gt;<i> 
+</I>&gt;<i> I&#8217;ve started to use Jemalloc in an attempt to reduce the fragmentation of
+</I>&gt;<i> the memory (by using one arena, disabling the thread caching system and
+</I>&gt;<i> using a high ratio of dirty pages). On small data sets (30 millions
+</I>&gt;<i> insertions), results are very good in comparison of Glibc: about 150MB
+</I>&gt;<i> less by using tuned Jemalloc.
+</I>&gt;<i> 
+</I>&gt;<i> Now, I&#8217;ve started tests with much bigger data sets (3 to 10 billions
+</I>&gt;<i> insertions) and I realized that Jemalloc is using more memory than Glibc.
+</I>&gt;<i> I have generated a data set of 200 millions entries which I tried to
+</I>&gt;<i> insert in the data structure and when the memory used reached 1GB, I
+</I>&gt;<i> stopped the program and reported the number of entries inserted.
+</I>&gt;<i> When using Jemalloc, doesn&#8217;t matter the tuning parameters (1 or 4 arenas,
+</I>&gt;<i> tcache activated or not, lg_dirty = 3 or 8 or 16, lg_chunk = 14 or 22 or
+</I>&gt;<i> 30), the number of entries inserted varies between 120 millions to 172
+</I>&gt;<i> millions. Or by using the standard Glibc, I&#8217;m able to insert 187 millions
+</I>&gt;<i> of entries.
+</I>&gt;<i> And on billions of entries, Glibc (I don&#8217;t have precise numbers
+</I>&gt;<i> unfortunately) uses few Gigabytes less than Jemalloc.
+</I>&gt;<i> 
+</I>&gt;<i> So I would like to know if there is an explanation for this and if I can
+</I>&gt;<i> do something to make Jemalloc at least as efficient as Glibc is on my
+</I>&gt;<i> tests ? Maybe I&#8217;m not using Jemalloc correctly ?
+</I>
+There are a few possible issues, mainly related to fragmentation, but I can't make many specific guesses because I don't know what the allocation/deallocation patterns are in your application.  It sounds like your application just does a bunch of allocation, with very little interspersed deallocation, in which case I'm surprised by your results unless you happen to be allocating lots of objects that are barely larger than the nearest size class boundaries (e.g. 17 bytes).  Have you taken a close look at the output of malloc_stats_print()?
+
+Jason
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000902.html">No subject
+</A></li>
+	<LI>Next message: <A HREF="000906.html">
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#903">[ date ]</a>
+              <a href="thread.html#903">[ thread ]</a>
+              <a href="subject.html#903">[ subject ]</a>
+              <a href="author.html#903">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

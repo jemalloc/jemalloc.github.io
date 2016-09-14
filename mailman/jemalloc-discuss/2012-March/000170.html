@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> make check fails on rhel5/ppc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20make%20check%20fails%20on%20rhel5/ppc&In-Reply-To=%3C1332747898.15499.9.camel%40yum.linpro.no%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000175.html">
+   <LINK REL="Next"  HREF="000177.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>make check fails on rhel5/ppc</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20make%20check%20fails%20on%20rhel5/ppc&In-Reply-To=%3C1332747898.15499.9.camel%40yum.linpro.no%3E"
+       TITLE="make check fails on rhel5/ppc">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Mon Mar 26 00:44:58 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000175.html">Question regarding jemalloc and JVM
+</A></li>
+        <LI>Next message: <A HREF="000177.html">make check fails on rhel5/ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#170">[ date ]</a>
+              <a href="thread.html#170">[ thread ]</a>
+              <a href="subject.html#170">[ subject ]</a>
+              <a href="author.html#170">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>With the proposed atomic operations for ppc patch, I can finally build
+jemalloc-2.2.5 on rhel5/ppc. make check fails like this for all but the
+bitmap test.
+
+Too many small size classes (269 &gt; max 256)
+
+More details below.
+
+Is this just missing tuning? Where are the knobs to turn?
+
+Ingvar
+
+
+$ make check
+gcc -O2 -g -m32 -fsigned-char -fvisibility=hidden -c -D_GNU_SOURCE
+-D_REENTRANT -Iinclude -Iinclude -Itest -o test/allocated.o
+test/allocated.c
+gcc -o test/allocated test/allocated.o -Wl,-rpath,lib -Llib -ljemalloc
+-lpthread
+gcc -O2 -g -m32 -fsigned-char -fvisibility=hidden -c -D_GNU_SOURCE
+-D_REENTRANT -Iinclude -Iinclude -Itest -o test/allocm.o test/allocm.c
+gcc -o test/allocm test/allocm.o -Wl,-rpath,lib -Llib -ljemalloc
+-lpthread
+gcc -O2 -g -m32 -fsigned-char -fvisibility=hidden -c -D_GNU_SOURCE
+-D_REENTRANT -Iinclude -Iinclude -Itest -o test/bitmap.o test/bitmap.c
+gcc -o test/bitmap test/bitmap.o -Wl,-rpath,lib -Llib -ljemalloc
+-lpthread
+gcc -O2 -g -m32 -fsigned-char -fvisibility=hidden -c -D_GNU_SOURCE
+-D_REENTRANT -Iinclude -Iinclude -Itest -o test/mremap.o test/mremap.c
+gcc -o test/mremap test/mremap.o -Wl,-rpath,lib -Llib -ljemalloc
+-lpthread
+gcc -O2 -g -m32 -fsigned-char -fvisibility=hidden -c -D_GNU_SOURCE
+-D_REENTRANT -Iinclude -Iinclude -Itest -o test/posix_memalign.o
+test/posix_memalign.c
+gcc -o test/posix_memalign test/posix_memalign.o -Wl,-rpath,lib -Llib
+-ljemalloc -lpthread
+gcc -O2 -g -m32 -fsigned-char -fvisibility=hidden -c -D_GNU_SOURCE
+-D_REENTRANT -Iinclude -Iinclude -Itest -o test/rallocm.o test/rallocm.c
+gcc -o test/rallocm test/rallocm.o -Wl,-rpath,lib -Llib -ljemalloc
+-lpthread
+gcc -O2 -g -m32 -fsigned-char -fvisibility=hidden -c -D_GNU_SOURCE
+-D_REENTRANT -Iinclude -Iinclude -Itest -o test/thread_arena.o
+test/thread_arena.c
+gcc -o test/thread_arena test/thread_arena.o -Wl,-rpath,lib -Llib
+-ljemalloc -lpthread
+=========================================
+test/allocated ... /bin/sh: line 3:  8020 Avbrutt (SIGABRT)
+${t} /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ &gt; ${t}.out 2&gt;&amp;1
+*** FAIL ***
+test/allocm ... /bin/sh: line 3:  8027 Avbrutt (SIGABRT)
+${t} /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ &gt; ${t}.out 2&gt;&amp;1
+*** FAIL ***
+test/bitmap ... pass
+test/mremap ... /bin/sh: line 3:  8039 Avbrutt (SIGABRT)
+${t} /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ &gt; ${t}.out 2&gt;&amp;1
+*** FAIL ***
+test/posix_memalign ... /bin/sh: line 3:  8046 Avbrutt (SIGABRT)
+${t} /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ &gt; ${t}.out 2&gt;&amp;1
+*** FAIL ***
+test/rallocm ... /bin/sh: line 3:  8053 Avbrutt (SIGABRT)
+${t} /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ &gt; ${t}.out 2&gt;&amp;1
+*** FAIL ***
+test/thread_arena ... /bin/sh: line 3:  8060 Avbrutt (SIGABRT)
+${t} /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ /home/ingvar/rpmbuild/BUILD/jemalloc-2.2.5/ &gt; ${t}.out 2&gt;&amp;1
+*** FAIL ***
+=========================================
+Failures: 6/7
+
+
+
+$ for i in test/*out; do echo; echo $i; cat $i; done
+
+test/allocated.out
+Test begin
+&lt;jemalloc&gt;: Too many small size classes (269 &gt; max 256)
+
+test/allocm.out
+Test begin
+&lt;jemalloc&gt;: Too many small size classes (269 &gt; max 256)
+
+test/bitmap.out
+Test begin
+Test end
+
+test/mremap.out
+Test begin
+&lt;jemalloc&gt;: Too many small size classes (269 &gt; max 256)
+
+test/posix_memalign.out
+Test begin
+&lt;jemalloc&gt;: Too many small size classes (269 &gt; max 256)
+
+test/rallocm.out
+Test begin
+&lt;jemalloc&gt;: Too many small size classes (269 &gt; max 256)
+
+test/thread_arena.out
+Test begin
+&lt;jemalloc&gt;: Too many small size classes (269 &gt; max 256)
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000175.html">Question regarding jemalloc and JVM
+</A></li>
+	<LI>Next message: <A HREF="000177.html">make check fails on rhel5/ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#170">[ date ]</a>
+              <a href="thread.html#170">[ thread ]</a>
+              <a href="subject.html#170">[ subject ]</a>
+              <a href="author.html#170">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

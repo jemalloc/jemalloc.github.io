@@ -1,0 +1,1147 @@
+From cferris at google.com  Mon Feb  1 15:51:20 2016
+From: cferris at google.com (Christopher Ferris)
+Date: Mon, 1 Feb 2016 15:51:20 -0800
+Subject: Bus Address Crash in ckh unit test
+Message-ID: <CANtHk4kaK7_qAxoSjBV7b-1fKU-Amfde2D4sYeNoYqMcW5gBaA@mail.gmail.com>
+
+When I compiled the ckh unit test with a newer version of clang, it was
+crashing. I tracked the problem down to an implicit assumption that a value
+passed to chk_search is 4 byte aligned. Specifically, the code in
+test/unit/ckh.c, the test test_count_insert_search_remove, makes this call:
+
+  assert_true(ckh_search(&ckh, missing, NULL, NULL),
+      "Unexpected ckh_search() success");
+
+The problem is that the definition of missing is:
+
+  char *missing = "A string not in the hash table.";
+
+Which means missing is not guaranteed to be of any alignment.
+
+I'm not sure on what platforms jemalloc needs to be compiled, so I think
+that something like this:
+
+  #define HASH_TABLE_STRING "A string not in the hash table."
+  union { char char_data[sizeof(HASH_TABLE_STRING)]; uint32_t uint_data; }
+missing;
+  memcpy(missing.char_data, HASH_TABLE_STRING, sizeof(HASH_TABLE_STRING));
+  .
+  .
+  .
+  assert_true(ckh_search(&ckh, missing.char_data, NULL, NULL),
+      "Unexpected ckh_search() success");
+
+Would guarantee the needed alignment.
+
+Does this seem reasonable?
+
+Christopher
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160201/3a584bbc/attachment.html>
+
+From raju.sahu at gmail.com  Thu Feb  4 01:53:03 2016
+From: raju.sahu at gmail.com (RajaKishore Sahu)
+Date: Thu, 4 Feb 2016 15:23:03 +0530
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <951185CE-6B97-4601-9CD1-55F4E6DED780@canonware.com>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+	<CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+	<CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+	<A5EBF230-FEAB-470A-970D-239F1890F175@indiana.edu>
+	<CA+bEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g@mail.gmail.com>
+	<951185CE-6B97-4601-9CD1-55F4E6DED780@canonware.com>
+Message-ID: <CA+bEgOEa38JhBe03otXUG4i2qDT-uv-La9pbfViaS6b-xZxVJg@mail.gmail.com>
+
+Thanks for your help. My configuration was wrong which was causing the
+problem.
+
+I have attached stats of JEMALLOC_TCACHE on and off.
+
+When it is on we run out of memory of 30 MB. When it is off it works fine.
+
+Please help me in configuring it properly.
+
+Thanks
+Rajakishore
+
+On Wed, Jan 20, 2016 at 1:55 AM, Jason Evans <jasone at canonware.com> wrote:
+
+> > On Jan 18, 2016, at 8:35 PM, RajaKishore Sahu <raju.sahu at gmail.com>
+> wrote:
+> > I am trying to port Jemalloc to a embedded environment where we have
+> only 40 MB of memory for a subsystem.
+> >
+> > While porting I found that in start up it is consuming almost 38 MB of
+> memory with arena size of 1MB. We spawn around 70 threads in the start up.
+> So we are only 2 MB left for that subsystem. While the system is in run
+> definitely it will ask for more memory, in that case how we are going to
+> satisfy the memory needed by Jemalloc?
+> >
+> > Current allocator consumes around 20 - 22 MB of memory and remaining is
+> used for the system to run.
+>
+> It sounds to me like you have jemalloc configured to create numerous
+> arenas.  You need to drop the chunk size (256 KiB works fine), and/or
+> decrease the number of arenas (one will work fine unless your app does a
+> lot of large allocation).
+>
+> Jason
+
+
+
+
+-- 
+Thanx
+Rajakishore Sahu
+Mail:-raju.sahu at gmail.com
+Mobile:-+91 9886719841
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160204/1feb6777/attachment-0001.html>
+-------------- next part --------------
+Version: 0.0.0-0-g0000000000000000000000000000000000000000
+
+Assertions disabled
+
+Run-time option settings:
+
+  opt.abort: false
+
+  opt.lg_chunk: 21
+
+  opt.dss: "secondary"
+
+  opt.narenas: 1
+
+  opt.lg_dirty_mult: 3 (arenas.lg_dirty_mult: 3)
+
+  opt.stats_print: false
+
+  opt.junk: "false"
+
+  opt.quarantine: 0
+
+  opt.redzone: false
+
+  opt.zero: false
+
+CPUs: 1
+
+Arenas: 1
+
+Pointer size: 4
+
+Quantum size: 8
+
+Page size: 4096
+
+Min active:dirty page ratio per arena: 8:1
+
+Chunk size: 2097152 (2^21)
+
+Allocated: 19773696, active: 20656128, metadata: 506248, resident: 22388736, mapped: 25165824
+
+Current active ceiling: 20971520
+
+
+arenas[0]:
+
+assigned threads: 81
+
+dss allocation precedence: disabled
+
+min active:dirty page ratio: 8:1
+
+dirty pages: 5043:303 active:dirty, 0 sweeps, 0 madvises, 0 purged
+
+                            allocated      nmalloc      ndalloc    nrequests
+
+small:                        7870720        94405        59754        94405
+
+large:                        9805824          270          129          270
+
+huge:                         2097152            1            0            1
+
+total:                       19773696        94676        59883        94676
+
+active:                      20656128
+
+mapped:                      23068672
+
+metadata: mapped: 450560, allocated: 16776
+
+bins:           size ind    allocated      nmalloc      ndalloc    nrequests      curregs      curruns regs pgs  util      newruns       reruns
+
+                   8   0        47592        11266         5317        11266         5949           12  512   1 0.968           17          831
+
+                  16   1        52608        10943         7655        10943         3288           15  256   1 0.856           19          385
+
+                  24   2        63168         9750         7118         9750         2632            6  512   3 0.856            6          244
+
+                  32   3       252896        18270        10367        18270         7903           62  128   1 0.995           63         3711
+
+                  40   4        87680         2999          807         2999         2192            5  512   5 0.856            5          166
+
+                  48   5       160848         5578         2227         5578         3351           14  256   3 0.934           18           89
+
+                  56   6        15288         1618         1345         1618          273            1  512   7 0.533            1            0
+
+                  64   7        55936         5107         4233         5107          874           14   64   1 0.975           24          104
+
+                  80   8       113680         2566         1145         2566         1421            6  256   5 0.925           10          113
+
+                  96   9        27264         1835         1551         1835          284            3  128   3 0.739            3           23
+
+                 112  10        79296         2577         1869         2577          708            3  256   7 0.921            7            7
+
+                 128  11       129920         3255         2240         3255         1015           32   32   1 0.991          114          274
+
+                 160  12       118880         1400          657         1400          743            6  128   5 0.967            6           60
+
+                 192  13       107712         1128          567         1128          561            9   64   3 0.973            9            0
+
+                 224  14        17920          718          638          718           80            1  128   7 0.625            1            0
+
+                 256  15        38912          993          841          993          152           11   16   1 0.863           14          184
+
+                 320  16       226560         1710         1002         1710          708           12   64   5 0.921           19           47
+
+                 384  17       116352          738          435          738          303           10   32   3 0.946           11           22
+
+                 448  18       144256          579          257          579          322            6   64   7 0.838           11           15
+
+                 512  19         6656          440          427          440           13            2    8   1 0.812           21           12
+
+                 640  20        32640          461          410          461           51            2   32   5 0.796            3            2
+
+                 768  21       420096          879          332          879          547           35   16   3 0.976           36            5
+
+                 896  22       144256         1275         1114         1275          161            6   32   7 0.838          154           25
+
+                1024  23        81920         1638         1558         1638           80           22    4   1 0.909           36           35
+
+                1280  24       240640         2585         2397         2585          188           12   16   5 0.979           64           24
+
+                1536  25       208896         2976         2840         2976          136           17    8   3 1             2835            0
+
+                1792  26        10752           13            7           13            6            1   16   7 0.375            1            0
+
+                2048  27        24576          271          259          271           12            6    2   1 1              252            2
+
+                2560  28        20480           36           28           36            8            1    8   5 1               25            0
+
+                3072  29       187392           94           33           94           61           16    4   3 0.953           25            0
+
+                3584  30        35840           19            9           19           10            2    8   7 0.625            3            1
+
+                4096  31        12288           29           26           29            3            3    1   1 1               29            0
+
+                5120  32       409600           80            0           80           80           20    4   5 1               20            0
+
+                6144  33       712704          118            2          118          116           58    2   3 1               58            0
+
+                7168  34        43008            6            0            6            6            2    4   7 0.750            2            0
+
+                8192  35      3309568          420           16          420          404          404    1   2 1              420            0
+
+               10240  36        61440           22           16           22            6            3    2   5 1               18            0
+
+               12288  37        36864           11            8           11            3            3    1   3 1               11            0
+
+               14336  38        14336            2            1            2            1            1    2   7 0.500            2            0
+
+large:          size ind    allocated      nmalloc      ndalloc    nrequests      curruns
+
+               16384  39        49152           46           43           46            3
+
+               20480  40       593920           35            6           35           29
+
+               24576  41        98304           47           43           47            4
+
+               28672  42        86016            3            0            3            3
+
+               32768  43       327680           10            0           10           10
+
+               40960  44      2867200           76            6           76           70
+
+               49152  45        49152            1            0            1            1
+
+                     ---
+
+               65536  47       196608            5            2            5            3
+
+               81920  48       409600           14            9           14            5
+
+                     ---
+
+              114688  50       114688            1            0            1            1
+
+              131072  51       131072            3            2            3            1
+
+              163840  52       327680            2            0            2            2
+
+                     ---
+
+              229376  54       229376            1            0            1            1
+
+              262144  55      1048576           21           17           21            4
+
+                     ---
+
+              458752  58       917504            3            1            3            2
+
+              524288  59       524288            1            0            1            1
+
+                     ---
+
+             1835008  66      1835008            1            0            1            1
+
+huge:           size ind    allocated      nmalloc      ndalloc    nrequests   curhchunks
+
+             2097152  67      2097152            1            0            1            1
+
+                     ---
+
+--- End jemalloc statistics ---
+
+-------------- next part --------------
+___ Begin jemalloc statistics ___
+
+Version: 0.0.0-0-g0000000000000000000000000000000000000000
+
+Assertions disabled
+
+Run-time option settings:
+
+  opt.abort: false
+
+  opt.lg_chunk: 21
+
+  opt.dss: "secondary"
+
+  opt.narenas: 1
+
+  opt.lg_dirty_mult: 3 (arenas.lg_dirty_mult: 3)
+
+  opt.stats_print: false
+
+  opt.junk: "false"
+
+  opt.quarantine: 0
+
+  opt.redzone: false
+
+  opt.zero: false
+
+  opt.tcache: true
+
+  opt.lg_tcache_max: 15
+
+CPUs: 1
+
+Arenas: 1
+
+Pointer size: 4
+
+Quantum size: 8
+
+Page size: 4096
+
+Min active:dirty page ratio per arena: 8:1
+
+Maximum thread-cached size class: 32768
+
+Chunk size: 2097152 (2^21)
+
+Allocated: 27334760, active: 28475392, metadata: 1771208, resident: 29110272, mapped: 31457280
+
+Current active ceiling: 29360128
+
+
+arenas[0]:
+
+assigned threads: 69
+
+dss allocation precedence: disabled
+
+min active:dirty page ratio: 8:1
+
+dirty pages: 6952:2 active:dirty, 0 sweeps, 0 madvises, 0 purged
+
+                            allocated      nmalloc      ndalloc    nrequests
+
+small:                       14501992        87939         1742        35549
+
+large:                       10735616          220            9          220
+
+huge:                         2097152            1            0            1
+
+total:                       27334760        88160         1751        35770
+
+active:                      28475392
+
+mapped:                      29360128
+
+metadata: mapped: 585728, allocated: 1146376
+
+bins:           size ind    allocated      nmalloc      ndalloc    nrequests      curregs      curruns regs pgs  util       nfills     nflushes      newruns       reruns
+
+                   8   0        84808        10701          100         6148        10601           21  512   1 0.985          107            1           21            2
+
+                  16   1       130048         8200           72         2722         8128           32  256   1 0.992           82            1           33            1
+
+                  24   2       182400         7750          150         2425         7600           15  512   3 0.989           78            2           15            0
+
+                  32   3       393600        12300            0         7839        12300           97  128   1 0.990          123            0           97            0
+
+                  40   4       184000         4600            0         1548         4600            9  512   5 0.998           46            0            9            0
+
+                  48   5       412032         8600           16         2266         8584           34  256   3 0.986           86            0           34           17
+
+                  56   6       107520         2050          130          784         1920            4  512   7 0.937           22            3            4            5
+
+                  64   7       149312         2547          214         1496         2333           37   64   1 0.985           39            4           41            2
+
+                  80   8       492400         6200           45         1360         6155           25  256   5 0.961           63            2           25            2
+
+                  96   9       273984         3000          146          310         2854           23  128   3 0.969           30            3           24            5
+
+                 112  10       272272         2500           69          350         2431           10  256   7 0.949           25            2           10            2
+
+                 128  11       282624         2400          192         1026         2208           69   32   1 1               75            6           74            7
+
+                 160  12       996480         6300           72          793         6228           49  128   5 0.992           63            2           49            4
+
+                 192  13       141120          800           65          853          735           12   64   3 0.957           13            2           12            2
+
+                 224  14       598304         2800          129          289         2671           21  128   7 0.993           28            2           22 
+                 256  15        65024          264           10          364          254           16   16   1 0.992           17            2           17            2
+
+                 320  16       564480         1856           92         1072         1764           28   64   5 0.984           29            2           28            2
+
+                 384  17       306816          816           17          585          799           25   32   3 0.998           27            2           25            8
+
+                 448  18       337792          832           78          520          754           12   64   7 0.981           13            3           13            4
+
+                 512  19        18944           45            8          217           37            5    8   1 0.925            5            2            6            0
+
+                 640  20       147840          240            9          329          231            8   32   5 0.902            8            1            8            0
+
+                 768  21       539904          752           49          804          703           45   16   3 0.976           47            1           45            8
+
+                 896  22       460544          514            0          143          514           17   32   7 0.944           16            0           17            0
+
+                1024  23       116736          120            6          190          114           29    4   1 0.982           12            1           31            0
+
+                1280  24       593920          466            2          147          464           29   16   5 1               31            2           29            1
+
+                1536  25       305664          205            6          125          199           25    8   3 0.995           21            1           26            0
+
+                1792  26       127232           80            9            4           71            5   16   7 0.887            5            1            5            0
+
+                2048  27        45056           30            8          250           22           11    2   1 1                3            2           15            0
+
+                2560  28       125440           60           11            7           49            7    8   5 0.875            6            2            8            1
+
+                3072  29       267264           90            3           56           87           22    4   3 0.988            9            1           22            3
+
+                3584  30       121856           40            6            2           34            5    8   7 0.850            4            1            5            1
+
+                4096  31        81920           20            0            0           20           20    1   1 1                2            0           20            0
+
+ 
+                6144  33       743424          121            0           71          121           61    2   3 0.991           12            0           61            0
+
+                7168  34       164864           30            7            1           23            7    4   7 0.821            3            1            8            2
+
+                8192  35      3391488          420            6          382          414          414    1   2 1               42            1          420            0
+
+               10240  36       143360           20            6            3           14            7    2   5 1                2            1           10            0
+
+               12288  37       368640           30            0            0           30           30    1   3 1                3            0           30            0
+
+               14336  38       143360           10            0            0           10            5    2   7 1                1            0            5            0
+
+large:          size ind    allocated      nmalloc      ndalloc    nrequests      curruns
+
+               16384  39      1261568           77            0           77           77
+
+               20480  40       573440           28            0           28           28
+
+               24576  41       122880            5            0            5            5
+
+               28672  42        86016            3            0            3            3
+
+               32768  43       327680           10            0           10           10
+
+               40960  44      2826240           69            0           69           69
+
+               49152  45        49152            1            0            1            1
+
+                     ---
+
+               65536  47       196608            5            2            5            3
+
+               81920  48       163840            3            1            3            2
+
+                     ---
+
+              114688  50       114688            1            0            1            1
+
+              131072  51       131072            3            2            3            1
+
+              163840  52       327680            2          
+                     ---
+
+              229376  54       229376            1            0            1            1
+
+              262144  55      1048576            7            3            7            4
+
+                     ---
+
+              458752  58       917504            3            1            3            2
+
+              524288  59       524288            1            0            1            1
+
+                     ---
+
+             1835008  66      1835008            1            0            1            1
+
+huge:           size ind    allocated      nmalloc      ndalloc    nrequests   curhchunks
+
+             2097152  67      2097152            1            0            1            1
+
+                     ---
+
+--- End jemalloc statistics ---
+
+
+From jasone at canonware.com  Thu Feb  4 09:15:11 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 4 Feb 2016 09:15:11 -0800
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <CA+bEgOEa38JhBe03otXUG4i2qDT-uv-La9pbfViaS6b-xZxVJg@mail.gmail.com>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+	<CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+	<CA+bEgOE8Vfw4Xx-NgktrKkLN09n8osBSRBPVwRRh2a=r+0Cqkg@mail.gmail.com>
+	<A5EBF230-FEAB-470A-970D-239F1890F175@indiana.edu>
+	<CA+bEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g@mail.gmail.com>
+	<951185CE-6B97-4601-9CD1-55F4E6DED780@canonware.com>
+	<CA+bEgOEa38JhBe03otXUG4i2qDT-uv-La9pbfViaS6b-xZxVJg@mail.gmail.com>
+Message-ID: <93A08515-8811-4095-A78E-21AA2B0F8D13@canonware.com>
+
+On Feb 4, 2016, at 1:53 AM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> Thanks for your help. My configuration was wrong which was causing the problem.
+> 
+> I have attached stats of JEMALLOC_TCACHE on and off.
+> 
+> When it is on we run out of memory of 30 MB. When it is off it works fine.
+> 
+> Please help me in configuring it properly.
+
+It seems to me you have figured out how to configure jemalloc to work for your memory-constrained environment.  If you want to have jemalloc always run with tcache disabled, you can specify --disable-tcache to the configure script, or you can use one of the variants of MALLOC_CONF (see http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#TUNING) to turn tcache off for specific programs.
+
+Jason
+
+
+From jasone at canonware.com  Thu Feb  4 10:50:21 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 4 Feb 2016 10:50:21 -0800
+Subject: jemalloc hooks clarifications
+In-Reply-To: <F01B34A9-F5FB-4333-82EA-73B34085578E@gmail.com>
+References: <CANP6M4s0Xc+k7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA@mail.gmail.com>
+	<CBD9B88C-46DF-4950-91DC-DA910D578787@canonware.com>
+	<F01B34A9-F5FB-4333-82EA-73B34085578E@gmail.com>
+Message-ID: <F4A40ED0-5E6B-41B1-AECE-AF4AAB054767@canonware.com>
+
+On Jan 19, 2016, at 9:56 AM, Jakob Buchgraber <bucjac at gmail.com> wrote:
+> I think there might be an issue with this approach though: https://github.com/jemalloc/jemalloc/issues/307
+
+I'll try not to sit on this issue indefinitely, but it takes a while to get my head wrapped around the chunk hooks, so it may be a while before I have time to dig into it.  So much to do...
+
+> It?s deadlocking right now as well, as I am accessing stats from within the chunk hooks to determine which arenas to purge. I had to replace the malloc mutexes with recursive mutexes to make it work. Seems fine so far.
+
+My memory is now fuzzy on this aspect of chunk hooks, but my vague recollection is that I attempted to drop all locks before calling into application-provided hook functions, mainly to avoid resource starvation in case the hook functions block in system calls.  Maybe that's not generally possible, or maybe there's just a bug somewhere.  In any case, if allocation is triggered by a call into mallctl(), calling back into mallctl() inside the hooks is going to deadlock, so calling back into jemalloc APIs is not generally safe.
+
+> Basically, I am running with lots of main memory (> 1TB). Most of the time the program will only use a fraction of the available memory but some queries will require almost all the memory in some random arena. So even if I leave purging on and set lg_dirty_mult to say 3, some arenas might end up having cached 10s of GB of physical memory with others running out and the program will crash. Ideally, I would want BSD?s MADV_FREE on Linux. That patch never got merged though. So what I am doing is to add some logic that tracks the amount of committed physical memory and if some threshold is reached, I query the jemalloc stats and dynamically adjust the purging ratio. Does that make sense?
+
+Yes, dynamically updating the purging ratio is a reasonable approach, and I've done something similar in HHVM (temporarily purge more aggressively if any request threads go idle).
+
+By the way, the MADV_FREE will apparently be in the next Linux kernel release.
+
+Keep an eye on https://github.com/jemalloc/jemalloc/issues/149, which I'm actively working on.  So far it looks like I'm going to be able to implement a time-based purging mechanism that does a much better job of controlling unused dirty pages *without* asynchronous purging threads, as long as the application doesn't go completely idle.  I'm planning to get this feature into the 4.1.0 release as an opt-in, and I suspect it's going to prevail as the default mechanism in a subsequent release.
+
+Jason
+
+From cferris at google.com  Thu Feb  4 13:42:26 2016
+From: cferris at google.com (Christopher Ferris)
+Date: Thu, 4 Feb 2016 13:42:26 -0800
+Subject: Bus Address Crash in ckh unit test
+In-Reply-To: <CANtHk4kaK7_qAxoSjBV7b-1fKU-Amfde2D4sYeNoYqMcW5gBaA@mail.gmail.com>
+References: <CANtHk4kaK7_qAxoSjBV7b-1fKU-Amfde2D4sYeNoYqMcW5gBaA@mail.gmail.com>
+Message-ID: <CANtHk4kdWjwyNF7am+7w5b8QS9DFLwQMnSMmGesexxOX6oQd=A@mail.gmail.com>
+
+Here's the CL I submitted to our git respository:
+
+https://android-review.googlesource.com/#/c/200798/
+
+I think this is portable, but I've only verified that this works on gcc
+4.9/current clang.
+
+On a sort of related note, there is a typo in jemalloc/internal/ckh.h. The
+prototype for ckh_search, has the second parameter as seachkey instead of
+searchkey.
+
+Christopher
+
+On Mon, Feb 1, 2016 at 3:51 PM, Christopher Ferris <cferris at google.com>
+wrote:
+
+> When I compiled the ckh unit test with a newer version of clang, it was
+> crashing. I tracked the problem down to an implicit assumption that a value
+> passed to chk_search is 4 byte aligned. Specifically, the code in
+> test/unit/ckh.c, the test test_count_insert_search_remove, makes this call:
+>
+>   assert_true(ckh_search(&ckh, missing, NULL, NULL),
+>       "Unexpected ckh_search() success");
+>
+> The problem is that the definition of missing is:
+>
+>   char *missing = "A string not in the hash table.";
+>
+> Which means missing is not guaranteed to be of any alignment.
+>
+> I'm not sure on what platforms jemalloc needs to be compiled, so I think
+> that something like this:
+>
+>   #define HASH_TABLE_STRING "A string not in the hash table."
+>   union { char char_data[sizeof(HASH_TABLE_STRING)]; uint32_t uint_data; }
+> missing;
+>   memcpy(missing.char_data, HASH_TABLE_STRING, sizeof(HASH_TABLE_STRING));
+>   .
+>   .
+>   .
+>   assert_true(ckh_search(&ckh, missing.char_data, NULL, NULL),
+>       "Unexpected ckh_search() success");
+>
+> Would guarantee the needed alignment.
+>
+> Does this seem reasonable?
+>
+> Christopher
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160204/fe8f4343/attachment.html>
+
+From stevecobb47 at yahoo.com  Tue Feb  9 11:07:56 2016
+From: stevecobb47 at yahoo.com (Steve Cobb)
+Date: Tue, 9 Feb 2016 19:07:56 +0000 (UTC)
+Subject: Meta-data overhead percentages?
+References: <2060718013.1641236.1455044876670.JavaMail.yahoo.ref@mail.yahoo.com>
+Message-ID: <2060718013.1641236.1455044876670.JavaMail.yahoo@mail.yahoo.com>
+
+
+Hi Folks,
+Are there any statistics available on the meta-data overhead for using jemalloc? What is the usual percentage of meta-data overhead to user memory - is that number available? Are there any comparisons available - say comparing to other "popular" malloc implementations?
+Is the amount of meta-data tuneable in any way - any compilation flags/configurations?
+Right now, we are using Jemalloc 3.6, but will be moving to the latest release - is there any difference in the amount of meta-data between those releases?
+Right now, for a general purpose allocator, it looks like the overhead is very much higher than Glibc malloc. We are looking very seriously at jemalloc for some large-scale applications on Linux - in particular, we are interested in the ability of jemalloc to return/unmap memory. But if the overhead is very high, this will be a real problem. Can any guidance be given on the typical overhead?
+
+Thanks//Steve
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160209/fdb01a16/attachment.html>
+
+From jasone at canonware.com  Tue Feb  9 12:27:04 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 9 Feb 2016 12:27:04 -0800
+Subject: Meta-data overhead percentages?
+In-Reply-To: <2060718013.1641236.1455044876670.JavaMail.yahoo@mail.yahoo.com>
+References: <2060718013.1641236.1455044876670.JavaMail.yahoo.ref@mail.yahoo.com>
+	<2060718013.1641236.1455044876670.JavaMail.yahoo@mail.yahoo.com>
+Message-ID: <6929DDEC-9093-4AF8-B47B-EA79928FCA10@canonware.com>
+
+On Feb 9, 2016, at 11:07 AM, Steve Cobb <stevecobb47 at yahoo.com> wrote:
+> Are there any statistics available on the meta-data overhead for using jemalloc? What is the usual percentage of meta-data overhead to user memory - is that number available? Are there any comparisons available - say comparing to other "popular" malloc implementations?
+
+jemalloc 4.x directly reports metadata statistics (http://canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.metadata <http://canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.metadata>); in earlier versions it can be roughly inferred with some knowledge of how jemalloc works.  Note that some sparsely touched global data structures are accounted for in this statistic, yet the physical memory impact is not as high as the number suggests.
+
+> Is the amount of meta-data tuneable in any way - any compilation flags/configurations?
+
+Some features affect metadata overhead, e.g. heap profiling, redzones, and quarantine, and for that matter, the stats functionality.  In general, the fewer optional features are in use, the lower the metadata overhead.  In practice though, you don't need to worry about this for large-scale applications; it only warrants serious consideration for embedded systems.
+
+> Right now, we are using Jemalloc 3.6, but will be moving to the latest release - is there any difference in the amount of meta-data between those releases?
+
+Metadata overhead is generally proportional to the number of chunks being used for small/large allocations, so the biggest determinant of metadata overhead is fragmentation.  Per chunk overhead did not change much between 3.6 and 4.x despite substantial restructuring, but fragmentation tends to be lower with 4.x, so metadata overhead also tends to be lower with 4.x.
+
+> Right now, for a general purpose allocator, it looks like the overhead is very much higher than Glibc malloc. We are looking very seriously at jemalloc for some large-scale applications on Linux - in particular, we are interested in the ability of jemalloc to return/unmap memory. But if the overhead is very high, this will be a real problem. Can any guidance be given on the typical overhead?
+
+I seriously doubt that the metadata overhead for jemalloc is higher than that for glib under typical operating conditions.  glibc uses per object headers to store metadata, whereas jemalloc uses more centralized metadata storage, and less than two bits per allocation even for e.g. 8-byte objects.  If you are using virtual memory as a metric, instead look at resident memory usage.
+
+Yes, jemalloc can return unused dirty memory to the OS.  It uses munmap() and/or madvise(), though on Linux it does not use munmap() by default due to kernel VM fragmentation issues.  Watch https://github.com/jemalloc/jemalloc/issues/325 <https://github.com/jemalloc/jemalloc/issues/325> to keep tabs on an in-progress feature that I expect to further improve unused dirty memory management.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160209/28939856/attachment.html>
+
+From yasaswinig7 at gmail.com  Tue Feb  9 14:07:49 2016
+From: yasaswinig7 at gmail.com (Yasaswini G)
+Date: Tue, 9 Feb 2016 14:07:49 -0800
+Subject: benchmarks for jemalloc
+Message-ID: <CAL8RdmT_V1_-0W-J4GAGFbFfcr3J=2fXkcoN7=02ceHyu6aGcg@mail.gmail.com>
+
+Hi,
+
+Are there any benchmarks which can be used to compare jemalloc with other
+malloc implementations (glibc,...)
+Any reference or guidance is highly appreciated
+
+Thanks
+Yasaswini
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160209/ffe5287c/attachment.html>
+
+From roel.vandepaar at percona.com  Tue Feb  9 15:24:09 2016
+From: roel.vandepaar at percona.com (Roel Van de Paar)
+Date: Wed, 10 Feb 2016 10:24:09 +1100
+Subject: benchmarks for jemalloc
+In-Reply-To: <CAL8RdmT_V1_-0W-J4GAGFbFfcr3J=2fXkcoN7=02ceHyu6aGcg@mail.gmail.com>
+References: <CAL8RdmT_V1_-0W-J4GAGFbFfcr3J=2fXkcoN7=02ceHyu6aGcg@mail.gmail.com>
+Message-ID: <CAGQTitPUPvc3a9=s+7xCgjJn0D4aB+zFT6sHDu95+Se3kRE1Rg@mail.gmail.com>
+
+I am interested in this also. Any link/reference/info appreciated!
+
+On Wed, Feb 10, 2016 at 9:07 AM, Yasaswini G <yasaswinig7 at gmail.com> wrote:
+
+> Hi,
+>
+> Are there any benchmarks which can be used to compare jemalloc with other
+> malloc implementations (glibc,...)
+> Any reference or guidance is highly appreciated
+>
+> Thanks
+> Yasaswini
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: percona.rvandepaar
+http://www.percona.com/services.html
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+<http://www.percona.com/software/percona-xtradb-cluster>!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160210/dc8d4df7/attachment.html>
+
+From jos at websupergoo.com  Wed Feb 10 00:43:15 2016
+From: jos at websupergoo.com (Jos Vernon)
+Date: Wed, 10 Feb 2016 08:43:15 -0000
+Subject: benchmarks for jemalloc
+In-Reply-To: <CAL8RdmT_V1_-0W-J4GAGFbFfcr3J=2fXkcoN7=02ceHyu6aGcg@mail.gmail.com>
+References: <CAL8RdmT_V1_-0W-J4GAGFbFfcr3J=2fXkcoN7=02ceHyu6aGcg@mail.gmail.com>
+Message-ID: <857816831B484AE2828AB50EAB6F28D8@ENCHANTED>
+
+Hi
+
+Rather dependent on what you're doing I would have thought.
+
+However one of my new/delete hungry tests takes 7.6 seconds using the default Windows new, 2.8 seconds using temalloc and 2.5 using jemalloc.
+
+So that gives a flavour at least. :-)
+
+Best Wishes
+
+Jos
+
+----------------------------------------------------------------------
+jos vernon
+http://www.websupergoo.com/
+.NET Image Components & Consultancy
+----------------------------------------------------------------------
+
+From: Yasaswini G 
+Sent: Tuesday, February 9, 2016 10:07 PM
+To: jemalloc-discuss at canonware.com 
+Subject: benchmarks for jemalloc
+
+Hi, 
+
+Are there any benchmarks which can be used to compare jemalloc with other malloc implementations (glibc,...)
+Any reference or guidance is highly appreciated
+
+
+Thanks
+Yasaswini 
+
+
+--------------------------------------------------------------------------------
+_______________________________________________
+jemalloc-discuss mailing list
+jemalloc-discuss at canonware.com
+http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160210/ab968a35/attachment.html>
+
+From cferris at google.com  Thu Feb 11 14:33:48 2016
+From: cferris at google.com (Christopher Ferris)
+Date: Thu, 11 Feb 2016 14:33:48 -0800
+Subject: Memory Leak in Thread Cleanup (jemalloc 4.0.4)
+Message-ID: <CANtHk4nCh-D2raOXWuSU3FegjE1ojV6tSS57evQ5cfns-Od9pw@mail.gmail.com>
+
+It appears, that under certain circumstances, the arenas_cache can be
+leaked when shutting down a thread.
+
+Specifically, in tsd.c (function tsd_cleanup), this code:
+
+#define O(n, t)                                                         \
+                n##_cleanup(tsd);
+MALLOC_TSD
+#undef O
+                tsd->state = tsd_state_purgatory;
+                tsd_set(tsd);
+                break;
+
+
+The cleanup part can wind up creating an arenas_cache, then the tsd_set
+clears the arenas_cache pointer, and the memory is leaked away.
+
+I added this call:
+
+                arenas_cache_cleanup(tsd_get());
+
+After the undef and before the tsd->state, and the leak disappears. I'm not
+sure if there is a better way to fix this though.
+
+Thanks,
+
+Christopher
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160211/65b9a617/attachment.html>
+
+From abi.varghese at gmail.com  Tue Feb 16 21:29:20 2016
+From: abi.varghese at gmail.com (Abi Varghese)
+Date: Wed, 17 Feb 2016 10:59:20 +0530
+Subject: Porting jemalloc to shared memory
+Message-ID: <CA+n6=1YQZ4F8t-n=H6MRS8D7mUTxSuyYptA9GgnRXNJfd7CFfQ@mail.gmail.com>
+
+Hello Experts,
+
+We have a static allocator based on shared memory in use today (with
+predefined memory segment sizes), but there is just too much of internal
+fragmentation and our memory requirement in keep on increasing (we have
+close to 60-70GB in use today - with practically needing 20-30GB). We tried
+several option to live with the current allocator but it is extremely hard
+to have a configuration which can work with varying traffic patterns.
+
+To address the problem, I am considering to use a dynamic allocator based
+on shared memory. The basic idea is to have the allocator work across
+process boundaries and to have the things stored in shared memory to
+survive process crashes or restarts.
+
+After analyzing many allocators, I am thinking to port jemalloc to shared
+memory. I have done a very high level look into jemalloc with a simple
+prototype. In my prototype I am pre-allocating a big shared memory chunk
+using a fixed address (which is aligned to chunk size boundary of 4MB).
+With this I think jemalloc would be able to manage memory across processes.
+
+I have few queries in general,
+
+1. Currently I am using a fixed address aligned to 4MB boundary. Is there a
+way for me to avoid using a fixed address?
+
+2. Is it safe to use a fixed high memory address for my application?
+
+3. Is it possible to make jemalloc work with page alignment for chunks
+instead of chunk alignment? If yes, could you suggest any way for this -
+without huge rework in jemalloc? My primary idea is to get out of fixed
+address (AFAIK, Linux guarantees shared memory segments to be page aligned)
+
+4. I see that tsd cleanup do not work (including arena cleanup) when
+process exits. Is there a way to ensure this? Or do I need to introduce
+some garbage collection mechanism on top?
+
+Thanks and Regards,
+Abi
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160217/62089566/attachment.html>
+
+From jasone at canonware.com  Sat Feb 20 10:35:52 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 20 Feb 2016 10:35:52 -0800
+Subject: Bus Address Crash in ckh unit test
+In-Reply-To: <CANtHk4kdWjwyNF7am+7w5b8QS9DFLwQMnSMmGesexxOX6oQd=A@mail.gmail.com>
+References: <CANtHk4kaK7_qAxoSjBV7b-1fKU-Amfde2D4sYeNoYqMcW5gBaA@mail.gmail.com>
+	<CANtHk4kdWjwyNF7am+7w5b8QS9DFLwQMnSMmGesexxOX6oQd=A@mail.gmail.com>
+Message-ID: <D5BD74F8-A410-4C7B-8300-213EB22780E1@canonware.com>
+
+On Feb 4, 2016, at 1:42 PM, Christopher Ferris <cferris at google.com> wrote:
+> https://android-review.googlesource.com/#/c/200798/
+
+Fix integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/a0aaad1afa8c1c4b30bf15c6b8744084ffc32055
+
+> On a sort of related note, there is a typo in jemalloc/internal/ckh.h. The prototype for ckh_search, has the second parameter as seachkey instead of searchkey.
+
+Fix integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/effaf7d40fba191386162e907195b0198c75866a
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sat Feb 20 10:41:55 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 20 Feb 2016 10:41:55 -0800
+Subject: jemalloc on iMX6 ARM
+In-Reply-To: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A9@NTMBOX.central.cirsa.com>
+References: <6A230045C5A9854B97A1D40971AC8BE1023ACE60A7@NTMBOX.central.cirsa.com>
+	<6A230045C5A9854B97A1D40971AC8BE1023ACE60A8@NTMBOX.central.cirsa.com>
+	<6A230045C5A9854B97A1D40971AC8BE1023ACE60A9@NTMBOX.central.cirsa.com>
+Message-ID: <9F851937-44CE-4004-BD73-B7E262A88CE8@canonware.com>
+
+You need to specify target info a bit differently.  See the sh4.cache attachment in the following email for an example:
+
+	http://www.canonware.com/pipermail/jemalloc-discuss/2011-April/000018.html
+
+Jason
+
+> On Jan 30, 2016, at 12:20 AM, Jorge Fernandez Monteagudo <jorgefm at cirsa.com> wrote:
+> 
+> Another one...
+> 
+> I don't know why the autogen.sh is getting the properties from the building system not the target???
+> 
+> I do
+> 
+> $ source /opt/fsl-imx-fb/3.14.52-1.1.0/environment-setup-cortexa9hf-vfp-neon-poky-linux-gnueabi
+> $ ./autogen.sh --build=x86_64-linux --host=arm-poky-linux-gnueabi --target=arm-poky-linux-gnueabi --enable-debug
+> ...
+> checking whether byte ordering is bigendian... (cached) no
+> checking size of void *... (cached) 8
+> checking size of int... (cached) 4
+> checking size of long... (cached) 8
+> checking size of intmax_t... 8
+> checking build system type... x86_64-pc-linux-gnu
+> checking host system type... arm-poky-linux-gnueabi
+> ...
+> 
+> with this defines the code generated is wrong. The void * is a 32b pointer in the target, but a 64b one in the build machine.
+> There are some warnings compiling too
+> 
+> arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.pic.o src/jemalloc.c
+> src/jemalloc.c:77:2: warning: left shift count >= width of type
+>  SIZE_CLASSES
+>  ^
+> ...
+> arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/util.o src/util.c
+> In file included from include/jemalloc/internal/jemalloc_internal.h:500:0,
+>                 from src/util.c:23:
+> include/jemalloc/internal/util.h: In function ?je_pow2_ceil?:
+> include/jemalloc/internal/util.h:207:2: warning: right shift count >= width of type
+>  x |= x >> 32;
+>  ^
+> 
+> ________________________________________
+> From: jemalloc-discuss-bounces at canonware.com [jemalloc-discuss-bounces at canonware.com] On Behalf Of Jorge Fernandez Monteagudo [jorgefm at cirsa.com]
+> Sent: Friday, January 29, 2016 7:56 PM
+> To: jemalloc-discuss at canonware.com
+> Subject: RE: jemalloc on iMX6 ARM
+> 
+> Another clue. I've generated the library with
+> 
+> $ ./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --enable-debug
+> 
+> and now I have
+> 
+> # export LD_PRELOAD=/tmp/libjemalloc.so.2
+> # ls
+> <jemalloc>: src/rtree.c:18: Failed assertion: "bits > 0 && bits <= (sizeof(uintptr_t) << 3)"
+> Aborted
+> 
+> 
+> ________________________________________
+> From: jemalloc-discuss-bounces at canonware.com [jemalloc-discuss-bounces at canonware.com] On Behalf Of Jorge Fernandez Monteagudo [jorgefm at cirsa.com]
+> Sent: Friday, January 29, 2016 7:26 PM
+> To: jemalloc-discuss at canonware.com
+> Subject: jemalloc on iMX6 ARM
+> 
+> Hi all, this is my first post to this mailing list.
+> 
+> I'm trying to give a try to jemalloc in a iMX6 ARM board. I've
+> downloaded the current master image from
+> 
+> https://github.com/jemalloc/jemalloc/tree/master
+> 
+> I've done the cross compilation with no problem and I've deploy
+> the lib to the board. Our iMX6 image is using 3.14 linux kernel.
+> The library generated with
+> 
+> ./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi
+> scp lib/libjemalloc.so.2 root@<imx6_board_ip>:/tmp/
+> 
+> when I tried in the board I get:
+> 
+> # export LD_PRELOAD=/tmp/libjemalloc.so.2
+> # ls
+> Bus error
+> 
+> and in dmesg I can see
+> 
+> Alignment trap: not handling instruction e1b14f9f at [<76f06b14>]
+> Unhandled fault: alignment exception (0x011) at 0x76f2cfe4
+> 
+> 
+> If I build the library with
+> 
+> ./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --disable-fill
+> scp lib/libjemalloc.so.2 root@<imx6_board_ip>:/tmp/
+> 
+> when I tried in the board I get:
+> 
+> # export LD_PRELOAD=/tmp/libjemalloc.so.2
+> # ls
+> Segmentation fault
+> 
+> 
+> I guess the jemalloc is able to work on ARM systems. Where should I start looking to
+> make it work? Any hint is welcome!
+> 
+> 
+> Pd: This is the configuration the 'configure' process prints on screen
+> 
+> ===============================================================================
+> jemalloc version   : 0.0.0-0-g0000000000000000000000000000000000000000
+> library revision   : 2
+> 
+> CONFIG             : --build=x86_64-linux --host=arm-poky-linux-gnueabi build_alias=x86_64-linux host_alias=arm-poky-linux-gnueabi 'CC=arm-poky-linux-gnueabi-gcc -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi' 'CFLAGS= -O2 -pipe -g -feliminate-unused-debug-types' 'LDFLAGS=-Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed' CPPFLAGS= 'CPP=arm-poky-linux-gnueabi-gcc -E -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi'
+> CC                 : arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi
+> CFLAGS             :  -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden
+> CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+> LDFLAGS            : -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed
+> EXTRA_LDFLAGS      :
+> LIBS               :  -lpthread
+> TESTLIBS           :
+> RPATH_EXTRA        :
+> 
+> XSLTPROC           : false
+> XSLROOT            :
+> 
+> PREFIX             : /usr/local
+> BINDIR             : /usr/local/bin
+> DATADIR            : /usr/local/share
+> INCLUDEDIR         : /usr/local/include
+> LIBDIR             : /usr/local/lib
+> MANDIR             : /usr/local/share/man
+> 
+> srcroot            :
+> abs_srcroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+> objroot            :
+> abs_objroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+> 
+> JEMALLOC_PREFIX    :
+> JEMALLOC_PRIVATE_NAMESPACE
+>                   : je_
+> install_suffix     :
+> autogen            : 0
+> cc-silence         : 1
+> debug              : 0
+> code-coverage      : 0
+> stats              : 1
+> prof               : 0
+> prof-libunwind     : 0
+> prof-libgcc        : 0
+> prof-gcc           : 0
+> tcache             : 1
+> fill               : 1
+> utrace             : 0
+> valgrind           : 1
+> xmalloc            : 0
+> munmap             : 0
+> lazy_lock          : 0
+> tls                : 1
+> cache-oblivious    : 1
+> ===============================================================================
+> 
+> 
+> Este mensaje se dirige exclusivamente a su destinatario y puede contener informaci?n privilegiada o CONFIDENCIAL. Si no es vd. el destinatario indicado, queda notificado de que la utilizaci?n, divulgaci?n y/o copia sin autorizaci?n est? prohibida en virtud de la legislaci?n vigente. Si ha recibido este mensaje por error, le rogamos que nos lo comunique inmediatamente por esta misma v?a y proceda a su destrucci?n.
+> 
+> This message is intended exclusively for its addressee and may contain information that is CONFIDENTIAL and protected by professional privilege.
+> If you are not the intended recipient you are hereby notified that any dissemination, copy or disclosure of this communication is strictly prohibited by law. If this message has been received in error, please immediately notify us via e-mail and delete it.
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> 
+
+
+From jasone at canonware.com  Sat Feb 27 21:33:13 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 27 Feb 2016 21:33:13 -0800
+Subject: Memory Leak in Thread Cleanup (jemalloc 4.0.4)
+In-Reply-To: <CANtHk4nCh-D2raOXWuSU3FegjE1ojV6tSS57evQ5cfns-Od9pw@mail.gmail.com>
+References: <CANtHk4nCh-D2raOXWuSU3FegjE1ojV6tSS57evQ5cfns-Od9pw@mail.gmail.com>
+Message-ID: <7AEEB898-9796-4900-ACA2-00C715585DF8@canonware.com>
+
+On Feb 11, 2016, at 2:33 PM, Christopher Ferris <cferris at google.com> wrote:
+> It appears, that under certain circumstances, the arenas_cache can be leaked when shutting down a thread.
+> 
+> Specifically, in tsd.c (function tsd_cleanup), this code:
+> 
+> #define O(n, t)                                                         \
+>                 n##_cleanup(tsd);
+> MALLOC_TSD
+> #undef O
+>                 tsd->state = tsd_state_purgatory;
+>                 tsd_set(tsd);
+>                 break;
+> 
+> 
+> The cleanup part can wind up creating an arenas_cache, then the tsd_set clears the arenas_cache pointer, and the memory is leaked away.
+> 
+> I added this call:
+> 
+>                 arenas_cache_cleanup(tsd_get());
+> 
+> After the undef and before the tsd->state, and the leak disappears. I'm not sure if there is a better way to fix this though.
+> 
+
+Fix integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/39f58755a7c2c5c12c9b732c17fe472c9872ab4b
+
+Thanks,
+Jason
+

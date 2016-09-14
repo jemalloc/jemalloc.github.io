@@ -1,0 +1,135 @@
+>From bdfc7bd6a435fd35abed9b4279792f1da69c603f Mon Sep 17 00:00:00 2001
+From: Alessandro Pignotti <a.pignotti@sssup.it>
+Date: Mon, 20 Aug 2012 13:29:08 +0200
+Subject: [PATCH 4/4] Add test for iterate regions
+
+---
+ test/iterate_regions.c   |  104 ++++++++++++++++++++++++++++++++++++++++++++++
+ test/iterate_regions.exp |    4 ++
+ 2 files changed, 108 insertions(+)
+ create mode 100644 test/iterate_regions.c
+ create mode 100644 test/iterate_regions.exp
+
+diff --git a/test/iterate_regions.c b/test/iterate_regions.c
+new file mode 100644
+index 0000000..4c8d63b
+--- /dev/null
++++ b/test/iterate_regions.c
+@@ -0,0 +1,104 @@
++#define	JEMALLOC_MANGLE
++#include "jemalloc_test.h"
++#include "jemalloc/internal/jemalloc_internal.h"
++
++struct allocations
++{
++	void** objs;
++	int obj_count;
++};
++
++static void iterate_callback(void* arg, void* obj)
++{
++	int i;
++	struct allocations* allocs = (struct allocations*)arg;
++	/* Find the object in the allocations */
++	for(i=0;i<allocs->obj_count;i++)
++	{
++		if(allocs->objs[i]==obj)
++		{
++			allocs->objs[i]=NULL;
++			return;
++		}
++	}
++	/* The object was not found. This is an error. */
++	malloc_printf("Unexpected object found at %p\n",obj);
++}
++
++static bool validate_allocations(struct allocations* allocs)
++{
++	int i;
++	for(i=0;i<allocs->obj_count;i++)
++	{
++		if(allocs->objs[i]!=NULL)
++			malloc_printf("Expected object at %p was not found\n",allocs->objs[i]);
++	}
++}
++
++static int allocate_small_objects(arena_t* arena)
++{
++	int i;
++	void* objs[10];
++	void* objs_copy[10];
++	struct allocations allocs;
++	malloc_printf("Allocate small objects\n");
++	memset(objs,0,10*sizeof(void*));
++
++	allocs.objs = objs;
++	allocs.obj_count = 10;
++	for(i=0;i<10;i++)
++	{
++		uint32_t size=rand()%4096;
++		objs[i]=arena_malloc(arena,size,true,false);
++	}
++	memcpy(objs_copy,objs,sizeof(void*)*10);
++	arena_iterate_regions(arena,iterate_callback,&allocs);
++	validate_allocations(&allocs);
++	for(i=0;i<10;i++)
++		arena_dalloc(arena, CHUNK_ADDR2BASE(objs_copy[i]), objs_copy[i], false);
++}
++
++static int allocate_large_objects(arena_t* arena)
++{
++	int i;
++	void* objs[10];
++	void* objs_copy[10];
++	struct allocations allocs;
++	malloc_printf("Allocate large objects\n");
++	memset(objs,0,10*sizeof(void*));
++
++	allocs.objs = objs;
++	allocs.obj_count = 10;
++	for(i=0;i<10;i++)
++	{
++		uint32_t size=(rand()+4096)%65536;
++		objs[i]=arena_malloc(arena,size,true,false);
++	}
++	memcpy(objs_copy,objs,sizeof(void*)*10);
++	arena_iterate_regions(arena,iterate_callback,&allocs);
++	validate_allocations(&allocs);
++	for(i=0;i<10;i++)
++		arena_dalloc(arena, CHUNK_ADDR2BASE(objs_copy[i]), objs_copy[i], false);
++}
++
++int
++main(void)
++{
++	unsigned arena_ind;
++	size_t size;
++	int err;
++	arena_t* arena;
++
++	malloc_printf("Test begin\n");
++	/* Get the arena */
++	size = sizeof(arena_ind);
++	if ((err = mallctl("thread.arena", &arena_ind, &size, NULL, 0))) {
++		malloc_printf("%s(): Error in mallctl(): %s\n", __func__,
++		    strerror(err));
++		return 1;
++	}
++	arena = arenas[arena_ind];
++	allocate_small_objects(arena);
++	allocate_large_objects(arena);
++	malloc_printf("Test end\n");
++}
+diff --git a/test/iterate_regions.exp b/test/iterate_regions.exp
+new file mode 100644
+index 0000000..f2ca216
+--- /dev/null
++++ b/test/iterate_regions.exp
+@@ -0,0 +1,4 @@
++Test begin
++Allocate small objects
++Allocate large objects
++Test end
+-- 
+1.7.9.5
+

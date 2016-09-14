@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-4.0.0 test suite segfaults on aarch64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20test%20suite%20segfaults%20on%20aarch64&In-Reply-To=%3C2012790728.131848.1440013581476.JavaMail.zimbra%40redpill-linpro.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001142.html">
+   <LINK REL="Next"  HREF="001145.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-4.0.0 test suite segfaults on aarch64</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20test%20suite%20segfaults%20on%20aarch64&In-Reply-To=%3C2012790728.131848.1440013581476.JavaMail.zimbra%40redpill-linpro.com%3E"
+       TITLE="jemalloc-4.0.0 test suite segfaults on aarch64">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Wed Aug 19 12:46:21 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001142.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+        <LI>Next message: <A HREF="001145.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1143">[ date ]</a>
+              <a href="thread.html#1143">[ thread ]</a>
+              <a href="subject.html#1143">[ subject ]</a>
+              <a href="author.html#1143">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>----- On Aug 19, 2015, at 8:44 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote: 
+
+&gt;<i> On Aug 19, 2015, at 3:02 AM, Ingvar Hagelund &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ingvar at redpill-linpro.com</A>&gt; wrote:
+</I>&gt;<i> &gt; I've started wrapping jemalloc-4.0.0 for fedora. aarch64 is now a target
+</I>&gt;<i> &gt; arch for fedora. When sent to the arm builders, the unit/bitmap test
+</I>&gt;<i> &gt; segfaults. Full log here:
+</I>
+&gt;<i> &gt; <A HREF="http://arm.koji.fedoraproject.org//work/tasks/6832/3126832/build.log">http://arm.koji.fedoraproject.org//work/tasks/6832/3126832/build.log</A>
+</I>
+&gt;<i> &gt; Also note the vast amounts of &quot;warning: left shift count is negative&quot;.
+</I>
+&gt;<i> This happens with page sizes larger than 8 KiB.
+</I>That's the case here, yes. Fedora 22 on aarch64. 
+
+$ uname -a 
+Linux arm64 4.0.4-301.fc22.aarch64 #1 SMP Thu May 21 15:21:42 UTC 2015 aarch64 aarch64 aarch64 GNU/Linux 
+
+$ getconf PAGESIZE 
+65536 
+
+&gt;<i> I can test a patch locally by specifying --with-lg-page=16 during configuration.
+</I>&gt;<i> The segfault is hopefully a side effect of the bit shifting issue (I certainly
+</I>&gt;<i> get test crashes when specifying --with-lg-page=16).
+</I>I have got a qemu aarch64 instance running now, so I would happily test patches. 
+
+I throw in a gdb backtrace for good measure 
+
+[<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ingvar at arm64</A> jemalloc-4.0.0]$ gdb test/unit/bitmap 
+GNU gdb (GDB) Fedora 7.9-11.fc22 
+(...snip...) 
+This GDB was configured as &quot;aarch64-redhat-linux-gnu&quot;. 
+(...snip....) 
+
+Reading symbols from test/unit/bitmap...done. 
+(gdb) run 
+Starting program: /home/ingvar/rpmbuild/BUILD/jemalloc-4.0.0/test/unit/bitmap 
+[Thread debugging using libthread_db enabled] 
+Using host libthread_db library &quot;/lib64/libthread_db.so.1&quot;. 
+test_bitmap_size: pass 
+
+Program received signal SIGSEGV, Segmentation fault. 
+__GI___pthread_mutex_lock (mutex=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mutex at entry</A>=0x840) at pthread_mutex_lock.c:67 
+67 unsigned int type = PTHREAD_MUTEX_TYPE_ELISION (mutex); 
+(gdb) bt 
+#0 __GI___pthread_mutex_lock (mutex=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mutex at entry</A>=0x840) at pthread_mutex_lock.c:67 
+#1 0x000000000042f704 in jet_malloc_mutex_lock (mutex=0x14ae70840) at include/jemalloc/internal/mutex.h:85 
+#2 jet_tcache_bin_flush_small (tsd=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">tsd at entry</A>=0x3ffb7810008, tcache=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">tcache at entry</A>=0x3ffb7820000, tbin=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">tbin at entry</A>=0x3ffb7820020, binind=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">binind at entry</A>=0, rem=1768846639) at src/tcache.c:115 
+#3 0x0000000000408574 in jet_tcache_dalloc_small (binind=0, ptr=0x3ffb7a78f00, tcache=0x3ffb7820000, tsd=0x3ffb7810008) at include/jemalloc/internal/tcache.h:376 
+#4 jet_arena_dalloc (tcache=0x3ffb7820000, ptr=0x3ffb7a78f00, tsd=0x3ffb7810008) at include/jemalloc/internal/arena.h:1195 
+#5 jet_idalloctm (is_metadata=false, tcache=0x3ffb7820000, ptr=0x3ffb7a78f00, tsd=0x3ffb7810008) at include/jemalloc/internal/jemalloc_internal.h:1005 
+#6 jet_iqalloc (tcache=0x3ffb7820000, ptr=0x3ffb7a78f00, tsd=0x3ffb7810008) at include/jemalloc/internal/jemalloc_internal.h:1029 
+#7 ifree (tcache=0x3ffb7820000, ptr=0x3ffb7a78f00, tsd=0x3ffb7810008) at src/jemalloc.c:1723 
+#8 jet_free (ptr=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ptr at entry</A>=0x3ffb7a78f00) at src/jemalloc.c:1817 
+#9 0x0000000000401a84 in test_bitmap_init () at test/unit/bitmap.c:34 
+#10 0x0000000000434a20 in p_test (t=0x401970 &lt;test_bitmap_init&gt;) at test/src/test.c:84 
+#11 0x000003ffb7d1f964 in __libc_start_main (main=0x0, argc=0, argv=0x0, init=&lt;optimized out&gt;, fini=&lt;optimized out&gt;, rtld_fini=&lt;optimized out&gt;, stack_end=&lt;optimized out&gt;) at libc-start.c:289 
+#12 0x00000000004016f0 in _start () 
+Backtrace stopped: previous frame identical to this frame (corrupt stack?) 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150819/da12ef57/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150819/da12ef57/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001142.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+	<LI>Next message: <A HREF="001145.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1143">[ date ]</a>
+              <a href="thread.html#1143">[ thread ]</a>
+              <a href="subject.html#1143">[ subject ]</a>
+              <a href="author.html#1143">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

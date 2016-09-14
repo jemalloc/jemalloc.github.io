@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question about bitmap code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20bitmap%20code&In-Reply-To=%3CCAJXinN8hDv8LrXAxcr9t-GFrPDRg00VOaTSFcjqwHvCfF5j2hw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000503.html">
+   <LINK REL="Next"  HREF="000522.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question about bitmap code</H1>
+    <B>Mitchell Blank Jr</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20bitmap%20code&In-Reply-To=%3CCAJXinN8hDv8LrXAxcr9t-GFrPDRg00VOaTSFcjqwHvCfF5j2hw%40mail.gmail.com%3E"
+       TITLE="Question about bitmap code">mitch-jemalloc-discuss at bodyfour.com
+       </A><BR>
+    <I>Thu Nov  8 02:17:26 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000503.html">Question about bitmap code
+</A></li>
+        <LI>Next message: <A HREF="000522.html">Question about bitmap code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#512">[ date ]</a>
+              <a href="thread.html#512">[ thread ]</a>
+              <a href="subject.html#512">[ subject ]</a>
+              <a href="author.html#512">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Nov 5, 2012 at 10:05 AM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> You're probably right that for 8-entry bitmaps, the multi-level bitmap
+</I>&gt;<i> code is overkill.  However, there are combinations of heap profiling
+</I>&gt;<i> settings that can cause the bitmap to contain thousands of items.
+</I>&gt;<i>
+</I>
+
+OK... I haven't looked at the heap profiling code in depth yet.  I assume
+you mean that it causes bin_info-&gt;nregs to be substantially higher?
+
+The reason I'm interested in simplifying the bitmap code is that I think it
+would be beneficial to squeeze more of the per-bin data into a cacheline.
+On the malloc side this might not matter as much since if you're doing a
+lot of allocations the arena-run you're hitting most will be cache hot.
+However, the harder case is the cascading-free: some complicated object
+hierarchy gets released and thousands of free()'s happen, all of objects
+that have been alive for millions of cycles.  There, the bin-data access is
+going to be a L2 miss, probably dominating other costs.  So keeping the
+bitmap small so as much of it as possible lives in the same cache line as
+arena_run_t is beneficial.
+
+The other cacheline concern I have is aliasing.  Again, think about the
+cascading free(): thousands of frees coming from dozens of different
+arena_run's but in essentially random order.  The problem is that the
+arena_run_t is always on a page boundary, so they will heavily alias each
+other at all cache levels.  (is this true of arena_chunk_t as well?  I'm
+still working my way around that code)
+
+It might be worth moving the header to a different place in the page, i.e.
+instead of having it at appear at
+   ptr &amp;~PAGE_MASK,
+use something like:
+   (ptr &amp;~ PAGE_MASK) | ((ptr &gt;&gt; (LG_PAGE-6)) &amp; (PAGE_MASK &amp;~ 63))
+
+Of course this makes computing the address of each element in the page a
+little more complicated (since now some appear before the header and some
+after it) but I think it could be worth it.
+
+Or does none of this matter because the tcache insulates this from these
+effects enough?  That's another area of the code I've barely poked at.
+
+Anyway, sorry for all of the rambling -- I don't have a patch or anything,
+this is just me thinking aloud while trying to understand the jemaloc3 code
+better.  Hopefully I'm not sounding too idiotic.
+
+-Mitch
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121108/02280a13/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121108/02280a13/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000503.html">Question about bitmap code
+</A></li>
+	<LI>Next message: <A HREF="000522.html">Question about bitmap code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#512">[ date ]</a>
+              <a href="thread.html#512">[ thread ]</a>
+              <a href="subject.html#512">[ subject ]</a>
+              <a href="author.html#512">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

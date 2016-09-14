@@ -1,0 +1,39 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Thanks&nbsp;Jason&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Wed,&nbsp;Jan&nbsp;27,&nbsp;2016&nbsp;at&nbsp;4:48&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;On&nbsp;Jan&nbsp;26,&nbsp;2016,&nbsp;at&nbsp;8:08&nbsp;PM,&nbsp;Roel&nbsp;Van&nbsp;de&nbsp;Paar&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:roel.vandepaar@percona.com&quot;&gt;roel.vandepaar@percona.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;Crashing&nbsp;mysqld:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;+bt&lt;br&gt;<br>
+&gt;&nbsp;#0 &nbsp;0x00007f01cabf5741&nbsp;in&nbsp;__pthread_kill&nbsp;(threadid=&lt;optimized&nbsp;out&gt;,&nbsp;signo=11)&nbsp;at&nbsp;../nptl/sysdeps/unix/sysv/linux/pthread_kill.c:61&lt;br&gt;<br>
+&gt;&nbsp;#1 &nbsp;0x0000000000793555&nbsp;in&nbsp;handle_fatal_signal&nbsp;(sig=11)&nbsp;at&nbsp;/git/PS-5.7_opt/sql/signal_handler.cc:223&lt;br&gt;<br>
+&gt;&nbsp;#2 &nbsp;&lt;signal&nbsp;handler&nbsp;called&gt;&lt;br&gt;<br>
+&gt;&nbsp;#3 &nbsp;je_bitmap_set&nbsp;(bit=18446744073709551615,&nbsp;binfo=0x7f01cb037a28&nbsp;&lt;je_arena_bin_info+456&gt;,&nbsp;bitmap=0x7f016b423010)&nbsp;at&nbsp;include/jemalloc/internal/bitmap.h:105&lt;br&gt;<br>
+&gt;&nbsp;#4 &nbsp;je_bitmap_sfu&nbsp;(binfo=0x7f01cb037a28&nbsp;&lt;je_arena_bin_info+456&gt;,&nbsp;bitmap=0x7f016b423010)&nbsp;at&nbsp;include/jemalloc/internal/bitmap.h:140&lt;br&gt;<br>
+&gt;&nbsp;#5 &nbsp;arena_run_reg_alloc&nbsp;(bin_info=0x7f01cb037a00&nbsp;&lt;je_arena_bin_info+416&gt;,&nbsp;run=0x7f016b423000)&nbsp;at&nbsp;src/arena.c:291&lt;br&gt;<br>
+&gt;&nbsp;#6 &nbsp;je_arena_tcache_fill_small&nbsp;(arena=0x7f01c721f1c0,&nbsp;tbin=tbin@entry=0x7f016b4060a8,&nbsp;binind=binind@entry=4,&nbsp;prof_accumbytes=prof_accumbytes@entry=0)&nbsp;at&nbsp;src/arena.c:1479&lt;br&gt;<br>
+&gt;&nbsp;#7 &nbsp;0x00007f01cae2b6ff&nbsp;in&nbsp;je_tcache_alloc_small_hard&nbsp;(tcache=tcache@entry=0x7f016b406000,&nbsp;tbin=tbin@entry=0x7f016b4060a8,&nbsp;binind=binind@entry=4)&nbsp;at&nbsp;src/tcache.c:72&lt;br&gt;<br>
+&gt;&nbsp;#8 &nbsp;0x00007f01cae0b14f&nbsp;in&nbsp;je_tcache_alloc_small&nbsp;(zero=false,&nbsp;size=64,&nbsp;tcache=0x7f016b406000)&nbsp;at&nbsp;include/jemalloc/internal/tcache.h:303&lt;br&gt;<br>
+&gt;&nbsp;#9 &nbsp;je_arena_malloc&nbsp;(try_tcache=true,&nbsp;zero=false,&nbsp;size=&lt;optimized&nbsp;out&gt;,&nbsp;arena=0x0)&nbsp;at&nbsp;include/jemalloc/internal/arena.h:957&lt;br&gt;<br>
+&gt;&nbsp;#10&nbsp;je_imalloct&nbsp;(arena=0x0,&nbsp;try_tcache=true,&nbsp;size=&lt;optimized&nbsp;out&gt;)&nbsp;at&nbsp;include/jemalloc/internal/jemalloc_internal.h:771&lt;br&gt;<br>
+&gt;&nbsp;#11&nbsp;je_imalloc&nbsp;(size=&lt;optimized&nbsp;out&gt;)&nbsp;at&nbsp;include/jemalloc/internal/jemalloc_internal.h:780&lt;br&gt;<br>
+&gt;&nbsp;#12&nbsp;malloc&nbsp;(size=&lt;optimized&nbsp;out&gt;)&nbsp;at&nbsp;src/jemalloc.c:929&lt;br&gt;<br>
+&gt;&nbsp;#13&nbsp;0x00000000011ce169&nbsp;in&nbsp;ut_allocator&lt;unsigned&nbsp;char&gt;::allocate&nbsp;(this=this@entry=0x7f01977f7930,&nbsp;n_elements=32,&nbsp;file=file@entry=0x159f298&nbsp;&quot;/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc&quot;,&nbsp;throw_on_error=false,&nbsp;set_to_zero=false,&nbsp;hint=0x0)&nbsp;at&nbsp;/git/PS-5.7_opt/storage/innobase/include/ut0new.h:349&lt;br&gt;<br>
+&gt;&nbsp;#14&nbsp;0x00000000011d9e2d&nbsp;in&nbsp;fil_flush_file_spaces&nbsp;(purpose=purpose@entry=FIL_TYPE_TABLESPACE)&nbsp;at&nbsp;/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5946&lt;br&gt;<br>
+&gt;&nbsp;#15&nbsp;0x00000000011685d9&nbsp;in&nbsp;buf_dblwr_update&nbsp;(bpage=bpage@entry=0x7f019cd07740,&nbsp;flush_type=flush_type@entry=BUF_FLUSH_LIST)&nbsp;at&nbsp;/git/PS-5.7_opt/storage/innobase/buf/buf0dblwr.cc:750&lt;br&gt;<br>
+&gt;&nbsp;#16&nbsp;0x0000000001177506&nbsp;in&nbsp;buf_flush_write_complete&nbsp;(bpage=bpage@entry=0x7f019cd07740)&nbsp;at&nbsp;/git/PS-5.7_opt/storage/innobase/buf/buf0flu.cc:809&lt;br&gt;<br>
+&gt;&nbsp;#17&nbsp;0x000000000115f511&nbsp;in&nbsp;buf_page_io_complete&nbsp;(bpage=0x7f019cd07740,&nbsp;evict=evict@entry=false)&nbsp;at&nbsp;/git/PS-5.7_opt/storage/innobase/buf/buf0buf.cc:6030&lt;br&gt;<br>
+&gt;&nbsp;#18&nbsp;0x00000000011d24af&nbsp;in&nbsp;fil_aio_wait&nbsp;(segment=segment@entry=7)&nbsp;at&nbsp;/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5754&lt;br&gt;<br>
+&gt;&nbsp;#19&nbsp;0x00000000010c07b0&nbsp;in&nbsp;io_handler_thread&nbsp;(arg=&lt;optimized&nbsp;out&gt;)&nbsp;at&nbsp;/git/PS-5.7_opt/storage/innobase/srv/srv0start.cc:330&lt;br&gt;<br>
+&gt;&nbsp;#20&nbsp;0x00007f01cabf0dc5&nbsp;in&nbsp;start_thread&nbsp;(arg=0x7f01977f8700)&nbsp;at&nbsp;pthread_create.c:308&lt;br&gt;<br>
+&gt;&nbsp;#21&nbsp;0x00007f01c904f21d&nbsp;in&nbsp;clone&nbsp;()&nbsp;at&nbsp;../sysdeps/unix/sysv/linux/x86_64/clone.S:113&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;This&nbsp;looks&nbsp;highly&nbsp;like&nbsp;to&nbsp;be&nbsp;jemalloc&nbsp;bug&nbsp;-&nbsp;agreed?&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Can&nbsp;I&nbsp;provide&nbsp;any&nbsp;other&nbsp;info&nbsp;to&nbsp;report&nbsp;this?&nbsp;Is&nbsp;this&nbsp;list&nbsp;notification&nbsp;sufficient?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;&lt;/div&gt;No,&nbsp;this&nbsp;is&nbsp;more&nbsp;likely&nbsp;to&nbsp;be&nbsp;an&nbsp;application&nbsp;bug&nbsp;than&nbsp;a&nbsp;jemalloc&nbsp;bug. &nbsp;The&nbsp;application&nbsp;probably&nbsp;corrupted&nbsp;jemalloc&nbsp;data&nbsp;structures,&nbsp;e.g.&nbsp;by&nbsp;freeing&nbsp;the&nbsp;same&nbsp;object&nbsp;twice. &nbsp;If&nbsp;you&nbsp;do&nbsp;determine&nbsp;that&nbsp;it&#39;s&nbsp;a&nbsp;jemalloc&nbsp;bug,&nbsp;please&nbsp;provide&nbsp;full&nbsp;reproduction&nbsp;steps&nbsp;or&nbsp;a&nbsp;diagnosis/patch&nbsp;so&nbsp;we&nbsp;can&nbsp;get&nbsp;the&nbsp;problem&nbsp;fixed.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thanks,&lt;br&gt;<br>
+Jason&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;br&nbsp;clear=&quot;all&quot;&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;--&nbsp;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_signature&quot;&gt;&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&gt;&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;br&gt;&lt;font&nbsp;face=&quot;arial,helvetica,sans-serif&quot;&gt;Kind&nbsp;Regards,&lt;br&gt;God&nbsp;Bless,&lt;br&gt;--&nbsp;&lt;br&gt;Roel&nbsp;Van&nbsp;de&nbsp;Paar, &lt;/font&gt;&lt;font&nbsp;face=&quot;arial,helvetica,sans-serif&quot;&gt;CMDBA/CMDEV&nbsp;Senior&nbsp;QA&nbsp;Lead, &lt;/font&gt;Percona&lt;div&gt;&lt;font&nbsp;face=&quot;arial,helvetica,sans-serif&quot;&gt;Tel:&nbsp;+61&nbsp;2&nbsp;8004&nbsp;1288&nbsp;(UTC+10)&lt;br&gt;Mob:&nbsp;+61&nbsp;427&nbsp;141&nbsp;635&nbsp;(UTC+10)&lt;br&gt;Skype:&nbsp;percona.rvandepaar&lt;br&gt;&lt;/font&gt;&lt;font&nbsp;face=&quot;arial,helvetica,sans-serif&quot;&gt;&lt;a&nbsp;href=&quot;http://www.percona.com/services.html&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.percona.com/services.html&lt;/a&gt;&lt;/font&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;Looking&nbsp;for&nbsp;Replication&nbsp;with&nbsp;Data&nbsp;Consistency?&lt;/div&gt;&lt;div&gt;Try&nbsp;&lt;a&nbsp;href=&quot;http://www.percona.com/software/percona-xtradb-cluster&quot;&nbsp;target=&quot;_blank&quot;&gt;Percona&nbsp;XtraDB&nbsp;Cluster&lt;/a&gt;!&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;<br>
+&lt;/div&gt;<br>
+
+</tt>

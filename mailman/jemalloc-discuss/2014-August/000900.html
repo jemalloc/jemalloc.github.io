@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> SIGSEGV on arenas_cleanup
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20SIGSEGV%20on%20arenas_cleanup&In-Reply-To=%3CCAMAQheM-E5VAPx5K2wwhh%3D1nN910t%3Df9%3DuSAdh%2BhYx_v1Ncvew%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000901.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>SIGSEGV on arenas_cleanup</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20SIGSEGV%20on%20arenas_cleanup&In-Reply-To=%3CCAMAQheM-E5VAPx5K2wwhh%3D1nN910t%3Df9%3DuSAdh%2BhYx_v1Ncvew%40mail.gmail.com%3E"
+       TITLE="SIGSEGV on arenas_cleanup">edsiper at gmail.com
+       </A><BR>
+    <I>Mon Aug  4 21:26:39 PDT 2014</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000901.html">SIGSEGV on arenas_cleanup
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#900">[ date ]</a>
+              <a href="thread.html#900">[ thread ]</a>
+              <a href="subject.html#900">[ subject ]</a>
+              <a href="author.html#900">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+In my signal handler, everytime I get a SIGTERM i instruct my threads
+to exit, as soon as that happens jemalloc faces a SIGSEGV as decribed
+by valgrind here:
+
+ ==27778== Invalid read of size 4
+ ==27778==    at 0x41A80E: je_arenas_cleanup (jemalloc.c:267)
+ ==27778==    by 0x5042F81: __nptl_deallocate_tsd (pthread_create.c:158)
+ ==27778==    by 0x5043194: start_thread (pthread_create.c:325)
+ ==27778==    by 0x535430C: clone (clone.S:111)
+ ==27778==  Address 0x4 is not stack'd, malloc'd or (recently) free'd
+ ==27778==
+
+what can i do to obtain more details of the issue ?, do i need to take
+care about something before exiting a thread that is using jemalloc ?
+
+regards,
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000901.html">SIGSEGV on arenas_cleanup
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#900">[ date ]</a>
+              <a href="thread.html#900">[ thread ]</a>
+              <a href="subject.html#900">[ subject ]</a>
+              <a href="author.html#900">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

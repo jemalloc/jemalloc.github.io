@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Live allocation iterator
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Live%20allocation%20iterator&In-Reply-To=%3CCAGvmEXjg_tk%2Ba7rFOcQo%2B0uyCn0DwKjtzDfp4ugtzqjjWkUptw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001072.html">
+   <LINK REL="Next"  HREF="001074.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Live allocation iterator</H1>
+    <B>SNL</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Live%20allocation%20iterator&In-Reply-To=%3CCAGvmEXjg_tk%2Ba7rFOcQo%2B0uyCn0DwKjtzDfp4ugtzqjjWkUptw%40mail.gmail.com%3E"
+       TITLE="Live allocation iterator">snl20465 at gmail.com
+       </A><BR>
+    <I>Tue Mar 24 06:53:37 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001072.html">Live allocation iterator
+</A></li>
+        <LI>Next message: <A HREF="001074.html">Live allocation iterator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1073">[ date ]</a>
+              <a href="thread.html#1073">[ thread ]</a>
+              <a href="subject.html#1073">[ subject ]</a>
+              <a href="author.html#1073">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>If this is not possible ( I see an old post which says jemalloc does not
+have this infra but that was back in 2012 ). Is it possible to iterate over
+just an arena and dump all allocations in it  ? Basically, I have memory
+pool implemented on top of jemalloc which holds metadata about all other
+allocations jemalloc does, if I can iterate over this arena and get hold of
+metadata, I can get hold of each allocation as well.
+
+Any thoughts would be appreciated.
+
+On Tue, Mar 24, 2015 at 5:28 PM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+
+&gt;<i>
+</I>&gt;<i> My use case is to walk through all live allocations ( the ones which are
+</I>&gt;<i> not freed yet) of all sizes the program ever made and dump it as the end of
+</I>&gt;<i> the program or on demand. I have looked at stats but I want something with
+</I>&gt;<i> even more details. Basically, the function should be able to iterate
+</I>&gt;<i> through all arenas and print details on following lines:
+</I>&gt;<i>
+</I>&gt;<i> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+</I>&gt;<i>
+</I>&gt;<i> Is there any api in jemalloc which already does subset of this  ? Any
+</I>&gt;<i> pointers will be helpful.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150324/71cf0ea8/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150324/71cf0ea8/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001072.html">Live allocation iterator
+</A></li>
+	<LI>Next message: <A HREF="001074.html">Live allocation iterator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1073">[ date ]</a>
+              <a href="thread.html#1073">[ thread ]</a>
+              <a href="subject.html#1073">[ subject ]</a>
+              <a href="author.html#1073">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

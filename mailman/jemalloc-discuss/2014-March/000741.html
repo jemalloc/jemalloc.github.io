@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> mallctl() returns zeroes with jemalloc-prefix
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mallctl%28%29%20returns%20zeroes%20with%20jemalloc-prefix&In-Reply-To=%3C531EED89.30700%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000742.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>mallctl() returns zeroes with jemalloc-prefix</H1>
+    <B>Antony Dovgal</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mallctl%28%29%20returns%20zeroes%20with%20jemalloc-prefix&In-Reply-To=%3C531EED89.30700%40gmail.com%3E"
+       TITLE="mallctl() returns zeroes with jemalloc-prefix">antony.dovgal at gmail.com
+       </A><BR>
+    <I>Tue Mar 11 04:03:37 PDT 2014</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000742.html">mallctl() returns zeroes with jemalloc-prefix
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#741">[ date ]</a>
+              <a href="thread.html#741">[ thread ]</a>
+              <a href="subject.html#741">[ subject ]</a>
+              <a href="author.html#741">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello all,
+
+I'm trying to investigate the following issue:
+jemalloc's mallctl() stops working when the lib is compiled with --with-jemalloc-prefix=&lt;anything&gt;
+Does anyone have any idea how to fix this?
+
+Here's a quick demonstration of the problem:
+
+./configure --prefix=/local --with-jemalloc-prefix=test_ &amp;&amp; make install
+
+Modify the canonical example accordingly:
+------------
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;jemalloc/jemalloc.h&gt;
+
+void
+do_something(size_t i)
+{
+
+         // Leak some memory.
+         malloc(i * 100);
+}
+
+int
+main(int argc, char **argv)
+{
+         size_t i, sz;
+
+         for (i = 0; i &lt; 100; i++) {
+                 do_something(i);
+
+                 // Update the statistics cached by mallctl.
+                 uint64_t epoch = 1;
+                 sz = sizeof(epoch);
+                 test_mallctl(&quot;epoch&quot;, &amp;epoch, &amp;sz, &amp;epoch, sz); //PREFIX
+
+                 // Get basic allocation statistics.  Take care to check for
+                 // errors, since --enable-stats must have been specified at
+                 // build time for these statistics to be available.
+                 size_t sz, allocated, active, mapped;
+                 sz = sizeof(size_t);
+                 if (test_mallctl(&quot;stats.allocated&quot;, &amp;allocated, &amp;sz, NULL, 0) == 0 //PREFIX
+                     &amp;&amp; test_mallctl(&quot;stats.active&quot;, &amp;active, &amp;sz, NULL, 0) == 0 //PREFIX
+                     &amp;&amp; test_mallctl(&quot;stats.mapped&quot;, &amp;mapped, &amp;sz, NULL, 0) == 0) { //PREFIX
+                         fprintf(stderr,
+                             &quot;Current allocated/active/mapped: %zu/%zu/%zu\n&quot;,
+                             allocated, active, mapped);
+                 }
+         }
+
+         return (0);
+}
+------------
+
+And the output of this code looks like this:
+...
+Current allocated/active/mapped: 0/0/4194304
+Current allocated/active/mapped: 0/0/4194304
+Current allocated/active/mapped: 0/0/4194304
+Current allocated/active/mapped: 0/0/4194304
+...
+
+The ctl tree looks ok and the entries are indeed found, but for some reason they are empty (well, except for stats.mapped).
+And yes, everything works fine as long as I don't use any prefix.
+
+-- 
+Wbr,
+Antony Dovgal
+---
+<A HREF="http://pinba.org">http://pinba.org</A> - realtime profiling for PHP
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000742.html">mallctl() returns zeroes with jemalloc-prefix
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#741">[ date ]</a>
+              <a href="thread.html#741">[ thread ]</a>
+              <a href="subject.html#741">[ subject ]</a>
+              <a href="author.html#741">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

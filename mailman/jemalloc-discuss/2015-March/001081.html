@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> realloc stack use under O0 for x86_64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3C5114D99B-9B43-4B29-8549-94C7CFE5BA11%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001079.html">
+   <LINK REL="Next"  HREF="001080.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>realloc stack use under O0 for x86_64</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3C5114D99B-9B43-4B29-8549-94C7CFE5BA11%40indiana.edu%3E"
+       TITLE="realloc stack use under O0 for x86_64">ldalessa at indiana.edu
+       </A><BR>
+    <I>Wed Mar 25 18:02:45 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001079.html">realloc stack use under O0 for x86_64
+</A></li>
+        <LI>Next message: <A HREF="001080.html">realloc stack use under O0 for x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1081">[ date ]</a>
+              <a href="thread.html#1081">[ thread ]</a>
+              <a href="subject.html#1081">[ subject ]</a>
+              <a href="author.html#1081">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On Mar 25, 2015, at 8:47 PM, Matthew Hall &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mhall at mhcomputing.net</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;<i> When we compile jemalloc for debugging purposes, we see realloc using a 
+</I>&gt;&gt;<i> large amount of stack space:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> ```asm
+</I>&gt;&gt;<i> 0000000000070e48 &lt;realloc&gt;:
+</I>&gt;&gt;<i>  70e48:       55                      push   %rbp
+</I>&gt;&gt;<i>  70e49:       48 89 e5                mov    %rsp,%rbp
+</I>&gt;&gt;<i>  70e4c:       53                      push   %rbx
+</I>&gt;&gt;<i>  70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+</I>&gt;&gt;<i> ```
+</I>&gt;<i> 
+</I>&gt;<i> I think perhaps we can do a little better on narrowing this down especially 
+</I>&gt;<i> given you said that it occurs in -O0 mode.
+</I>&gt;<i> 
+</I>&gt;<i> If you dump this code using objdump -C -d -l, it will try to find the file 
+</I>&gt;<i> name and line number from the debug symbols, and annotate the assembly with 
+</I>&gt;<i> these.
+</I>&gt;<i> 
+</I>&gt;<i> Can you give it a try and search for the 0x6268 and scroll up from there to 
+</I>&gt;<i> find the nearest lines of code to the issue?
+</I>
+Sure, hope this is what you&#8217;re after:
+
+0000000000070e48 &lt;realloc&gt;:
+realloc():
+/u/ldalessa/jemalloc/src/jemalloc.c:1738
+   70e48:       55                      push   %rbp
+   70e49:       48 89 e5                mov    %rsp,%rbp
+   70e4c:       53                      push   %rbx
+   70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+   70e54:       48 89 bd a8 9d ff ff    mov    %rdi,-0x6258(%rbp)
+   70e5b:       48 89 b5 a0 9d ff ff    mov    %rsi,-0x6260(%rbp)
+/u/ldalessa/jemalloc/src/jemalloc.c:1740
+   70e62:       48 c7 85 60 9e ff ff    movq   $0x0,-0x61a0(%rbp)
+   70e69:       00 00 00 00 
+/u/ldalessa/jemalloc/src/jemalloc.c:1741
+   70e6d:       48 c7 85 58 9e ff ff    movq   $0x0,-0x61a8(%rbp)
+   70e74:       00 00 00 00 
+/u/ldalessa/jemalloc/src/jemalloc.c:1742
+   70e78:       48 c7 45 e0 00 00 00    movq   $0x0,-0x20(%rbp)
+   70e7f:       00 
+/u/ldalessa/jemalloc/src/jemalloc.c:1743
+   70e80:       48 c7 45 d8 00 00 00    movq   $0x0,-0x28(%rbp)
+   70e87:       00 
+/u/ldalessa/jemalloc/src/jemalloc.c:1745
+   70e88:       48 83 bd a0 9d ff ff    cmpq   $0x0,-0x6260(%rbp)
+   70e8f:       00 
+   70e90:       0f 94 c0                sete   %al
+   70e93:       0f b6 c0                movzbl %al,%eax
+   70e96:       48 85 c0                test   %rax,%rax
+   70e99:       0f 84 74 04 00 00       je     71313 &lt;realloc+0x4cb&gt;
+/u/ldalessa/jemalloc/src/jemalloc.c:1746
+   70e9f:       48 83 bd a8 9d ff ff    cmpq   $0x0,-0x6258(%rbp)
+   70ea6:       00 
+   70ea7:       0f 84 5b 04 00 00       je     71308 &lt;realloc+0x4c0&gt;
+je_tsd_get():
+
+&gt;<i> Apologies if you already tried this and it didn't work. It helped me in the 
+</I>&gt;<i> past.
+</I>
+
+No, I&#8217;m not an expert objdump user. Normally just -S things or read LLVM IR, but this file is so big that I didn&#8217;t want to do that if possible.
+
+Luke
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001079.html">realloc stack use under O0 for x86_64
+</A></li>
+	<LI>Next message: <A HREF="001080.html">realloc stack use under O0 for x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1081">[ date ]</a>
+              <a href="thread.html#1081">[ thread ]</a>
+              <a href="subject.html#1081">[ subject ]</a>
+              <a href="author.html#1081">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

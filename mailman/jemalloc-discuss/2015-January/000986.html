@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-3.6.0 erroneously recycles already-allocated memory
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-3.6.0%20erroneously%20recycles%20already-allocated%20memory&In-Reply-To=%3C62D3DDF9-FF4A-433E-9D5F-ED487C171386%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000985.html">
+   <LINK REL="Next"  HREF="000994.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-3.6.0 erroneously recycles already-allocated memory</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-3.6.0%20erroneously%20recycles%20already-allocated%20memory&In-Reply-To=%3C62D3DDF9-FF4A-433E-9D5F-ED487C171386%40canonware.com%3E"
+       TITLE="jemalloc-3.6.0 erroneously recycles already-allocated memory">jasone at canonware.com
+       </A><BR>
+    <I>Mon Jan 19 14:46:48 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000985.html">jemalloc-3.6.0 erroneously recycles already-allocated memory
+</A></li>
+        <LI>Next message: <A HREF="000994.html">jemalloc-3.6.0 erroneously recycles already-allocated memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#986">[ date ]</a>
+              <a href="thread.html#986">[ thread ]</a>
+              <a href="subject.html#986">[ subject ]</a>
+              <a href="author.html#986">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 19, 2015, at 1:11 PM, Kurt Wampler &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Kurt.Wampler at asml.com</A>&gt; wrote:
+&gt;<i> Context:
+</I>&gt;<i> 
+</I>&gt;<i> We have an x86_64 Linux C++ application which installs a &quot;NewHandler&quot; that
+</I>&gt;<i> attempts to cope with an out-of-memory situation [malloc() returns NULL
+</I>&gt;<i> pointer] in two ways: (1) It performs some amount of garbage collection,
+</I>&gt;<i> and if this fails to free enough memory, (2) it attempts to raise the soft
+</I>&gt;<i> virtual memory ceiling with a call to setrlimit(RLIMIT_AS,&lt;new_limit&gt;).
+</I>&gt;<i> 
+</I>&gt;<i> Expected Behavior:
+</I>&gt;<i> 
+</I>&gt;<i> When jemalloc's malloc() is called from libstdc++'s &quot;new&quot; operator, but
+</I>&gt;<i> mmap() returns a NULL pointer to jemalloc, indicating an out-of-memory
+</I>&gt;<i> condition, jemalloc's malloc() is expected to return a NULL pointer to
+</I>&gt;<i> its caller, which will in turn trigger our predefined &quot;NewHandler&quot;.
+</I>&gt;<i> 
+</I>&gt;<i> Observed Behavior:
+</I>&gt;<i> 
+</I>&gt;<i> We found that jemalloc's malloc() does not immediately return a NULL pointer
+</I>&gt;<i> after the first failed mmap().  Instead, it returns a series of pointers
+</I>&gt;<i> that it had already given to the application, and only returns a NULL pointer
+</I>&gt;<i> after the second mmap() fails.  Reassigning already-in-use chunks of memory is
+</I>&gt;<i> of course deadly, and our application eventually segfaults.
+</I>&gt;<i> 
+</I>&gt;<i> As evidence of this behavior, I'm including an strace logging the two mmap()
+</I>&gt;<i> calls, the malloc() return values before and after the first failed mmap(),
+</I>&gt;<i> and the subsequent NULL return from malloc() after the second failed mmap(),
+</I>&gt;<i> finally triggering the invocation of the &quot;NewHandler&quot;.  Note that address
+</I>&gt;<i> 0x2aaade7ffa60 is handed out twice, without ever being freed.  The same
+</I>&gt;<i> is true for addresses 0x2aaade7ffab0, 0x2aaade7ffb00, 0x2aaade7ffb50,
+</I>&gt;<i> 0x2aaade7ffba0, 0x2aaade7ffbf0, 0x2aaade7ffc40, 0x2aaade7ffc9, and
+</I>&gt;<i> 0x2aaade7ffce0 -- all get handed out twice(!)
+</I>&gt;<i> 
+</I>&gt;<i> I'm also including a partial call stack showing the calls from operator
+</I>&gt;<i> new() on down, taken at the moment where the first mmap() fails.
+</I>&gt;<i> 
+</I>&gt;<i> Single-stepping in gdb from that point onward, I find that the NULL returned
+</I>&gt;<i> by mmap() is handed up approximately 10 levels before things go awry.  The
+</I>&gt;<i> code seems to re-check in several other places for available memory, but
+</I>&gt;<i> without finding anything it can dole out.  When it has bubbled up to the
+</I>&gt;<i> function je_tcache_alloc_small_hard(), this function calls tcache_alloc_easy().
+</I>&gt;<i> In tcache_alloc_easy(), tbin-&gt;ncached is 9, and tbin-&gt;avail[8..0] contains
+</I>&gt;<i> the 9 addresses mentioned above.  It seems to be erroneously handing them
+</I>&gt;<i> out again from there.
+</I>&gt;<i> 
+</I>&gt;<i> This test case can be reproduced at will within a few minutes of run time.
+</I>&gt;<i> 
+</I>&gt;<i> We have not yet attempted to devise a fix; it took several days of
+</I>&gt;<i> investigation to reach this degree of understanding of the problem.
+</I>
+This sounds like the regression fixed by this commit:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/f11a6776c78a09059f8418b718c996a065b33fca">https://github.com/jemalloc/jemalloc/commit/f11a6776c78a09059f8418b718c996a065b33fca</A>
+
+Please let me know its effect on your application.
+
+Thanks,
+Jason
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000985.html">jemalloc-3.6.0 erroneously recycles already-allocated memory
+</A></li>
+	<LI>Next message: <A HREF="000994.html">jemalloc-3.6.0 erroneously recycles already-allocated memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#986">[ date ]</a>
+              <a href="thread.html#986">[ thread ]</a>
+              <a href="subject.html#986">[ subject ]</a>
+              <a href="author.html#986">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Calculate VM size using jemalloc.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Calculate%20VM%20size%20using%20jemalloc.&In-Reply-To=%3C1276171444993508%40web7o.yandex.ru%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001184.html">
+   <LINK REL="Next"  HREF="001186.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Calculate VM size using jemalloc.</H1>
+    <B>Konstantin Tokarev</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Calculate%20VM%20size%20using%20jemalloc.&In-Reply-To=%3C1276171444993508%40web7o.yandex.ru%3E"
+       TITLE="Calculate VM size using jemalloc.">annulen at yandex.ru
+       </A><BR>
+    <I>Fri Oct 16 04:05:08 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001184.html">Calculate VM size using jemalloc.
+</A></li>
+        <LI>Next message: <A HREF="001186.html">Calculate VM size using jemalloc.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1185">[ date ]</a>
+              <a href="thread.html#1185">[ thread ]</a>
+              <a href="subject.html#1185">[ subject ]</a>
+              <a href="author.html#1185">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+
+16.10.2015, 14:01, &quot;Prajakta&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">praj.jagtap at gmail.com</A>&gt;:
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> I want to calculate VM size of process.
+</I>&gt;<i> In /proc/pid/status, we get amount of VM size used by the process.
+</I>&gt;<i> I want to get same counter with the help of jemalloc.
+</I>
+You cannot, because jemalloc takes care about heap only.
+
+&gt;<i>
+</I>&gt;<i> For that I was making use of stats.allocated.
+</I>&gt;<i>
+</I>&gt;<i> Do I need to take into consideration any other statistics for getting VM Size?
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Prajakta
+</I>&gt;<i> ,
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>
+
+-- 
+Regards,
+Konstantin
+</PRE>
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001184.html">Calculate VM size using jemalloc.
+</A></li>
+	<LI>Next message: <A HREF="001186.html">Calculate VM size using jemalloc.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1185">[ date ]</a>
+              <a href="thread.html#1185">[ thread ]</a>
+              <a href="subject.html#1185">[ subject ]</a>
+              <a href="author.html#1185">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

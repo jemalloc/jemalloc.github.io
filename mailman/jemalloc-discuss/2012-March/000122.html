@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Remove bashism from size_classes.sh
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20bashism%20from%20size_classes.sh&In-Reply-To=%3C1331544180-536-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000134.html">
+   <LINK REL="Next"  HREF="000127.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Remove bashism from size_classes.sh</H1>
+    <B>mh+jemalloc at glandium.org</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20bashism%20from%20size_classes.sh&In-Reply-To=%3C1331544180-536-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Remove bashism from size_classes.sh">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Mar 12 02:23:00 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000134.html">[PATCH] update config.sub to autoconf 2.68
+</A></li>
+        <LI>Next message: <A HREF="000127.html">[PATCH] Remove bashism from size_classes.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#122">[ date ]</a>
+              <a href="thread.html#122">[ thread ]</a>
+              <a href="subject.html#122">[ subject ]</a>
+              <a href="author.html#122">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ include/jemalloc/internal/size_classes.sh |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/include/jemalloc/internal/size_classes.sh b/include/jemalloc/internal/size_classes.sh
+index d8306a5..79b4ba2 100755
+--- a/include/jemalloc/internal/size_classes.sh
++++ b/include/jemalloc/internal/size_classes.sh
+@@ -13,7 +13,7 @@ lg_tmin=3
+ lg_pmin=12
+ lg_pmax=16
+ 
+-function pow2() {
++pow2() {
+   e=$1
+   pow2_result=1
+   while [ ${e} -gt 0 ] ; do
+-- 
+1.7.9.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000134.html">[PATCH] update config.sub to autoconf 2.68
+</A></li>
+	<LI>Next message: <A HREF="000127.html">[PATCH] Remove bashism from size_classes.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#122">[ date ]</a>
+              <a href="thread.html#122">[ thread ]</a>
+              <a href="subject.html#122">[ subject ]</a>
+              <a href="author.html#122">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

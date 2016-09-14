@@ -1,0 +1,460 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 5/7] Replace JEMALLOC_ATTR with various different macros when	it makes sense
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%205/7%5D%20Replace%20JEMALLOC_ATTR%20with%20various%20different%20macros%20when%0A%09it%20makes%20sense&In-Reply-To=%3C1335782311-8040-5-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000362.html">
+   <LINK REL="Next"  HREF="000365.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 5/7] Replace JEMALLOC_ATTR with various different macros when	it makes sense</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%205/7%5D%20Replace%20JEMALLOC_ATTR%20with%20various%20different%20macros%20when%0A%09it%20makes%20sense&In-Reply-To=%3C1335782311-8040-5-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 5/7] Replace JEMALLOC_ATTR with various different macros when	it makes sense">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 30 03:38:29 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000362.html">[PATCH 3/7] Few configure.ac adjustments
+</A></li>
+        <LI>Next message: <A HREF="000365.html">[PATCH 6/7] Import msinttypes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#364">[ date ]</a>
+              <a href="thread.html#364">[ thread ]</a>
+              <a href="subject.html#364">[ subject ]</a>
+              <a href="author.html#364">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+Theses newly added macros will be used to implement the equivalent under
+MSVC. Also, move the definitions to headers, where they make more sense,
+and for some, are even more useful there (e.g. malloc).
+---
+ include/jemalloc/internal/util.h    |    2 --
+ include/jemalloc/jemalloc.h.in      |   36 +++++++++++++--------------
+ include/jemalloc/jemalloc_defs.h.in |   14 ++++++++---
+ src/arena.c                         |    2 +-
+ src/jemalloc.c                      |   47 ++++++-----------------------------
+ src/mutex.c                         |    3 +--
+ src/tsd.c                           |    6 +++--
+ src/util.c                          |    6 ++---
+ 8 files changed, 43 insertions(+), 73 deletions(-)
+
+diff --git a/include/jemalloc/internal/util.h b/include/jemalloc/internal/util.h
+index 9661c7b..ffa078f 100644
+--- a/include/jemalloc/internal/util.h
++++ b/include/jemalloc/internal/util.h
+@@ -82,8 +82,6 @@
+ /******************************************************************************/
+ #ifdef JEMALLOC_H_EXTERNS
+ 
+-extern void	(*je_malloc_message)(void *wcbopaque, const char *s);
+-
+ int	buferror(char *buf, size_t buflen);
+ uintmax_t	malloc_strtoumax(const char *nptr, char **endptr, int base);
+ 
+diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+index f0581db..055bb48 100644
+--- a/include/jemalloc/jemalloc.h.in
++++ b/include/jemalloc/jemalloc.h.in
+@@ -36,35 +36,35 @@ extern &quot;C&quot; {
+  * namespace management, and should be omitted in application code unless
+  * JEMALLOC_NO_DEMANGLE is defined (see below).
+  */
+-extern const char	*je_malloc_conf;
+-extern void		(*je_malloc_message)(void *, const char *);
++extern EXPORT const char	*je_malloc_conf;
++extern EXPORT void		(*je_malloc_message)(void *, const char *);
+ 
+-void	*je_malloc(size_t size) JEMALLOC_ATTR(malloc);
+-void	*je_calloc(size_t num, size_t size) JEMALLOC_ATTR(malloc);
+-int	je_posix_memalign(void **memptr, size_t alignment, size_t size)
++EXPORT void	*je_malloc(size_t size) JEMALLOC_ATTR(malloc);
++EXPORT void	*je_calloc(size_t num, size_t size) JEMALLOC_ATTR(malloc);
++EXPORT int	je_posix_memalign(void **memptr, size_t alignment, size_t size)
+     JEMALLOC_ATTR(nonnull(1));
+-void	*je_aligned_alloc(size_t alignment, size_t size) JEMALLOC_ATTR(malloc);
+-void	*je_realloc(void *ptr, size_t size);
+-void	je_free(void *ptr);
++EXPORT void	*je_aligned_alloc(size_t alignment, size_t size) JEMALLOC_ATTR(malloc);
++EXPORT void	*je_realloc(void *ptr, size_t size);
++EXPORT void	je_free(void *ptr);
+ 
+-size_t	je_malloc_usable_size(const void *ptr);
+-void	je_malloc_stats_print(void (*write_cb)(void *, const char *),
++EXPORT size_t	je_malloc_usable_size(const void *ptr);
++EXPORT void	je_malloc_stats_print(void (*write_cb)(void *, const char *),
+     void *je_cbopaque, const char *opts);
+-int	je_mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
++EXPORT int	je_mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
+     size_t newlen);
+-int	je_mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp);
+-int	je_mallctlbymib(const size_t *mib, size_t miblen, void *oldp,
++EXPORT int	je_mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp);
++EXPORT int	je_mallctlbymib(const size_t *mib, size_t miblen, void *oldp,
+     size_t *oldlenp, void *newp, size_t newlen);
+ 
+ #ifdef JEMALLOC_EXPERIMENTAL
+-int	je_allocm(void **ptr, size_t *rsize, size_t size, int flags)
++EXPORT int	je_allocm(void **ptr, size_t *rsize, size_t size, int flags)
+     JEMALLOC_ATTR(nonnull(1));
+-int	je_rallocm(void **ptr, size_t *rsize, size_t size, size_t extra,
++EXPORT int	je_rallocm(void **ptr, size_t *rsize, size_t size, size_t extra,
+     int flags) JEMALLOC_ATTR(nonnull(1));
+-int	je_sallocm(const void *ptr, size_t *rsize, int flags)
++EXPORT int	je_sallocm(const void *ptr, size_t *rsize, int flags)
+     JEMALLOC_ATTR(nonnull(1));
+-int	je_dallocm(void *ptr, int flags) JEMALLOC_ATTR(nonnull(1));
+-int	je_nallocm(size_t *rsize, size_t size, int flags);
++EXPORT int	je_dallocm(void *ptr, int flags) JEMALLOC_ATTR(nonnull(1));
++EXPORT int	je_nallocm(size_t *rsize, size_t size, int flags);
+ #endif
+ 
+ /*
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 6e81655..3e1f047 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -104,11 +104,17 @@
+ /* Defined if __attribute__((...)) syntax is supported. */
+ #undef JEMALLOC_HAVE_ATTR
+ #ifdef JEMALLOC_HAVE_ATTR
+-#  define JEMALLOC_CATTR(s, a) __attribute__((s))
+-#  define JEMALLOC_ATTR(s) JEMALLOC_CATTR(s,)
++#  define JEMALLOC_ATTR(s) __attribute__((s))
++#  define EXPORT JEMALLOC_ATTR(visibility(&quot;default&quot;))
++#  define JEMALLOC_ALIGNED(s) JEMALLOC_ATTR(aligned(s))
++#  define JEMALLOC_SECTION(s) JEMALLOC_ATTR(section(s))
++#  define JEMALLOC_NOINLINE JEMALLOC_ATTR(noinline)
+ #else
+-#  define JEMALLOC_CATTR(s, a) a
+-#  define JEMALLOC_ATTR(s) JEMALLOC_CATTR(s,)
++#  define JEMALLOC_ATTR(s)
++#  define EXPORT
++#  define JEMALLOC_ALIGNED(s)
++#  define JEMALLOC_SECTION(s)
++#  define JEMALLOC_NOINLINE
+ #endif
+ 
+ /* Defined if sbrk() is supported. */
+diff --git a/src/arena.c b/src/arena.c
+index 7fac361..51c268c 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -7,7 +7,7 @@
+ ssize_t		opt_lg_dirty_mult = LG_DIRTY_MULT_DEFAULT;
+ arena_bin_info_t	arena_bin_info[NBINS];
+ 
+-JEMALLOC_ATTR(aligned(CACHELINE))
++JEMALLOC_ALIGNED(CACHELINE)
+ const uint8_t	small_size2bin[] = {
+ #define	S2B_8(i)	i,
+ #define	S2B_16(i)	S2B_8(i) S2B_8(i)
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index cae0098..fa24b05 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -9,7 +9,7 @@ malloc_tsd_data(, thread_allocated, thread_allocated_t,
+     THREAD_ALLOCATED_INITIALIZER)
+ 
+ /* Runtime configuration options. */
+-const char	*je_malloc_conf JEMALLOC_ATTR(visibility(&quot;default&quot;));
++const char	*je_malloc_conf;
+ #ifdef JEMALLOC_DEBUG
+ bool	opt_abort = true;
+ #  ifdef JEMALLOC_FILL
+@@ -787,8 +787,6 @@ malloc_init_hard(void)
+  * Begin malloc(3)-compatible functions.
+  */
+ 
+-JEMALLOC_ATTR(malloc)
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void *
+ je_malloc(size_t size)
+ {
+@@ -938,8 +936,6 @@ label_return:
+ 	return (ret);
+ }
+ 
+-JEMALLOC_ATTR(nonnull(1))
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_posix_memalign(void **memptr, size_t alignment, size_t size)
+ {
+@@ -949,8 +945,6 @@ je_posix_memalign(void **memptr, size_t alignment, size_t size)
+ 	return (ret);
+ }
+ 
+-JEMALLOC_ATTR(malloc)
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void *
+ je_aligned_alloc(size_t alignment, size_t size)
+ {
+@@ -966,8 +960,6 @@ je_aligned_alloc(size_t alignment, size_t size)
+ 	return (ret);
+ }
+ 
+-JEMALLOC_ATTR(malloc)
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void *
+ je_calloc(size_t num, size_t size)
+ {
+@@ -1043,7 +1035,6 @@ label_return:
+ 	return (ret);
+ }
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void *
+ je_realloc(void *ptr, size_t size)
+ {
+@@ -1191,7 +1182,6 @@ label_return:
+ 	return (ret);
+ }
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void
+ je_free(void *ptr)
+ {
+@@ -1226,8 +1216,6 @@ je_free(void *ptr)
+  */
+ 
+ #ifdef JEMALLOC_OVERRIDE_MEMALIGN
+-JEMALLOC_ATTR(malloc)
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void *
+ je_memalign(size_t alignment, size_t size)
+ {
+@@ -1239,8 +1227,6 @@ je_memalign(size_t alignment, size_t size)
+ #endif
+ 
+ #ifdef JEMALLOC_OVERRIDE_VALLOC
+-JEMALLOC_ATTR(malloc)
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void *
+ je_valloc(size_t size)
+ {
+@@ -1269,16 +1255,13 @@ je_valloc(size_t size)
+  * passed an extra argument for the caller return address, which will be
+  * ignored.
+  */
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+-void (* const __free_hook)(void *ptr) = je_free;
++EXPORT void (* const __free_hook)(void *ptr) = je_free;
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+-void *(* const __malloc_hook)(size_t size) = je_malloc;
++EXPORT void *(* const __malloc_hook)(size_t size) = je_malloc;
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+-void *(* const __realloc_hook)(void *ptr, size_t size) = je_realloc;
++EXPORT void *(* const __realloc_hook)(void *ptr, size_t size) = je_realloc;
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
++EXPORT
+ void *(* const __memalign_hook)(size_t alignment, size_t size) = je_memalign;
+ #endif
+ 
+@@ -1290,7 +1273,6 @@ void *(* const __memalign_hook)(size_t alignment, size_t size) = je_memalign;
+  * Begin non-standard functions.
+  */
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ size_t
+ je_malloc_usable_size(const void *ptr)
+ {
+@@ -1306,7 +1288,6 @@ je_malloc_usable_size(const void *ptr)
+ 	return (ret);
+ }
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void
+ je_malloc_stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+     const char *opts)
+@@ -1315,7 +1296,6 @@ je_malloc_stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 	stats_print(write_cb, cbopaque, opts);
+ }
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
+     size_t newlen)
+@@ -1327,7 +1307,6 @@ je_mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
+ 	return (ctl_byname(name, oldp, oldlenp, newp, newlen));
+ }
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp)
+ {
+@@ -1338,7 +1317,6 @@ je_mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp)
+ 	return (ctl_nametomib(name, mibp, miblenp));
+ }
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_mallctlbymib(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
+   void *newp, size_t newlen)
+@@ -1374,8 +1352,6 @@ iallocm(size_t usize, size_t alignment, bool zero)
+ 		return (imalloc(usize));
+ }
+ 
+-JEMALLOC_ATTR(nonnull(1))
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_allocm(void **ptr, size_t *rsize, size_t size, int flags)
+ {
+@@ -1444,8 +1420,6 @@ label_oom:
+ 	return (ALLOCM_ERR_OOM);
+ }
+ 
+-JEMALLOC_ATTR(nonnull(1))
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_rallocm(void **ptr, size_t *rsize, size_t size, size_t extra, int flags)
+ {
+@@ -1555,8 +1529,6 @@ label_oom:
+ 	return (ALLOCM_ERR_OOM);
+ }
+ 
+-JEMALLOC_ATTR(nonnull(1))
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_sallocm(const void *ptr, size_t *rsize, int flags)
+ {
+@@ -1576,8 +1548,6 @@ je_sallocm(const void *ptr, size_t *rsize, int flags)
+ 	return (ALLOCM_SUCCESS);
+ }
+ 
+-JEMALLOC_ATTR(nonnull(1))
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_dallocm(void *ptr, int flags)
+ {
+@@ -1605,7 +1575,6 @@ je_dallocm(void *ptr, int flags)
+ 	return (ALLOCM_SUCCESS);
+ }
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ int
+ je_nallocm(size_t *rsize, size_t size, int flags)
+ {
+@@ -1641,8 +1610,7 @@ je_nallocm(size_t *rsize, size_t size, int flags)
+ void
+ jemalloc_prefork(void)
+ #else
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+-void
++EXPORT void
+ _malloc_prefork(void)
+ #endif
+ {
+@@ -1663,8 +1631,7 @@ _malloc_prefork(void)
+ void
+ jemalloc_postfork_parent(void)
+ #else
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+-void
++EXPORT void
+ _malloc_postfork(void)
+ #endif
+ {
+diff --git a/src/mutex.c b/src/mutex.c
+index 159d82a..0019c1a 100644
+--- a/src/mutex.c
++++ b/src/mutex.c
+@@ -48,8 +48,7 @@ pthread_create_once(void)
+ 	isthreaded = true;
+ }
+ 
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
+-int
++EXPORT int
+ pthread_create(pthread_t *__restrict thread,
+     const pthread_attr_t *__restrict attr, void *(*start_routine)(void *),
+     void *__restrict arg)
+diff --git a/src/tsd.c b/src/tsd.c
+index d7714b0..cee57c9 100644
+--- a/src/tsd.c
++++ b/src/tsd.c
+@@ -32,7 +32,9 @@ malloc_tsd_no_cleanup(void *arg)
+ }
+ 
+ #if defined(JEMALLOC_MALLOC_THREAD_CLEANUP) || defined(_WIN32)
+-JEMALLOC_ATTR(visibility(&quot;default&quot;))
++#ifndef _WIN32
++EXPORT
++#endif
+ void
+ _malloc_thread_cleanup(void)
+ {
+@@ -91,7 +93,7 @@ _tls_callback(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+ 	return (true);
+ }
+ 
+-JEMALLOC_ATTR(section(&quot;.CRT$XLY&quot;)) JEMALLOC_ATTR(used)
++JEMALLOC_SECTION(&quot;.CRT$XLY&quot;) JEMALLOC_ATTR(used)
+ static const BOOL	(WINAPI *tls_callback)(HINSTANCE hinstDLL,
+     DWORD fdwReason, LPVOID lpvReserved) = _tls_callback;
+ #endif
+diff --git a/src/util.c b/src/util.c
+index 64d53dd..56e79cf 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -40,8 +40,7 @@ static char	*x2s(uintmax_t x, bool alt_form, bool uppercase, char *s,
+ /******************************************************************************/
+ 
+ /* malloc_message() setup. */
+-JEMALLOC_CATTR(visibility(&quot;hidden&quot;), static)
+-void
++static void
+ wrtmessage(void *cbopaque, const char *s)
+ {
+ 
+@@ -57,8 +56,7 @@ wrtmessage(void *cbopaque, const char *s)
+ #endif
+ }
+ 
+-void	(*je_malloc_message)(void *, const char *s)
+-    JEMALLOC_ATTR(visibility(&quot;default&quot;)) = wrtmessage;
++EXPORT void	(*je_malloc_message)(void *, const char *s) = wrtmessage;
+ 
+ /*
+  * glibc provides a non-standard strerror_r() when _GNU_SOURCE is defined, so
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000362.html">[PATCH 3/7] Few configure.ac adjustments
+</A></li>
+	<LI>Next message: <A HREF="000365.html">[PATCH 6/7] Import msinttypes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#364">[ date ]</a>
+              <a href="thread.html#364">[ thread ]</a>
+              <a href="subject.html#364">[ subject ]</a>
+              <a href="author.html#364">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

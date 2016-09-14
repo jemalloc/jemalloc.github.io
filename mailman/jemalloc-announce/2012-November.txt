@@ -1,0 +1,27 @@
+From jasone at canonware.com  Fri Nov  9 12:43:43 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 9 Nov 2012 12:43:43 -0800
+Subject: jemalloc 3.2.0 released
+Message-ID: <6424B4FD-7A46-4FA8-8500-11CA95C70E0D@canonware.com>
+
+jemalloc 3.2.0 is now available.  In addition to a couple of bug fixes, this version modifies page run allocation and dirty page purging algorithms in order to better control page-level virtual memory fragmentation.
+
+Incompatible changes:
+- Change the "opt.lg_dirty_mult" default from 5 to 3 (32:1 to 8:1).
+
+Bug fixes:
+- Fix dss/mmap allocation precedence code to use recyclable mmap memory only after primary dss allocation fails.
+- Fix deadlock in the "arenas.purge" mallctl.  This regression was introduced in 3.1.0 by the addition of the "arena.<i>.purge" mallctl.
+
+For the complete ChangeLog, see:
+	http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+	http://www.canonware.com/download/jemalloc/jemalloc-3.2.0.tar.bz2
+
+Starting point for general information:
+	http://www.canonware.com/jemalloc/
+
+Browsable revision history:
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git
+

@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> question on using jemalloc profile for java app
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20question%20on%20using%20jemalloc%20profile%20for%20java%20app&In-Reply-To=%3CCAGF%2B3rYtjbf5EZBS7%3DH%3DaKUKJjfSu80p0oSz06ECg3Ynao5Cog%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001300.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>question on using jemalloc profile for java app</H1>
+    <B>Chen Song</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20question%20on%20using%20jemalloc%20profile%20for%20java%20app&In-Reply-To=%3CCAGF%2B3rYtjbf5EZBS7%3DH%3DaKUKJjfSu80p0oSz06ECg3Ynao5Cog%40mail.gmail.com%3E"
+       TITLE="question on using jemalloc profile for java app">chen.song.82 at gmail.com
+       </A><BR>
+    <I>Mon May 23 15:25:08 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001300.html">Crash with programs linked with libasan
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1301">[ date ]</a>
+              <a href="thread.html#1301">[ thread ]</a>
+              <a href="subject.html#1301">[ subject ]</a>
+              <a href="author.html#1301">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi
+
+I started using jemalloc to profile one Java program and I had some
+difficulty getting it working.
+
+My sample Java program is very simple.
+
+
+        int[][] array = new int[1 &lt;&lt; 20][];
+        for (int i = 0; i &lt; array.length; i++) {
+            array[i] = new int[1 &lt;&lt; 10];
+        }
+
+What it does is to create an higher order array of size 1M, and for each
+slot, create an integer array of size 1K. So in total it should allocate 1M
+* 1K * 4 byte = 4G memory.
+
+I profiled the Java with jemalloc with the following options,
+
+export
+MALLOC_CONF=&quot;prof:true,lg_prof_interval:30,lg_prof_sample:10,prof_prefix:/tmp/jeprof.out&quot;
+
+My understanding is jemalloc should be able to dump a file each time 1G is
+allocated, at a sampling frequency of 1K allocation. However, I never see
+any dump file automatically generated.
+
+My jemalloc should be installed correctly b/c I can see memory dump file
+generated with the following option.
+
+export MALLOC_CONF=&quot;prof:true,prof_final:true,prof_prefix:/tmp/jeprof.out&quot;
+
+Is there anything I am missing or misusing jemalloc?
+
+Chen
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160523/1532a1e3/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160523/1532a1e3/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001300.html">Crash with programs linked with libasan
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1301">[ date ]</a>
+              <a href="thread.html#1301">[ thread ]</a>
+              <a href="subject.html#1301">[ subject ]</a>
+              <a href="author.html#1301">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

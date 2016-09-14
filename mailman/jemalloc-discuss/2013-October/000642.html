@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 3.4.0 build log using gcc-4.8.1
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%203.4.0%20build%20log%20using%20gcc-4.8.1&In-Reply-To=%3CACA47865-FD7D-4344-8150-FDF330CA595D%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000640.html">
+   <LINK REL="Next"  HREF="000643.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>3.4.0 build log using gcc-4.8.1</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%203.4.0%20build%20log%20using%20gcc-4.8.1&In-Reply-To=%3CACA47865-FD7D-4344-8150-FDF330CA595D%40canonware.com%3E"
+       TITLE="3.4.0 build log using gcc-4.8.1">jasone at canonware.com
+       </A><BR>
+    <I>Sat Oct 19 17:29:01 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000640.html">[PATCH] malloc_conf_init: revert errno value when readlink(2)	fail.
+</A></li>
+        <LI>Next message: <A HREF="000643.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#642">[ date ]</a>
+              <a href="thread.html#642">[ thread ]</a>
+              <a href="subject.html#642">[ subject ]</a>
+              <a href="author.html#642">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 19, 2013, at 7:04 PM, Ricardo Nabinger Sanchez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">rnsanchez at wait4.org</A>&gt; wrote:
+&gt;<i> With --enable-cc-silence, only these:
+</I>&gt;<i> 
+</I>&gt;<i> gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.o src/jemalloc.c
+</I>&gt;<i> src/jemalloc.c:303:1: warning: always_inline function might not be inlinable [-Wattributes]
+</I>&gt;<i> malloc_init(void)
+</I>&gt;<i> ^
+</I>&gt;<i> src/jemalloc.c:286:1: warning: always_inline function might not be inlinable [-Wattributes]
+</I>&gt;<i> malloc_thread_init(void)
+</I>&gt;<i> ^
+</I>&gt;<i> 
+</I>&gt;<i> src/ctl.c: In function 'epoch_ctl':
+</I>&gt;<i> src/ctl.c:1112:11: warning: variable 'newval' set but not used [-Wunused-but-set-variable]
+</I>&gt;<i>  uint64_t newval;
+</I>&gt;<i>           ^
+</I>
+Now fixed on the dev branch:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/3ab682d341f033017d042e8498578c2332eacd69">https://github.com/jemalloc/jemalloc/commit/3ab682d341f033017d042e8498578c2332eacd69</A>
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/543abf7e6c7de06fe9654e91190b5c44a11b065e">https://github.com/jemalloc/jemalloc/commit/543abf7e6c7de06fe9654e91190b5c44a11b065e</A>
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131019/943bc8cd/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131019/943bc8cd/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000640.html">[PATCH] malloc_conf_init: revert errno value when readlink(2)	fail.
+</A></li>
+	<LI>Next message: <A HREF="000643.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#642">[ date ]</a>
+              <a href="thread.html#642">[ thread ]</a>
+              <a href="subject.html#642">[ subject ]</a>
+              <a href="author.html#642">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

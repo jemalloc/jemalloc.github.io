@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Android issues
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Android%20issues&In-Reply-To=%3C20120315195839.GA22205%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000162.html">
+   <LINK REL="Next"  HREF="000140.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Android issues</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Android%20issues&In-Reply-To=%3C20120315195839.GA22205%40glandium.org%3E"
+       TITLE="Android issues">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Mar 15 12:58:39 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000162.html">[PATCH] atomic operations for ppc
+</A></li>
+        <LI>Next message: <A HREF="000140.html">Android issues
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#139">[ date ]</a>
+              <a href="thread.html#139">[ thread ]</a>
+              <a href="subject.html#139">[ subject ]</a>
+              <a href="author.html#139">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I'm trying to get jemalloc built for Android, and here is a short list
+of things that go wrong:
+- pthread_create is not defined in libpthread, but in libc, which makes
+  the configure.ac test fail.
+- The AC_RUN_IFELSE test for STATIC_PAGE_SHIFT fails because it requires
+  not to be cross-compiling, which makes configure.ac hard-fail.
+- Android system headers don't provide sys/sysctl.h. But it seems it's
+  not used anyways, so removing the include worked for me (and worked on
+  plain Linux too)
+- There are no atomic ops for arm, but the __sync_* ones work. Sadly,
+  the compiler doesn't define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4.
+- Older Android stack doesn't have pthread_atfork. But I don't think you
+  should care about that. We have a workaround for that.
+
+Apparently, that's all, though I haven't run it yet because of other
+integration problems with Firefox.
+
+Cheers,
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000162.html">[PATCH] atomic operations for ppc
+</A></li>
+	<LI>Next message: <A HREF="000140.html">Android issues
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#139">[ date ]</a>
+              <a href="thread.html#139">[ thread ]</a>
+              <a href="subject.html#139">[ subject ]</a>
+              <a href="author.html#139">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

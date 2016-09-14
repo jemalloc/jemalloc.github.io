@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 2/7] Use $(LIBS) instead of -lpthread when linking tests
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/7%5D%20Use%20%24%28LIBS%29%20instead%20of%20-lpthread%20when%20linking%20tests&In-Reply-To=%3C1334586626-2008-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000283.html">
+   <LINK REL="Next"  HREF="000278.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 2/7] Use $(LIBS) instead of -lpthread when linking tests</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/7%5D%20Use%20%24%28LIBS%29%20instead%20of%20-lpthread%20when%20linking%20tests&In-Reply-To=%3C1334586626-2008-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 2/7] Use $(LIBS) instead of -lpthread when linking tests">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 16 07:30:21 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000283.html">[PATCH 7/7] Replace fprintf with malloc_printf in tests.
+</A></li>
+        <LI>Next message: <A HREF="000278.html">[PATCH 3/7] Use make variables instead of preprocessing
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#279">[ date ]</a>
+              <a href="thread.html#279">[ thread ]</a>
+              <a href="subject.html#279">[ subject ]</a>
+              <a href="author.html#279">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+This will allow linking for win32 without pthreads more easily
+---
+ Makefile.in |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 6479857..8cd0418 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -133,9 +133,9 @@ build_doc: $(DOCS)
+ 		 @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO)
+ 	@mkdir -p $(@D)
+ ifneq (@RPATH@, )
+-	$(CC) -o $@ $&lt; @RPATH@@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-L at objroot</A>@lib <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-ljemalloc at install_suffix</A>@ -lpthread
++	$(CC) -o $@ $&lt; @RPATH@@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-L at objroot</A>@lib <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-ljemalloc at install_suffix</A>@ $(LIBS)
+ else
+-	$(CC) -o $@ $&lt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-L at objroot</A>@lib <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-ljemalloc at install_suffix</A>@ -lpthread
++	$(CC) -o $@ $&lt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-L at objroot</A>@lib <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-ljemalloc at install_suffix</A>@ $(LIBS)
+ endif
+ 
+ build_lib_shared: $(DSOS)
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000283.html">[PATCH 7/7] Replace fprintf with malloc_printf in tests.
+</A></li>
+	<LI>Next message: <A HREF="000278.html">[PATCH 3/7] Use make variables instead of preprocessing
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#279">[ date ]</a>
+              <a href="thread.html#279">[ thread ]</a>
+              <a href="subject.html#279">[ subject ]</a>
+              <a href="author.html#279">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

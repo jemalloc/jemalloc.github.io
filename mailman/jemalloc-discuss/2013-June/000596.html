@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> performance regression after 3.1
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20performance%20regression%20after%203.1&In-Reply-To=%3C51AA5F34.6090809%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000597.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>performance regression after 3.1</H1>
+    <B>Xose Vazquez Perez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20performance%20regression%20after%203.1&In-Reply-To=%3C51AA5F34.6090809%40gmail.com%3E"
+       TITLE="performance regression after 3.1">xose.vazquez at gmail.com
+       </A><BR>
+    <I>Sat Jun  1 13:53:08 PDT 2013</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000597.html">performance regression after 3.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#596">[ date ]</a>
+              <a href="thread.html#596">[ thread ]</a>
+              <a href="subject.html#596">[ subject ]</a>
+              <a href="author.html#596">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>hi,
+
+3.1 : is fine
+3.2 : bad performance &lt;---- bug since 3.2
+3.3.x : bad performance
+git-tree : bad performance
+
+OS: Fedora 17
+kernel: 3.9.4-100
+x86_64 machine
+
+test done with ebizzy-0.3 &lt;<A HREF="http://ebizzy.sf.net">http://ebizzy.sf.net</A>&gt;
+code: <A HREF="http://sf.net/projects/ebizzy/files/latest/download?source=files">http://sf.net/projects/ebizzy/files/latest/download?source=files</A>
+
+
+jemalloc-3.3.1:
+
+$ LD_PRELOAD=/usr/lib64/libjemalloc.so.1 ./ebizzy -s 131072
+47525 records/s
+real 10.00 s
+user  5.99 s
+sys  13.54 s
+
+ebizzy shows very low records.
+
+$ vmstat 1
+procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa
+ 4  0      0 5868732 106904 1055100    0    0     0     0 18170 1356 13 25 62  0
+ 4  0      0 5868804 106904 1055188    0    0     0     0 50193 1538 34 67  0  0
+ 4  0      0 5868804 106904 1055188    0    0     0     0 49276 1721 31 69  0  0
+ 5  0      0 5868772 106904 1055164    0    0     0     0 50630 1502 33 67  0  0
+ 4  0      0 5868804 106904 1055164    0    0     0     0 50525 1461 32 68  0  0
+ 4  0      0 5868804 106904 1055108    0    0     0     0 50602 1526 32 68  0  0
+ 4  0      0 5868796 106904 1055108    0    0     0     8 50151 1519 33 67  0  0
+ 4  0      0 5868772 106904 1055116    0    0     0     0 50355 1497 30 70  0  0
+ 4  0      0 5868804 106904 1055116    0    0     0     0 50216 1494 29 71  0  0
+ 4  0      0 5868804 106904 1055116    0    0     0     0 50395 1522 30 70  0  0
+                                                          ^^^^^         ^^
+system time is too high, and also system interrupts.
+
+
+
+Same test done with jemalloc-3.1.0 (glibc-2.15 and tcmalloc-2.0 get similar results):
+
+$ LD_PRELOAD=/home/xose/bajar/j/3.1/lib64/libjemalloc.so.1 ./ebizzy -s 131072
+335568 records/s
+real 10.00 s
+user 19.55 s
+sys   0.01 s
+
+$ vmstat 1
+procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa
+ 4  0      0 5844152 107644 1067828    0    0     0     0 2579 1862 100  0  0  0
+ 4  0      0 5839812 107644 1071980    0    0     0     0 2558 1676 99  1  0  0
+ 4  0      0 5839564 107652 1071940    0    0     0    12 2574 1669 100  1  0  0
+ 4  0      0 5843292 107652 1067740    0    0     0     0 2548 1651 99  1  0  0
+ 4  0      0 5839348 107652 1071900    0    0     0     0 2532 1637 100  1  0  0
+ 4  0      0 5839100 107652 1071868    0    0     0     0 2549 1652 100  1  0  0
+ 4  0      0 5842500 107652 1067740    0    0     0     0 2553 1648 99  1  0  0
+ 4  0      0 5842284 107652 1067772    0    0     0     0 2562 1670 99  1  0  0
+ 4  0      0 5838324 107652 1071900    0    0     0     0 2556 1759 99  1  0  0
+ 0  0      0 5852096 107652 1071868    0    0     0     0 2583 1904 97  1  2  0
+
+-thanks-
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000597.html">performance regression after 3.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#596">[ date ]</a>
+              <a href="thread.html#596">[ thread ]</a>
+              <a href="subject.html#596">[ subject ]</a>
+              <a href="author.html#596">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

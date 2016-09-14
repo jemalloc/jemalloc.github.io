@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Fragmentation with jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Fragmentation%20with%20jemalloc&In-Reply-To=%3C01C00994-F997-4C63-B3F9-4915843F1937%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000571.html">
+   <LINK REL="Next"  HREF="000573.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Fragmentation with jemalloc</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Fragmentation%20with%20jemalloc&In-Reply-To=%3C01C00994-F997-4C63-B3F9-4915843F1937%40canonware.com%3E"
+       TITLE="Fragmentation with jemalloc">jasone at canonware.com
+       </A><BR>
+    <I>Mon Apr 22 11:19:05 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000571.html">Fragmentation with jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000573.html">Fragmentation with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#572">[ date ]</a>
+              <a href="thread.html#572">[ thread ]</a>
+              <a href="subject.html#572">[ subject ]</a>
+              <a href="author.html#572">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 21, 2013, at 10:01 PM, vandana shah wrote:
+&gt;<i> I have been trying to use jemalloc for my application and observed that the rss of the process keeps on increasing.
+</I>&gt;<i> 
+</I>&gt;<i> I ran the application with valgrind to confirm that there are no memory leaks.
+</I>&gt;<i> 
+</I>&gt;<i> To investigate more, I collected jemalloc stats after running the test for few days and here is the summary for a run with narenas:1, tcache:false, lg_chunk:24
+</I>&gt;<i> 
+</I>&gt;<i>  Arenas: 1
+</I>&gt;<i>  Pointer size: 8
+</I>&gt;<i>  Quantum size: 16
+</I>&gt;<i>  Page size: 4096
+</I>&gt;<i>  Min active:dirty page ratio per arena: 8:1
+</I>&gt;<i>  Maximum thread-cached size class: 32768
+</I>&gt;<i>  Chunk size: 16777216 (2^24)
+</I>&gt;<i>  Allocated: 24364176040, active: 24578334720, mapped: 66739765248
+</I>&gt;<i>  Current active ceiling: 24578621440
+</I>&gt;<i>  chunks: nchunks   highchunks    curchunks
+</I>&gt;<i>             3989         3978         3978
+</I>&gt;<i>  huge: nmalloc      ndalloc    allocated
+</I>&gt;<i>              3            2    117440512
+</I>&gt;<i>  
+</I>&gt;<i>  arenas[0]:
+</I>&gt;<i>  assigned threads: 17
+</I>&gt;<i>  dss allocation precedence: disabled
+</I>&gt;<i>  dirty pages: 5971898:64886 active:dirty, 354265 sweeps, 18261119 madvises, 1180858954 purged
+</I>&gt;<i> 
+</I>&gt;<i> While in this state, the RSS of the process was at 54GB.
+</I>&gt;<i> 
+</I>&gt;<i> Questions:
+</I>&gt;<i> 1) The difference between RSS and jemalloc active is huge (more than 30GB). In my test, the difference was quite less in the beginning (say 4 GB) and it went on increasing with time. That seems too high to account for jemalloc data structures, overhead etc. What else gets accounted in process RSS - active?
+</I>
+jemalloc is reporting very low page-level external fragmentation for your app: 1.0 - allocated/active == 1.0 - 24364176040/24578334720 == 0.87%.  However, virtual memory fragmentation is quite high: 1.0 - active/mapped == 63.2%.
+
+&gt;<i> 2) The allocations are fairly random, sized between 8 bytes and 2MB. Are there any known issues of fragmentation for particular allocation sizes?
+</I>
+If your application were to commonly allocate slightly more than one chunk, then internal fragmentation would be quite high, but at little actual cost to physical memory.  However, you are using 16 MiB chunks, and the stats say that there's only a single huge (112-MiB) allocation.
+
+&gt;<i> 3) Is there a way to tune the allocations and reduce the difference?
+</I>
+I can't think of a way this could happen short of a bug in jemalloc.  Can you send me a complete statistics, and provide the following?
+
+- jemalloc version
+- operating system
+- compile-time jemalloc configuration flags
+- run-time jemalloc option flags
+- brief description of what application does
+
+Hopefully that will narrow down the possible explanations.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000571.html">Fragmentation with jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000573.html">Fragmentation with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#572">[ date ]</a>
+              <a href="thread.html#572">[ thread ]</a>
+              <a href="subject.html#572">[ subject ]</a>
+              <a href="author.html#572">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

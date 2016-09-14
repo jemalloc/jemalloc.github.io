@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc hooks clarifications
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20hooks%20clarifications&In-Reply-To=%3CCANP6M4s0Xc%2Bk7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001215.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc hooks clarifications</H1>
+    <B>Jakob Buchgraber</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20hooks%20clarifications&In-Reply-To=%3CCANP6M4s0Xc%2Bk7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA%40mail.gmail.com%3E"
+       TITLE="jemalloc hooks clarifications">jakob.buchgraber at tum.de
+       </A><BR>
+    <I>Wed Nov 25 08:14:38 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001215.html">Configuration Script for Windows
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1216">[ date ]</a>
+              <a href="thread.html#1216">[ thread ]</a>
+              <a href="subject.html#1216">[ subject ]</a>
+              <a href="author.html#1216">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Jason,
+
+I am playing around with the memory management hooks introduced in version
+4.
+So I wrote a delegate for the default chunk hooks, that additionally report
+to
+stdout what's happening [1].
+
+The test program allocates 1GB of memory and immediately frees it.
+It then tries to allocate 4MB and 8MB. The output is as follows
+
+ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1,
+arena_ind 0, ret 0x7f2f52a00000
+DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length
+1073741824, arena_ind 0
+PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824,
+arena_ind 0
+FREED
+ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1,
+arena_ind 0, ret 0x7f2f52a00000
+ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1,
+arena_ind 0, ret 0x7f2f52e00000
+
+Given that the 1GB has not been deallocated, but purged I would expect
+the last two ALLOCations not to have happened. Instead I would expect
+the virtual memory from the 1GB allocation before to be reused?
+
+I am running jemalloc 4.0.4 on Linux.
+
+Also, on an unrelated note, is it generally safe to trigger purging for
+arena A
+from within an allocation chunk hook of arena B, with A &lt;&gt; B?
+The reason why am asking this question is that I would generally want to
+run with purging disabled on all arenas, but if some threshold of committed
+memory is surpassed I would like to enable purging for some arenas.
+Does this sound feasible?
+
+Thanks,
+Jakob
+
+[1] <A HREF="https://gist.github.com/buchgr/243b0aa9a2abeda2ac39">https://gist.github.com/buchgr/243b0aa9a2abeda2ac39</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151125/1e60ca48/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151125/1e60ca48/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001215.html">Configuration Script for Windows
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1216">[ date ]</a>
+              <a href="thread.html#1216">[ thread ]</a>
+              <a href="subject.html#1216">[ subject ]</a>
+              <a href="author.html#1216">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

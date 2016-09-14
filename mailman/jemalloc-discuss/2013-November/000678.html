@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> compatibility with apps using mallopt?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compatibility%20with%20apps%20using%20mallopt%3F&In-Reply-To=%3C2B69CFD0-20BA-45B6-9255-0CD1B21DC01C%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000676.html">
+   <LINK REL="Next"  HREF="000679.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>compatibility with apps using mallopt?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compatibility%20with%20apps%20using%20mallopt%3F&In-Reply-To=%3C2B69CFD0-20BA-45B6-9255-0CD1B21DC01C%40canonware.com%3E"
+       TITLE="compatibility with apps using mallopt?">jasone at canonware.com
+       </A><BR>
+    <I>Thu Nov 21 16:02:25 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000676.html">compatibility with apps using mallopt?
+</A></li>
+        <LI>Next message: <A HREF="000679.html">compatibility with apps using mallopt?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#678">[ date ]</a>
+              <a href="thread.html#678">[ thread ]</a>
+              <a href="subject.html#678">[ subject ]</a>
+              <a href="author.html#678">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 17, 2013, at 2:47 PM, Eric Wong &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">normalperson at yhbt.net</A>&gt; wrote:
+&gt;<i> Hi, I'd like to continue providing the option of using jemalloc (and
+</I>&gt;<i> other alternative malloc implementations) to glibc/Linux users of
+</I>&gt;<i> cmogstored[1].
+</I>&gt;<i> 
+</I>&gt;<i> I have a pending change[2] in cmogstored.git which adds mallopt(3)
+</I>&gt;<i> support.  This needed for good out-of-the-box VM usage on modern glibc
+</I>&gt;<i> and many disk-bound threads.  cmogstored is not at all dependent on
+</I>&gt;<i> malloc performance/scalability, so glibc malloc defaults clash greatly
+</I>&gt;<i> with the design of cmogstored.
+</I>&gt;<i> 
+</I>&gt;<i> When I ./configure with LIBS=-ljemalloc, things go bad because the
+</I>&gt;<i> mallopt call is still detected and going to glibc even though the glibc
+</I>&gt;<i> malloc implementation is not used/linked.
+</I>&gt;<i> 
+</I>&gt;<i> So my question is: what's the best way to avoid mallopt() when using
+</I>&gt;<i> glibc if cmogstored is linked to jemalloc (or any non-glibc malloc)?
+</I>&gt;<i> 
+</I>&gt;<i> Or should jemalloc provide a mallopt() function which may
+</I>&gt;<i> wrap mallctl() in some cases and/or just do nothing at all?
+</I>
+mallopt() is a non-standard function, as is jemalloc&#8217;s mallctl().  I contemplated what to do about mallopt(), mallinfo(), mallinfo_heap(), etc. while implementing mallctl(), and decided that trying to emulate them would be an exercise in futility.  As for replacing them, I would be uncomfortable having replacements do anything besides call abort(3).  I&#8217;ve never followed through with that though, because I&#8217;m afraid the cure might be worse than the disease.
+
+In the case of cmogstored, I suggest you conditionalize the mallopt() calls such that they&#8217;re only used when using glibc&#8217;s allocator.  Since you&#8217;re making an explicit effort to support multiple alternative memory allocators, you may end up adding other allocator-specific tuning in #if..#elif..#else..#endif blocks anyway.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000676.html">compatibility with apps using mallopt?
+</A></li>
+	<LI>Next message: <A HREF="000679.html">compatibility with apps using mallopt?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#678">[ date ]</a>
+              <a href="thread.html#678">[ thread ]</a>
+              <a href="subject.html#678">[ subject ]</a>
+              <a href="author.html#678">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

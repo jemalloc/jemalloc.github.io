@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question regarding jemalloc and JVM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20regarding%20jemalloc%20and%20JVM&In-Reply-To=%3CA5F916B0-CC34-4C57-BCBE-125A7148328D%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000182.html">
+   <LINK REL="Next"  HREF="000170.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question regarding jemalloc and JVM</H1>
+    <B>vijay2win at gmail.com</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20regarding%20jemalloc%20and%20JVM&In-Reply-To=%3CA5F916B0-CC34-4C57-BCBE-125A7148328D%40gmail.com%3E"
+       TITLE="Question regarding jemalloc and JVM">vijay2win at gmail.com
+       </A><BR>
+    <I>Mon Mar 26 09:57:43 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000182.html">Question regarding jemalloc and JVM
+</A></li>
+        <LI>Next message: <A HREF="000170.html">make check fails on rhel5/ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#175">[ date ]</a>
+              <a href="thread.html#175">[ thread ]</a>
+              <a href="subject.html#175">[ subject ]</a>
+              <a href="author.html#175">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jason, 
+
+looks like it is problematic to use LD_PRELOAD i had various crashes. I understand it is too much to ask, any configuration to look out for? 
+I think most probably i will use JNI to load jemalloc (LD_LIBRARY_PATH), looks like that works fine so far.
+
+grep -A2 Problematic *
+hs_err_pid1309.log:# Problematic frame:
+hs_err_pid1309.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid1309.log-#
+--
+hs_err_pid1622.log:# Problematic frame:
+hs_err_pid1622.log-# C  [libjemalloc.so+0x57f4]  free+0x54
+hs_err_pid1622.log-#
+--
+hs_err_pid16902.log:# Problematic frame:
+hs_err_pid16902.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid16902.log-[error occurred during error reporting (printing problematic frame), id 0xb]
+--
+hs_err_pid16902.log:# Problematic frame:
+hs_err_pid16902.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid16902.log-[error occurred during error reporting (printing problematic frame), id 0xb]
+--
+hs_err_pid2813.log:# Problematic frame:
+hs_err_pid2813.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid2813.log-[error occurred during error reporting (printing problematic frame), id 0xb]
+--
+hs_err_pid2813.log:# Problematic frame:
+hs_err_pid2813.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid2813.log-[error occurred during error reporting (printing problematic frame), id 0xb]
+--
+hs_err_pid29892.log:# Problematic frame:
+hs_err_pid29892.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid29892.log-#
+--
+hs_err_pid30273.log:# Problematic frame:
+hs_err_pid30273.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid30273.log-#
+--
+hs_err_pid30645.log:# Problematic frame:
+hs_err_pid30645.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid30645.log-#
+--
+hs_err_pid4037.log:# Problematic frame:
+hs_err_pid4037.log-# C  [libjemalloc.so+0xb79a]
+hs_err_pid4037.log-[error occurred during error reporting (printing problematic frame), id 0xb]
+--
+hs_err_pid7733.log:# Problematic frame:
+hs_err_pid7733.log-# C  [libc.so.6+0x618a2]
+hs_err_pid7733.log-[error occurred during error reporting (printing problematic frame), id 0xb]
+--
+hs_err_pid7733.log:# Problematic frame:
+hs_err_pid7733.log-# C  [libc.so.6+0x618a2]
+hs_err_pid7733.log-[error occurred during error reporting (printing problematic frame), id 0xb]
+[<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">vijay_tcasstest at vijay_tcass-i-a91ee8cd</A> crash]$ 
+
+On Mar 25, 2012, at 12:21 AM, <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">VIJAY2WIN at gmail.com</A> wrote:
+
+&gt;<i> Thanks Jason, 
+</I>&gt;<i> I had one crash in the with in JVM version 1.6 and it crashed with following... So far with JVM 1.7 the test looks good still waiting for a way to crash it (I did verify that it uses JEMalloc).
+</I>&gt;<i> 
+</I>&gt;<i> # Problematic frame:
+</I>&gt;<i> # C  [libjemalloc.so+0xb79a]
+</I>&gt;<i> #
+</I>&gt;<i> # If you would like to submit a bug report, please include
+</I>&gt;<i> # instructions how to reproduce the bug and visit:
+</I>&gt;<i> #   <A HREF="http://icedtea.classpath.org/bugzilla">http://icedtea.classpath.org/bugzilla</A>
+</I>&gt;<i> #
+</I>&gt;<i> 
+</I>&gt;<i> ---------------  T H R E A D  ---------------
+</I>&gt;<i> 
+</I>&gt;<i> Current thread (0x00002aac4ede7000):  JavaThread &quot;Selector-Thread-3&quot; [_thread_new, id=1555, stack(0x0000000000000000,0x0000000000000000)]
+</I>&gt;<i> 
+</I>&gt;<i> siginfo:si_signo=SIGSEGV: si_errno=0, si_code=1 (SEGV_MAPERR), si_addr=0x00002ab252cd9368
+</I>&gt;<i> 
+</I>&gt;<i> Registers:
+</I>&gt;<i> RAX=0x00000000c217906f, RBX=0x00002aac42110000, RCX=0x0000000000000002, RDX=0x0000000000000000
+</I>&gt;<i> RSP=0x0000000042aa3eb0, RBP=0x0000000000000020, RSI=0x00002aac42110040, RDI=0x0000000000000006
+</I>&gt;<i> R8 =0x00002aaaab0009c0, R9 =0x0000000000000003, R10=0x00002aac42110ff0, R11=0x00000000c217906f
+</I>&gt;<i> R12=0xffffffffffffffe8, R13=0x0000000042aa3f80, R14=0x0000000000000020, R15=0x0000000000000000
+</I>&gt;<i> RIP=0x00002aaaaaab879a, EFL=0x0000000000010283, CSGSFS=0x000000000000e033, ERR=0x0000000000000004
+</I>&gt;<i>  TRAPNO=0x000000000000000e
+</I>&gt;<i> 
+</I>&gt;<i> Top of Stack: (sp=0x0000000042aa3eb0)
+</I>&gt;<i> 0x0000000042aa3eb0:   0000000000000000 0000000000000020
+</I>&gt;<i> 0x0000000042aa3ec0:   0000000042aa3fe0 0000000042aa3ff0
+</I>&gt;<i> 0x0000000042aa3ed0:   0000000042aa3f80 0000000000000020
+</I>&gt;<i> 0x0000000042aa3ee0:   0000000000000000 00002aaaaaab2740
+</I>&gt;<i> 0x0000000042aa3ef0:   0000000042aa4940 0000003a0cc08373
+</I>&gt;<i> 0x0000000042aa3f00:   0000000000000000 0000000000000000
+</I>&gt;<i> 0x0000000042aa3f10:   0000000000000000 0000000000000000
+</I>&gt;<i> 0x0000000042aa3f20:   0000000000000000 0000000000000000
+</I>&gt;<i> 0x0000000042aa3f30:   00002aad67d6c728 0000000000000000
+</I>&gt;<i> 0x0000000042aa3f40:   0000003a0cc0a0e7 0000000042aa3ff8
+</I>&gt;<i> 0x0000000042aa3f50:   0000000042aa3fe0 0000000042aa3ff0
+</I>&gt;<i> 0x0000000042aa3f60:   0000000042aa3f80 00002aac4ede7000
+</I>&gt;<i> 0x0000000042aa3f70:   0000000000000000 00002aaaabdaa354
+</I>&gt;<i> 0x0000000042aa3f80:   0000000000000000 0000000000000009
+</I>&gt;<i> 0x0000000042aa3f90:   0000000000000000 0000000042aa5000
+</I>&gt;<i> 0x0000000042aa3fa0:   0000000000021000 00002aaaac432600
+</I>&gt;<i> 0x0000000042aa3fb0:   00002aaaabb68da0 0000000000000007
+</I>&gt;<i> 0x0000000042aa3fc0:   0000000042aa3ff0 00002aac4ede7000
+</I>&gt;<i> 0x0000000042aa3fd0:   00002aac4ee12400 00002aac4ee06400
+</I>&gt;<i> 0x0000000042aa3fe0:   0000000042aa4000 00002aaaabdaa415
+</I>&gt;<i> 0x0000000042aa3ff0:   0000000042aa4020 00002aaaabea046e
+</I>&gt;<i> 0x0000000042aa4000:   0000000042aa4020 00002aaaabe967b1
+</I>&gt;<i> 0x0000000042aa4010:   00002aac4ee12400 00002aac4ede7000
+</I>&gt;<i> 0x0000000042aa4020:   0000000042aa4040 00002aaaabe9cb14
+</I>&gt;<i> 0x0000000042aa4030:   00002aac4ede7000 0000000000000000
+</I>&gt;<i> 0x0000000042aa4040:   0000000042aa4110 00002aaaabda8ed4
+</I>&gt;<i> 0x0000000042aa4050:   0000000000000000 0000000000000000
+</I>&gt;<i> 0x0000000042aa4060:   0000000000000000 0000000000000000
+</I>&gt;<i> 0x0000000042aa4070:   0000000000000000 0000000000000000
+</I>&gt;<i> 0x0000000042aa4080:   0000000000000000 0000000000000000
+</I>&gt;<i> 0x0000000042aa4090:   0000000000000000 0000000000000000
+</I>&gt;<i> 0x0000000042aa40a0:   0000000000000000 0000000000000000
+</I>&gt;<i> 
+</I>&gt;<i> Instructions: (pc=0x00002aaaaaab879a)
+</I>&gt;<i> 0x00002aaaaaab878a:   06 89 46 08 7d 02 89 06 44 8b 5e 08 4c 8b 56 10
+</I>&gt;<i> 0x00002aaaaaab879a:   4f 8b 34 da 4d 85 f6 0f 84 71 02 00 00 45 84 ff
+</I>&gt;<i> 
+</I>&gt;<i> Stack: [0x0000000000000000,0x0000000000000000],  sp=0x0000000042aa3eb0,  free space=1092239k
+</I>&gt;<i> Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+</I>&gt;<i> C  [libjemalloc.so+0xb79a]
+</I>&gt;<i> 
+</I>&gt;<i> [error occurred during error reporting (printing native stack), id 0xb]
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> On Mar 24, 2012, at 9:00 PM, Jason Evans wrote:
+</I>&gt;<i> 
+</I>&gt;&gt;<i> On Mar 24, 2012, at 11:46 AM, Jason Evans wrote:
+</I>&gt;&gt;&gt;<i> On Mar 23, 2012, at 4:21 PM, Vijay wrote:
+</I>&gt;&gt;&gt;&gt;<i> Is there any reason i should not be using LD_PRELOAD to force JVM use jemalloc instead of native gcc malloc?
+</I>&gt;&gt;&gt;&gt;<i> Background: This is for Apache-Cassandra we do off-heap cache where we explicitly call malloc and free and by using jemalloc we see a fair amount of space savings and was wondering if there is anything which we have to consider before using it.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> LD_PRELOAD'ing jemalloc should be okay as long as the JVM doesn't statically link a different malloc implementation.  I expect that if it isn't safe, you'll experience crashes quite early on, so give it a try and see what happens.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> I was just looking through some of my notes and noticed an issue that may be relevant here.  jemalloc has a configure option called lazy-lock that has apparently caused problems in some Java use cases.  Java was using dlopen() to load a library that was dynamically linked with jemalloc, so jemalloc came along too late to intercept pthread_create() calls and turn on locking.  I don't think your use case will hit the same issue, but beware of dlopen() anywhere in the mix.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Jason
+</I>&gt;<i> 
+</I>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120326/7e1d0ed5/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120326/7e1d0ed5/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000182.html">Question regarding jemalloc and JVM
+</A></li>
+	<LI>Next message: <A HREF="000170.html">make check fails on rhel5/ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#175">[ date ]</a>
+              <a href="thread.html#175">[ thread ]</a>
+              <a href="subject.html#175">[ subject ]</a>
+              <a href="author.html#175">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,55 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;So&nbsp;it&nbsp;appears&nbsp;a&nbsp;better&nbsp;fix&nbsp;is&nbsp;to&nbsp;modify&nbsp;chunk_first_fit&nbsp;to&nbsp;return&nbsp;NULL&nbsp;in&nbsp;this&nbsp;particular&nbsp;case.&nbsp;I&#39;m&nbsp;not&nbsp;as&nbsp;familiar&nbsp;with&nbsp;exactly&nbsp;how&nbsp;the&nbsp;chunks&nbsp;are&nbsp;stored,&nbsp;so&nbsp;I&nbsp;don&#39;t&nbsp;know&nbsp;if&nbsp;I&nbsp;can&nbsp;propose&nbsp;the&nbsp;best&nbsp;fix.&nbsp;For&nbsp;example,&nbsp;it&#39;s&nbsp;possible&nbsp;to&nbsp;modify&nbsp;this&nbsp;check&nbsp;in chunk_first_fit:&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;&lt;font&nbsp;face=&quot;monospace,&nbsp;monospace&quot;&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if&nbsp;(node&nbsp;==&nbsp;NULL&nbsp;||&nbsp;(uintptr_t)extent_node_addr_get(curnode)&nbsp;&lt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font&nbsp;face=&quot;monospace,&nbsp;monospace&quot;&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;(uintptr_t)extent_node_addr_get(node))&lt;/font&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;&lt;font&nbsp;face=&quot;monospace,&nbsp;monospace&quot;&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;node&nbsp;=&nbsp;curnode;&lt;/font&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;To&nbsp;be&nbsp;something&nbsp;like:&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;&lt;font&nbsp;face=&quot;monospace,&nbsp;monospace&quot;&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;if&nbsp;(size&nbsp;&lt;=&nbsp;extend_node_size_get(curnode)&nbsp;&amp;&amp;&nbsp;(node&nbsp;==&nbsp;NULL&nbsp;||&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font&nbsp;face=&quot;monospace,&nbsp;monospace&quot;&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;(uintptr_t)extent_node_addr_get(curnode)&nbsp;&lt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font&nbsp;face=&quot;monospace,&nbsp;monospace&quot;&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;(uintptr_t)extent_node_addr_get(node)))&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font&nbsp;face=&quot;monospace,&nbsp;monospace&quot;&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;node&nbsp;=&nbsp;curnode;&lt;/font&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;There&nbsp;might&nbsp;be&nbsp;a&nbsp;better&nbsp;way&nbsp;to&nbsp;do&nbsp;this&nbsp;given&nbsp;knowledge&nbsp;of&nbsp;how&nbsp;chunks&nbsp;are&nbsp;stored,&nbsp;but&nbsp;I&#39;m&nbsp;not&nbsp;sure.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Christopher&lt;/div&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Mon,&nbsp;Jun&nbsp;8,&nbsp;2015&nbsp;at&nbsp;2:56&nbsp;PM,&nbsp;Daniel&nbsp;Micay&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:danielmicay@gmail.com&quot;&nbsp;target=&quot;_blank&quot;&gt;danielmicay@gmail.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;On&nbsp;08/06/15&nbsp;05:15&nbsp;PM,&nbsp;Christopher&nbsp;Ferris&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;Recently,&nbsp;it&nbsp;appears&nbsp;that&nbsp;there&nbsp;was&nbsp;a&nbsp;bug&nbsp;introduced&nbsp;in&nbsp;chunk&lt;br&gt;<br>
+&gt;&nbsp;allocation.&nbsp;The&nbsp;bug&nbsp;is&nbsp;exposed&nbsp;by&nbsp;this&nbsp;small&nbsp;snippet&nbsp;of&nbsp;code:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt; &nbsp; void*&nbsp;mem&nbsp;=&nbsp;malloc(128*1024*1024);&lt;br&gt;<br>
+&gt; &nbsp; printf(&quot;mem&nbsp;address&nbsp;%p\n&quot;,&nbsp;mem);&lt;br&gt;<br>
+&gt; &nbsp; free(mem);&lt;br&gt;<br>
+&gt; &nbsp; void*&nbsp;large_alloc&nbsp;=&nbsp;malloc(0x80000081UL);&lt;br&gt;<br>
+&gt; &nbsp; printf(&quot;large&nbsp;mem&nbsp;%p\n&quot;,&nbsp;large_alloc);&lt;br&gt;<br>
+&gt; &nbsp; free(large_alloc);&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;It&nbsp;looks&nbsp;like&nbsp;the&nbsp;bug&nbsp;is&nbsp;in&nbsp;the&nbsp;chunk_recycle&nbsp;code,&nbsp;in&nbsp;this&nbsp;piece&nbsp;of&nbsp;code:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; if&nbsp;(new_addr&nbsp;!=&nbsp;NULL)&nbsp;{&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; extent_node_t&nbsp;key;&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; extent_node_init(&amp;key,&nbsp;arena,&nbsp;new_addr,&nbsp;alloc_size,&nbsp;false);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; node&nbsp;=&nbsp;extent_tree_ad_search(chunks_ad,&nbsp;&amp;key);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; }&nbsp;else&nbsp;{&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; node&nbsp;=&nbsp;chunk_first_fit(arena,&nbsp;chunks_szad,&nbsp;chunks_ad,&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; alloc_size);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; }&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; if&nbsp;(node&nbsp;==&nbsp;NULL&nbsp;||&nbsp;(new_addr&nbsp;!=&nbsp;NULL&nbsp;&amp;&amp;&lt;br&gt;<br>
+&gt;&nbsp;extent_node_size_get(node)&nbsp;&lt;&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; size))&nbsp;{&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; malloc_mutex_unlock(&amp;arena-&gt;chunks_mtx);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return&nbsp;(NULL);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; }&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;The&nbsp;problem&nbsp;is&nbsp;that&nbsp;new_addr&nbsp;==&nbsp;NULL,&nbsp;so&nbsp;the&nbsp;size&nbsp;check&nbsp;is&nbsp;not&lt;br&gt;<br>
+&gt;&nbsp;performed.&nbsp;In&nbsp;my&nbsp;testing,&nbsp;removing&nbsp;the&nbsp;new_addr&nbsp;!=&nbsp;NULL&nbsp;check&nbsp;fixes&nbsp;the&lt;br&gt;<br>
+&gt;&nbsp;problem,&nbsp;but&nbsp;I&nbsp;don&#39;t&nbsp;know&nbsp;if&nbsp;that&#39;s&nbsp;the&nbsp;correct&nbsp;change.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;The&nbsp;first&nbsp;allocation&nbsp;after&nbsp;the&nbsp;free&nbsp;shows&nbsp;the&nbsp;problem,&nbsp;if&nbsp;you&nbsp;try&nbsp;and&lt;br&gt;<br>
+&gt;&nbsp;use&nbsp;the&nbsp;whole&nbsp;memory&nbsp;allocation&nbsp;it&nbsp;might&nbsp;segfault,&nbsp;or&nbsp;let&nbsp;you&nbsp;scribble&lt;br&gt;<br>
+&gt;&nbsp;all&nbsp;over&nbsp;someone&nbsp;else&#39;s&nbsp;memory.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;&lt;/div&gt;It&nbsp;only&nbsp;checks&nbsp;when&nbsp;new_addr&nbsp;isn&#39;t&nbsp;NULL&nbsp;because&nbsp;it&nbsp;does&nbsp;an&nbsp;address-based&lt;br&gt;<br>
+map&nbsp;lookup&nbsp;without&nbsp;taking&nbsp;into&nbsp;account&nbsp;the&nbsp;size.&nbsp;The&nbsp;real&nbsp;bug&nbsp;in&nbsp;this&lt;br&gt;<br>
+case&nbsp;would&nbsp;be&nbsp;inside&nbsp;chunk_first_fit(...)&nbsp;because&nbsp;it&nbsp;should&nbsp;only&nbsp;be&lt;br&gt;<br>
+returning&nbsp;nodes&nbsp;with&nbsp;a&nbsp;size&nbsp;greater&nbsp;than&nbsp;or&nbsp;equal&nbsp;to&nbsp;the&nbsp;requested&nbsp;size&lt;br&gt;<br>
+(or&nbsp;NULL).&lt;br&gt;<br>
+&lt;br&gt;<br>
+In&nbsp;the&nbsp;past,&nbsp;it&nbsp;also&nbsp;only&nbsp;did&nbsp;that&nbsp;size&nbsp;check&nbsp;for&nbsp;new_addr&nbsp;!=&nbsp;NULL&nbsp;but&lt;br&gt;<br>
+it&nbsp;used&nbsp;first-best-fit&nbsp;instead&nbsp;of&nbsp;first-fit&nbsp;so&nbsp;it&nbsp;only&nbsp;had&nbsp;to&nbsp;do&nbsp;a&lt;br&gt;<br>
+single&nbsp;map&nbsp;lookup&nbsp;ordered&nbsp;by&nbsp;(size,&nbsp;addr)&nbsp;instead&nbsp;of&nbsp;calling&nbsp;that&nbsp;more&lt;br&gt;<br>
+complex&nbsp;new&nbsp;chunk_first_fit&nbsp;code.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;_______________________________________________&lt;br&gt;<br>
+jemalloc-discuss&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:jemalloc-discuss@canonware.com&quot;&gt;jemalloc-discuss@canonware.com&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&quot;&nbsp;rel=&quot;noreferrer&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&lt;/a&gt;&lt;br&gt;<br>
+&lt;br&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

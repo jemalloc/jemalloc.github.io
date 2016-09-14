@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> RFC: TCMalloc-style new/delete hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3C712D85B8-F3D0-483B-A87F-9ED4976E62C6%40couchbase.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000948.html">
+   <LINK REL="Next"  HREF="000950.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>RFC: TCMalloc-style new/delete hooks</H1>
+    <B>David Rigby</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3C712D85B8-F3D0-483B-A87F-9ED4976E62C6%40couchbase.com%3E"
+       TITLE="RFC: TCMalloc-style new/delete hooks">daver at couchbase.com
+       </A><BR>
+    <I>Tue Oct 14 09:13:05 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000948.html">Coverity scan results
+</A></li>
+        <LI>Next message: <A HREF="000950.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#949">[ date ]</a>
+              <a href="thread.html#949">[ thread ]</a>
+              <a href="subject.html#949">[ subject ]</a>
+              <a href="author.html#949">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+
+One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc&#8217;s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application. 
+
+We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread&#8217;s current bucket from TLS and increment/decrement the total used as appropriate.
+
+To allow us to work with jemalloc, I&#8217;ve implemented[1] equivalent functionality in jemalloc.
+
+I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I&#8217;m proposing setting narenas=1 when we deploy).
+
+How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream? 
+
+
+Thanks,
+
+Dave Rigby
+
+
+[1]: <A HREF="https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5">https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5</A>
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000948.html">Coverity scan results
+</A></li>
+	<LI>Next message: <A HREF="000950.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#949">[ date ]</a>
+              <a href="thread.html#949">[ thread ]</a>
+              <a href="subject.html#949">[ subject ]</a>
+              <a href="author.html#949">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

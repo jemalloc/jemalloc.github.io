@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Supporting 'bookkeeping' and 'bin_unused' memory reporters in Gecko
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Supporting%20%27bookkeeping%27%20and%20%27bin_unused%27%20memory%20reporters%20in%20Gecko&In-Reply-To=%3C326229254.30021473.1414709147485.JavaMail.zimbra%40mozilla.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000958.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Supporting 'bookkeeping' and 'bin_unused' memory reporters in Gecko</H1>
+    <B>Guilherme Goncalves</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Supporting%20%27bookkeeping%27%20and%20%27bin_unused%27%20memory%20reporters%20in%20Gecko&In-Reply-To=%3C326229254.30021473.1414709147485.JavaMail.zimbra%40mozilla.com%3E"
+       TITLE="Supporting 'bookkeeping' and 'bin_unused' memory reporters in Gecko">ggp at mozilla.com
+       </A><BR>
+    <I>Thu Oct 30 15:45:47 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000958.html">network registered memory and pages_purge()
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#961">[ date ]</a>
+              <a href="thread.html#961">[ thread ]</a>
+              <a href="subject.html#961">[ subject ]</a>
+              <a href="author.html#961">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+Our memory reporting tools in Gecko rely on two statistics that don't seem straightforward
+to obtain on latest jemalloc: &quot;bookkeeping&quot; and &quot;bin_unused&quot;.
+
+&quot;bookkeeping&quot; is defined as &quot;Committed bytes which the heap allocator uses for internal data
+structures.&quot; [1], and is currently calculated in our mozjemalloc as the total memory used by
+all arena and chunk headers. As the comment in [2] suggests, it looks like this could be
+computed by adding up all base allocations in jemalloc3.
+
+&quot;bin_unused&quot; is defined as &quot;Bytes reserved for bins of fixed-size allocations which do not
+correspond to an active allocation.&quot; [3], and is computed in mozjemalloc by adding up the product
+of each bin's number of free regions by their size.
+
+I don't see a suitable mallctl call that would give us the information we need to compute these
+metrics. Would it be possible to expose that information as statistics?
+
+The associated Gecko bug for this is <A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=899126">https://bugzilla.mozilla.org/show_bug.cgi?id=899126</A> .
+
+Thanks!
+
+1- <A HREF="http://dxr.mozilla.org/mozilla-central/source/xpcom/base/nsMemoryReporterManager.cpp#798">http://dxr.mozilla.org/mozilla-central/source/xpcom/base/nsMemoryReporterManager.cpp#798</A>
+2- <A HREF="http://dxr.mozilla.org/mozilla-central/source/memory/build/mozjemalloc_compat.c?from=memory/build/mozjemalloc_compat.c#93">http://dxr.mozilla.org/mozilla-central/source/memory/build/mozjemalloc_compat.c?from=memory/build/mozjemalloc_compat.c#93</A>
+3- <A HREF="http://dxr.mozilla.org/mozilla-central/source/xpcom/base/nsMemoryReporterManager.cpp#780">http://dxr.mozilla.org/mozilla-central/source/xpcom/base/nsMemoryReporterManager.cpp#780</A>
+
+-- 
+Guilherme
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000958.html">network registered memory and pages_purge()
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#961">[ date ]</a>
+              <a href="thread.html#961">[ thread ]</a>
+              <a href="subject.html#961">[ subject ]</a>
+              <a href="author.html#961">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

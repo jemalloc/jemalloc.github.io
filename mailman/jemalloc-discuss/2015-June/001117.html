@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Bug in chunk allocation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bug%20in%20chunk%20allocation&In-Reply-To=%3CCANtHk4npas7J3dhDB_KszB%2BjQh3Buj4jS_vZsdoGqUasG052Vg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001116.html">
+   <LINK REL="Next"  HREF="001124.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Bug in chunk allocation</H1>
+    <B>Christopher Ferris</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bug%20in%20chunk%20allocation&In-Reply-To=%3CCANtHk4npas7J3dhDB_KszB%2BjQh3Buj4jS_vZsdoGqUasG052Vg%40mail.gmail.com%3E"
+       TITLE="Bug in chunk allocation">cferris at google.com
+       </A><BR>
+    <I>Mon Jun 15 12:08:50 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001116.html">Bug in chunk allocation
+</A></li>
+        <LI>Next message: <A HREF="001124.html">cross compiling - how do I figure out the correct value of	je_cv_static_page_shift
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1117">[ date ]</a>
+              <a href="thread.html#1117">[ thread ]</a>
+              <a href="subject.html#1117">[ subject ]</a>
+              <a href="author.html#1117">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>So it appears a better fix is to modify chunk_first_fit to return NULL in
+this particular case. I'm not as familiar with exactly how the chunks are
+stored, so I don't know if I can propose the best fix. For example, it's
+possible to modify this check in chunk_first_fit:
+
+               if (node == NULL || (uintptr_t)extent_node_addr_get(curnode)
+&lt;
+                    (uintptr_t)extent_node_addr_get(node))
+                        node = curnode;
+
+To be something like:
+
+                if (size &lt;= extend_node_size_get(curnode) &amp;&amp; (node == NULL
+||<i>
+</I>                    (uintptr_t)extent_node_addr_get(curnode) &lt;
+                    (uintptr_t)extent_node_addr_get(node)))
+                        node = curnode;
+
+There might be a better way to do this given knowledge of how chunks are
+stored, but I'm not sure.
+
+Christopher
+
+On Mon, Jun 8, 2015 at 2:56 PM, Daniel Micay &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">danielmicay at gmail.com</A>&gt; wrote:
+
+&gt;<i> On 08/06/15 05:15 PM, Christopher Ferris wrote:
+</I>&gt;<i> &gt; Recently, it appears that there was a bug introduced in chunk
+</I>&gt;<i> &gt; allocation. The bug is exposed by this small snippet of code:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;   void* mem = malloc(128*1024*1024);
+</I>&gt;<i> &gt;   printf(&quot;mem address %p\n&quot;, mem);
+</I>&gt;<i> &gt;   free(mem);
+</I>&gt;<i> &gt;   void* large_alloc = malloc(0x80000081UL);
+</I>&gt;<i> &gt;   printf(&quot;large mem %p\n&quot;, large_alloc);
+</I>&gt;<i> &gt;   free(large_alloc);
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; It looks like the bug is in the chunk_recycle code, in this piece of
+</I>&gt;<i> code:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;         if (new_addr != NULL) {
+</I>&gt;<i> &gt;                 extent_node_t key;
+</I>&gt;<i> &gt;                 extent_node_init(&amp;key, arena, new_addr, alloc_size,
+</I>&gt;<i> false);
+</I>&gt;<i> &gt;                 node = extent_tree_ad_search(chunks_ad, &amp;key);
+</I>&gt;<i> &gt;         } else {
+</I>&gt;<i> &gt;                 node = chunk_first_fit(arena, chunks_szad, chunks_ad,
+</I>&gt;<i> &gt;                     alloc_size);
+</I>&gt;<i> &gt;         }
+</I>&gt;<i> &gt;         if (node == NULL || (new_addr != NULL &amp;&amp;
+</I>&gt;<i> &gt; extent_node_size_get(node) &lt;
+</I>&gt;<i> &gt;             size)) {
+</I>&gt;<i> &gt;                 malloc_mutex_unlock(&amp;arena-&gt;chunks_mtx);
+</I>&gt;<i> &gt;                 return (NULL);
+</I>&gt;<i> &gt;         }
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; The problem is that new_addr == NULL, so the size check is not
+</I>&gt;<i> &gt; performed. In my testing, removing the new_addr != NULL check fixes the
+</I>&gt;<i> &gt; problem, but I don't know if that's the correct change.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; The first allocation after the free shows the problem, if you try and
+</I>&gt;<i> &gt; use the whole memory allocation it might segfault, or let you scribble
+</I>&gt;<i> &gt; all over someone else's memory.
+</I>&gt;<i>
+</I>&gt;<i> It only checks when new_addr isn't NULL because it does an address-based
+</I>&gt;<i> map lookup without taking into account the size. The real bug in this
+</I>&gt;<i> case would be inside chunk_first_fit(...) because it should only be
+</I>&gt;<i> returning nodes with a size greater than or equal to the requested size
+</I>&gt;<i> (or NULL).
+</I>&gt;<i>
+</I>&gt;<i> In the past, it also only did that size check for new_addr != NULL but
+</I>&gt;<i> it used first-best-fit instead of first-fit so it only had to do a
+</I>&gt;<i> single map lookup ordered by (size, addr) instead of calling that more
+</I>&gt;<i> complex new chunk_first_fit code.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150615/03a27b75/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150615/03a27b75/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001116.html">Bug in chunk allocation
+</A></li>
+	<LI>Next message: <A HREF="001124.html">cross compiling - how do I figure out the correct value of	je_cv_static_page_shift
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1117">[ date ]</a>
+              <a href="thread.html#1117">[ thread ]</a>
+              <a href="subject.html#1117">[ subject ]</a>
+              <a href="author.html#1117">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

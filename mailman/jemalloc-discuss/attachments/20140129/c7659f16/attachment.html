@@ -1,0 +1,31 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Hi,&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Wed,&nbsp;Jan&nbsp;29,&nbsp;2014&nbsp;at&nbsp;4:13&nbsp;AM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0px&nbsp;0px&nbsp;0px&nbsp;0.8ex;border-left-width:1px;border-left-color:rgb(204,204,204);border-left-style:solid;padding-left:1ex&quot;&gt;<br>
+<br>
+The&nbsp;stats&nbsp;failures&nbsp;are&nbsp;all&nbsp;due&nbsp;to&nbsp;mallctl&nbsp;argument&nbsp;size&nbsp;mismatches,&nbsp;fixed&nbsp;here:&lt;br&gt;<br>
+&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;&lt;a&nbsp;href=&quot;https://github.com/jemalloc/jemalloc/commit/2b51a3e9e9bfebf081d25dfa92f3cd89e4a8ed73&quot;&nbsp;target=&quot;_blank&quot;&gt;https://github.com/jemalloc/jemalloc/commit/2b51a3e9e9bfebf081d25dfa92f3cd89e4a8ed73&lt;/a&gt;&lt;br&gt;<br>
+&lt;div&nbsp;class=&quot;im&quot;&gt;&lt;br&gt;<br>
+&gt;&nbsp;test_oom_errors:test/integration/aligned_alloc.c:59:&nbsp;Failed&nbsp;assertion:&nbsp;(p&nbsp;!=&nbsp;((void&nbsp;*)0)&nbsp;||&nbsp;je_get_errno()&nbsp;!=&nbsp;12)&nbsp;==&nbsp;(false)&nbsp;--&gt;&nbsp;true&nbsp;!=&nbsp;false:&nbsp;test_oom_errors&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;test_alignment_errors:test/integration/mallocx.c:53:&nbsp;Failed&nbsp;assertion:&nbsp;(p)&nbsp;==&nbsp;(NULL)&nbsp;--&gt;&nbsp;0x40000000&nbsp;!=&nbsp;0x0:&nbsp;test_alignment_errors&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;test_oom_errors:test/integration/posix_memalign.c:53:&nbsp;Failed&nbsp;assertion:&nbsp;(posix_memalign(&amp;p,&nbsp;alignment,&nbsp;size))&nbsp;!=&nbsp;(0)&nbsp;--&gt;&nbsp;0&nbsp;==&nbsp;0:&nbsp;test_oom_errors&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;64bit&nbsp;builds&nbsp;are&nbsp;fine.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;Wow,&nbsp;the&nbsp;machine&nbsp;is&nbsp;actually&nbsp;satisfying&nbsp;an&nbsp;mmap()&nbsp;request&nbsp;of&nbsp;size&nbsp;0xd0000000&nbsp;(3.5&nbsp;GiB)&nbsp;in&nbsp;order&nbsp;for&nbsp;this&nbsp;to&nbsp;be&nbsp;happening.&nbsp; The&nbsp;tests&nbsp;are&nbsp;flawed,&nbsp;and&nbsp;they&nbsp;&quot;pass&quot;&nbsp;on&nbsp;64-bit&nbsp;systems&nbsp;because&nbsp;of&nbsp;the&nbsp;virtual&nbsp;memory&nbsp;hole&nbsp;in&nbsp;the&nbsp;middle&nbsp;of&nbsp;the&nbsp;64-bit&nbsp;address&nbsp;space.&nbsp; Fixed&nbsp;here:&lt;br&gt;<br>
+<br>
+<br>
+&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;&lt;a&nbsp;href=&quot;https://github.com/jemalloc/jemalloc/commit/a184d3fcdecfaaf694029fb375d023882aea444e&quot;&nbsp;target=&quot;_blank&quot;&gt;https://github.com/jemalloc/jemalloc/commit/a184d3fcdecfaaf694029fb375d023882aea444e&lt;/a&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+In&nbsp;the&nbsp;case&nbsp;of&nbsp;mallocx(),&nbsp;this&nbsp;is&nbsp;technically&nbsp;undefined&nbsp;territory,&nbsp;so&nbsp;just&nbsp;removed&nbsp;that&nbsp;test,&nbsp;but&nbsp;for&nbsp;aligned_alloc()&nbsp;and&nbsp;posix_memalign(),&nbsp;I&nbsp;increased&nbsp;the&nbsp;request&nbsp;size&nbsp;enough&nbsp;to&nbsp;guarantee&nbsp;failure.&lt;br&gt;<br>
+&lt;br&gt;<br>
+In&nbsp;summary,&nbsp;these&nbsp;failures&nbsp;are&nbsp;all&nbsp;due&nbsp;to&nbsp;test&nbsp;bugs,&nbsp;rather&nbsp;than&nbsp;bugs&nbsp;in&nbsp;the&nbsp;library&nbsp;itself.&lt;br&gt;&lt;/blockquote&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;After&nbsp;addings&nbsp;these&nbsp;two&nbsp;patches&nbsp;I&nbsp;have&nbsp;2&nbsp;new&nbsp;failures:&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;thd_start:test/unit/prof_accum.c:83:&nbsp;Failed&nbsp;assertion:&nbsp;(bt_count_prev+(i-i_prev))&nbsp;&lt;=&nbsp;(bt_count)&nbsp;--&gt;&nbsp;6&nbsp;&gt;&nbsp;1:&nbsp;thd_start&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;and&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;[test_alignment_errors:test/integration/allocm.c:60:&nbsp;Failed&nbsp;assertion:&nbsp;(allocm(&amp;p,&nbsp;&amp;rsz,&nbsp;sz,&nbsp;(ffs(alignment)-1)))&nbsp;!=&nbsp;(0)&nbsp;--&gt;&nbsp;0&nbsp;==&nbsp;0:&nbsp;test_alignment_errors&lt;br&gt;&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Thanks,&lt;/div&gt;&lt;div&gt;ismail&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

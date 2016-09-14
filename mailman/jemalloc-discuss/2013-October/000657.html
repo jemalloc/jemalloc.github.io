@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Q] Strange hang in jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20hang%20in%20jemalloc&In-Reply-To=%3C5268AF96.6040409%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000655.html">
+   <LINK REL="Next"  HREF="000656.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Q] Strange hang in jemalloc</H1>
+    <B>Mitchell Blank Jr</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20hang%20in%20jemalloc&In-Reply-To=%3C5268AF96.6040409%40gmail.com%3E"
+       TITLE="[Q] Strange hang in jemalloc">mitchblank at gmail.com
+       </A><BR>
+    <I>Wed Oct 23 22:26:46 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000655.html">[Q] Strange hang in jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000656.html">[Q] Strange hang in jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#657">[ date ]</a>
+              <a href="thread.html#657">[ thread ]</a>
+              <a href="subject.html#657">[ subject ]</a>
+              <a href="author.html#657">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Taehwan Weon wrote:
+&gt;<i> #6  0x00002b59a803f555 in jemalloc_prefork () at src/jemalloc.c:1760
+</I>&gt;<i> #7  0x000000351ca9a2a6 in fork () from /lib64/libc.so.6
+</I>&gt;<i> #8  0x000000351ca6200d in _IO_proc_open@@GLIBC_2.2.5 () from
+</I>&gt;<i> /lib64/libc.so.6
+</I>&gt;<i> #9  0x000000351ca62269 in popen@@GLIBC_2.2.5 () from /lib64/libc.so.6
+</I>&gt;<i> #10 0x00002b59a71bc1f9 in backtrace_lineinfo (number=1, address=&lt;value
+</I>&gt;<i> optimized out&gt;, symbol=0x2b61f4000918 &quot;/usr/lib64/libnc.so.2
+</I>&gt;<i> [0x2b59a71bc3b1]&quot;) at cfs_apix.c:363
+</I>&gt;<i> #11 0x00002b59a71bc3ff in nc_dump_stack (sig=&lt;value optimized out&gt;) at
+</I>&gt;<i> cfs_apix.c:423
+</I>&gt;<i> #12 &lt;signal handler called&gt;
+</I>
+Just a side note: popen() is not an async-signal safe function, so you 
+should not expect that to work from inside a signal handler.  Neither is 
+malloc().  I'd be even more careful about something from a 
+SIGSEGV/SIGBUS handler since the heap might be damaged.
+
+I believe, however, that fork() is supposed to be signal-safe (at least 
+according to &quot;man 7 signal&quot;) so there might be a jemalloc issue in this 
+deadlock as well.  However it looks like it can only happen if the 
+fork() is being called from a SEGV handler that happened inside jemalloc 
+itself, which is a bit of an edge case.
+
+-Mitch
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000655.html">[Q] Strange hang in jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000656.html">[Q] Strange hang in jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#657">[ date ]</a>
+              <a href="thread.html#657">[ thread ]</a>
+              <a href="subject.html#657">[ subject ]</a>
+              <a href="author.html#657">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

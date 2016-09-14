@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> realloc stack use under O0 for x86_64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3C6C816D38-028E-4AEC-9814-E8391307C49D%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001076.html">
+   <LINK REL="Next"  HREF="001078.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>realloc stack use under O0 for x86_64</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3C6C816D38-028E-4AEC-9814-E8391307C49D%40indiana.edu%3E"
+       TITLE="realloc stack use under O0 for x86_64">ldalessa at indiana.edu
+       </A><BR>
+    <I>Wed Mar 25 11:48:34 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001076.html">Live allocation iterator
+</A></li>
+        <LI>Next message: <A HREF="001078.html">realloc stack use under O0 for x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1077">[ date ]</a>
+              <a href="thread.html#1077">[ thread ]</a>
+              <a href="subject.html#1077">[ subject ]</a>
+              <a href="author.html#1077">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi everyone,
+
+We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+
+When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+
+```asm
+0000000000070e48 &lt;realloc&gt;:
+   70e48:       55                      push   %rbp
+   70e49:       48 89 e5                mov    %rsp,%rbp
+   70e4c:       53                      push   %rbx
+   70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+```
+
+Compiling with just O1 results in a much more reasonable:
+
+```asm
+0000000000006ade &lt;realloc&gt;:
+    6ade:       41 57                   push   %r15
+    6ae0:       41 56                   push   %r14
+    6ae2:       41 55                   push   %r13
+    6ae4:       41 54                   push   %r12
+    6ae6:       55                      push   %rbp
+    6ae7:       53                      push   %rbx
+    6ae8:       48 81 ec 88 00 00 00    sub    $0x88,%rsp
+    6aef:       48 89 fb                mov    %rdi,%rbx
+    6af2:       49 89 f4                mov    %rsi,%r12
+    6af5:       48 85 f6                test   %rsi,%rsi
+```
+
+I&#8217;ve tried to look through the source code for realloc, but I got a little lost. Can someone point me to what&#8217;s getting stack allocated that could possible need so much space? Is this a bug?
+
+I can probably force our internal jemalloc to build in at least O1, but that means a bunch of configure.ac spaghetti mess that I&#8217;d prefer to avoid...
+
+Thanks,
+Luke
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001076.html">Live allocation iterator
+</A></li>
+	<LI>Next message: <A HREF="001078.html">realloc stack use under O0 for x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1077">[ date ]</a>
+              <a href="thread.html#1077">[ thread ]</a>
+              <a href="subject.html#1077">[ subject ]</a>
+              <a href="author.html#1077">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

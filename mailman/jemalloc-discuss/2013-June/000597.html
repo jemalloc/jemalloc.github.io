@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> performance regression after 3.1
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20performance%20regression%20after%203.1&In-Reply-To=%3C11FF1FDB-2055-4684-B6C0-4D11877CED0C%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000596.html">
+   <LINK REL="Next"  HREF="000598.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>performance regression after 3.1</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20performance%20regression%20after%203.1&In-Reply-To=%3C11FF1FDB-2055-4684-B6C0-4D11877CED0C%40canonware.com%3E"
+       TITLE="performance regression after 3.1">jasone at canonware.com
+       </A><BR>
+    <I>Sun Jun  2 12:39:14 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000596.html">performance regression after 3.1
+</A></li>
+        <LI>Next message: <A HREF="000598.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#597">[ date ]</a>
+              <a href="thread.html#597">[ thread ]</a>
+              <a href="subject.html#597">[ subject ]</a>
+              <a href="author.html#597">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 1, 2013, at 1:53 PM, Xose Vazquez Perez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">xose.vazquez at gmail.com</A>&gt; wrote:
+&gt;<i> 3.1 : is fine
+</I>&gt;<i> 3.2 : bad performance &lt;---- bug since 3.2
+</I>&gt;<i> 3.3.x : bad performance
+</I>&gt;<i> git-tree : bad performance
+</I>&gt;<i> 
+</I>&gt;<i> OS: Fedora 17
+</I>&gt;<i> kernel: 3.9.4-100
+</I>&gt;<i> x86_64 machine
+</I>&gt;<i> 
+</I>&gt;<i> test done with ebizzy-0.3 &lt;<A HREF="http://ebizzy.sf.net">http://ebizzy.sf.net</A>&gt;
+</I>&gt;<i> code: <A HREF="http://sf.net/projects/ebizzy/files/latest/download?source=files">http://sf.net/projects/ebizzy/files/latest/download?source=files</A>
+</I>&gt;<i> 
+</I>&gt;<i> jemalloc-3.3.1:
+</I>&gt;<i> 
+</I>&gt;<i> $ LD_PRELOAD=/usr/lib64/libjemalloc.so.1 ./ebizzy -s 131072
+</I>&gt;<i> 47525 records/s
+</I>&gt;<i> 
+</I>&gt;<i> [&#8230;]
+</I>&gt;<i> 
+</I>&gt;<i> Same test done with jemalloc-3.1.0 (glibc-2.15 and tcmalloc-2.0 get similar results):
+</I>&gt;<i> 
+</I>&gt;<i> $ LD_PRELOAD=/home/xose/bajar/j/3.1/lib64/libjemalloc.so.1 ./ebizzy -s 131072
+</I>&gt;<i> 335568 records/s
+</I>&gt;<i> 
+</I>&gt;<i> [&#8230;]
+</I>
+This is due to the following change:
+
+	<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=e3d13060c8a04f08764b16b003169eb205fa09eb">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=e3d13060c8a04f08764b16b003169eb205fa09eb</A>
+
+Specifically, this part of the change:
+
+Remove the limitation that prevented purging unless at least one chunk
+worth of dirty pages had accumulated in an arena.  This limitation was
+intended to avoid excessive purging for small applications, but the
+threshold was arbitrary, and the effect of questionable utility.
+
+In essence, the effect you're seeing is due to the microbenchmark nature of ebizzy.  The allocator threads in ebizzy each have a working set that oscillates between 0 and 131071 bytes; every free() call causes an madvise() call.  Set MALLOC_CONF=lg_dirty_mult:-1 to measure performance with unused dirty page purging disabled.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130602/17b1bcb2/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130602/17b1bcb2/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000596.html">performance regression after 3.1
+</A></li>
+	<LI>Next message: <A HREF="000598.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#597">[ date ]</a>
+              <a href="thread.html#597">[ thread ]</a>
+              <a href="subject.html#597">[ subject ]</a>
+              <a href="author.html#597">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

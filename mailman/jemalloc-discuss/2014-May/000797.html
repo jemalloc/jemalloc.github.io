@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Avoid%20pointer%20arithmetic%20on%20void%2A%20in%0A%09test/integration/rallocx.c&In-Reply-To=%3C1400663601-1919-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000816.html">
+   <LINK REL="Next"  HREF="000813.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Avoid%20pointer%20arithmetic%20on%20void%2A%20in%0A%09test/integration/rallocx.c&In-Reply-To=%3C1400663601-1919-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May 21 02:13:21 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000816.html">[PATCH] Move __func__ to jemalloc_internal_macros.h
+</A></li>
+        <LI>Next message: <A HREF="000813.html">[PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#797">[ date ]</a>
+              <a href="thread.html#797">[ thread ]</a>
+              <a href="subject.html#797">[ subject ]</a>
+              <a href="author.html#797">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ test/integration/rallocx.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/test/integration/rallocx.c b/test/integration/rallocx.c
+index ee21aed..7acb211 100644
+--- a/test/integration/rallocx.c
++++ b/test/integration/rallocx.c
+@@ -95,7 +95,7 @@ TEST_BEGIN(test_zero)
+ 				    &quot;Expected zeroed memory&quot;);
+ 			}
+ 			if (psz != qsz) {
+-				memset(q+psz, FILL_BYTE, qsz-psz);
++				memset((char *)q+psz, FILL_BYTE, qsz-psz);
+ 				psz = qsz;
+ 			}
+ 			p = q;
+@@ -159,8 +159,8 @@ TEST_BEGIN(test_lg_align_and_zero)
+ 		} else {
+ 			assert_false(validate_fill(q, 0, 0, MAX_VALIDATE),
+ 			    &quot;Expected zeroed memory&quot;);
+-			assert_false(validate_fill(q+sz-MAX_VALIDATE, 0, 0,
+-			    MAX_VALIDATE), &quot;Expected zeroed memory&quot;);
++			assert_false(validate_fill((char *)q+sz-MAX_VALIDATE,
++                            0, 0, MAX_VALIDATE), &quot;Expected zeroed memory&quot;);
+ 		}
+ 		p = q;
+ 	}
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000816.html">[PATCH] Move __func__ to jemalloc_internal_macros.h
+</A></li>
+	<LI>Next message: <A HREF="000813.html">[PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#797">[ date ]</a>
+              <a href="thread.html#797">[ thread ]</a>
+              <a href="subject.html#797">[ subject ]</a>
+              <a href="author.html#797">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

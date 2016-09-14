@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3CBA57C9F5-F7D9-42B7-9F64-5A1C61ACC205%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000489.html">
+   <LINK REL="Next"  HREF="000491.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3CBA57C9F5-F7D9-42B7-9F64-5A1C61ACC205%40canonware.com%3E"
+       TITLE="Memory usage regression">jasone at canonware.com
+       </A><BR>
+    <I>Tue Oct 30 12:49:27 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000489.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000491.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#490">[ date ]</a>
+              <a href="thread.html#490">[ thread ]</a>
+              <a href="subject.html#490">[ subject ]</a>
+              <a href="author.html#490">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 30, 2012, at 9:03 AM, Mike Hommey wrote:
+&gt;<i> On Tue, Oct 30, 2012 at 04:36:58PM +0100, Mike Hommey wrote:
+</I>&gt;&gt;<i> On Tue, Oct 30, 2012 at 04:35:02PM +0100, Mike Hommey wrote:
+</I>&gt;&gt;&gt;<i> On Fri, Oct 26, 2012 at 06:10:13PM +0200, Mike Hommey wrote:
+</I>&gt;&gt;&gt;&gt;&gt;&gt;&gt;<i> For reference, the unzoomed graph looks like this:
+</I>&gt;&gt;&gt;&gt;&gt;&gt;&gt;<i> <A HREF="http://i.imgur.com/PViYm.png">http://i.imgur.com/PViYm.png</A>
+</I>&gt;&gt;&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;&gt;&gt;<i> I rediscovered --enable-munmap, and tried again with that, thinking it
+</I>&gt;&gt;&gt;&gt;&gt;&gt;<i> could be related, and it did change something, but it's still growing:
+</I>&gt;&gt;&gt;&gt;&gt;&gt;<i> <A HREF="http://i.imgur.com/lWzhG.png">http://i.imgur.com/lWzhG.png</A>
+</I>&gt;&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;&gt;<i> Needless to say, the increases I was observing closely on the the zoomed
+</I>&gt;&gt;&gt;&gt;&gt;<i> graph without a matching decrease was entirely due to munmap. Now I need
+</I>&gt;&gt;&gt;&gt;&gt;<i> to find the remainder...
+</I>&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;<i> I tested size class independently, and none would cause the VM leak
+</I>&gt;&gt;&gt;&gt;<i> alone. Combining small and large classes do, but large + huge or small +
+</I>&gt;&gt;&gt;&gt;<i> huge don't.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> Some more data: all non-unmapped chunks *are* used to some extent. The
+</I>&gt;&gt;&gt;<i> following is a dump of the number of requested and usable bytes in each
+</I>&gt;&gt;&gt;<i> chunk ; that's 18M spread across 600M... that sounds like a really bad
+</I>&gt;&gt;&gt;<i> case of fragmentation.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> BTW, it does seem to grow forever: I went up to 1.3GB with more
+</I>&gt;&gt;<i> iterations before stopping.
+</I>&gt;<i> 
+</I>&gt;<i> So, what seems to be happening is that because of that fragmentation, when
+</I>&gt;<i> requesting big allocations, jemalloc has to allocate and use new chunks.
+</I>&gt;<i> When these big allocations are freed, the new chunk tends to be used
+</I>&gt;<i> more often than the other free chunks, adding to the fragmentation, thus
+</I>&gt;<i> requiring more new chunks for big allocations.
+</I>
+
+The preference for allocating dirty runs was a solution to excessive dirty page purging.  However, the purging policy (as of jemalloc 3.0.0) is round-robin, justified only as a strategy for allowing dirty pages to accumulate in chunks before going to the considerable effort (including arena mutex operations) of scanning a chunk for dirty pages.  In retrospect I'm thinking maybe this was a bad choice, and that we should go back to scanning downward through memory to purge dirty pages.  The danger is that the linear scanning overhead for scanning each chunk will cause a measurable performance degradation if high chunks routinely have many runs, only a few of which are unused dirty runs.  I think that problem can be solved with slightly more sophisticated hysteresis though.
+
+I'll work on a diff for you to test, and see how it affects Firefox.  I'll do some testing with Facebook server loads too (quite different behavior from Firefox).  If this causes a major reduction in virtual memory usage for both workloads, it's probably the right thing to do, even speed-wise.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000489.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000491.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#490">[ date ]</a>
+              <a href="thread.html#490">[ thread ]</a>
+              <a href="subject.html#490">[ subject ]</a>
+              <a href="author.html#490">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

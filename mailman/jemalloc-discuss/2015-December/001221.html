@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Failed assertion: &quot;pageind &gt;= map_bias&quot;
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Failed%20assertion%3A%20%22pageind%20%3E%3D%20map_bias%22&In-Reply-To=%3CCAMAQheMKq51UcCMoTYnZ7tNSZE-SACgSc1FVbHqMzABcS_Xjsw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001220.html">
+   <LINK REL="Next"  HREF="001222.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Failed assertion: &quot;pageind &gt;= map_bias&quot;</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Failed%20assertion%3A%20%22pageind%20%3E%3D%20map_bias%22&In-Reply-To=%3CCAMAQheMKq51UcCMoTYnZ7tNSZE-SACgSc1FVbHqMzABcS_Xjsw%40mail.gmail.com%3E"
+       TITLE="Failed assertion: &quot;pageind &gt;= map_bias&quot;">edsiper at gmail.com
+       </A><BR>
+    <I>Thu Dec 10 09:54:06 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001220.html">Failed assertion: &quot;pageind &gt;= map_bias&quot;
+</A></li>
+        <LI>Next message: <A HREF="001222.html">Failed assertion: &quot;pageind &gt;= map_bias&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1221">[ date ]</a>
+              <a href="thread.html#1221">[ thread ]</a>
+              <a href="subject.html#1221">[ subject ]</a>
+              <a href="author.html#1221">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i>
+</I>&gt;<i> You're trying to pass a pointer to free() that is within the chunk
+</I>&gt;<i> header.  Given that the pointer is 0x7fffdc000910, your program is probably
+</I>&gt;<i> doing something very wrong (e.g. corrupting a pointer, or trying to free
+</I>&gt;<i> memory that came from another allocator), because jemalloc will never
+</I>&gt;<i> provide memory to the application with such alignment (i.e. an interior
+</I>&gt;<i> pointer to the first page of a chunk).
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>Thanks, I will keep investigating. But what could be main reason of why the
+default memory allocator malloc(3) is not failing ?, I cannot reproduce the
+problem without jemalloc.
+
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151210/cb13c460/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151210/cb13c460/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001220.html">Failed assertion: &quot;pageind &gt;= map_bias&quot;
+</A></li>
+	<LI>Next message: <A HREF="001222.html">Failed assertion: &quot;pageind &gt;= map_bias&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1221">[ date ]</a>
+              <a href="thread.html#1221">[ thread ]</a>
+              <a href="subject.html#1221">[ subject ]</a>
+              <a href="author.html#1221">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

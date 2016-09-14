@@ -1,0 +1,526 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Need Help in porting Jemalloc.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20Help%20in%20porting%20Jemalloc.&In-Reply-To=%3CCA%2BbEgOEa38JhBe03otXUG4i2qDT-uv-La9pbfViaS6b-xZxVJg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001269.html">
+   <LINK REL="Next"  HREF="001259.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Need Help in porting Jemalloc.</H1>
+    <B>RajaKishore Sahu</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20Help%20in%20porting%20Jemalloc.&In-Reply-To=%3CCA%2BbEgOEa38JhBe03otXUG4i2qDT-uv-La9pbfViaS6b-xZxVJg%40mail.gmail.com%3E"
+       TITLE="Need Help in porting Jemalloc.">raju.sahu at gmail.com
+       </A><BR>
+    <I>Thu Feb  4 01:53:03 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001269.html">Bus Address Crash in ckh unit test
+</A></li>
+        <LI>Next message: <A HREF="001259.html">Need Help in porting Jemalloc.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1258">[ date ]</a>
+              <a href="thread.html#1258">[ thread ]</a>
+              <a href="subject.html#1258">[ subject ]</a>
+              <a href="author.html#1258">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks for your help. My configuration was wrong which was causing the
+problem.
+
+I have attached stats of JEMALLOC_TCACHE on and off.
+
+When it is on we run out of memory of 30 MB. When it is off it works fine.
+
+Please help me in configuring it properly.
+
+Thanks
+Rajakishore
+
+On Wed, Jan 20, 2016 at 1:55 AM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> &gt; On Jan 18, 2016, at 8:35 PM, RajaKishore Sahu &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">raju.sahu at gmail.com</A>&gt;
+</I>&gt;<i> wrote:
+</I>&gt;<i> &gt; I am trying to port Jemalloc to a embedded environment where we have
+</I>&gt;<i> only 40 MB of memory for a subsystem.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; While porting I found that in start up it is consuming almost 38 MB of
+</I>&gt;<i> memory with arena size of 1MB. We spawn around 70 threads in the start up.
+</I>&gt;<i> So we are only 2 MB left for that subsystem. While the system is in run
+</I>&gt;<i> definitely it will ask for more memory, in that case how we are going to
+</I>&gt;<i> satisfy the memory needed by Jemalloc?
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Current allocator consumes around 20 - 22 MB of memory and remaining is
+</I>&gt;<i> used for the system to run.
+</I>&gt;<i>
+</I>&gt;<i> It sounds to me like you have jemalloc configured to create numerous
+</I>&gt;<i> arenas.  You need to drop the chunk size (256 KiB works fine), and/or
+</I>&gt;<i> decrease the number of arenas (one will work fine unless your app does a
+</I>&gt;<i> lot of large allocation).
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>
+
+
+
+-- 
+Thanx
+Rajakishore Sahu
+Mail:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-raju.sahu at gmail.com</A>
+Mobile:-+91 9886719841
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160204/1feb6777/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160204/1feb6777/attachment-0001.html</A>&gt;
+-------------- next part --------------
+Version: 0.0.0-0-g0000000000000000000000000000000000000000
+
+Assertions disabled
+
+Run-time option settings:
+
+  opt.abort: false
+
+  opt.lg_chunk: 21
+
+  opt.dss: &quot;secondary&quot;
+
+  opt.narenas: 1
+
+  opt.lg_dirty_mult: 3 (arenas.lg_dirty_mult: 3)
+
+  opt.stats_print: false
+
+  opt.junk: &quot;false&quot;
+
+  opt.quarantine: 0
+
+  opt.redzone: false
+
+  opt.zero: false
+
+CPUs: 1
+
+Arenas: 1
+
+Pointer size: 4
+
+Quantum size: 8
+
+Page size: 4096
+
+Min active:dirty page ratio per arena: 8:1
+
+Chunk size: 2097152 (2^21)
+
+Allocated: 19773696, active: 20656128, metadata: 506248, resident: 22388736, mapped: 25165824
+
+Current active ceiling: 20971520
+
+
+arenas[0]:
+
+assigned threads: 81
+
+dss allocation precedence: disabled
+
+min active:dirty page ratio: 8:1
+
+dirty pages: 5043:303 active:dirty, 0 sweeps, 0 madvises, 0 purged
+
+                            allocated      nmalloc      ndalloc    nrequests
+
+small:                        7870720        94405        59754        94405
+
+large:                        9805824          270          129          270
+
+huge:                         2097152            1            0            1
+
+total:                       19773696        94676        59883        94676
+
+active:                      20656128
+
+mapped:                      23068672
+
+metadata: mapped: 450560, allocated: 16776
+
+bins:           size ind    allocated      nmalloc      ndalloc    nrequests      curregs      curruns regs pgs  util      newruns       reruns
+
+                   8   0        47592        11266         5317        11266         5949           12  512   1 0.968           17          831
+
+                  16   1        52608        10943         7655        10943         3288           15  256   1 0.856           19          385
+
+                  24   2        63168         9750         7118         9750         2632            6  512   3 0.856            6          244
+
+                  32   3       252896        18270        10367        18270         7903           62  128   1 0.995           63         3711
+
+                  40   4        87680         2999          807         2999         2192            5  512   5 0.856            5          166
+
+                  48   5       160848         5578         2227         5578         3351           14  256   3 0.934           18           89
+
+                  56   6        15288         1618         1345         1618          273            1  512   7 0.533            1            0
+
+                  64   7        55936         5107         4233         5107          874           14   64   1 0.975           24          104
+
+                  80   8       113680         2566         1145         2566         1421            6  256   5 0.925           10          113
+
+                  96   9        27264         1835         1551         1835          284            3  128   3 0.739            3           23
+
+                 112  10        79296         2577         1869         2577          708            3  256   7 0.921            7            7
+
+                 128  11       129920         3255         2240         3255         1015           32   32   1 0.991          114          274
+
+                 160  12       118880         1400          657         1400          743            6  128   5 0.967            6           60
+
+                 192  13       107712         1128          567         1128          561            9   64   3 0.973            9            0
+
+                 224  14        17920          718          638          718           80            1  128   7 0.625            1            0
+
+                 256  15        38912          993          841          993          152           11   16   1 0.863           14          184
+
+                 320  16       226560         1710         1002         1710          708           12   64   5 0.921           19           47
+
+                 384  17       116352          738          435          738          303           10   32   3 0.946           11           22
+
+                 448  18       144256          579          257          579          322            6   64   7 0.838           11           15
+
+                 512  19         6656          440          427          440           13            2    8   1 0.812           21           12
+
+                 640  20        32640          461          410          461           51            2   32   5 0.796            3            2
+
+                 768  21       420096          879          332          879          547           35   16   3 0.976           36            5
+
+                 896  22       144256         1275         1114         1275          161            6   32   7 0.838          154           25
+
+                1024  23        81920         1638         1558         1638           80           22    4   1 0.909           36           35
+
+                1280  24       240640         2585         2397         2585          188           12   16   5 0.979           64           24
+
+                1536  25       208896         2976         2840         2976          136           17    8   3 1             2835            0
+
+                1792  26        10752           13            7           13            6            1   16   7 0.375            1            0
+
+                2048  27        24576          271          259          271           12            6    2   1 1              252            2
+
+                2560  28        20480           36           28           36            8            1    8   5 1               25            0
+
+                3072  29       187392           94           33           94           61           16    4   3 0.953           25            0
+
+                3584  30        35840           19            9           19           10            2    8   7 0.625            3            1
+
+                4096  31        12288           29           26           29            3            3    1   1 1               29            0
+
+                5120  32       409600           80            0           80           80           20    4   5 1               20            0
+
+                6144  33       712704          118            2          118          116           58    2   3 1               58            0
+
+                7168  34        43008            6            0            6            6            2    4   7 0.750            2            0
+
+                8192  35      3309568          420           16          420          404          404    1   2 1              420            0
+
+               10240  36        61440           22           16           22            6            3    2   5 1               18            0
+
+               12288  37        36864           11            8           11            3            3    1   3 1               11            0
+
+               14336  38        14336            2            1            2            1            1    2   7 0.500            2            0
+
+large:          size ind    allocated      nmalloc      ndalloc    nrequests      curruns
+
+               16384  39        49152           46           43           46            3
+
+               20480  40       593920           35            6           35           29
+
+               24576  41        98304           47           43           47            4
+
+               28672  42        86016            3            0            3            3
+
+               32768  43       327680           10            0           10           10
+
+               40960  44      2867200           76            6           76           70
+
+               49152  45        49152            1            0            1            1
+
+                     ---
+
+               65536  47       196608            5            2            5            3
+
+               81920  48       409600           14            9           14            5
+
+                     ---
+
+              114688  50       114688            1            0            1            1
+
+              131072  51       131072            3            2            3            1
+
+              163840  52       327680            2            0            2            2
+
+                     ---
+
+              229376  54       229376            1            0            1            1
+
+              262144  55      1048576           21           17           21            4
+
+                     ---
+
+              458752  58       917504            3            1            3            2
+
+              524288  59       524288            1            0            1            1
+
+                     ---
+
+             1835008  66      1835008            1            0            1            1
+
+huge:           size ind    allocated      nmalloc      ndalloc    nrequests   curhchunks
+
+             2097152  67      2097152            1            0            1            1
+
+                     ---
+
+--- End jemalloc statistics ---
+
+-------------- next part --------------
+___ Begin jemalloc statistics ___
+
+Version: 0.0.0-0-g0000000000000000000000000000000000000000
+
+Assertions disabled
+
+Run-time option settings:
+
+  opt.abort: false
+
+  opt.lg_chunk: 21
+
+  opt.dss: &quot;secondary&quot;
+
+  opt.narenas: 1
+
+  opt.lg_dirty_mult: 3 (arenas.lg_dirty_mult: 3)
+
+  opt.stats_print: false
+
+  opt.junk: &quot;false&quot;
+
+  opt.quarantine: 0
+
+  opt.redzone: false
+
+  opt.zero: false
+
+  opt.tcache: true
+
+  opt.lg_tcache_max: 15
+
+CPUs: 1
+
+Arenas: 1
+
+Pointer size: 4
+
+Quantum size: 8
+
+Page size: 4096
+
+Min active:dirty page ratio per arena: 8:1
+
+Maximum thread-cached size class: 32768
+
+Chunk size: 2097152 (2^21)
+
+Allocated: 27334760, active: 28475392, metadata: 1771208, resident: 29110272, mapped: 31457280
+
+Current active ceiling: 29360128
+
+
+arenas[0]:
+
+assigned threads: 69
+
+dss allocation precedence: disabled
+
+min active:dirty page ratio: 8:1
+
+dirty pages: 6952:2 active:dirty, 0 sweeps, 0 madvises, 0 purged
+
+                            allocated      nmalloc      ndalloc    nrequests
+
+small:                       14501992        87939         1742        35549
+
+large:                       10735616          220            9          220
+
+huge:                         2097152            1            0            1
+
+total:                       27334760        88160         1751        35770
+
+active:                      28475392
+
+mapped:                      29360128
+
+metadata: mapped: 585728, allocated: 1146376
+
+bins:           size ind    allocated      nmalloc      ndalloc    nrequests      curregs      curruns regs pgs  util       nfills     nflushes      newruns       reruns
+
+                   8   0        84808        10701          100         6148        10601           21  512   1 0.985          107            1           21            2
+
+                  16   1       130048         8200           72         2722         8128           32  256   1 0.992           82            1           33            1
+
+                  24   2       182400         7750          150         2425         7600           15  512   3 0.989           78            2           15            0
+
+                  32   3       393600        12300            0         7839        12300           97  128   1 0.990          123            0           97            0
+
+                  40   4       184000         4600            0         1548         4600            9  512   5 0.998           46            0            9            0
+
+                  48   5       412032         8600           16         2266         8584           34  256   3 0.986           86            0           34           17
+
+                  56   6       107520         2050          130          784         1920            4  512   7 0.937           22            3            4            5
+
+                  64   7       149312         2547          214         1496         2333           37   64   1 0.985           39            4           41            2
+
+                  80   8       492400         6200           45         1360         6155           25  256   5 0.961           63            2           25            2
+
+                  96   9       273984         3000          146          310         2854           23  128   3 0.969           30            3           24            5
+
+                 112  10       272272         2500           69          350         2431           10  256   7 0.949           25            2           10            2
+
+                 128  11       282624         2400          192         1026         2208           69   32   1 1               75            6           74            7
+
+                 160  12       996480         6300           72          793         6228           49  128   5 0.992           63            2           49            4
+
+                 192  13       141120          800           65          853          735           12   64   3 0.957           13            2           12            2
+
+                 224  14       598304         2800          129          289         2671           21  128   7 0.993           28            2           22 
+                 256  15        65024          264           10          364          254           16   16   1 0.992           17            2           17            2
+
+                 320  16       564480         1856           92         1072         1764           28   64   5 0.984           29            2           28            2
+
+                 384  17       306816          816           17          585          799           25   32   3 0.998           27            2           25            8
+
+                 448  18       337792          832           78          520          754           12   64   7 0.981           13            3           13            4
+
+                 512  19        18944           45            8          217           37            5    8   1 0.925            5            2            6            0
+
+                 640  20       147840          240            9          329          231            8   32   5 0.902            8            1            8            0
+
+                 768  21       539904          752           49          804          703           45   16   3 0.976           47            1           45            8
+
+                 896  22       460544          514            0          143          514           17   32   7 0.944           16            0           17            0
+
+                1024  23       116736          120            6          190          114           29    4   1 0.982           12            1           31            0
+
+                1280  24       593920          466            2          147          464           29   16   5 1               31            2           29            1
+
+                1536  25       305664          205            6          125          199           25    8   3 0.995           21            1           26            0
+
+                1792  26       127232           80            9            4           71            5   16   7 0.887            5            1            5            0
+
+                2048  27        45056           30            8          250           22           11    2   1 1                3            2           15            0
+
+                2560  28       125440           60           11            7           49            7    8   5 0.875            6            2            8            1
+
+                3072  29       267264           90            3           56           87           22    4   3 0.988            9            1           22            3
+
+                3584  30       121856           40            6            2           34            5    8   7 0.850            4            1            5            1
+
+                4096  31        81920           20            0            0           20           20    1   1 1                2            0           20            0
+
+ 
+                6144  33       743424          121            0           71          121           61    2   3 0.991           12            0           61            0
+
+                7168  34       164864           30            7            1           23            7    4   7 0.821            3            1            8            2
+
+                8192  35      3391488          420            6          382          414          414    1   2 1               42            1          420            0
+
+               10240  36       143360           20            6            3           14            7    2   5 1                2            1           10            0
+
+               12288  37       368640           30            0            0           30           30    1   3 1                3            0           30            0
+
+               14336  38       143360           10            0            0           10            5    2   7 1                1            0            5            0
+
+large:          size ind    allocated      nmalloc      ndalloc    nrequests      curruns
+
+               16384  39      1261568           77            0           77           77
+
+               20480  40       573440           28            0           28           28
+
+               24576  41       122880            5            0            5            5
+
+               28672  42        86016            3            0            3            3
+
+               32768  43       327680           10            0           10           10
+
+               40960  44      2826240           69            0           69           69
+
+               49152  45        49152            1            0            1            1
+
+                     ---
+
+               65536  47       196608            5            2            5            3
+
+               81920  48       163840            3            1            3            2
+
+                     ---
+
+              114688  50       114688            1            0            1            1
+
+              131072  51       131072            3            2            3            1
+
+              163840  52       327680            2          
+                     ---
+
+              229376  54       229376            1            0            1            1
+
+              262144  55      1048576            7            3            7            4
+
+                     ---
+
+              458752  58       917504            3            1            3            2
+
+              524288  59       524288            1            0            1            1
+
+                     ---
+
+             1835008  66      1835008            1            0            1            1
+
+huge:           size ind    allocated      nmalloc      ndalloc    nrequests   curhchunks
+
+             2097152  67      2097152            1            0            1            1
+
+                     ---
+
+--- End jemalloc statistics ---
+
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001269.html">Bus Address Crash in ckh unit test
+</A></li>
+	<LI>Next message: <A HREF="001259.html">Need Help in porting Jemalloc.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1258">[ date ]</a>
+              <a href="thread.html#1258">[ thread ]</a>
+              <a href="subject.html#1258">[ subject ]</a>
+              <a href="author.html#1258">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

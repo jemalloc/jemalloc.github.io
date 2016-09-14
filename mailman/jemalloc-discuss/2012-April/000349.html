@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Remove variable length arrays and declarations within	code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Remove%20variable%20length%20arrays%20and%20declarations%20within%0A%09code&In-Reply-To=%3C53BEBC59-1F8B-40B9-9291-2F7C18428844%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000341.html">
+   <LINK REL="Next"  HREF="000351.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Remove variable length arrays and declarations within	code</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Remove%20variable%20length%20arrays%20and%20declarations%20within%0A%09code&In-Reply-To=%3C53BEBC59-1F8B-40B9-9291-2F7C18428844%40canonware.com%3E"
+       TITLE="[PATCH 7/7] Remove variable length arrays and declarations within	code">jasone at canonware.com
+       </A><BR>
+    <I>Sun Apr 22 01:08:19 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000341.html">[PATCH 7/7] Remove variable length arrays and declarations within code
+</A></li>
+        <LI>Next message: <A HREF="000351.html">[PATCH 7/7] Remove variable length arrays and declarations	within code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#349">[ date ]</a>
+              <a href="thread.html#349">[ thread ]</a>
+              <a href="subject.html#349">[ subject ]</a>
+              <a href="author.html#349">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 19, 2012, at 11:38 PM, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> MSVC doesn't support C99, and building as C++ to be able to use them is
+</I>&gt;<i> dangerous, as C++ and C99 are incompatible.
+</I>&gt;<i> ---
+</I>&gt;<i> include/jemalloc/internal/prof.h |    3 ++-
+</I>&gt;<i> src/arena.c                      |   17 ++++++++++-------
+</I>&gt;<i> src/chunk_mmap.c                 |    5 +++--
+</I>&gt;<i> src/ctl.c                        |    6 ++++--
+</I>&gt;<i> src/stats.c                      |   12 ++++++++----
+</I>&gt;<i> src/tsd.c                        |    2 +-
+</I>&gt;<i> test/bitmap.c                    |   12 ++++++++----
+</I>&gt;<i> 7 files changed, 36 insertions(+), 21 deletions(-)
+</I>
+This diff adds calls to malloc/free from within the allocator, which perturbs heap profiling.  imalloc/idalloc are probably what you want instead.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000341.html">[PATCH 7/7] Remove variable length arrays and declarations within code
+</A></li>
+	<LI>Next message: <A HREF="000351.html">[PATCH 7/7] Remove variable length arrays and declarations	within code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#349">[ date ]</a>
+              <a href="thread.html#349">[ thread ]</a>
+              <a href="subject.html#349">[ subject ]</a>
+              <a href="author.html#349">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

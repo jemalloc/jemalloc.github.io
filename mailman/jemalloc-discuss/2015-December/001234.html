@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Configuration Script for Windows
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Configuration%20Script%20for%20Windows&In-Reply-To=%3CCALcfDgAi6EAaFGk4Zt3_VkGZz%3DZPjRd-OsTGB2%3DHQB0E7KbikQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001233.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Configuration Script for Windows</H1>
+    <B>Jos Vernon</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Configuration%20Script%20for%20Windows&In-Reply-To=%3CCALcfDgAi6EAaFGk4Zt3_VkGZz%3DZPjRd-OsTGB2%3DHQB0E7KbikQ%40mail.gmail.com%3E"
+       TITLE="Configuration Script for Windows">jv at websupergoo.com
+       </A><BR>
+    <I>Thu Dec 24 02:31:57 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001233.html">Configuration Script for Windows
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1234">[ date ]</a>
+              <a href="thread.html#1234">[ thread ]</a>
+              <a href="subject.html#1234">[ subject ]</a>
+              <a href="author.html#1234">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi
+
+Well the MinGW environment sounds interesting. Might try that. Thanks. :-)
+
+My suspicions about the issues I am seeing are that they are related to
+order of initialization of statics and tls. The MS runtime gets special
+treatment so calling into new from a static initialization or a tls
+initialization works just fine.
+
+However jemalloc doesn't get this type of special treatment so I can see
+that the order of initialization might be a bit random and that jemalloc
+might only be partially set up at the point it is called. This would fit
+with what I've reproduced so far which is related to odd behavior when
+calling at the point of thread initialization.
+
+More general allocation is fine. I exhaustively tested on our test suite
+and there were no leaks at all. But that has a fairly fixed number of
+threads which is why I didn't pick up the issues I describe above. It is
+terribly impressive as well - produced a speed improvement of about 10%.
+Though perhaps that says more about the MS runtime than it does about
+jemalloc. :-)
+
+I have always thought that the Windows DLL loading was terribly flaky.
+Forget the fact that half of what you want to call has not yet been
+initialized. The fact that you don't necessarily get all the thread load or
+unload events is just mad. But that is MS all over - scared to fix things
+for fear they might break them.
+
+Jos
+
+
+On Wed, Dec 23, 2015 at 5:05 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Nov 19, 2015, at 2:08 AM, Jos Vernon &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jv at websupergoo.com</A>&gt; wrote:
+</I>&gt;<i> &gt; I've been using the GitHub shines77/jemalloc-win32 for a while -  that
+</I>&gt;<i> uses jemalloc 3.6.0.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; However recently I've hit problems relating to leaks in highly threaded
+</I>&gt;<i> environments. I know these are jemalloc related because if I swap out
+</I>&gt;<i> jemalloc for a different memory manager then they go away.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; So it would seem to me that the first thing to do is to upgrade to 4.0.4
+</I>&gt;<i> to see if the issue is resolved. However I am having some problem getting
+</I>&gt;<i> this to work under MSVC.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I can see that this is supposed to work because I can see MSVC bits in
+</I>&gt;<i> the config code. However there are lots of questions about this and a
+</I>&gt;<i> notable dearth of people who have been successful in this area. That
+</I>&gt;<i> includes me after my first day. :-(
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; The MSVC bit is easy. It's getting the config to generate the right bits
+</I>&gt;<i> that is difficult.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I'm using cygwin. I've put the Visual Studio 2012 environment variables
+</I>&gt;<i> into my shell so I can use MSVC CL and then I've done an ./autogen.sl
+</I>&gt;<i> CC=CL.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; This seems to work more or less ok. The results look feasible,.But then
+</I>&gt;<i> I'm missing important bits like sensible values in size_classes.h.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I would love any pointers here. I'm pretty hot on VC++ so once I get the
+</I>&gt;<i> config going it will be fine. I am sure that will also be useful for other
+</I>&gt;<i> people who want to do similar things.
+</I>&gt;<i>
+</I>&gt;<i> Personally, the only thing I use Windows for is to fire up a 64-bit MinGW
+</I>&gt;<i> environment and build/test jemalloc.  I spent several days leading up to
+</I>&gt;<i> the 4.0.0 release making the test suite run and pass, but my lack of
+</I>&gt;<i> familiarity with modern Windows makes pretty much every experience with it
+</I>&gt;<i> intensely frustrating, and I keep hoping that others more familiar with
+</I>&gt;<i> Windows will round off the rough edges and document build procedures.  I've
+</I>&gt;<i> heard of people working around configuration issues to successfully build
+</I>&gt;<i> using Cygwin, and I'm pretty sure Mozilla uses MSVC with jemalloc.
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>
+
+
+
+-- 
+
+----------------------------------------------------------------------
+jos vernon
+<A HREF="http://www.websupergoo.com/">http://www.websupergoo.com/</A>
+.NET Image Components &amp; Consultancy
+----------------------------------------------------------------------
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151224/84b99817/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151224/84b99817/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001233.html">Configuration Script for Windows
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1234">[ date ]</a>
+              <a href="thread.html#1234">[ thread ]</a>
+              <a href="subject.html#1234">[ subject ]</a>
+              <a href="author.html#1234">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

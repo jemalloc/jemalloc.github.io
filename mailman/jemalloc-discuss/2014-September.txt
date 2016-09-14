@@ -1,0 +1,911 @@
+From daver at couchbase.com  Thu Sep  4 09:14:35 2014
+From: daver at couchbase.com (David Rigby)
+Date: Thu, 4 Sep 2014 16:14:35 +0000
+Subject: [OS X] Configuring jemalloc via je_malloc_conf
+Message-ID: <60660DE5-4DC0-4A09-9312-1B36A25F8665@couchbase.com>
+
+Hi,
+
+I?m having some problems using je_malloc_conf to configure jemalloc?s runtime behaviour, but *only on OSX* - Linux is fine. The behaviour I see is that any je_malloc_conf setting on OS X Mavericks (clang-503.0.40) is ignored, but works perfectly when compiling on Ubuntu 14.04, x86_64, gcc 4.8.2)
+
+I?m defining je_malloc_conf as:
+
+    const char* je_malloc_conf = "narenas:1";
+
+Full reproducer is at: https://github.com/daverigby/jemalloc_conf/blob/master/app.c
+
+>From what I can tell, it appears that under linux the je_malloc_conf symbols in libjemalloc and my app are correctly merged by the dynamic linker, but under OS X I there are duplicate symbols, and malloc_conf_init() sees the (NULL) definition in the library:
+
+(lldb) bt 3
+* thread #1: tid = 0x7c0445, 0x0000000100011725 libjemalloc.2.dylib`jemalloc_constructor [inlined] malloc_conf_init + 147 at jemalloc.c:477, queue = 'com.apple.main-thread, stop reason = breakpoint 2.10
+  * frame #0: 0x0000000100011725 libjemalloc.2.dylib` jemalloc_constructor [inlined] malloc_conf_init  + 147 at jemalloc.c:477
+    frame #1: 0x0000000100011692 libjemalloc.2.dylib` jemalloc_constructor [inlined] malloc_init_hard  + 34 at jemalloc.c:761
+    frame #2: 0x0000000100011670 libjemalloc.2.dylib` jemalloc_constructor [inlined] malloc_init  + 228 at jemalloc.c:357
+(lldb) p je_malloc_conf
+(const char *) $0 = 0x0000000000000000
+(lldb) image lookup --symbol je_malloc_conf
+1 symbols match 'je_malloc_conf' in ./app:
+        Address: app[0x0000000100001028] (app.__DATA.__data + 0)
+        Summary:
+1 symbols match 'je_malloc_conf' in /Users/dave/lib/libjemalloc.2.dylib:
+        Address: libjemalloc.2.dylib[0x0000000000033c00] (libjemalloc.2.dylib.__DATA.__common + 112)
+        Summary: libjemalloc.2.dylib`je_malloc_conf
+
+Can anyone suggest what I?m doing wrong, and what?s necessary to be able to set je_malloc_conf in my (OS X) application?
+
+
+Thanks,
+
+Dave Rigby
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140904/7d7acc4c/attachment.html>
+
+From jasone at canonware.com  Thu Sep  4 22:50:15 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 4 Sep 2014 22:50:15 -0700
+Subject: [OS X] Configuring jemalloc via je_malloc_conf
+In-Reply-To: <60660DE5-4DC0-4A09-9312-1B36A25F8665@couchbase.com>
+References: <60660DE5-4DC0-4A09-9312-1B36A25F8665@couchbase.com>
+Message-ID: <A305B83B-40EF-4658-BD41-8E240D388F1B@canonware.com>
+
+On Sep 4, 2014, at 9:14 AM, David Rigby <daver at couchbase.com> wrote:
+> I?m having some problems using je_malloc_conf to configure jemalloc?s runtime behaviour, but *only on OSX* - Linux is fine. The behaviour I see is that any je_malloc_conf setting on OS X Mavericks (clang-503.0.40) is ignored, but works perfectly when compiling on Ubuntu 14.04, x86_64, gcc 4.8.2)
+> 
+> I?m defining je_malloc_conf as:
+> 
+>     const char* je_malloc_conf = "narenas:1";
+> 
+> [...]
+
+
+It turns out that this doesn't work on FreeBSD anymore either, and I'm certain that it used to.  My guess is that something changed with regard to duplicate symbol resolution that requires jemalloc to declare its malloc_conf definition as a weak symbol, but I haven't had a chance to investigate yet.  Here's the issue I just created:
+
+	https://github.com/jemalloc/jemalloc/issues/113
+
+If you learn more, or come up with a fix, please let me know.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140904/eed1a3e7/attachment.html>
+
+From jasone at canonware.com  Fri Sep  5 14:40:08 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 5 Sep 2014 14:40:08 -0700
+Subject: Rounding up huge allocations to page boundaries instead of chunks
+In-Reply-To: <1192065065.15225023.1408657927262.JavaMail.zimbra@mozilla.com>
+References: <1192065065.15225023.1408657927262.JavaMail.zimbra@mozilla.com>
+Message-ID: <9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06@canonware.com>
+
+On Aug 21, 2014, at 2:52 PM, Guilherme Goncalves <ggp at mozilla.com> wrote:
+> As part of our effort to move to jemalloc3 on Firefox, it would be interesting to upstream the
+> changes introduced into mozjemalloc in bug 683597 [1]. Basically, we've observed that, at least
+> on Linux and OSX, the operating system will commit pages lazily when they're written to (as opposed
+> to when they're mapped by jemalloc). This distorts the allocation stats for huge allocations, as
+> they are rounded up to chunk boundaries.
+> 
+> For a concrete example, a huge allocation of size 1 chunk + 1 byte will cause jemalloc to map 2
+> chunks, but the application will only ever physically use 1 chunk + 1 page. I haven't found any
+> stats on jemalloc3 that reflect this smaller memory footprint; as far as I can see, all of the
+> available stats.* metrics report multiples of the chunk size. There was some previous discussion
+> about this on this list a few years ago, but it didn't seem to move forward at the time [2].
+> 
+> Would you be interested in upstreaming such change? I took a shot at adapting the old patch on that
+> bug to the current jemalloc3 repository [3], and it doesn't look like this would introduce too much
+> bookkeeping. I did seem to break some assumptions in other API functions (see the FIXME note on
+> huge_salloc), so it may be easier to just introduce a new statistic instead of tweaking the existing
+> size field in chunks. Thoughts?
+> 
+> 1- https://bugzilla.mozilla.org/show_bug.cgi?id=683597
+> 2- http://www.canonware.com/pipermail/jemalloc-discuss/2012-April/000221.html
+> 3- https://github.com/guilherme-pg/jemalloc/commit/9ca3ca5f92053f3e605f7b470ade6e53e8fa5160
+
+The main reason for the current approach for huge allocation size classes is that even if jemalloc avoids allocating virtual memory for the trailing unneeded space, every chunk must start at a chunk alignment boundary, so the resulting virtual memory holes are unusable by jemalloc.  In principle these holes could be useful to some auxiliary allocator in applications that use mmap() directly, but that's not a common use case.  Furthermore, these virtual memory holes cause map fragmentation in the kernel-level virtual memory data structures, and such holes are especially harmful on Linux, which uses linear map scan algorithms in some critical paths.  We have strong pressure to actually map full chunks, so historically I held the opinion that if we're mapping the virtual memory, we might as well make it available to the application.
+
+That said, I laid some groundwork for unifying size classes (https://github.com/jemalloc/jemalloc/issues/77) this spring:
+
+	https://github.com/jemalloc/jemalloc/commit/d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0
+
+The practical impact to your use case is that we'd go from having
+
+	[4MiB, 8MiB, ..., (4n)MiB]
+to
+	[4MiB, 5MiB, 6MiB, 7MiB],
+	[8MiB, 10MiB, 12MiB, 14MiB],
+	[...],
+	[(4m)MiB, (4m+1)MiB, (4m+2)MiB, (4m+3)MiB]
+
+The implementation for the 4MiB..14MiB size classes will in effect need to manipulate the chunk metadata in the same way as your patch does.
+
+Will this sufficiently address your accounting concerns?  There's the potential to over-report active memory by nearly 1.2X in the worst case, but that's a lot better than nearly 2X as things currently are.
+
+Thanks,
+Jason
+
+From ggp at mozilla.com  Tue Sep  9 06:51:09 2014
+From: ggp at mozilla.com (Guilherme Goncalves)
+Date: Tue, 9 Sep 2014 06:51:09 -0700 (PDT)
+Subject: Rounding up huge allocations to page boundaries instead of chunks
+In-Reply-To: <9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06@canonware.com>
+References: <1192065065.15225023.1408657927262.JavaMail.zimbra@mozilla.com>
+	<9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06@canonware.com>
+Message-ID: <950785576.18683375.1410270669014.JavaMail.zimbra@mozilla.com>
+
+----- Original Message -----
+| From: "Jason Evans" <jasone at canonware.com>
+| To: "Guilherme Goncalves" <ggp at mozilla.com>
+| Cc: jemalloc-discuss at canonware.com
+| Sent: Friday, September 5, 2014 6:40:08 PM
+| Subject: Re: Rounding up huge allocations to page boundaries instead of chunks
+| 
+| We have strong pressure to actually map full chunks, so historically I held the
+| opinion that if we're mapping the virtual memory, we might as well make it
+| available to the application.
+
+Fair enough, thanks for the explanation.
+
+| Will this sufficiently address your accounting concerns?  There's the
+| potential to over-report active memory by nearly 1.2X in the worst case, but
+| that's a lot better than nearly 2X as things currently are.
+
+While that's definitely better than 2X over-reporting, I wonder if we can't just expose the
+sum of all huge allocations rounded to a page boundary as a new statistic, without actually
+changing the way the mapping is done. That could give us the more accurate accounting we want
+without causing fragmentation in the address space.
+
+In more concrete terms, this would add a "stats.arenas.<i>.huge.allocated_pages" statistic,
+reporting the total size of huge allocations serviced by the i-th arena, but rounded to pages
+and not chunks (while still mapping memory in chunks as usual).
+
+If I'm not missing anything, a patch to implement this would look similar yet a lot less
+intrusive than my first attempt [1]. Does this sound reasonable?
+
+Thanks!
+
+1- https://github.com/guilherme-pg/jemalloc/commit/081feaed8b51deeb80c6d641745d8d0aefd6d883
+-- 
+Guilherme
+
+From bradley at mit.edu  Tue Sep  9 08:04:53 2014
+From: bradley at mit.edu (Bradley C. Kuszmaul)
+Date: Tue, 9 Sep 2014 11:04:53 -0400
+Subject: a verb for doing what madvise(...JEMALLOC_PURGE_MADVISE) does
+Message-ID: <CAKSyJXerwwVjT4BShm4atKRddahuFBZuEri4N5F01mgZBRh_8w@mail.gmail.com>
+
+When writing about malloc, I often need a verb to describe what
+madvise(...,MADV_DONTNEED) does on linux (and what MADV_FREE does on BSD).
+
+Is "purge" the right verb?  Is "purge" used for other things in the
+mallocation world?
+
+Any help to make my writing clearer would be appreciated!
+
+-Bradley
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140909/5a9a8ca9/attachment.html>
+
+From jasone at canonware.com  Tue Sep  9 11:25:08 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 9 Sep 2014 11:25:08 -0700
+Subject: a verb for doing what madvise(...JEMALLOC_PURGE_MADVISE) does
+In-Reply-To: <CAKSyJXerwwVjT4BShm4atKRddahuFBZuEri4N5F01mgZBRh_8w@mail.gmail.com>
+References: <CAKSyJXerwwVjT4BShm4atKRddahuFBZuEri4N5F01mgZBRh_8w@mail.gmail.com>
+Message-ID: <97379286-E92E-4C37-A4A6-6CDAE3E01A0D@canonware.com>
+
+On Sep 9, 2014, at 8:04 AM, Bradley C. Kuszmaul <bradley at mit.edu> wrote:
+> When writing about malloc, I often need a verb to describe what madvise(...,MADV_DONTNEED) does on linux (and what MADV_FREE does on BSD).
+> 
+> Is "purge" the right verb?  Is "purge" used for other things in the mallocation world?
+> 
+> Any help to make my writing clearer would be appreciated!
+
+When trying to be precise, I refer to it as "unused dirty page purging", "purge unused dirty pages", etc..  For short I use "purging", "purge", etc..  jemalloc doesn't use the term, "purge" for anything else, so it's unambiguous.
+
+Thanks,
+Jason
+
+
+From d.rigby at me.com  Fri Sep 12 03:44:04 2014
+From: d.rigby at me.com (David Rigby)
+Date: Fri, 12 Sep 2014 11:44:04 +0100
+Subject: analysing jemalloc's stats (jemalloc tuning help redux)
+Message-ID: <BADFC9D4-D51F-425B-B93A-22EAC04D89E4@me.com>
+
+Hi,
+
+Insipired by Jason?s post [1] explaining how to interpret jemalloc?s size class stats and the resulting table, I threw together a quick script to essentially output the same information from an arbitrary malloc_stats_print output. 
+
+I figured this might be useful to others, so it?s at https://github.com/daverigby/scripts/blob/master/jemalloc_analyse.py 
+
+Example output (*very* similar to Jason?s):
+
+?cut?
+=== Stats for Arena 'merged' ===
+small allocation stats:
+  bin   size (B)  regions      pages    allocated (B)  cur runs       % of small               % of blame
+                  per run      per run                         utilization    frag memory (B)                         
+
+  0     8         501          1        5032           3       42%    0%      6992             0%      
+  1     16        252          1        24480          8       76%    0%      7776             0%      
+  2     32        126          1        1428352        360     98%    9%      23168            1%      
+  3     48        84           1        73152          37      49%    0%      76032            2%      
+  4     64        63           1        892096         235     94%    6%      55424            2%      
+  5     80        50           1        198560         54      92%    1%      17440            1%      
+  6     96        84           2        274464         35      97%    2%      7776             0%      
+  7     112       72           2        40320          7       71%    0%      16128            0%      
+  8     128       63           2        157568         24      81%    1%      35968            1%      
+  9     160       51           2        633760         79      98%    4%      10880            0%      
+  10    192       63           3        136704         15      75%    1%      44736            1%      
+  11    224       72           4        80416          9       55%    1%      64736            2%      
+  12    256       63           4        153344         12      79%    1%      40192            1%      
+  13    320       63           5        878720         47      93%    6%      68800            2%      
+  14    384       63           6        133248         9       61%    1%      84480            2%      
+  15    448       63           7        1523648        57      95%    10%     85120            2%      
+  16    512       63           8        963072         38      79%    6%      262656           8%      
+  17    640       51           8        188800         9       64%    1%      104960           3%      
+  18    768       47           9        420864         13      90%    3%      48384            1%      
+  19    896       45           10       1169280        32      91%    7%      120960           3%      
+  20    1024      63           16       355328         9       61%    2%      225280           6%      
+  21    1280      51           16       1602560        27      91%    10%     160000           5%      
+  22    1536      42           16       456192         8       88%    3%      59904            2%      
+  23    1792      38           17       225792         7       47%    1%      250880           7%      
+  24    2048      65           33       1103872        11      75%    7%      360448           10%     
+  25    2560      52           33       737280         10      55%    5%      593920           17%     
+  26    3072      43           33       866304         8       82%    5%      190464           5%      
+  27    3584      39           35       1075200        11      70%    7%      462336           13%     
+
+  total                                 15.1 MB                               3.3 MB                   
+
+    utilization = allocated / (size * regions_per_run * cur runs)
+    % of small  = allocated / total allocated
+    frag memory = (size * regions_per_run * cur runs) - allocated
+    % of blame  = frag memory / total frag memory
+?cut?
+
+Thanks,
+
+Dave
+
+
+[1]: http://www.canonware.com/pipermail/jemalloc-discuss/2013-November/000675.html
+
+From mhall at mhcomputing.net  Mon Sep 22 22:37:44 2014
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Mon, 22 Sep 2014 22:37:44 -0700
+Subject: jemalloc documentation build glitch in version 913e9a8
+Message-ID: <20140923053744.GA29679@mhcomputing.net>
+
+Hello,
+
+I'm getting some odd behavior when compiling the latest jemalloc on Ubuntu 
+14.04.1 LTs.
+
+commit 913e9a8a853a693c5b5d6c13ab86f1b46a3404f7
+Date:   Fri Sep 19 22:01:23 2014 +0100
+
+Using the following build commands:
+
+autoconf
+./configure \
+--enable-autogen \
+--prefix=/usr/local/jemalloc \
+--with-jemalloc-prefix=je_ \
+--enable-stats \
+--enable-prof \
+--enable-prof-libunwind \
+--with-static-libunwind=/usr/lib/x86_64-linux-gnu/libunwind-x86_64.a \
+--enable-fill \
+--enable-valgrind \
+--enable-dss \
+--enable-xmalloc \
+--disable-lazy-lock
+
+make
+sudo make install
+
+The "make install" fails due to missing files unless I manually invoke 
+the following doc make targets:
+
+make build_doc_html
+make build_doc_man
+
+It appears something's going wrong in one of these places:
+
+1) developer raw source build directions should include this
+2) default make target is missing subtargets
+3) should have used another target which wasn't present in the docs
+4) there's some other doc I should have read besides INSTALL.
+
+Can someone help me confirm what's going on?
+
+Thanks,
+Matthew.
+
+From jasone at canonware.com  Tue Sep 23 09:24:37 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 23 Sep 2014 09:24:37 -0700
+Subject: jemalloc documentation build glitch in version 913e9a8
+In-Reply-To: <20140923053744.GA29679@mhcomputing.net>
+References: <20140923053744.GA29679@mhcomputing.net>
+Message-ID: <35EB4EB0-44A5-41A1-B298-ED6CDCB08195@canonware.com>
+
+On Sep 22, 2014, at 10:37 PM, Matthew Hall <mhall at mhcomputing.net> wrote:
+> I'm getting some odd behavior when compiling the latest jemalloc on Ubuntu 
+> 14.04.1 LTs.
+> 
+> commit 913e9a8a853a693c5b5d6c13ab86f1b46a3404f7
+> Date:   Fri Sep 19 22:01:23 2014 +0100
+> 
+> Using the following build commands:
+> 
+> autoconf
+> ./configure \
+> --enable-autogen \
+> --prefix=/usr/local/jemalloc \
+> --with-jemalloc-prefix=je_ \
+> --enable-stats \
+> --enable-prof \
+> --enable-prof-libunwind \
+> --with-static-libunwind=/usr/lib/x86_64-linux-gnu/libunwind-x86_64.a \
+> --enable-fill \
+> --enable-valgrind \
+> --enable-dss \
+> --enable-xmalloc \
+> --disable-lazy-lock
+> 
+> make
+> sudo make install
+> 
+> The "make install" fails due to missing files unless I manually invoke 
+> the following doc make targets:
+> 
+> make build_doc_html
+> make build_doc_man
+> 
+> It appears something's going wrong in one of these places:
+> 
+> 1) developer raw source build directions should include this
+> 2) default make target is missing subtargets
+> 3) should have used another target which wasn't present in the docs
+> 4) there's some other doc I should have read besides INSTALL.
+> 
+> Can someone help me confirm what's going on?
+
+(1) and (3). The build system is set up so that official releases have pre-build docs.  You can use 'make dist' prior to installing to achieve the intended effect when building from non-tarball sources.  I just added some documentation that will hopefully help:
+
+	https://github.com/jemalloc/jemalloc/commit/eb5376ab9e61d96daa0d1f03b4474baf5232478f
+
+Thanks,
+Jason
+
+From mhall at mhcomputing.net  Tue Sep 23 10:00:18 2014
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Tue, 23 Sep 2014 10:00:18 -0700
+Subject: jemalloc documentation build glitch in version 913e9a8
+In-Reply-To: <35EB4EB0-44A5-41A1-B298-ED6CDCB08195@canonware.com>
+References: <20140923053744.GA29679@mhcomputing.net>
+	<35EB4EB0-44A5-41A1-B298-ED6CDCB08195@canonware.com>
+Message-ID: <a2f2e431-edcb-43b9-9130-ccfaad784690@email.android.com>
+
+Awesome, thanks!
+-- 
+Sent from my mobile device.
+
+On September 23, 2014 9:24:37 AM PDT, Jason Evans <jasone at canonware.com> wrote:
+>On Sep 22, 2014, at 10:37 PM, Matthew Hall <mhall at mhcomputing.net>
+>wrote:
+>> I'm getting some odd behavior when compiling the latest jemalloc on
+>Ubuntu 
+>> 14.04.1 LTs.
+>> 
+>> commit 913e9a8a853a693c5b5d6c13ab86f1b46a3404f7
+>> Date:   Fri Sep 19 22:01:23 2014 +0100
+>> 
+>> Using the following build commands:
+>> 
+>> autoconf
+>> ./configure \
+>> --enable-autogen \
+>> --prefix=/usr/local/jemalloc \
+>> --with-jemalloc-prefix=je_ \
+>> --enable-stats \
+>> --enable-prof \
+>> --enable-prof-libunwind \
+>> --with-static-libunwind=/usr/lib/x86_64-linux-gnu/libunwind-x86_64.a
+>\
+>> --enable-fill \
+>> --enable-valgrind \
+>> --enable-dss \
+>> --enable-xmalloc \
+>> --disable-lazy-lock
+>> 
+>> make
+>> sudo make install
+>> 
+>> The "make install" fails due to missing files unless I manually
+>invoke 
+>> the following doc make targets:
+>> 
+>> make build_doc_html
+>> make build_doc_man
+>> 
+>> It appears something's going wrong in one of these places:
+>> 
+>> 1) developer raw source build directions should include this
+>> 2) default make target is missing subtargets
+>> 3) should have used another target which wasn't present in the docs
+>> 4) there's some other doc I should have read besides INSTALL.
+>> 
+>> Can someone help me confirm what's going on?
+>
+>(1) and (3). The build system is set up so that official releases have
+>pre-build docs.  You can use 'make dist' prior to installing to achieve
+>the intended effect when building from non-tarball sources.  I just
+>added some documentation that will hopefully help:
+>
+>	https://github.com/jemalloc/jemalloc/commit/eb5376ab9e61d96daa0d1f03b4474baf5232478f
+>
+>Thanks,
+>Jason
+
+
+From mhall at mhcomputing.net  Tue Sep 23 22:26:31 2014
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Tue, 23 Sep 2014 22:26:31 -0700
+Subject: compilation error for client app w/ clang and 913e9a8
+Message-ID: <20140924052631.GA5070@mhcomputing.net>
+
+Hello,
+
+I'm seeing the following error using this jemalloc version in a client app. 
+I'm suspecting the code was supposed to include the header stdbool.h but did 
+not do so?
+
+I grepped for this header but I did not see it included in the base jemalloc 
+header. I did see it included in jemalloc_internal_decls.h but jemalloc.h only 
+includes limits.h and strings.h.
+
+Matthew.
+
+/usr/local/jemalloc/include/jemalloc/jemalloc.h:155:47: error: unknown type name 'bool'
+typedef void *(chunk_alloc_t)(size_t, size_t, bool *, unsigned);
+                                              ^
+/usr/local/jemalloc/include/jemalloc/jemalloc.h:156:9: warning: type specifier missing, defaults to 'int' [-Wimplicit-int]
+typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+~~~~~~ ^
+/usr/local/jemalloc/include/jemalloc/jemalloc.h:156:14: error: function cannot return function type 'int (void *, size_t, unsigned int)'
+typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+             ^
+/usr/local/jemalloc/include/jemalloc/jemalloc.h:156:15: error: a parameter list without types is only allowed in a function definition
+typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+
+From wuqinfan at gmail.com  Tue Sep 23 22:42:17 2014
+From: wuqinfan at gmail.com (Qinfan Wu)
+Date: Wed, 24 Sep 2014 01:42:17 -0400
+Subject: compilation error for client app w/ clang and 913e9a8
+In-Reply-To: <20140924052631.GA5070@mhcomputing.net>
+References: <20140924052631.GA5070@mhcomputing.net>
+Message-ID: <CAMwDBHO-rS45ZbzOQx8jOq5o8SOPe7MOv2WS56e-yxdtW6iq9Q@mail.gmail.com>
+
+You actually need to include stdbool.h:
+
+#include <stdbool.h>
+#include <stdlib.h>
+#include <jemalloc/jemalloc.h>
+
+
+
+On Wed, Sep 24, 2014 at 1:26 AM, Matthew Hall <mhall at mhcomputing.net> wrote:
+
+> Hello,
+>
+> I'm seeing the following error using this jemalloc version in a client app.
+> I'm suspecting the code was supposed to include the header stdbool.h but
+> did
+> not do so?
+>
+> I grepped for this header but I did not see it included in the base
+> jemalloc
+> header. I did see it included in jemalloc_internal_decls.h but jemalloc.h
+> only
+> includes limits.h and strings.h.
+>
+> Matthew.
+>
+> /usr/local/jemalloc/include/jemalloc/jemalloc.h:155:47: error: unknown
+> type name 'bool'
+> typedef void *(chunk_alloc_t)(size_t, size_t, bool *, unsigned);
+>                                               ^
+> /usr/local/jemalloc/include/jemalloc/jemalloc.h:156:9: warning: type
+> specifier missing, defaults to 'int' [-Wimplicit-int]
+> typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+> ~~~~~~ ^
+> /usr/local/jemalloc/include/jemalloc/jemalloc.h:156:14: error: function
+> cannot return function type 'int (void *, size_t, unsigned int)'
+> typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+>              ^
+> /usr/local/jemalloc/include/jemalloc/jemalloc.h:156:15: error: a parameter
+> list without types is only allowed in a function definition
+> typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140924/e2189842/attachment.html>
+
+From mhall at mhcomputing.net  Wed Sep 24 00:21:45 2014
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Wed, 24 Sep 2014 00:21:45 -0700
+Subject: compilation error for client app w/ clang and 913e9a8
+In-Reply-To: <CAMwDBHO-rS45ZbzOQx8jOq5o8SOPe7MOv2WS56e-yxdtW6iq9Q@mail.gmail.com>
+References: <20140924052631.GA5070@mhcomputing.net>
+	<CAMwDBHO-rS45ZbzOQx8jOq5o8SOPe7MOv2WS56e-yxdtW6iq9Q@mail.gmail.com>
+Message-ID: <20140924072145.GA5551@mhcomputing.net>
+
+On Wed, Sep 24, 2014 at 01:42:17AM -0400, Qinfan Wu wrote:
+> You actually need to include stdbool.h:
+> 
+> #include <stdbool.h>
+> #include <stdlib.h>
+> #include <jemalloc/jemalloc.h>
+
+To me this seems buggy.
+
+Shouldn't jemalloc include this, if it requires this to be present?
+
+Another observation... when you compile with jemalloc built with libunwind you 
+have to specify -lunwind to get the compile to work. I was wondering if there 
+is some script or other place one should look to get the linker flags for the 
+current jemalloc.
+
+Matthew.
+
+From daver at couchbase.com  Wed Sep 24 02:04:39 2014
+From: daver at couchbase.com (David Rigby)
+Date: Wed, 24 Sep 2014 09:04:39 +0000
+Subject: Implicit malloc/free replacement on windows/MSVC
+Message-ID: <07F99B18-4D69-4DE7-9512-1B7EC6D35E7A@couchbase.com>
+
+Hi,
+
+I?m investigating replacing our application's existing memory allocator (tcmalloc) with jemalloc, mainly due to jemalloc?s ?lowest possible address? policy which facilities some application-level reallocation of long-lived objects to reduce heap fragmentation.
+
+The integration on Linux and OS X is working nicely, however I?ve come to Windows and I?ve hit a bit of an impasse in dealing with indirect uses of malloc (e.g. strdup()), and I wonder if anyone has any ideas.
+
+First - what does work:
+
+1) I can build jemalloc as a DLL and using a deffile (inspired by mozilla [1]) I can create malloc/calloc/realloc/free symbols pointing at their je_ prefix?d equivalents (inside jemalloc.dll) which my application will use when explicitly calling those functions - so far so good. 
+However, if the allocation indirectly calls malloc (for example via strdup()) then strdup uses the malloc symbol inside the CRT, and as soon as free() is called I get a segfault (not withstanding I also have two heaps in use now).
+
+2) Going down the statically-linked route [2], I can create a jemalloc_s.lib which has a null JE_PREFIX, and hence the application itself will again call jemalloc?s malloc/free functions. But again the strdup problem remains.
+
+The only solutions I can find to this are either:
+
+(A) runtime-patching the various CRT functions to jump to the custom allocators versions - as implemented by tcmalloc [3].
+(B) building a custom version of the CRT with the memory allocation functions removed, and statically linking this into the application - as implemented by mozilla [4].
+
+Does anyone know of a ?third way? to solve this? 
+
+If not, I think the tcmalloc runtime-patching is fractionally the lesser of the two evils - would the list (Jason?) consider accepting a patch which ported that functionality to jemalloc? It?s written in C++ which may be undesirable, but it?s Windows only at least?
+
+
+Thanks,
+
+DaveR
+
+[1]: https://github.com/mozilla/gecko-dev/blob/master/mozglue/build/mozglue.def.in
+[2]: https://groups.google.com/forum/#!topic/google-perftools/Qc03EK-F5Xs
+[3]: https://github.com/gperftools/gperftools/blob/master/src/windows/patch_functions.cc
+[4]: http://benjamin.smedbergs.us/blog/2008-01-10/patching-the-windows-crt/
+
+From danielmicay at gmail.com  Wed Sep 24 16:14:33 2014
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Wed, 24 Sep 2014 19:14:33 -0400
+Subject: Implicit malloc/free replacement on windows/MSVC
+In-Reply-To: <07F99B18-4D69-4DE7-9512-1B7EC6D35E7A@couchbase.com>
+References: <07F99B18-4D69-4DE7-9512-1B7EC6D35E7A@couchbase.com>
+Message-ID: <54235059.6060300@gmail.com>
+
+On 24/09/14 05:04 AM, David Rigby wrote:
+> Hi,
+> 
+> I?m investigating replacing our application's existing memory allocator (tcmalloc) with jemalloc, mainly due to jemalloc?s ?lowest possible address? policy which facilities some application-level reallocation of long-lived objects to reduce heap fragmentation.
+> 
+> The integration on Linux and OS X is working nicely, however I?ve come to Windows and I?ve hit a bit of an impasse in dealing with indirect uses of malloc (e.g. strdup()), and I wonder if anyone has any ideas.
+> 
+> First - what does work:
+> 
+> 1) I can build jemalloc as a DLL and using a deffile (inspired by mozilla [1]) I can create malloc/calloc/realloc/free symbols pointing at their je_ prefix?d equivalents (inside jemalloc.dll) which my application will use when explicitly calling those functions - so far so good. 
+> However, if the allocation indirectly calls malloc (for example via strdup()) then strdup uses the malloc symbol inside the CRT, and as soon as free() is called I get a segfault (not withstanding I also have two heaps in use now).
+> 
+> 2) Going down the statically-linked route [2], I can create a jemalloc_s.lib which has a null JE_PREFIX, and hence the application itself will again call jemalloc?s malloc/free functions. But again the strdup problem remains.
+> 
+> The only solutions I can find to this are either:
+> 
+> (A) runtime-patching the various CRT functions to jump to the custom allocators versions - as implemented by tcmalloc [3].
+> (B) building a custom version of the CRT with the memory allocation functions removed, and statically linking this into the application - as implemented by mozilla [4].
+> 
+> Does anyone know of a ?third way? to solve this? 
+> 
+> If not, I think the tcmalloc runtime-patching is fractionally the lesser of the two evils - would the list (Jason?) consider accepting a patch which ported that functionality to jemalloc? It?s written in C++ which may be undesirable, but it?s Windows only at least?
+> 
+> 
+> Thanks,
+> 
+> DaveR
+
+AFAIK it will work if you statically link jemalloc, then the CRT, and
+don't have any dynamic libraries using the CRT. It would be fantastic if
+there was a general solution implemented in jemalloc.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140924/8bb93aac/attachment.sig>
+
+From jasone at canonware.com  Mon Sep 29 15:21:04 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 29 Sep 2014 15:21:04 -0700
+Subject: Implicit malloc/free replacement on windows/MSVC
+In-Reply-To: <07F99B18-4D69-4DE7-9512-1B7EC6D35E7A@couchbase.com>
+References: <07F99B18-4D69-4DE7-9512-1B7EC6D35E7A@couchbase.com>
+Message-ID: <4353DB84-83E7-4603-80FD-749A4BD87DCF@canonware.com>
+
+On Sep 24, 2014, at 2:04 AM, David Rigby <daver at couchbase.com> wrote:
+> I?m investigating replacing our application's existing memory allocator (tcmalloc) with jemalloc, mainly due to jemalloc?s ?lowest possible address? policy which facilities some application-level reallocation of long-lived objects to reduce heap fragmentation.
+> 
+> The integration on Linux and OS X is working nicely, however I?ve come to Windows and I?ve hit a bit of an impasse in dealing with indirect uses of malloc (e.g. strdup()), and I wonder if anyone has any ideas.
+> 
+> [...]
+> 
+> The only solutions I can find to this are either:
+> 
+> (A) runtime-patching the various CRT functions to jump to the custom allocators versions - as implemented by tcmalloc [3].
+> (B) building a custom version of the CRT with the memory allocation functions removed, and statically linking this into the application - as implemented by mozilla [4].
+> 
+> Does anyone know of a ?third way? to solve this? 
+> 
+> If not, I think the tcmalloc runtime-patching is fractionally the lesser of the two evils - would the list (Jason?) consider accepting a patch which ported that functionality to jemalloc? It?s written in C++ which may be undesirable, but it?s Windows only at least?
+
+I'd love to have the the tcmalloc-esque run-time patching mechanism in jemalloc, but since I don't use Windows much, it hasn't been a burning enough issue for me to do the work.  A patch would be very welcome.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Mon Sep 29 15:34:25 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 29 Sep 2014 15:34:25 -0700
+Subject: compilation error for client app w/ clang and 913e9a8
+In-Reply-To: <20140924072145.GA5551@mhcomputing.net>
+References: <20140924052631.GA5070@mhcomputing.net>
+	<CAMwDBHO-rS45ZbzOQx8jOq5o8SOPe7MOv2WS56e-yxdtW6iq9Q@mail.gmail.com>
+	<20140924072145.GA5551@mhcomputing.net>
+Message-ID: <F6C40299-0EB3-4BB7-AAF2-C4652B636053@canonware.com>
+
+On Sep 24, 2014, at 12:21 AM, Matthew Hall <mhall at mhcomputing.net> wrote:
+> On Wed, Sep 24, 2014 at 01:42:17AM -0400, Qinfan Wu wrote:
+>> You actually need to include stdbool.h:
+>> 
+>> #include <stdbool.h>
+>> #include <stdlib.h>
+>> #include <jemalloc/jemalloc.h>
+> 
+> To me this seems buggy.
+
+It was intentional, but perhaps misguided, IIRC based on FreeBSD header anti-pollution philosophy.  I'll make sure this is changed for the next release (patch welcome if you have one handy):
+
+	https://github.com/jemalloc/jemalloc/issues/132
+
+> Shouldn't jemalloc include this, if it requires this to be present?
+> 
+> Another observation... when you compile with jemalloc built with libunwind you 
+> have to specify -lunwind to get the compile to work. I was wondering if there 
+> is some script or other place one should look to get the linker flags for the 
+> current jemalloc.
+
+There isn't currently, but adding a jemalloc-config script seems reasonable to me.
+
+	https://github.com/jemalloc/jemalloc/issues/133
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Mon Sep 29 16:07:12 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 29 Sep 2014 16:07:12 -0700
+Subject: Rounding up huge allocations to page boundaries instead of chunks
+In-Reply-To: <950785576.18683375.1410270669014.JavaMail.zimbra@mozilla.com>
+References: <1192065065.15225023.1408657927262.JavaMail.zimbra@mozilla.com>
+	<9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06@canonware.com>
+	<950785576.18683375.1410270669014.JavaMail.zimbra@mozilla.com>
+Message-ID: <1D21FF6E-126F-4540-A8FD-58F080BE55AB@canonware.com>
+
+On Sep 9, 2014, at 6:51 AM, Guilherme Goncalves <ggp at mozilla.com> wrote:
+> | Will this sufficiently address your accounting concerns?  There's the
+> | potential to over-report active memory by nearly 1.2X in the worst case, but
+> | that's a lot better than nearly 2X as things currently are.
+> 
+> While that's definitely better than 2X over-reporting, I wonder if we can't just expose the
+> sum of all huge allocations rounded to a page boundary as a new statistic, without actually
+> changing the way the mapping is done. That could give us the more accurate accounting we want
+> without causing fragmentation in the address space.
+> 
+> In more concrete terms, this would add a "stats.arenas.<i>.huge.allocated_pages" statistic,
+> reporting the total size of huge allocations serviced by the i-th arena, but rounded to pages
+> and not chunks (while still mapping memory in chunks as usual).
+> 
+> If I'm not missing anything, a patch to implement this would look similar yet a lot less
+> intrusive than my first attempt [1]. Does this sound reasonable?
+
+I want the sum of malloc_usable_size() for all extant allocations to remain the source of truth about how much memory the application has allocated, and I'm currently on a mission to make size class spacing uniform, so I'm loath to add exceptions before even finishing that.  If 1.2X worst case is too loose a bound for your use case, one other possibility would be to add a configure option to create 8 size classes per size doubling rather than 4, so that the worst case is ~1.11X (or 16 size classes per doubling and 1.06X worst case overhead, etc.).  The size_classes.sh script requires only a single constant be parametrized in order to make this possible.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Mon Sep 29 16:18:57 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 29 Sep 2014 16:18:57 -0700
+Subject: [PATCH] correctly detect adaptive mutexes in pthreads
+In-Reply-To: <20140831062916.GA17740@dcvr.yhbt.net>
+References: <20140831062916.GA17740@dcvr.yhbt.net>
+Message-ID: <D4B48236-A214-4CDA-A414-A0B01C30ADE1@canonware.com>
+
+On Aug 30, 2014, at 11:29 PM, Eric Wong <normalperson at yhbt.net> wrote:
+> PTHREAD_MUTEX_ADAPTIVE_NP is an enum on glibc and not a macro,
+> we must test for their existence by attempting compilation.
+
+Integrated: https://github.com/jemalloc/jemalloc/commit/4dcf04bfc03b9e9eb50015a8fc8735de28c23090
+
+Thanks,
+Jason
+
+
+From mh at glandium.org  Mon Sep 29 16:24:27 2014
+From: mh at glandium.org (Mike Hommey)
+Date: Tue, 30 Sep 2014 08:24:27 +0900
+Subject: Rounding up huge allocations to page boundaries instead of chunks
+In-Reply-To: <1D21FF6E-126F-4540-A8FD-58F080BE55AB@canonware.com>
+References: <1192065065.15225023.1408657927262.JavaMail.zimbra@mozilla.com>
+	<9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06@canonware.com>
+	<950785576.18683375.1410270669014.JavaMail.zimbra@mozilla.com>
+	<1D21FF6E-126F-4540-A8FD-58F080BE55AB@canonware.com>
+Message-ID: <20140929232427.GA13840@glandium.org>
+
+On Mon, Sep 29, 2014 at 04:07:12PM -0700, Jason Evans wrote:
+> On Sep 9, 2014, at 6:51 AM, Guilherme Goncalves <ggp at mozilla.com>
+> wrote:
+> > | Will this sufficiently address your accounting concerns?  There's
+> > the | potential to over-report active memory by nearly 1.2X in the
+> > worst case, but | that's a lot better than nearly 2X as things
+> > currently are.
+> > 
+> > While that's definitely better than 2X over-reporting, I wonder if
+> > we can't just expose the sum of all huge allocations rounded to a
+> > page boundary as a new statistic, without actually changing the way
+> > the mapping is done. That could give us the more accurate accounting
+> > we want without causing fragmentation in the address space.
+> > 
+> > In more concrete terms, this would add a
+> > "stats.arenas.<i>.huge.allocated_pages" statistic, reporting the
+> > total size of huge allocations serviced by the i-th arena, but
+> > rounded to pages and not chunks (while still mapping memory in
+> > chunks as usual).
+> > 
+> > If I'm not missing anything, a patch to implement this would look
+> > similar yet a lot less intrusive than my first attempt [1]. Does
+> > this sound reasonable?
+> 
+> I want the sum of malloc_usable_size() for all extant allocations to
+> remain the source of truth about how much memory the application has
+> allocated, and I'm currently on a mission to make size class spacing
+> uniform, so I'm loath to add exceptions before even finishing that.
+> If 1.2X worst case is too loose a bound for your use case, one other
+> possibility would be to add a configure option to create 8 size
+> classes per size doubling rather than 4, so that the worst case is
+> ~1.11X (or 16 size classes per doubling and 1.06X worst case overhead,
+> etc.).  The size_classes.sh script requires only a single constant be
+> parametrized in order to make this possible.
+
+The need is to approximate the amount of committed memory, as opposed
+to allocated. Changing the allocation properties doesn't help much,
+here.
+
+Mike
+
+From mhall at mhcomputing.net  Mon Sep 29 18:24:36 2014
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Mon, 29 Sep 2014 18:24:36 -0700
+Subject: compilation error for client app w/ clang and 913e9a8
+In-Reply-To: <F6C40299-0EB3-4BB7-AAF2-C4652B636053@canonware.com>
+References: <20140924052631.GA5070@mhcomputing.net>
+	<CAMwDBHO-rS45ZbzOQx8jOq5o8SOPe7MOv2WS56e-yxdtW6iq9Q@mail.gmail.com>
+	<20140924072145.GA5551@mhcomputing.net>
+	<F6C40299-0EB3-4BB7-AAF2-C4652B636053@canonware.com>
+Message-ID: <20140930012436.GA999@mhcomputing.net>
+
+On Mon, Sep 29, 2014 at 03:34:25PM -0700, Jason Evans wrote:
+> There isn't currently, but adding a jemalloc-config script seems reasonable to me.
+> 
+> 	https://github.com/jemalloc/jemalloc/issues/133
+> 
+> Thanks,
+> Jason
+
+Yes... I think that's the accepted way to extract stuff out of the pkgconfig, 
+such as the CFLAGS and LDFLAGS, to make sure it's reproducible. Otherwise each 
+user much hack on the *FLAGS based on unknown properties of the libjemalloc.
+
+Thanks for all of the explanations and patience with my questions how to use 
+everything right from inside my app... I really really love jemalloc from 
+previous jobs and I wish it were just the default Linux alloc too not just for 
+*BSD.
+
+Matthew.
+
+From ldalessa at indiana.edu  Tue Sep 30 11:08:10 2014
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Tue, 30 Sep 2014 18:08:10 +0000
+Subject: arenas.extend + thread.arena confusion
+Message-ID: <CA09F458-071F-4483-A786-FAA5F5AEBC0B@indiana.edu>
+
+Hi everyone,
+
+I have an application where I want every thread to have two arenas. One is use for default allocations and has access to the cache, and the other is used for private allocations through malllocx().
+
+I do this by doing an arena.extend + thread.arena in each thread. The problem that I have is that jemalloc seems to reuse arena ids in this context. Essentially I get a trace that looks something like:
+
+t1: t2 = pthread_create()
+t1: new1 = arenas.extend
+t1: old1 = thread.arena(new1)
+t2: new2 = arenas.extend
+t2: old2 = thread.arena(new2)
+
+: old1 == old2 == 0
+
+Is this behavior expected? Shouldn?t jemalloc use a fresh arena for each new thread?
+
+The actual test code is attached.
+
+Thanks,
+Luke
+
+?
+#include <assert.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <jemalloc/jemalloc.h>
+
+void *foo(void *UNUSED) {
+  unsigned old, new;
+  size_t sold, snew;
+  sold = snew = sizeof(old);
+  int e = mallctl("arenas.extend", &new, &snew, NULL, 0);
+  assert(!e);
+  e = mallctl("thread.arena", &old, &sold, &new, snew);
+  return (void*)old;
+}
+
+int main(int argc, char * const argv[]) {
+  pthread_t thread;
+  int e = pthread_create(&thread, NULL, foo, NULL);
+  assert(!e);
+  void *arena1 = foo(NULL);
+  void *arena2;
+  e = pthread_join(thread, &arena2);
+  assert(!e);
+  printf("Saw arenas %u and %u.\n", (unsigned)arena1, (unsigned)arena2);
+  assert((unsigned)arena1 != (unsigned)arena2);
+  return 0;
+}
+

@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> adding size class for 24 bytes pool on x86
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20adding%20size%20class%20for%2024%20bytes%20pool%20on%20x86&In-Reply-To=%3C6548EB10-DB0D-4823-8F51-5A3AAAD84D10%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000980.html">
+   <LINK REL="Next"  HREF="000982.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>adding size class for 24 bytes pool on x86</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20adding%20size%20class%20for%2024%20bytes%20pool%20on%20x86&In-Reply-To=%3C6548EB10-DB0D-4823-8F51-5A3AAAD84D10%40canonware.com%3E"
+       TITLE="adding size class for 24 bytes pool on x86">jasone at canonware.com
+       </A><BR>
+    <I>Thu Jan  8 14:48:56 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000980.html">Assertion fail question
+</A></li>
+        <LI>Next message: <A HREF="000982.html">ctl_refresh() is never called,	je_mallctl(&quot;stats.allocated&quot;) doesn't work
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#981">[ date ]</a>
+              <a href="thread.html#981">[ thread ]</a>
+              <a href="subject.html#981">[ subject ]</a>
+              <a href="author.html#981">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Dec 24, 2014, at 1:35 AM, Oran Agra &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">oran at redislabs.com</A>&gt; wrote:
+&gt;<i> I have an application running on x86 that uses jemalloc which can greatly benefit from an allocation pool of 24 bytes.
+</I>&gt;<i> currently there are pools for 8,16,32...
+</I>
+The dev version of jemalloc has the --with-lg-quantum configure option, which should do what you want if you specify --with-lg-quantum=3 .  See the INSTALL file for details and warnings:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/blob/dev/INSTALL">https://github.com/jemalloc/jemalloc/blob/dev/INSTALL</A> &lt;<A HREF="https://github.com/jemalloc/jemalloc/blob/dev/INSTALL">https://github.com/jemalloc/jemalloc/blob/dev/INSTALL</A>&gt;
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150108/26fe230c/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150108/26fe230c/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000980.html">Assertion fail question
+</A></li>
+	<LI>Next message: <A HREF="000982.html">ctl_refresh() is never called,	je_mallctl(&quot;stats.allocated&quot;) doesn't work
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#981">[ date ]</a>
+              <a href="thread.html#981">[ thread ]</a>
+              <a href="subject.html#981">[ subject ]</a>
+              <a href="author.html#981">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

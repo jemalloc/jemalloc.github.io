@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Ensure the default purgeable zone is after the default zone	on OS X
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Ensure%20the%20default%20purgeable%20zone%20is%20after%20the%20default%20zone%0A%09on%20OS%20X&In-Reply-To=%3C1402391902-20160-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000862.html">
+   <LINK REL="Next"  HREF="000867.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Ensure the default purgeable zone is after the default zone	on OS X</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Ensure%20the%20default%20purgeable%20zone%20is%20after%20the%20default%20zone%0A%09on%20OS%20X&In-Reply-To=%3C1402391902-20160-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Ensure the default purgeable zone is after the default zone	on OS X">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Jun 10 02:18:22 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000862.html">[PATCH] Use JEMALLOC_INTERNAL_FFSL in STATIC_PAGE_SHIFT test
+</A></li>
+        <LI>Next message: <A HREF="000867.html">[PATCH] Ensure the default purgeable zone is after the default	zone on OS X
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#866">[ date ]</a>
+              <a href="thread.html#866">[ thread ]</a>
+              <a href="subject.html#866">[ subject ]</a>
+              <a href="author.html#866">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ src/zone.c | 34 +++++++++++++++++++++++++---------
+ 1 file changed, 25 insertions(+), 9 deletions(-)
+
+diff --git a/src/zone.c b/src/zone.c
+index e0302ef..a722287 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -176,6 +176,7 @@ register_zone(void)
+ 	 * register jemalloc's.
+ 	 */
+ 	malloc_zone_t *default_zone = malloc_default_zone();
++	malloc_zone_t *purgeable_zone = NULL;
+ 	if (!default_zone-&gt;zone_name ||
+ 	    strcmp(default_zone-&gt;zone_name, &quot;DefaultMallocZone&quot;) != 0) {
+ 		return;
+@@ -237,22 +238,37 @@ register_zone(void)
+ 	 * run time.
+ 	 */
+ 	if (malloc_default_purgeable_zone != NULL)
+-		malloc_default_purgeable_zone();
++		purgeable_zone = malloc_default_purgeable_zone();
+ 
+ 	/* Register the custom zone.  At this point it won't be the default. */
+ 	malloc_zone_register(&amp;zone);
+ 
+-	/*
+-	 * Unregister and reregister the default zone.  On OSX &gt;= 10.6,
+-	 * unregistering takes the last registered zone and places it at the
+-	 * location of the specified zone.  Unregistering the default zone thus
+-	 * makes the last registered one the default.  On OSX &lt; 10.6,
+-	 * unregistering shifts all registered zones.  The first registered zone
+-	 * then becomes the default.
+-	 */
+ 	do {
+ 		default_zone = malloc_default_zone();
++		/*
++		 * Unregister and reregister the default zone.  On OSX &gt;= 10.6,
++		 * unregistering takes the last registered zone and places it
++		 * at the location of the specified zone.  Unregistering the
++		 * default zone thus makes the last registered one the default.
++		 * On OSX &lt; 10.6, unregistering shifts all registered zones.
++		 * The first registered zone then becomes the default.
++		 */
+ 		malloc_zone_unregister(default_zone);
+ 		malloc_zone_register(default_zone);
++		/*
++		 * On OSX 10.6, having the default purgeable zone appear before
++		 * the default zone makes some things crash because it thinks it
++		 * owns the default zone allocated pointers. We thus unregister/
++		 * re-register it in order to ensure it's always after the
++		 * default zone. On OSX &lt; 10.6, there is no purgeable zone, so
++		 * this does nothing. On OSX &gt;= 10.6, unregistering replaces the
++		 * purgeable zone with the last registered zone above, i.e the
++		 * default zone. Registering it again then puts it at the end,
++		 * obviously after the default zone.
++		 */
++		if (purgeable_zone) {
++			malloc_zone_unregister(purgeable_zone);
++			malloc_zone_register(purgeable_zone);
++		}
+ 	} while (malloc_default_zone() != &amp;zone);
+ }
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000862.html">[PATCH] Use JEMALLOC_INTERNAL_FFSL in STATIC_PAGE_SHIFT test
+</A></li>
+	<LI>Next message: <A HREF="000867.html">[PATCH] Ensure the default purgeable zone is after the default	zone on OS X
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#866">[ date ]</a>
+              <a href="thread.html#866">[ thread ]</a>
+              <a href="subject.html#866">[ subject ]</a>
+              <a href="author.html#866">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

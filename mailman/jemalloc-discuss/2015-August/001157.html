@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> regarding jemalloc crash
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20regarding%20jemalloc%20crash&In-Reply-To=%3CCABoxPgmEdpJfV8Xnskkoha_GbeDMkVD9LE5XpRvbrKuK3%3DpW_A%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001156.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>regarding jemalloc crash</H1>
+    <B>kiran mardi</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20regarding%20jemalloc%20crash&In-Reply-To=%3CCABoxPgmEdpJfV8Xnskkoha_GbeDMkVD9LE5XpRvbrKuK3%3DpW_A%40mail.gmail.com%3E"
+       TITLE="regarding jemalloc crash">mardikiran at gmail.com
+       </A><BR>
+    <I>Tue Aug 25 23:30:24 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001156.html">jemalloc-queries
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1157">[ date ]</a>
+              <a href="thread.html#1157">[ thread ]</a>
+              <a href="subject.html#1157">[ subject ]</a>
+              <a href="author.html#1157">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all,
+
+I am working on Android TV making jemalloc enabled, configured with 16
+arenas.
+
+I see the below error when one of my application tried for a malloc.
+
+* #00 pc 00017ac0  /system/lib/libc.so (pthread_mutex_lock+7)*
+*    #01 pc 0004f41b  /system/lib/libc.so (je_tcache_bin_flush_small+78)*
+*    #02 pc 0004f6cd  /system/lib/libc.so (je_tcache_event_hard+52)*
+*    #03 pc 0004b0a9  /system/lib/libc.so (je_malloc+556)*
+*    #04 pc 00012cef  /system/lib/libc.so (malloc+10)*
+*    #05 pc 0000ed83  /system/lib/libutils.so
+(android::SharedBuffer::alloc(unsigned int)+6)*
+*    #06 pc 000114d1  /system/lib/libutils.so
+(android::VectorImpl::_shrink(unsigned int, unsigned int)+100)*
+*    #07 pc 00011555  /system/lib/libutils.so
+(android::VectorImpl::removeItemsAt(unsigned int, unsigned int)+12)*
+
+don't know what is the issue. your help is appreciated.
+
+let me know if you need any more logs regarding the crash.
+
+-- 
+regards,
+kiran mardi
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150826/e6166afb/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150826/e6166afb/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001156.html">jemalloc-queries
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1157">[ date ]</a>
+              <a href="thread.html#1157">[ thread ]</a>
+              <a href="subject.html#1157">[ subject ]</a>
+              <a href="author.html#1157">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

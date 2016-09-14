@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Define _CRT_SPINCOUNT in test/src/mtx.c like in src/mutex.c
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Define%20_CRT_SPINCOUNT%20in%20test/src/mtx.c%20like%20in%20src/mutex.c&In-Reply-To=%3C1400659190-31544-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000811.html">
+   <LINK REL="Next"  HREF="000807.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Define _CRT_SPINCOUNT in test/src/mtx.c like in src/mutex.c</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Define%20_CRT_SPINCOUNT%20in%20test/src/mtx.c%20like%20in%20src/mutex.c&In-Reply-To=%3C1400659190-31544-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Define _CRT_SPINCOUNT in test/src/mtx.c like in src/mutex.c">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May 21 00:59:50 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000811.html">[PATCH] Use C99 varadic macros instead of GCC ones
+</A></li>
+        <LI>Next message: <A HREF="000807.html">[PATCH] Define _CRT_SPINCOUNT in test/src/mtx.c like in	src/mutex.c
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#790">[ date ]</a>
+              <a href="thread.html#790">[ thread ]</a>
+              <a href="subject.html#790">[ subject ]</a>
+              <a href="author.html#790">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ test/src/mtx.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/test/src/mtx.c b/test/src/mtx.c
+index 41b95d5..73bd02f 100644
+--- a/test/src/mtx.c
++++ b/test/src/mtx.c
+@@ -1,5 +1,9 @@
+ #include &quot;test/jemalloc_test.h&quot;
+ 
++#ifndef _CRT_SPINCOUNT
++#define	_CRT_SPINCOUNT 4000
++#endif
++
+ bool
+ mtx_init(mtx_t *mtx)
+ {
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000811.html">[PATCH] Use C99 varadic macros instead of GCC ones
+</A></li>
+	<LI>Next message: <A HREF="000807.html">[PATCH] Define _CRT_SPINCOUNT in test/src/mtx.c like in	src/mutex.c
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#790">[ date ]</a>
+              <a href="thread.html#790">[ thread ]</a>
+              <a href="subject.html#790">[ subject ]</a>
+              <a href="author.html#790">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

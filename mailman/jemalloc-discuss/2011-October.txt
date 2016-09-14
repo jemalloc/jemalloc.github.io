@@ -1,0 +1,503 @@
+From jlebar at mozilla.com  Tue Oct 11 07:57:39 2011
+From: jlebar at mozilla.com (Justin Lebar)
+Date: Tue, 11 Oct 2011 10:57:39 -0400
+Subject: Measuring RSS on Mac when MADV_FREE is used
+Message-ID: <CAFWcpZ5M+BVN61kYAtbDBE=BrALne+JuMwR_DfevBM3-e_zmyQ@mail.gmail.com>
+
+At Mozilla, we recently ported our jemalloc fork to MacOS.  It works
+great, except we've noticed that our RSS measurements are now
+basically useless, because memory freed with madvise(MADV_FREE) is
+counted against our process's RSS until the system starts running low
+on memory and steals those pages away from us.
+
+As far as I can tell, upstream jemalloc has the same behavior.
+
+In contrast, MADV_DONTNEED on Linux releases memory (almost) immediately.
+
+I don't think what MacOS is doing here is so unreasonable; the problem
+isn't so much that it's holding onto this memory, but rather that I
+now can't meaningfully measure my process's RSS via the operating
+system.  (The program can compute this value, of course, by measuring
+how much memory it's MADV_FREE'd.)
+
+Do you guys know of any way I can force MacOS to drop my MADV_FREE'd
+pages, short of making a large allocation in another process (which
+might have other side-effects, like paging out things I want to keep
+in memory)?  Or is there a way to directly measure how many
+non-MADV_FREE'd pages my process is using?  I'm pretty stumped.
+
+Regards,
+-Justin
+
+
+From jasone at canonware.com  Tue Oct 11 20:29:23 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 11 Oct 2011 20:29:23 -0700
+Subject: Measuring RSS on Mac when MADV_FREE is used
+In-Reply-To: <CAFWcpZ5M+BVN61kYAtbDBE=BrALne+JuMwR_DfevBM3-e_zmyQ@mail.gmail.com>
+References: <CAFWcpZ5M+BVN61kYAtbDBE=BrALne+JuMwR_DfevBM3-e_zmyQ@mail.gmail.com>
+Message-ID: <29AB7B82-9882-4D77-AB44-55C73FFB2B1F@canonware.com>
+
+On Oct 11, 2011, at 7:57 AM, Justin Lebar wrote:
+> At Mozilla, we recently ported our jemalloc fork to MacOS.  It works
+> great, except we've noticed that our RSS measurements are now
+> basically useless, because memory freed with madvise(MADV_FREE) is
+> counted against our process's RSS until the system starts running low
+> on memory and steals those pages away from us.
+> 
+> As far as I can tell, upstream jemalloc has the same behavior.
+> 
+> In contrast, MADV_DONTNEED on Linux releases memory (almost) immediately.
+> 
+> I don't think what MacOS is doing here is so unreasonable; the problem
+> isn't so much that it's holding onto this memory, but rather that I
+> now can't meaningfully measure my process's RSS via the operating
+> system.  (The program can compute this value, of course, by measuring
+> how much memory it's MADV_FREE'd.)
+> 
+> Do you guys know of any way I can force MacOS to drop my MADV_FREE'd
+> pages, short of making a large allocation in another process (which
+> might have other side-effects, like paging out things I want to keep
+> in memory)?  Or is there a way to directly measure how many
+> non-MADV_FREE'd pages my process is using?  I'm pretty stumped.
+
+OS X's MADV_FREE behavior is great from a total system perspective.  jemalloc suffers nontrivial overhead on Linux because all MADV_DONTNEED'ed pages have to be zeroed before they are handed out again.  At Facebook we've considered numerous approaches to the problem, and tried a few of them, but I'd be thrilled to have MADV_DONTNEED on Linux.
+
+I don't think there is a system-supplied way to introspect the number of pages with the MADV_FREE'd bit set.  If all you really care about is memory accounting, then note that starting with jemalloc 1.0.0, there are statistics counters that tell you roughly what you want to know.  In particular, take a look at the "stats.allocated", "stats.active", and "stats.mapped" statistics that are accessible via mallctl().  These and many other statistics are documented in the manual page:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html
+
+Internally, jemalloc knows precisely how many unused dirty pages could be MADV_FREE'd (see "stats.arenas.<i>.pdirty"), but once madvise(2) is called for a page, the application has no way of knowing whether the kernel actually reclaimed the page.  As such, you can monitor "stats.active" and have a pretty good idea of how much memory your application is using without counting the MADV_FREE'd pages.  You can also sum the "stats.arenas.<i>.pdirty" stats, but this isn't really necessary unless you want to be very precise, because unused dirty page accumulation is limited to be no more than 1/32 of active memory (by default).
+
+Jason
+
+From jlebar at mozilla.com  Tue Oct 11 21:07:35 2011
+From: jlebar at mozilla.com (Justin Lebar)
+Date: Wed, 12 Oct 2011 00:07:35 -0400
+Subject: Measuring RSS on Mac when MADV_FREE is used
+In-Reply-To: <29AB7B82-9882-4D77-AB44-55C73FFB2B1F@canonware.com>
+References: <CAFWcpZ5M+BVN61kYAtbDBE=BrALne+JuMwR_DfevBM3-e_zmyQ@mail.gmail.com>
+	<29AB7B82-9882-4D77-AB44-55C73FFB2B1F@canonware.com>
+Message-ID: <CAFWcpZ5axagVYKA2+HqMfY4T3k=kEj0CHBi0hvGT1J9SnNn6ew@mail.gmail.com>
+
+I'll keep hoping for a system-level command we can run, since doing
+the adjustment in the browser makes it hard for our automated tools to
+read Firefox's memory usage.
+
+I recently modified our fork to always do MALLOC_DECOMMIT-style
+accounting, so as of a few days ago, we have something like
+stats.active.  :)  But since all of our allocations don't go through
+jemalloc, we need to measure RSS, not just how big the heap is.
+
+In the absence of any help from the OS, I may try to write a routine
+which goes through and explicitly decommits and recommits MADV_FREE'd
+pages.  (We're keeping track of these on mac now, since we always do
+DECOMMIT-style accounting.)  If we call this before we record RSS, we
+should get reasonable numbers.
+
+An alternative would be to use mincore() to figure out whether the
+MADV_FREE'd pages are in memory, and use that to adjust the reported
+RSS.  This would probably be faster, but then we wouldn't be able to
+measure RSS externally...
+
+(For those following along at home, this work is happening in [1].)
+
+In any case, thanks for your help, Jason!
+
+I'm hoping we can move to upstream sometime soon, by the way.  You'll
+hear from us in the form of patches if and when that happens.  :)
+
+Regards,
+-Justin
+
+[1] https://bugzilla.mozilla.org/show_bug.cgi?id=693404
+
+On Tue, Oct 11, 2011 at 11:29 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Oct 11, 2011, at 7:57 AM, Justin Lebar wrote:
+>> At Mozilla, we recently ported our jemalloc fork to MacOS. ?It works
+>> great, except we've noticed that our RSS measurements are now
+>> basically useless, because memory freed with madvise(MADV_FREE) is
+>> counted against our process's RSS until the system starts running low
+>> on memory and steals those pages away from us.
+>>
+>> As far as I can tell, upstream jemalloc has the same behavior.
+>>
+>> In contrast, MADV_DONTNEED on Linux releases memory (almost) immediately.
+>>
+>> I don't think what MacOS is doing here is so unreasonable; the problem
+>> isn't so much that it's holding onto this memory, but rather that I
+>> now can't meaningfully measure my process's RSS via the operating
+>> system. ?(The program can compute this value, of course, by measuring
+>> how much memory it's MADV_FREE'd.)
+>>
+>> Do you guys know of any way I can force MacOS to drop my MADV_FREE'd
+>> pages, short of making a large allocation in another process (which
+>> might have other side-effects, like paging out things I want to keep
+>> in memory)? ?Or is there a way to directly measure how many
+>> non-MADV_FREE'd pages my process is using? ?I'm pretty stumped.
+>
+> OS X's MADV_FREE behavior is great from a total system perspective. ?jemalloc suffers nontrivial overhead on Linux because all MADV_DONTNEED'ed pages have to be zeroed before they are handed out again. ?At Facebook we've considered numerous approaches to the problem, and tried a few of them, but I'd be thrilled to have MADV_DONTNEED on Linux.
+>
+> I don't think there is a system-supplied way to introspect the number of pages with the MADV_FREE'd bit set. ?If all you really care about is memory accounting, then note that starting with jemalloc 1.0.0, there are statistics counters that tell you roughly what you want to know. ?In particular, take a look at the "stats.allocated", "stats.active", and "stats.mapped" statistics that are accessible via mallctl(). ?These and many other statistics are documented in the manual page:
+>
+> ? ? ? ?http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html
+>
+> Internally, jemalloc knows precisely how many unused dirty pages could be MADV_FREE'd (see "stats.arenas.<i>.pdirty"), but once madvise(2) is called for a page, the application has no way of knowing whether the kernel actually reclaimed the page. ?As such, you can monitor "stats.active" and have a pretty good idea of how much memory your application is using without counting the MADV_FREE'd pages. ?You can also sum the "stats.arenas.<i>.pdirty" stats, but this isn't really necessary unless you want to be very precise, because unused dirty page accumulation is limited to be no more than 1/32 of active memory (by default).
+>
+> Jason
+
+
+From tony at daylessday.org  Wed Oct 12 22:39:08 2011
+From: tony at daylessday.org (Antony Dovgal)
+Date: Thu, 13 Oct 2011 09:39:08 +0400
+Subject: jemalloc shell wrapper
+Message-ID: <4E96797C.7090707@daylessday.org>
+
+Hello all.
+
+I'd like to propose a small patch that adds an autogenerated shell script wrapper for jemalloc.
+The resulting script is installed into bin/ and uses LD_PRELOAD to load jemalloc lib.
+See the patch attached.
+
+And thanks for jemalloc! =)
+
+-- 
+Wbr,
+Antony Dovgal
+---
+http://pinba.org - realtime profiling for PHP
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-add-autogenerated-jemalloc.sh-wrapper-script.patch
+Type: text/x-patch
+Size: 1922 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111013/df192eb8/attachment.bin>
+
+From ingvar at redpill-linpro.com  Thu Oct 13 02:24:19 2011
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Thu, 13 Oct 2011 11:24:19 +0200
+Subject: Updated jemalloc-packages for Red Hat and Fedora (Was: jemalloc
+	2.2.3 released)
+In-Reply-To: <4E5FEDBA.6080606@canonware.com>
+References: <4E5FEDBA.6080606@canonware.com>
+Message-ID: <1318497859.3847.409.camel@yum.linpro.no>
+
+I recently submitted jemalloc-2.2.3 for Fedora.
+
+Because of ppc/ppc64 specific bugs, jemalloc is still not updated for
+for epel5. epel5 supports ppc/ppc64 and needs those fixed to get a
+working update.
+
+Because of this, I have compiled jemalloc-2.2.3 for rhel5 and clones.
+Packages available here:
+
+http://users.linpro.no/ingvar/jemalloc/2.2.3/el5/
+
+Updated packages for epel6 and fedora 14-16 and rawhide are built in
+fedora koji. They are submitted to bodhi, and will trickle down to their
+respective test (and later stable) repos in a few days.
+
+Ingvar
+
+
+
+
+From justin.lebar at gmail.com  Wed Oct 19 14:14:44 2011
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Wed, 19 Oct 2011 17:14:44 -0400
+Subject: jemalloc git server down for a few days now
+Message-ID: <CAFWcpZ5NX=umsUN21KhjPXVmdE=Ze9dgWpwAQTE=nE_2nKyDvQ@mail.gmail.com>
+
+In case it's not a known problem, I've been getting this for a few days now.
+
+$ git clone git://canonware.com/jemalloc.git
+Cloning into jemalloc...
+canonware.com[0: 204.109.63.53]: errno=Connection refused
+fatal: unable to connect a socket (Connection refused)
+
+-Justin
+
+
+From jasone at canonware.com  Wed Oct 19 15:55:35 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 19 Oct 2011 15:55:35 -0700
+Subject: jemalloc git server down for a few days now
+In-Reply-To: <CAFWcpZ5NX=umsUN21KhjPXVmdE=Ze9dgWpwAQTE=nE_2nKyDvQ@mail.gmail.com>
+References: <CAFWcpZ5NX=umsUN21KhjPXVmdE=Ze9dgWpwAQTE=nE_2nKyDvQ@mail.gmail.com>
+Message-ID: <FF720901-74DC-4547-9587-672AAC5E4F6C@canonware.com>
+
+On Oct 19, 2011, at 2:14 PM, Justin Lebar wrote:
+> In case it's not a known problem, I've been getting this for a few days now.
+> 
+> $ git clone git://canonware.com/jemalloc.git
+> Cloning into jemalloc...
+> canonware.com[0: 204.109.63.53]: errno=Connection refused
+> fatal: unable to connect a socket (Connection refused)
+
+Thanks for the report -- fixed for the time being.  Something is apparently broken in the startup scripts (and the system was rebooted a few days ago).
+
+Jason
+
+From jasone at canonware.com  Wed Oct 19 16:00:50 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 19 Oct 2011 16:00:50 -0700
+Subject: jemalloc shell wrapper
+In-Reply-To: <4E96797C.7090707@daylessday.org>
+References: <4E96797C.7090707@daylessday.org>
+Message-ID: <A6B929DD-8E07-45B2-B3ED-E6DC96204684@canonware.com>
+
+On Oct 12, 2011, at 10:39 PM, Antony Dovgal wrote:
+> Hello all.
+> 
+> I'd like to propose a small patch that adds an autogenerated shell script wrapper for jemalloc.
+> The resulting script is installed into bin/ and uses LD_PRELOAD to load jemalloc lib.
+> See the patch attached.
+
+This seems like a reasonable addition, though it needs to do something different on OS X (DYLD_INSERT_LIBRARIES?).  If you have the time and hardware to test a solution for OS X as well, that would be much appreciated.  Otherwise I'll add this to my todo list for the next minor release.
+
+Thanks,
+Jason
+
+From tony at daylessday.org  Wed Oct 19 21:31:44 2011
+From: tony at daylessday.org (Antony Dovgal)
+Date: Thu, 20 Oct 2011 08:31:44 +0400
+Subject: jemalloc shell wrapper
+In-Reply-To: <A6B929DD-8E07-45B2-B3ED-E6DC96204684@canonware.com>
+References: <4E96797C.7090707@daylessday.org>
+	<A6B929DD-8E07-45B2-B3ED-E6DC96204684@canonware.com>
+Message-ID: <4E9FA430.9070703@daylessday.org>
+
+On 10/20/2011 03:00 AM, Jason Evans wrote:
+> On Oct 12, 2011, at 10:39 PM, Antony Dovgal wrote:
+>>  Hello all.
+>>
+>>  I'd like to propose a small patch that adds an autogenerated shell script wrapper for jemalloc.
+>>  The resulting script is installed into bin/ and uses LD_PRELOAD to load jemalloc lib.
+>>  See the patch attached.
+>
+> This seems like a reasonable addition, though it needs to do something different on OS X (DYLD_INSERT_LIBRARIES?).
+
+Err.. yeah, I didn't think about that. Also some other OSes (e.g. AIX) use a different variable.
+I'll look into it today.
+
+-- 
+Wbr,
+Antony Dovgal
+---
+http://pinba.org - realtime profiling for PHP
+
+
+From prohaska at tokutek.com  Tue Oct 18 13:49:21 2011
+From: prohaska at tokutek.com (Rich Prohaska)
+Date: Tue, 18 Oct 2011 16:49:21 -0400
+Subject: problem with the arenas_tsd key
+Message-ID: <CAL5sXW7yX1WN+jFKKea4oisW=+9ak1O+ZjnncSjwc_qE0ZFxWg@mail.gmail.com>
+
+The value associated with arenas_tsd is set before the key is created.  This
+can corrupt some other library that is using key 0.  Attached is a program
+that demonstrates the problem and a proposed fix to the problem.  We are not
+experts on jemalloc internals, and we would appreciate any feedback about
+the fix.
+
+Run "make check_arena_key" to reproduce the crash.
+
+See jemalloc.c for the fix.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111018/1ce797c6/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test_arena_key.c
+Type: text/x-csrc
+Size: 683 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111018/1ce797c6/attachment.c>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: Makefile
+Type: application/octet-stream
+Size: 552 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111018/1ce797c6/attachment.obj>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc.c
+Type: text/x-csrc
+Size: 41018 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111018/1ce797c6/attachment-0001.c>
+
+From tony at daylessday.org  Mon Oct 24 03:00:04 2011
+From: tony at daylessday.org (Antony Dovgal)
+Date: Mon, 24 Oct 2011 14:00:04 +0400
+Subject: jemalloc shell wrapper
+In-Reply-To: <A6B929DD-8E07-45B2-B3ED-E6DC96204684@canonware.com>
+References: <4E96797C.7090707@daylessday.org>
+	<A6B929DD-8E07-45B2-B3ED-E6DC96204684@canonware.com>
+Message-ID: <4EA53724.2010305@daylessday.org>
+
+On 10/20/2011 03:00 AM, Jason Evans wrote:
+> On Oct 12, 2011, at 10:39 PM, Antony Dovgal wrote:
+>>  Hello all.
+>>
+>>  I'd like to propose a small patch that adds an autogenerated shell script wrapper for jemalloc.
+>>  The resulting script is installed into bin/ and uses LD_PRELOAD to load jemalloc lib.
+>>  See the patch attached.
+>
+> This seems like a reasonable addition, though it needs to do something different on OS X (DYLD_INSERT_LIBRARIES?).
+>If you have the time and hardware to test a solution for OS X as well, that would be much appreciated.
+>Otherwise I'll add this to my todo list for the next minor release.
+
+Ok, here is the improved and tested version of the patch.
+
+-- 
+Wbr,
+Antony Dovgal
+---
+http://pinba.org - realtime profiling for PHP
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-add-autogenerated-jemalloc.sh-wrapper-script.patch
+Type: text/x-patch
+Size: 3538 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111024/ae289fb9/attachment.bin>
+
+From dmantipov at yandex.ru  Thu Oct 27 02:15:46 2011
+From: dmantipov at yandex.ru (Dmitry Antipov)
+Date: Thu, 27 Oct 2011 13:15:46 +0400
+Subject: Iterating over DSS
+Message-ID: <4EA92142.4070702@yandex.ru>
+
+Hello,
+
+is there a method to iterate over DSS heap and find all used/free regions?
+(I'm trying to see how much my DSS heap is fragmented). I.e. I would like to
+do something like:
+
+void *ptr;
+size_t size;
+
+malloc_mutex_lock(&dss_mtx);
+ptr = dss_base;
+fprintf(stderr, "DSS start: %p\n", ptr);
+
+while (ptr < dss_prev) {
+         if (ptr_is_a_pointer_to_allocated_block) { /* How to check this ? */
+	        size = ivsalloc(ptr);
+		fprintf(stderr, "used: %p..%p\n", ptr, ptr + size);
+         } else
+		ptr = (char *)ptr + sizeof (void *);
+}
+
+fprintf(stderr, "DSS end: %p\n", dss_prev);
+malloc_mutex_unlock(&dss_mtx);
+
+Dmitry
+
+
+From kristen.eisenberg at yahoo.com  Sat Oct 29 13:15:13 2011
+From: kristen.eisenberg at yahoo.com (Kristen Eisenberg)
+Date: Sat, 29 Oct 2011 13:15:13 -0700 (PDT)
+Subject: Question about pthread_getspecific with jemalloc
+Message-ID: <1319919313.47637.YahooMailNeo@web122317.mail.ne1.yahoo.com>
+
+link with jemalloc.  What happens is, after calling malloc(), the
+value of one of my keys seems to change out from under me.  Here is a
+small example that demonstrates this:
+http://itsapad.appspot.com/fancy/6.  I am using jemalloc-2.2.1 on
+Linux.  If I compile the example with gcc (ver 4.4.3) using the
+following command: 'gcc -lpthread main.c' then both calls to
+pthread_getspecific return a NULL pointer as expected.  When I link
+with jemalloc, however, ('gcc -ljemalloc -lpthread main.c') then the
+second call to pthread_getspecific returns some non-NULL value.  Is
+this a known bug or am I doing something wrong?
+
+
+Kristen Eisenberg
+Billige Fl?ge
+Marketing GmbH
+Emanuelstr. 3,
+10317 Berlin
+Deutschland
+Telefon: +49 (33)
+5310967
+Email:
+utebachmeier at
+gmail.com
+Site:
+http://flug.airego.de
+- Billige Fl?ge vergleichen
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111029/a21f22f9/attachment.html>
+
+From prohaska at tokutek.com  Sat Oct 29 20:54:19 2011
+From: prohaska at tokutek.com (Rich Prohaska)
+Date: Sat, 29 Oct 2011 23:54:19 -0400
+Subject: Question about pthread_getspecific with jemalloc
+In-Reply-To: <1319919313.47637.YahooMailNeo@web122317.mail.ne1.yahoo.com>
+References: <1319919313.47637.YahooMailNeo@web122317.mail.ne1.yahoo.com>
+Message-ID: <CAL5sXW7g_DZt-jWBvYDxG3MkaQrYXuw0wTRrkkuAb_wZ-o24yA@mail.gmail.com>
+
+there is a bug in jemalloc-2.2.1 on jemalloc.c line 807 in which key 0 is
+set before the key is created on line 813.  this may be the problem you are
+seeing.  i moved the key create above the key use on my version of jemalloc.
+
+rich prohaska
+tokutek
+
+On Sat, Oct 29, 2011 at 4:15 PM, Kristen Eisenberg <
+kristen.eisenberg at yahoo.com> wrote:
+
+> link with jemalloc. What happens is, after calling malloc(), the
+> value of one of my keys seems to change out from under me. Here is a
+> small example that demonstrates this:
+> http://itsapad.appspot.com/fancy/6. I am using jemalloc-2.2.1 on
+> Linux. If I compile the example with gcc (ver 4.4.3) using the
+> following command: 'gcc -lpthread main.c' then both calls to
+> pthread_getspecific return a NULL pointer as expected. When I link
+> with jemalloc, however, ('gcc -ljemalloc -lpthread main.c') then the
+> second call to pthread_getspecific returns some non-NULL value. Is
+> this a known bug or am I doing something wrong?
+>
+> Kristen Eisenberg
+> Billige Fl?ge
+> Marketing GmbH
+> Emanuelstr. 3,
+> 10317 Berlin
+> Deutschland
+> Telefon: +49 (33)
+> 5310967
+> Email:
+> utebachmeier at
+> gmail.com
+> Site:
+> http://flug.airego.de - Billige Fl?ge vergleichen
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111029/e3242611/attachment.html>
+
+From zhu.qunying at gmail.com  Fri Oct 28 12:05:29 2011
+From: zhu.qunying at gmail.com (Zhu Qun-Ying)
+Date: Fri, 28 Oct 2011 12:05:29 -0700
+Subject: source code could not checkout on windows flatform
+Message-ID: <op.v32snf2kipat8s@qy82.fortinet.com>
+
+Hi,
+
+Due to the header file name "prn.h", which conflicts with windows reserved  
+name "prn", causing git failed to checkout the source on windows platform.
+
+
+Qunying
+
+

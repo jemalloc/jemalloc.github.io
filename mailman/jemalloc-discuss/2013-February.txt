@@ -1,0 +1,109 @@
+From vinay.ys at gmail.com  Fri Feb  1 00:36:07 2013
+From: vinay.ys at gmail.com (Vinay Y S)
+Date: Fri, 1 Feb 2013 14:06:07 +0530
+Subject: 2MB (hugetlb) page support on Linux
+In-Reply-To: <48E01FD9-F40B-479C-BC9E-17A9E03A727E@canonware.com>
+References: <CAB6p_25CfnH5bnrhNV0zTqgn5zWmLSVG_DB7AazFKrvupzjSdA@mail.gmail.com>
+	<09D7F747-773D-489D-AB26-06D48EFACC16@canonware.com>
+	<CAB6p_2654tCj7GkQiArt9-cNyKQWkqTx9C7Kusp4QET_pA1jyw@mail.gmail.com>
+	<48E01FD9-F40B-479C-BC9E-17A9E03A727E@canonware.com>
+Message-ID: <CAB6p_24i04QRb+c+3OduYJ9E8dci9-ct2U9WHZYGag2h0Wo5fQ@mail.gmail.com>
+
+On Fri, Feb 1, 2013 at 1:32 AM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jan 31, 2013, at 8:54 AM, Vinay Y S wrote:
+>
+> > I also saw the 'medium' size class in the git log as well as on this
+> mailing list discussions. Is there a way to re-introduce that back with,
+> maybe, build-time configurable tradeoffs for memory efficiency vs (?)
+> lock-free purging?
+>
+> As it happens, I've been working on ways to reintroduce medium size
+> classes over the past few days.  The short synopsis is that I think it is
+> possible to reintroduce medium size classes without dirty page purging
+> sacrifices, but it is going to be complicated to maintain high concurrency
+> between allocation/deallocation and dirty page purging.  The current code
+> protects all dirty page tracking with the arena mutex, but dirty page
+> purging for medium size classes will require a different approach, probably
+> based on atomic operations.
+>
+> Awesome. Would love to help out in any way possible. If you can make any
+in-progress versions available, I can help with testing on 72GB servers
+with membase workload and publish results.
+
+Thanks,
+Vinay
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130201/2a3d80a8/attachment.html>
+
+From yingfeng.zhang at gmail.com  Mon Feb 25 06:53:47 2013
+From: yingfeng.zhang at gmail.com (Yingfeng Zhang)
+Date: Mon, 25 Feb 2013 22:53:47 +0800
+Subject: How to adjust parameters for jemalloc profiling
+Message-ID: <CAE0+06kiqi+yb0VnWLUWEsr7CJsLrq_+xT19U-vU=gHFTS1NEw@mail.gmail.com>
+
+Hi,
+Recently I've met a profiling challenge that has something to do with
+jemalloc:
+There are two threads, one of which runs the following index() function
+while the other runs search() below. Within each thread, memory allocation
+is frequently called especially within the index() function.  Although
+there does not exist any race condition between the two threads, I could
+see that the performance of search() has been seriously affected---maybe
+downgraded to tens of times than the situation no index thread is running.
+>From some profiling tools could I conclude that the performance downgrading
+has something to do with the memory allocation. Suppose within search(),
+over 2k malloc/free is called, and the overall time could be lowered from
+3ms to 0.4s if index thread is started, but search() will never be affected
+if it runs within a forked process instead of thread.
+
+void index()
+{
+}
+
+void search()
+{
+}
+
+
+I believe it has something to do with the parameter tuning for jemalloc,
+could anybody help me in figuring out such configuration?
+Very grateful!
+
+-- 
+Best Regards
+Yingfeng
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130225/cfbcaa9c/attachment.html>
+
+From jasone at canonware.com  Thu Feb 28 08:33:43 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 28 Feb 2013 08:33:43 -0800
+Subject: How to adjust parameters for jemalloc profiling
+In-Reply-To: <CAE0+06kiqi+yb0VnWLUWEsr7CJsLrq_+xT19U-vU=gHFTS1NEw@mail.gmail.com>
+References: <CAE0+06kiqi+yb0VnWLUWEsr7CJsLrq_+xT19U-vU=gHFTS1NEw@mail.gmail.com>
+Message-ID: <C23297F8-9E63-4934-9411-E73CA69DF4E5@canonware.com>
+
+On Feb 25, 2013, at 6:53 AM, Yingfeng Zhang <yingfeng.zhang at gmail.com> wrote:
+> Hi, 
+> Recently I've met a profiling challenge that has something to do with jemalloc:
+> There are two threads, one of which runs the following index() function while the other runs search() below. Within each thread, memory allocation is frequently called especially within the index() function.  Although there does not exist any race condition between the two threads, I could see that the performance of search() has been seriously affected---maybe downgraded to tens of times than the situation no index thread is running. From some profiling tools could I conclude that the performance downgrading has something to do with the memory allocation. Suppose within search(), over 2k malloc/free is called, and the overall time could be lowered from 3ms to 0.4s if index thread is started, but search() will never be affected if it runs within a forked process instead of thread. 
+>  
+> void index()
+> {
+> }
+> 
+> void search()
+> {
+> }
+> 
+> 
+> I believe it has something to do with the parameter tuning for jemalloc, could anybody help me in figuring out such configuration? 
+> Very grateful!
+
+I don't have a complete enough understanding of you application to offer any concrete advice.  Unless the two threads are acting as producer and consumer (of allocated memory), or the total amount of memory being allocated/deallocated is on the order of many megabytes, it seems unlikely that jemalloc would be directly to blame for the performance degradation.
+
+Jason
+

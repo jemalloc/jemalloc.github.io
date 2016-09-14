@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 1kb and 2kb allocation &quot;waste&quot;
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%201kb%20and%202kb%20allocation%20%22waste%22&In-Reply-To=%3CCAFWcpZ5OhcDLM46j0HQwfhG2zBxC5E2rBHqygD%3DLEVwgHsJU0g%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000347.html">
+   <LINK REL="Next"  HREF="000355.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>1kb and 2kb allocation &quot;waste&quot;</H1>
+    <B>Justin Lebar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%201kb%20and%202kb%20allocation%20%22waste%22&In-Reply-To=%3CCAFWcpZ5OhcDLM46j0HQwfhG2zBxC5E2rBHqygD%3DLEVwgHsJU0g%40mail.gmail.com%3E"
+       TITLE="1kb and 2kb allocation &quot;waste&quot;">justin.lebar at gmail.com
+       </A><BR>
+    <I>Fri Apr 20 19:35:47 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000347.html">1kb and 2kb allocation &quot;waste&quot;
+</A></li>
+        <LI>Next message: <A HREF="000355.html">[6716aa8] Force use of TLS if heap profiling is enabled
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#348">[ date ]</a>
+              <a href="thread.html#348">[ thread ]</a>
+              <a href="subject.html#348">[ subject ]</a>
+              <a href="author.html#348">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sat, Apr 21, 2012 at 10:23 AM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On Apr 20, 2012, at 4:55 AM, Justin Lebar wrote:
+</I>&gt;&gt;<i> It turns out that 1kb and 2kb allocations are responsible for upwards
+</I>&gt;&gt;<i> of 1/3 of all wasted space in Firefox, where by &quot;wasted space&quot;, I
+</I>&gt;&gt;<i> mean: Open a bunch of tabs, close them, and call &quot;waste&quot; any heap
+</I>&gt;&gt;<i> memory which is committed but not part of an active allocation.
+</I>&gt;&gt;<i> (We've been calling this &quot;external fragmentation&quot;, but that doesn't
+</I>&gt;&gt;<i> quite match up with the common definition, as I understand it.)
+</I>&gt;<i>
+</I>&gt;<i> Do 1 and 2 KiB allocations make up substantially less than 1/3 of the memory devoted to small allocations?
+</I>
+No; in fact, in one run of the browser that I recorded, 1 and 2KiB
+allocations together use 52% the memory devoted to small allocations
+while accounting for only 35% of waste.  So that sounds pretty good!
+
+On the other hand, it still doesn't tell me how to fix things, except
+by saying that there's nothing to be fixed.  :)
+
+&gt;<i> Yes, there are some systems that use 64 KiB pages by default, so any solutions need to be pretty pagesize-agnostic.
+</I>
+I guess supporting &quot;medium&quot; allocations of size pagesize/2 and
+pagesize/4 would be feasible.
+
+&gt;<i> Today has been a bunch of interleaved fire drills for me, so I'd better send this email before it gets lost forever. &#160;I'm interested to hear your thoughts on the design space. &#160;It's tempting to do an experiment that removes run headers, but the back-of-the-envelope calculations I did earlier weren't encouraging&#8230;
+</I>
+Yes, I suspect that for smaller allocations -- particularly when the
+size of the allocation is not much larger than the size of the header
+-- there isn't much to be gained by this approach.
+
+It sounds like this might be worth digging into more.  I'll let you
+know what I come up with.
+
+-Justin
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000347.html">1kb and 2kb allocation &quot;waste&quot;
+</A></li>
+	<LI>Next message: <A HREF="000355.html">[6716aa8] Force use of TLS if heap profiling is enabled
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#348">[ date ]</a>
+              <a href="thread.html#348">[ thread ]</a>
+              <a href="subject.html#348">[ subject ]</a>
+              <a href="author.html#348">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

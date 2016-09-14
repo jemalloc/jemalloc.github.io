@@ -1,0 +1,1097 @@
+From jasone at canonware.com  Sat May  4 09:44:24 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 4 May 2013 09:44:24 -0700
+Subject: Excessive VM usage with jemalloc
+In-Reply-To: <CAGCUJthh1KsK8g6TQ3Ub5NwDVFgB78_4dOQ=sb87o6njddGryw@mail.gmail.com>
+References: <CAGCUJthh1KsK8g6TQ3Ub5NwDVFgB78_4dOQ=sb87o6njddGryw@mail.gmail.com>
+Message-ID: <542B910E-E818-45B8-B86F-3CA22C1F0531@canonware.com>
+
+On Apr 28, 2013, at 9:03 PM, Abhishek Singh <abhishek at abhishek-singh.com> wrote:
+> We are trying to replace glibc malloc with jemalloc because we have several concurrent allocations and in all our benchmarks jemalloc is consistently better than glibc malloc and many others. 
+> 
+> Our setups start typically with 96 GB of RAM and up. We have observed that using jemalloc the virtual memory usage of our process rises up to around 75GB. While the resident memory stays low and it is not a problem as such, when we try to fork a process from within here, it fails as the kernel assumes there is not enough memory to copy the VM space. Perhaps a vfork would be better but we can't use that for now.
+> 
+> So we have made some modifications to jemalloc so that all huge memory allocations are forced to unmap their memory on freeing up. Non huge memory allocations and freeing up remain the same. This seems to help us. I have attached the patch here which is against jemalloc-3.3.1. Please review and suggest if there is a better way to handle this.
+
+Does --enable-munmap give you similar results?  Ideally, munmap() would always be enabled, but Linux has some unfortunate VM map fragmentation issues (it doesn't consistently reuse holes left by munmap()).  I don't think there's much benefit to using munmap() only selectively, because avoiding the VM map fragmentation issue is an all-or-nothing proposition.
+
+At times I've considered adding pre-fork() code that unmaps everything possible, and purges unused dirty pages.  The problem with this is that it's expensive, and it doesn't pay off if the process does exec() right after fork() -- the common case.
+
+Jason
+
+From abhishek at abhishek-singh.com  Mon May  6 06:46:41 2013
+From: abhishek at abhishek-singh.com (Abhishek Singh)
+Date: Mon, 6 May 2013 19:16:41 +0530
+Subject: Excessive VM usage with jemalloc
+In-Reply-To: <542B910E-E818-45B8-B86F-3CA22C1F0531@canonware.com>
+References: <CAGCUJthh1KsK8g6TQ3Ub5NwDVFgB78_4dOQ=sb87o6njddGryw@mail.gmail.com>
+	<542B910E-E818-45B8-B86F-3CA22C1F0531@canonware.com>
+Message-ID: <CAGCUJtgAtyP77DGn0UkvscLu=WneXQ6KVXpPXRCYoASxfBta1g@mail.gmail.com>
+
+Hi
+
+Yes, results with --enable-munmap are similar but some preliminary
+benchmarks for the kind of allocations we do, seem to indicate degradation
+in performance as compared to unmap disabled. While you are right and
+ideally it would be great to unmap all the memory as and when it is not
+needed, if there is a performance tradeoff then it may not be feasible. Our
+aim as of now is to ensure that we cause minimal memory fragmentation
+(thereby reducing our virtual memory footprint) and still get as good a
+performance as we can. Selectively unmapping only huge allocations seemed
+to be a compromise between the two extremes.
+
+--
+Abhishek
+
+
+On Sat, May 4, 2013 at 10:14 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Apr 28, 2013, at 9:03 PM, Abhishek Singh <abhishek at abhishek-singh.com>
+> wrote:
+> > We are trying to replace glibc malloc with jemalloc because we have
+> several concurrent allocations and in all our benchmarks jemalloc is
+> consistently better than glibc malloc and many others.
+> >
+> > Our setups start typically with 96 GB of RAM and up. We have observed
+> that using jemalloc the virtual memory usage of our process rises up to
+> around 75GB. While the resident memory stays low and it is not a problem as
+> such, when we try to fork a process from within here, it fails as the
+> kernel assumes there is not enough memory to copy the VM space. Perhaps a
+> vfork would be better but we can't use that for now.
+> >
+> > So we have made some modifications to jemalloc so that all huge memory
+> allocations are forced to unmap their memory on freeing up. Non huge memory
+> allocations and freeing up remain the same. This seems to help us. I have
+> attached the patch here which is against jemalloc-3.3.1. Please review and
+> suggest if there is a better way to handle this.
+>
+> Does --enable-munmap give you similar results?  Ideally, munmap() would
+> always be enabled, but Linux has some unfortunate VM map fragmentation
+> issues (it doesn't consistently reuse holes left by munmap()).  I don't
+> think there's much benefit to using munmap() only selectively, because
+> avoiding the VM map fragmentation issue is an all-or-nothing proposition.
+>
+> At times I've considered adding pre-fork() code that unmaps everything
+> possible, and purges unused dirty pages.  The problem with this is that
+> it's expensive, and it doesn't pay off if the process does exec() right
+> after fork() -- the common case.
+>
+> Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130506/292cb3a3/attachment.html>
+
+From jasone at canonware.com  Mon May  6 09:25:02 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 6 May 2013 09:25:02 -0700
+Subject: Excessive VM usage with jemalloc
+In-Reply-To: <CAGCUJtgAtyP77DGn0UkvscLu=WneXQ6KVXpPXRCYoASxfBta1g@mail.gmail.com>
+References: <CAGCUJthh1KsK8g6TQ3Ub5NwDVFgB78_4dOQ=sb87o6njddGryw@mail.gmail.com>
+	<542B910E-E818-45B8-B86F-3CA22C1F0531@canonware.com>
+	<CAGCUJtgAtyP77DGn0UkvscLu=WneXQ6KVXpPXRCYoASxfBta1g@mail.gmail.com>
+Message-ID: <A0321759-26C8-4D1F-AF3B-B449C4DAF049@canonware.com>
+
+On May 6, 2013, at 6:46 AM, Abhishek Singh wrote:
+> On Sat, May 4, 2013 at 10:14 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Apr 28, 2013, at 9:03 PM, Abhishek Singh <abhishek at abhishek-singh.com> wrote:
+> > Our setups start typically with 96 GB of RAM and up. We have observed that using jemalloc the virtual memory usage of our process rises up to around 75GB. While the resident memory stays low and it is not a problem as such, when we try to fork a process from within here, it fails as the kernel assumes there is not enough memory to copy the VM space. Perhaps a vfork would be better but we can't use that for now.
+> >
+> > So we have made some modifications to jemalloc so that all huge memory allocations are forced to unmap their memory on freeing up. Non huge memory allocations and freeing up remain the same. This seems to help us. I have attached the patch here which is against jemalloc-3.3.1. Please review and suggest if there is a better way to handle this.
+> 
+> Does --enable-munmap give you similar results?  Ideally, munmap() would always be enabled, but Linux has some unfortunate VM map fragmentation issues (it doesn't consistently reuse holes left by munmap()).  I don't think there's much benefit to using munmap() only selectively, because avoiding the VM map fragmentation issue is an all-or-nothing proposition.
+> 
+> Yes, results with --enable-munmap are similar but some preliminary benchmarks for the kind of allocations we do, seem to indicate degradation in performance as compared to unmap disabled. While you are right and ideally it would be great to unmap all the memory as and when it is not needed, if there is a performance tradeoff then it may not be feasible. Our aim as of now is to ensure that we cause minimal memory fragmentation (thereby reducing our virtual memory footprint) and still get as good a performance as we can. Selectively unmapping only huge allocations seemed to be a compromise between the two extremes.
+
+Does your application use fork() just to call exec()?  If so, you can pre-fork one or more helper processes (and communicate with them via pipes) early during execution that act as fork()/exec() helpers.  By creating them early on, you assure that they have a much smaller memory footprint than the huge main process, which will improve both speed and reliability.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130506/6f09d214/attachment.html>
+
+From riku.voipio at linaro.org  Tue May  7 02:02:56 2013
+From: riku.voipio at linaro.org (Riku Voipio)
+Date: Tue, 7 May 2013 12:02:56 +0300
+Subject: [PATCH] Add aarch64 LG_QUANTUM size definition
+In-Reply-To: <1363617620-21976-1-git-send-email-riku.voipio@linaro.org>
+References: <1363617620-21976-1-git-send-email-riku.voipio@linaro.org>
+Message-ID: <CAAqcGH=bLKCJ+LZ72omS6fP0ZqhncNH-BEKJdL6=se8JCyvmow@mail.gmail.com>
+
+On 18 March 2013 16:40, Riku Voipio <riku.voipio at linaro.org> wrote:
+
+>
+> Signed-off-by: Riku Voipio <riku.voipio at linaro.org>
+>
+
+Ping?
+
+
+
+> ---
+>  include/jemalloc/internal/jemalloc_internal.h.in |    3 +++
+>  1 file changed, 3 insertions(+)
+>
+> diff --git a/include/jemalloc/internal/jemalloc_internal.h.inb/include/jemalloc/internal/
+> jemalloc_internal.h.in
+> index 50d84ca..e46ac54 100644
+> --- a/include/jemalloc/internal/jemalloc_internal.h.in
+> +++ b/include/jemalloc/internal/jemalloc_internal.h.in
+> @@ -278,6 +278,9 @@ static const bool config_ivsalloc =
+>  #  ifdef __arm__
+>  #    define LG_QUANTUM         3
+>  #  endif
+> +#  ifdef __aarch64__
+> +#    define LG_QUANTUM         4
+> +#  endif
+>  #  ifdef __hppa__
+>  #    define LG_QUANTUM         4
+>  #  endif
+> --
+> 1.7.10.4
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/44cf8b0f/attachment.html>
+
+From jasone at canonware.com  Tue May  7 11:06:19 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 7 May 2013 11:06:19 -0700
+Subject: [PATCH] Add aarch64 LG_QUANTUM size definition
+In-Reply-To: <1363617620-21976-1-git-send-email-riku.voipio@linaro.org>
+References: <1363617620-21976-1-git-send-email-riku.voipio@linaro.org>
+Message-ID: <1EB13A53-F9DF-4DAC-9042-25BF740FE552@canonware.com>
+
+On Mar 18, 2013, at 7:40 AM, Riku Voipio wrote:
+> Signed-off-by: Riku Voipio <riku.voipio at linaro.org>
+> ---
+> include/jemalloc/internal/jemalloc_internal.h.in |    3 +++
+> 1 file changed, 3 insertions(+)
+> 
+> diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+> index 50d84ca..e46ac54 100644
+> --- a/include/jemalloc/internal/jemalloc_internal.h.in
+> +++ b/include/jemalloc/internal/jemalloc_internal.h.in
+> @@ -278,6 +278,9 @@ static const bool config_ivsalloc =
+> #  ifdef __arm__
+> #    define LG_QUANTUM		3
+> #  endif
+> +#  ifdef __aarch64__
+> +#    define LG_QUANTUM		4
+> +#  endif
+> #  ifdef __hppa__
+> #    define LG_QUANTUM		4
+> #  endif
+> -- 
+> 1.7.10.4
+
+Integrated into the dev branch; thanks.
+
+Jason
+
+From savagetw at us.ibm.com  Tue May  7 13:16:38 2013
+From: savagetw at us.ibm.com (Thomas W Savage)
+Date: Tue, 7 May 2013 16:16:38 -0400
+Subject: Workload causes significant internal fragmentation
+Message-ID: <OF14D6AB2F.116FB72B-ON85257B64.006E65DB-85257B64.006F6310@us.ibm.com>
+
+
+Hey all,
+
+My team is having trouble determining how to address increasing internal
+fragmentation (sizeable diff b/w Jm allocated and active) for a particular
+workload.
+
+We are allocating objects into three small bins (48, 320, 896). We start
+with an insertion phase in which we continually allocate "entries", which
+are made up of four allocations: 2x 48-byte objects, 1x 320 obj, and 1x 896
+obj. Once we have inserted entries up to a certain threshold, we begin an
+eviction phase in which we have some threads continuing insertion and
+another thread freeing 320's and 896's (not touching the 48's). By the end
+of this run, we observe significant internal fragmentation as demonstrated
+in the stats below. Is there anything that can be done to mitigate this
+internal frag?
+
+Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+Assertions disabled
+Run-time option settings:
+? opt.abort: false
+? opt.lg_chunk: 21
+? opt.dss: "secondary"
+? opt.narenas: 96
+? opt.lg_dirty_mult: 1
+? opt.stats_print: false
+? opt.junk: false
+? opt.quarantine: 0
+? opt.redzone: false
+? opt.zero: false
+CPUs: 24
+Arenas: 96
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 2:1
+Chunk size: 2097152 (2?21)
+Allocated: 7574200736, active: 8860864512, mapped: 9013559296
+Current active ceiling: 8963227648
+chunks: nchunks?? highchunks??? curchunks
+?????????? 4553???????? 4298???????? 4298
+huge: nmalloc????? ndalloc??? allocated
+?????????? 16?????????? 15???? 35651584
+
+Merged arenas stats:
+assigned threads: 79
+dss allocation precedence: N/A
+dirty pages: 2154593:0 active:dirty, 0 sweeps, 0 madvises, 0 purged
+??????????? allocated????? nmalloc????? ndalloc??? nrequests
+small:???? 7515054496???? 29540988????? 3552884???? 29540988
+large:?????? 23494656???????? 1432??????????? 0???????? 1432
+total:???? 7538549152???? 29542420????? 3552884???? 29542420
+active:??? 8825212928
+mapped:??? 8973713408
+bins:???? bin? size regs pgs??? allocated????? nmalloc????? ndalloc
+newruns?????? reruns????? curruns
+??????????? 0???? 8? 501?? 1????????? 176?????????? 22
+0?????????? 11??????????? 0?????????? 11
+[1]
+??????????? 2??? 32? 126?? 1??????? 68448???????? 2187
+48?????????? 22??????????? 0?????????? 21
+??????????? 3??? 48?? 84?? 1??? 666243696???? 13880077??????????? 0
+165272??????????? 0?????? 165272
+[4]
+??????????? 5??? 80?? 50?? 1???????? 1760?????????? 22
+0?????????? 11??????????? 0?????????? 11
+??????????? 6??? 96?? 84?? 2???????? 2112?????????? 22
+0?????????? 11??????????? 0?????????? 11
+[7..12]
+?????????? 13?? 320?? 63?? 5?? 2221154560????? 8717502????? 1776394
+125156?????? 701794?????? 125156
+[14..18]
+?????????? 19?? 896?? 45? 10?? 4627583744????? 6941156????? 1776442
+135776?????? 692084?????? 135774
+[20..27]
+large:?? size pages????? nmalloc????? ndalloc??? nrequests????? curruns
+[1]
+???????? 8192???? 2?????????? 22??????????? 0?????????? 22?????????? 22
+[1]
+??????? 16384???? 4???????? 1408??????????? 0???????? 1408???????? 1408
+[13]
+??????? 73728??? 18??????????? 1??????????? 0??????????? 1??????????? 1
+[23]
+?????? 172032??? 42??????????? 1??????????? 0??????????? 1??????????? 1
+[467]
+--- End jemalloc statistics ---
+
+Thanks,
+Thom
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/d2bbd8b6/attachment.html>
+
+From jasone at canonware.com  Tue May  7 14:10:23 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 7 May 2013 14:10:23 -0700
+Subject: Workload causes significant internal fragmentation
+In-Reply-To: <OF14D6AB2F.116FB72B-ON85257B64.006E65DB-85257B64.006F6310@us.ibm.com>
+References: <OF14D6AB2F.116FB72B-ON85257B64.006E65DB-85257B64.006F6310@us.ibm.com>
+Message-ID: <186623E9-1C09-41EC-AFBF-EBE0848D29C1@canonware.com>
+
+On May 7, 2013, at 1:16 PM, Thomas W Savage wrote:
+> My team is having trouble determining how to address increasing internal fragmentation (sizeable diff b/w Jm allocated and active) for a particular workload. 
+> 
+> We are allocating objects into three small bins (48, 320, 896). We start with an insertion phase in which we continually allocate "entries", which are made up of four allocations: 2x 48-byte objects, 1x 320 obj, and 1x 896 obj. Once we have inserted entries up to a certain threshold, we begin an eviction phase in which we have some threads continuing insertion and another thread freeing 320's and 896's (not touching the 48's). By the end of this run, we observe significant internal fragmentation as demonstrated in the stats below. Is there anything that can be done to mitigate this internal frag?
+> 
+> Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+> Assertions disabled
+> Run-time option settings:
+>   opt.abort: false
+>   opt.lg_chunk: 21
+>   opt.dss: "secondary"
+>   opt.narenas: 96
+>   opt.lg_dirty_mult: 1
+>   opt.stats_print: false
+>   opt.junk: false
+>   opt.quarantine: 0
+>   opt.redzone: false
+>   opt.zero: false
+> CPUs: 24
+> Arenas: 96
+> Pointer size: 8
+> Quantum size: 16
+> Page size: 4096
+> Min active:dirty page ratio per arena: 2:1
+> Chunk size: 2097152 (2?21)
+> Allocated: 7574200736, active: 8860864512, mapped: 9013559296
+> Current active ceiling: 8963227648
+> chunks: nchunks   highchunks    curchunks
+>            4553         4298         4298
+> huge: nmalloc      ndalloc    allocated
+>            16           15     35651584
+> 
+> Merged arenas stats:
+> assigned threads: 79
+> dss allocation precedence: N/A
+> dirty pages: 2154593:0 active:dirty, 0 sweeps, 0 madvises, 0 purged
+>             allocated      nmalloc      ndalloc    nrequests
+> small:     7515054496     29540988      3552884     29540988
+> large:       23494656         1432            0         1432
+> total:     7538549152     29542420      3552884     29542420
+> active:    8825212928
+> mapped:    8973713408
+> bins:     bin  size regs pgs    allocated      nmalloc      ndalloc      newruns       reruns      curruns
+>             0     8  501   1          176           22            0           11            0           11
+> [1]
+>             2    32  126   1        68448         2187           48           22            0           21
+>             3    48   84   1    	     13880077            0       165272            0       165272
+> [4]
+>             5    80   50   1         1760           22            0           11            0           11
+>             6    96   84   2         2112           22            0           11            0           11
+> [7..12]
+>            13   320   63   5   2221154560      8717502      1776394       125156       701794       125156
+> [14..18]
+>            19   896   45  10   4627583744      6941156      1776442       135776       692084       135774
+> [20..27]
+> large:   size pages      nmalloc      ndalloc    nrequests      curruns
+> [1]
+>          8192     2           22            0           22           22
+> [1]
+>         16384     4         1408            0         1408         1408
+> [13]
+>         73728    18            1            0            1            1
+> [23]
+>        172032    42            1            0            1            1
+> [467]
+> --- End jemalloc statistics --- 
+> 
+The external fragmentation for 320- and 896-byte region runs is 12% and 15%, respectively.  First off, that doesn't strike me as terrible, depending on the details of what's going on in the application.  There are two possible explanations (not mutually exclusive): 1) the application's memory usage is not at the high water mark, and 2) the eviction thread does not evict in a pattern that impacts the allocating threads proportionally to their allocation volumes.  Say that there are two arenas, and 75% of the evictions are objects allocated from arena 0, but arenas 0 and 1 are utilized equally by the allocating threads.  The result will be substantial arena 0 external fragmentation in the equilibrium state.  You can figure out whether (2) is a factor by running with one arena (which will surely impact performance, since you have thread caching disabled).  If fragmentation remains the same with one arena, then (1) is the entire explanation.
+
+One possible solution that should be allocator-agnostic would be to interleave eviction with normal allocation in all threads, such that threads evict their own previous allocations at a rate proportional to their allocation rates.  This changes the global eviction policy to one that is distributed though, so it may not be appropriate, depending on what your application does.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/5b9b9e3a/attachment.html>
+
+From garg_rajat at hotmail.com  Tue May  7 16:14:58 2013
+From: garg_rajat at hotmail.com (Rajat Garg)
+Date: Tue, 7 May 2013 16:14:58 -0700
+Subject: jemalloc performance for very small allocations
+In-Reply-To: <F7B11C0C-EFC3-4104-BA1D-0677BD43369D@canonware.com>
+References: <BAY154-W8749FBE688DE4A8A678A3EFB70@phx.gbl>
+	<BAY154-W185E683D345520A347B5EDEFB70@phx.gbl>,
+	<F7B11C0C-EFC3-4104-BA1D-0677BD43369D@canonware.com>
+Message-ID: <BAY154-W9B3BAD9EE8460662090C2EFBA0@phx.gbl>
+
+Thanks for the explantion/comments.  The increase in the TCACHE_NSLOTS_SMALL_MAX (which undercovers is limited to 1002 and 504 as you say) does help quit a bit in this case as I ran some profiles:
+
+default setting ==>
+Excl.     Incl.      Name
+User CPU  User CPU
+    sec.      sec.
+ 390.275   481.712   jepvt_arena_dalloc_bin_locked
+ 217.540   769.057   je_free
+ 201.956   488.113   jepvt_arena_tcache_fill_small
+ 199.592   283.012   arena_bin_malloc_hard
+  75.292   712.736   je_malloc
+
+callee for je_free  (most of runtime if in jepvt_tcache_bin_flush_small) 
+217.540   *je_free
+551.517    jepvt_tcache_bin_flush_small
+
+new setting  ==>
+Excl.     Incl.      Name
+User CPU  User CPU
+    sec.      sec.
+ 234.378   234.730   je_free
+ 154.511   307.229   jepvt_arena_malloc
+  78.713   385.964   je_malloc
+  57.772    70.838   jepvt_arena_dalloc_bin_locked
+
+callee info for jepvt_arena_malloc:
+Attr.      Name
+User CPU
+   sec.
+154.511   *jepvt_arena_malloc
+ 82.232    jepvt_tcache_event_hard
+ 70.486    jepvt_tcache_alloc_small_hard
+
+
+So we get quite a bit of runtime improvement --  but for our case the runtime in je_malloc and je_free is still quite high. Given above profile do you think modifying bin_info_run_size_calc() to use a larger initial min_run_size help? 
+
+thanks a lot,
+--rajat 
+
+
+Subject: Re: jemalloc performance for very small allocations
+From: jasone at canonware.com
+Date: Tue, 30 Apr 2013 22:52:24 -0700
+CC: jemalloc-discuss at canonware.com
+To: garg_rajat at hotmail.com
+
+On Apr 26, 2013, at 9:39 AM, Rajat Garg <garg_rajat at hotmail.com> wrote: I am using jemalloc 3.1.0, compiled with gcc 4.1.2 on CentOS release 5.6 for a compute intensive multithreaded application where bulk of allocations falls in 8-byte, 16-byte (stats below). We are seeing very high runtime in tcache_alloc_small_hard(), arena_tcache_fill_small() and arena_bin_malloc_hard().  The 8 and 16 bytes allocations happen in very large number. We probably want the allocations to come form tcache_alloc_easy() to not hit the locks and take less runtime.  The allocations are mostly temporary in nature -- especially 8-byte ones -- so some number of 8-byte allocations are done, then they are freed and then alloc/free process repeated. 
+
+The runs use 8 threads (so 48 arenas and all other jemalloc settings are default) and are on an Intel Xeon server with 12-cores (no hyperthreading and no other user so no contention with other user; the peak memory in application is ~6.5GB and server has 128GB memory so no memory shortage/swapping etc.); the jemalloc output at the end of run is given below. As we can see, pretty much 8 and 16 byte bins are overloaded.
+Only 8 of the 48 arenas are being used in your test case.  That said, the extra 40 are lazily initialized, so there's no need to change settings.
+A run with TCACHE_NSLOTS_SMALL_MAX=10000, LG_TCACHE_MAXCLASS_DEFAULT=10, changing small bins to hold only upto 224 bytes (NBINS=15),  and hardcoding 
+tcache_bin_info[i].ncached_max = TCACHE_NSLOTS_SMALL_MAX in tcache.c file improves runtime by about 16% (for overall application runtime) but increases peak memory from 6.5GB to 6.7GB. We want the runtime to at least improve by another 10% without preferably any increase in peak memory (so even 6.5GB to 6.7GB is not desirable). 
+Any suggestions on what changes to jemalloc settings to try?
+
+I don't think the TCACHE_NSLOTS_SMALL_MAX setting is having as much effect for your test case as you might expect.  Even with the setting of 10000, tcache is limited to 1002 and 504 regions for 8- and 16-byte regions, respectively.  If you want to further increase the tcache region count, you will need to either increase the logical page size, or modify bin_info_run_size_calc() to use a larger initial min_run_size.
+Jason 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/ba5db24e/attachment.html>
+
+From savagetw at us.ibm.com  Wed May  8 11:49:01 2013
+From: savagetw at us.ibm.com (Thomas W Savage)
+Date: Wed, 8 May 2013 14:49:01 -0400
+Subject: Workload causes significant internal fragmentation
+In-Reply-To: <186623E9-1C09-41EC-AFBF-EBE0848D29C1@canonware.com>
+References: <OF14D6AB2F.116FB72B-ON85257B64.006E65DB-85257B64.006F6310@us.ibm.com>
+	<186623E9-1C09-41EC-AFBF-EBE0848D29C1@canonware.com>
+Message-ID: <OF812460B7.073F778B-ON85257B65.0067593A-85257B65.00675D72@us.ibm.com>
+
+Jason,
+
+Thank you for taking the time to reply to my note! A few data points and
+some questions...
+
+1. We did indeed verify that we have the same fragmentation outcome when
+running with narenas:1, suggesting that your second possibility was not the
+cause.
+
+2. You suggested that this is likely because we have not yet reached the
+high water mark for our application. This is true, as the scenario I'm
+describing happens during the "preload phase" of the user's run. In this
+situation, the user is attempting to allocate 10g of data and the
+"eviction" thread is moving data from memory to disk until the user's load
+has completed. The goal of our application is to enforce a strict upper
+bound on user allocations and use eviction threads to enforce that
+boundary.
+
+3. For user loads which use object sizes greater than the page size (4k),
+we have not observed the same type of internal fragmentation when the
+eviction threads start firing. Is this problem somehow specific to the
+small bins? If so, why would that be?
+
+4. Our assumption was that the holes left in memory due to the eviction
+thread would be available for the further "insert" threads to leverage. Is
+this not what's happening?
+
+5.  Maybe we could place "evictable" data objects into specific chunks. At
+our application level, do we have any efficient introspection that we can
+do to gain insight into which chunks different objs end up living?
+
+Thanks,
+Thom
+
+
+
+|------------>
+| From:      |
+|------------>
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Jason Evans <jasone at canonware.com>                                                                                                              |
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------>
+| To:        |
+|------------>
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Thomas W Savage/Durham/IBM at IBMUS,                                                                                                               |
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------>
+| Cc:        |
+|------------>
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+  |jemalloc-discuss at canonware.com                                                                                                                  |
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------>
+| Date:      |
+|------------>
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+  |05/07/2013 05:10 PM                                                                                                                             |
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------>
+| Subject:   |
+|------------>
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Re: Workload causes significant internal fragmentation                                                                                          |
+  >------------------------------------------------------------------------------------------------------------------------------------------------|
+
+
+
+
+
+On May 7, 2013, at 1:16 PM, Thomas W Savage wrote:
+
+
+      My team is having trouble determining how to address increasing
+      internal fragmentation (sizeable diff b/w Jm allocated and active)
+      for a particular workload.
+
+      We are allocating objects into three small bins (48, 320, 896). We
+      start with an insertion phase in which we continually allocate
+      "entries", which are made up of four allocations: 2x 48-byte objects,
+      1x 320 obj, and 1x 896 obj. Once we have inserted entries up to a
+      certain threshold, we begin an eviction phase in which we have some
+      threads continuing insertion and another thread freeing 320's and
+      896's (not touching the 48's). By the end of this run, we observe
+      significant internal fragmentation as demonstrated in the stats
+      below. Is there anything that can be done to mitigate this internal
+      frag?
+
+      Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+      Assertions disabled
+      Run-time option settings:
+        opt.abort: false
+        opt.lg_chunk: 21
+        opt.dss: "secondary"
+        opt.narenas: 96
+        opt.lg_dirty_mult: 1
+        opt.stats_print: false
+        opt.junk: false
+        opt.quarantine: 0
+        opt.redzone: false
+        opt.zero: false
+      CPUs: 24
+      Arenas: 96
+      Pointer size: 8
+      Quantum size: 16
+      Page size: 4096
+      Min active:dirty page ratio per arena: 2:1
+      Chunk size: 2097152 (2?21)
+      Allocated: 7574200736, active: 8860864512, mapped: 9013559296
+      Current active ceiling: 8963227648
+      chunks: nchunks   highchunks    curchunks
+                 4553         4298         4298
+      huge: nmalloc      ndalloc    allocated
+                 16           15     35651584
+
+      Merged arenas stats:
+      assigned threads: 79
+      dss allocation precedence: N/A
+      dirty pages: 2154593:0 active:dirty, 0 sweeps, 0 madvises, 0 purged
+                  allocated      nmalloc      ndalloc    nrequests
+      small:     7515054496     29540988      3552884     29540988
+      large:       23494656         1432            0         1432
+      total:     7538549152     29542420      3552884     29542420
+      active:    8825212928
+      mapped:    8973713408
+      bins:     bin  size regs pgs    allocated      nmalloc      ndalloc
+      newruns       reruns      curruns
+                  0     8  501   1          176           22            0
+      11            0           11
+      [1]
+                  2    32  126   1        68448         2187           48
+      22            0           21
+                  3    48   84   1         13880077            0
+      165272            0       165272
+      [4]
+                  5    80   50   1         1760           22            0
+      11            0           11
+                  6    96   84   2         2112           22            0
+      11            0           11
+      [7..12]
+                 13   320   63   5   2221154560      8717502      1776394
+      125156       701794       125156
+      [14..18]
+                 19   896   45  10   4627583744      6941156      1776442
+      135776       692084       135774
+      [20..27]
+      large:   size pages      nmalloc      ndalloc    nrequests
+      curruns
+      [1]
+               8192     2           22            0           22
+      22
+      [1]
+              16384     4         1408            0         1408
+      1408
+      [13]
+              73728    18            1            0            1
+      1
+      [23]
+             172032    42            1            0            1
+      1
+      [467]
+      --- End jemalloc statistics ---
+
+
+The external fragmentation for 320- and 896-byte region runs is 12% and
+15%, respectively.  First off, that doesn't strike me as terrible,
+depending on the details of what's going on in the application.  There are
+two possible explanations (not mutually exclusive): 1) the application's
+memory usage is not at the high water mark, and 2) the eviction thread does
+not evict in a pattern that impacts the allocating threads proportionally
+to their allocation volumes.  Say that there are two arenas, and 75% of the
+evictions are objects allocated from arena 0, but arenas 0 and 1 are
+utilized equally by the allocating threads.  The result will be substantial
+arena 0 external fragmentation in the equilibrium state.  You can figure
+out whether (2) is a factor by running with one arena (which will surely
+impact performance, since you have thread caching disabled).  If
+fragmentation remains the same with one arena, then (1) is the entire
+explanation.
+
+One possible solution that should be allocator-agnostic would be to
+interleave eviction with normal allocation in all threads, such that
+threads evict their own previous allocations at a rate proportional to
+their allocation rates.  This changes the global eviction policy to one
+that is distributed though, so it may not be appropriate, depending on what
+your application does.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: graycol.gif
+Type: image/gif
+Size: 105 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment.gif>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ecblank.gif
+Type: image/gif
+Size: 45 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment-0001.gif>
+
+From Shashi.Guruprasad at accelops.com  Mon May 20 18:22:51 2013
+From: Shashi.Guruprasad at accelops.com (Shashi Guruprasad)
+Date: Mon, 20 May 2013 18:22:51 -0700
+Subject: which version of libunwind is recommended? 
+Message-ID: <CDC01A7B.B718%shashi@accelops.com>
+
+Hi,
+
+On CentOS5 x86_64, which version of libunwind is recommended to be used with jemalloc?
+
+gperftools for example suggests to use 0.99-beta rather than the latest libunwind-1.1 as this newer library has calls to malloc() which makes it unsafe. Any such requirement for jemalloc or is it ok to use 1.1?
+
+Thanks,
+-Shashi
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130520/28c482ca/attachment.html>
+
+From karthikkn.ceg at gmail.com  Mon May 27 08:24:32 2013
+From: karthikkn.ceg at gmail.com (Karthik KN)
+Date: Mon, 27 May 2013 20:54:32 +0530
+Subject: Default *make install* failing with the absence of doc/jemalloc.html
+Message-ID: <CAChfooyVGFsm0Xu-n3wQa50Gt8kadNUgp2wCMv8T5VHg9EV5cA@mail.gmail.com>
+
+Hi team,
+
+I tried compiling the jemalloc from source and after configure and make ,
+make install fails with the following error.
+
+install -m 644 doc/jemalloc.html /usr/local/share/doc/jemalloc
+install: cannot stat `doc/jemalloc.html': No such file or directory
+make: *** [install_doc_html] Error 1
+
+The following are my machine details.
+
+Linux karthik-pc 3.2.0-23-generic-pae #36-Ubuntu SMP Tue Apr 10 22:19:09
+UTC 2012 i686 i686 i386 GNU/Linux
+
+I am not sure why the html file is NOT generated in the expected location.
+Am I missing something here?
+
+
+Thanks,
+karthik.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130527/047ea9f9/attachment.html>
+
+From jasone at canonware.com  Mon May 27 10:17:16 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 27 May 2013 10:17:16 -0700
+Subject: Default *make install* failing with the absence of
+	doc/jemalloc.html
+In-Reply-To: <CAChfooyVGFsm0Xu-n3wQa50Gt8kadNUgp2wCMv8T5VHg9EV5cA@mail.gmail.com>
+References: <CAChfooyVGFsm0Xu-n3wQa50Gt8kadNUgp2wCMv8T5VHg9EV5cA@mail.gmail.com>
+Message-ID: <232DF6AD-2E54-4D03-AFE6-F20D30E2D497@canonware.com>
+
+On May 27, 2013, at 8:24 AM, Karthik KN <karthikkn.ceg at gmail.com> wrote:
+> I tried compiling the jemalloc from source and after configure and make , make install fails with the following error.
+> 
+> install -m 644 doc/jemalloc.html /usr/local/share/doc/jemalloc
+> install: cannot stat `doc/jemalloc.html': No such file or directory
+> make: *** [install_doc_html] Error 1
+> 
+> The following are my machine details.
+> 
+> Linux karthik-pc 3.2.0-23-generic-pae #36-Ubuntu SMP Tue Apr 10 22:19:09 UTC 2012 i686 i686 i386 GNU/Linux
+> 
+> I am not sure why the html file is NOT generated in the expected location. Am I missing something here?
+
+The build system is set up such that release tarballs do not depend on the documentation build tools.  If you want to build/install directly from a git checkout, do 'make dist' or 'make build_doc' before 'make install'.  Alternately, do 'make install_bin install_include install_lib' to install everything except docs.
+
+Jason
+
+From karthikkn.ceg at gmail.com  Mon May 27 20:23:36 2013
+From: karthikkn.ceg at gmail.com (Karthik KN)
+Date: Tue, 28 May 2013 08:53:36 +0530
+Subject: Default *make install* failing with the absence of
+	doc/jemalloc.html
+In-Reply-To: <232DF6AD-2E54-4D03-AFE6-F20D30E2D497@canonware.com>
+References: <CAChfooyVGFsm0Xu-n3wQa50Gt8kadNUgp2wCMv8T5VHg9EV5cA@mail.gmail.com>
+	<232DF6AD-2E54-4D03-AFE6-F20D30E2D497@canonware.com>
+Message-ID: <CAChfooxb=7t_SfLBjT5xZzQhXu2SzmeTeA_oCytf62Wcpm_sFg@mail.gmail.com>
+
+Hi Jason,
+
+Thanks a lot for the quick response. I'll do so as suggested.
+
+Please let me know if you think it would be good to include this info in
+the README file. This information might be useful to newcomers like me.  If
+this is a default assumption and people are expected to be aware of this,
+then please ignore this request.
+
+Thanks,
+karthik
+
+
+
+
+On Mon, May 27, 2013 at 10:47 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On May 27, 2013, at 8:24 AM, Karthik KN <karthikkn.ceg at gmail.com> wrote:
+> > I tried compiling the jemalloc from source and after configure and make
+> , make install fails with the following error.
+> >
+> > install -m 644 doc/jemalloc.html /usr/local/share/doc/jemalloc
+> > install: cannot stat `doc/jemalloc.html': No such file or directory
+> > make: *** [install_doc_html] Error 1
+> >
+> > The following are my machine details.
+> >
+> > Linux karthik-pc 3.2.0-23-generic-pae #36-Ubuntu SMP Tue Apr 10 22:19:09
+> UTC 2012 i686 i686 i386 GNU/Linux
+> >
+> > I am not sure why the html file is NOT generated in the expected
+> location. Am I missing something here?
+>
+> The build system is set up such that release tarballs do not depend on the
+> documentation build tools.  If you want to build/install directly from a
+> git checkout, do 'make dist' or 'make build_doc' before 'make install'.
+>  Alternately, do 'make install_bin install_include install_lib' to install
+> everything except docs.
+>
+> Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130528/5c34147b/attachment.html>
+
+From kurtism at us.ibm.com  Wed May 29 13:52:45 2013
+From: kurtism at us.ibm.com (Kurtis Martin)
+Date: Wed, 29 May 2013 16:52:45 -0400
+Subject: High amount of private clean data in smaps
+Message-ID: <OFD601CD90.832E71A2-ON85257B7A.00729344-85257B7A.0072B266@us.ibm.com>
+
+We have a java application which has a native component written in C, that 
+makes use of JNI to manage several of our objects that we directly 
+allocate via jemalloc.  One of the goals for our C code is to not allow 
+our processes RSS size to grow beyond a certain point.  To do this our app 
+monitors jemallocs stats.cactive, when it sees that cactive reach a 
+certain point we write certain some of our objects to disk then we free 
+the allocated memory.  In this case, the objects that we are freeing are 
+4K and above, so when we free the pages holding these objects should no 
+longer be active.  That part seems to be working.
+
+After several hours of running our application at full load, we start to 
+see our RSS go beyond what is expected.  This unexpected growth seems to 
+happen faster for some instances of our application vs others.  I compared 
+the /proc smaps file between instances of our app that had a high RSS to 
+those with expected RSS.  In both cases smap shows a really large map that 
+I think belongs to jemalloc.  I believe it belongs to jemalloc, because if 
+it didn't the sum of jemallocs active size + the RSS size of this map goes 
+well beyond our processes overall RSS size. 
+
+The thing that is really strange about this mmap is that it's 
+Private_Clean sizes is really high, e.g. 1.4 GBs.  I don't know much about 
+private clean pages, other than what a few google searchs told me about 
+them being pages that have not been modified since they were mapped.  I'm 
+hopeful that you can tell me more about private clean pages and if/why 
+jemalloc would have maps with such high private clean pages.
+
+Here's one such map from my smaps file and the jemalloc stats around the 
+same time.  At this time /proc status showed our VmRSS size was 10440804 
+kB:
+
+7f41dc200000-7f437a400000 rw-p 00000000 00:00 0 
+Size:            6785024 kB
+Rss:             4037056 kB
+Pss:             4037056 kB
+Shared_Clean:          0 kB
+Shared_Dirty:          0 kB
+Private_Clean:   1499364 kB
+Private_Dirty:   2537692 kB
+Referenced:      2536428 kB
+Swap:                  0 kB
+KernelPageSize:        4 kB
+MMUPageSize:           4 kB
+
+Jemalloc stats:
+
+___ Begin jemalloc statistics ___
+Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+Assertions disabled
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 21
+  opt.dss: "secondary"
+  opt.narenas: 96
+  opt.lg_dirty_mult: 6
+  opt.stats_print: false
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+CPUs: 24
+Arenas: 96
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 64:1
+Chunk size: 2097152 (2^21)
+Allocated: 7350097392, active: 7438028800, mapped: 13549699072
+Current active ceiling: 7486832640
+chunks: nchunks   highchunks    curchunks
+           6927         6622         6461
+huge: nmalloc      ndalloc    allocated
+            0            0            0
+
+Merged arenas stats:
+assigned threads: 93
+dss allocation precedence: N/A
+dirty pages: 1815925:2559 active:dirty, 10091062 sweeps, 30421949 
+madvises, 135567186 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:     1072125424    106372291     99191380    106372291
+large:     6277971968     51052119     50542543     51052119
+total:     7350097392    157424410    149733923    157424410
+active:    7438028800
+mapped:   13545504768
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc 
+newruns       reruns      curruns
+            0     8  501   1          128           30           14    11  
+         0            7
+            1    16  252   1          672           42            0    11  
+         0           11
+            2    32  126   1           64            2            0     1  
+         0            1
+            3    48   84   1    114892800     16709174     14315574 43714  
+   1159683        30488
+            4    64   63   1       851264       167481       154180  3075  
+      1219          235
+            5    80   50   1    190426160     36559908     34179581 115227 
+     4236615        50957
+            6    96   84   2         2112           30            8    11  
+         0            7
+[7..10]
+           11   224   72   4          224            1            0     1  
+         0            1
+[12]
+           13   320   63   5    765952000     52935623     50542023 64485  
+  14712013        40300
+[14..27]
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+[1]
+         8192     2           30            8           30           22
+        12288     3     51050157     50542023     51050157       508134
+        16384     4         1920          512         1920         1408
+[13]
+        73728    18            1            0            1            1
+[23]
+       172032    42            1            0            1            1
+[214]
+      1052672   257           10            0           10           10
+[252]
+--- End jemalloc statistics ---
+
+
+Any help is greatly appreciated
+.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130529/05c02b33/attachment.html>
+
+From kurtism at us.ibm.com  Thu May 30 16:06:46 2013
+From: kurtism at us.ibm.com (Kurtis Martin)
+Date: Thu, 30 May 2013 19:06:46 -0400
+Subject: High amount of private clean data in smaps
+In-Reply-To: <OF1620C583.95DDC2E3-ON85257B7B.007DCD10-85257B7B.007DD9EA@LocalDomain>
+References: <OFD601CD90.832E71A2-ON85257B7A.00729344-85257B7A.0072B266@LocalDomain>
+	<OF1620C583.95DDC2E3-ON85257B7B.007DCD10-85257B7B.007DD9EA@LocalDomain>
+Message-ID: <OFC82237DD.8F26F703-ON85257B7B.007DE1D1-85257B7B.007EF7E4@us.ibm.com>
+
+Just wanted to mention that I printed out the addresses being returned 
+from jemalloc() and those addresses fit within the range of the smaps in 
+question.  So I'm certain the smaps with large Private_Clean bytes belongs 
+to jemalloc.
+
+Questions:
+
+1) Why does jemalloc have smaps with such large Private_Clean size?  I'm 
+actually surprised jemalloc has such large smaps in general.  I would 
+expect a bunch of smaller smaps that match the configured chunk size.
+
+2) Will the Linux kernel ever reclaim private clean pages, or at least 
+move them out of physical memory?  Eventually we see RSS for several of 
+our processes (that use jemalloc) grow beyond what's expected and the OOM 
+killer in the kernel takes out our process(es).
+
+3) Are there any configurations that can be done to influence the handling 
+of private clean pages?  Either jemalloc or Linux tuning.
+
+        thx again !
+
+
+
+
+
+
+
+From:
+Kurtis Martin/Raleigh/IBM
+To:
+jemalloc-discuss at canonware.com, 
+Date:
+05/29/2013 04:52 PM
+Subject:
+High amount of private clean data in smaps
+
+
+We have a java application which has a native component written in C, that 
+makes use of JNI to manage several of our objects that we directly 
+allocate via jemalloc.  One of the goals for our C code is to not allow 
+our processes RSS size to grow beyond a certain point.  To do this our app 
+monitors jemallocs stats.cactive, when it sees that cactive reach a 
+certain point we write certain some of our objects to disk then we free 
+the allocated memory.  In this case, the objects that we are freeing are 
+4K and above, so when we free the pages holding these objects should no 
+longer be active.  That part seems to be working.
+
+After several hours of running our application at full load, we start to 
+see our RSS go beyond what is expected.  This unexpected growth seems to 
+happen faster for some instances of our application vs others.  I compared 
+the /proc smaps file between instances of our app that had a high RSS to 
+those with expected RSS.  In both cases smap shows a really large map that 
+I think belongs to jemalloc.  I believe it belongs to jemalloc, because if 
+it didn't the sum of jemallocs active size + the RSS size of this map goes 
+well beyond our processes overall RSS size. 
+
+The thing that is really strange about this mmap is that it's 
+Private_Clean sizes is really high, e.g. 1.4 GBs.  I don't know much about 
+private clean pages, other than what a few google searchs told me about 
+them being pages that have not been modified since they were mapped.  I'm 
+hopeful that you can tell me more about private clean pages and if/why 
+jemalloc would have maps with such high private clean pages.
+
+Here's one such map from my smaps file and the jemalloc stats around the 
+same time.  At this time /proc status showed our VmRSS size was 10440804 
+kB:
+
+7f41dc200000-7f437a400000 rw-p 00000000 00:00 0 
+Size:            6785024 kB
+Rss:             4037056 kB
+Pss:             4037056 kB
+Shared_Clean:          0 kB
+Shared_Dirty:          0 kB
+Private_Clean:   1499364 kB
+Private_Dirty:   2537692 kB
+Referenced:      2536428 kB
+Swap:                  0 kB
+KernelPageSize:        4 kB
+MMUPageSize:           4 kB
+
+Jemalloc stats:
+
+___ Begin jemalloc statistics ___
+Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+Assertions disabled
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 21
+  opt.dss: "secondary"
+  opt.narenas: 96
+  opt.lg_dirty_mult: 6
+  opt.stats_print: false
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+CPUs: 24
+Arenas: 96
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 64:1
+Chunk size: 2097152 (2^21)
+Allocated: 7350097392, active: 7438028800, mapped: 13549699072
+Current active ceiling: 7486832640
+chunks: nchunks   highchunks    curchunks
+           6927         6622         6461
+huge: nmalloc      ndalloc    allocated
+            0            0            0
+
+Merged arenas stats:
+assigned threads: 93
+dss allocation precedence: N/A
+dirty pages: 1815925:2559 active:dirty, 10091062 sweeps, 30421949 
+madvises, 135567186 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:     1072125424    106372291     99191380    106372291
+large:     6277971968     51052119     50542543     51052119
+total:     7350097392    157424410    149733923    157424410
+active:    7438028800
+mapped:   13545504768
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc 
+newruns       reruns      curruns
+            0     8  501   1          128           30           14    11  
+         0            7
+            1    16  252   1          672           42            0    11  
+         0           11
+            2    32  126   1           64            2            0     1  
+         0            1
+            3    48   84   1    114892800     16709174     14315574 43714  
+   1159683        30488
+            4    64   63   1       851264       167481       154180  3075  
+      1219          235
+            5    80   50   1    190426160     36559908     34179581 115227 
+     4236615        50957
+            6    96   84   2         2112           30            8    11  
+         0            7
+[7..10]
+           11   224   72   4          224            1            0     1  
+         0            1
+[12]
+           13   320   63   5    765952000     52935623     50542023 64485  
+  14712013        40300
+[14..27]
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+[1]
+         8192     2           30            8           30           22
+        12288     3     51050157     50542023     51050157       508134
+        16384     4         1920          512         1920         1408
+[13]
+        73728    18            1            0            1            1
+[23]
+       172032    42            1            0            1            1
+[214]
+      1052672   257           10            0           10           10
+[252]
+--- End jemalloc statistics ---
+
+
+Any help is greatly appreciated
+.
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130530/97a6f56a/attachment.html>
+

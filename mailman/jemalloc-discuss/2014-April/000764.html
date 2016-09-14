@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> keeping memory usage at certain limit
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3CCA%2BXzkVf48n4D6pNHqjq7yMtfZe%2Bd31Gfh4F82O-i5Hs_PU_3Tw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000763.html">
+   <LINK REL="Next"  HREF="000762.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>keeping memory usage at certain limit</H1>
+    <B>Salvatore Sanfilippo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3CCA%2BXzkVf48n4D6pNHqjq7yMtfZe%2Bd31Gfh4F82O-i5Hs_PU_3Tw%40mail.gmail.com%3E"
+       TITLE="keeping memory usage at certain limit">antirez at gmail.com
+       </A><BR>
+    <I>Tue Apr 29 05:36:17 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000763.html">keeping memory usage at certain limit
+</A></li>
+        <LI>Next message: <A HREF="000762.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#764">[ date ]</a>
+              <a href="thread.html#764">[ thread ]</a>
+              <a href="subject.html#764">[ subject ]</a>
+              <a href="author.html#764">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+Redis files zmalloc.[ch] contain an implementation of a jemalloc
+wrapper that can track the size of the currently allocated memory, as
+the sum of all the individual allocations, plus functions to get the
+ratio between the actual resident set size of the process and this
+sum, in order to obtain the fragmentation level. This is used as a
+base to implement Redis &quot;maxmemory&quot; directive that looks similar to
+what you want.
+
+Source code (BSD licensed) here:
+
+<A HREF="https://github.com/antirez/redis/blob/unstable/src/zmalloc.c">https://github.com/antirez/redis/blob/unstable/src/zmalloc.c</A>
+<A HREF="https://github.com/antirez/redis/blob/unstable/src/zmalloc.h">https://github.com/antirez/redis/blob/unstable/src/zmalloc.h</A>
+
+Regards,
+Salvatore
+
+On Tue, Apr 29, 2014 at 2:29 PM, Antony Dovgal &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">antony.dovgal at gmail.com</A>&gt; wrote:
+&gt;<i> On 04/29/2014 03:28 PM, Bradley C. Kuszmaul wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Are transparent huge pages enabled? Does disabling them help?  (If so, you
+</I>&gt;&gt;<i> may be able to thus workaround, and perhaps jemalloc could be improved.)
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> From what I can see, they are disabled:
+</I>&gt;<i>
+</I>&gt;<i> $ cat /sys/kernel/mm/transparent_hugepage/enabled
+</I>&gt;<i> always madvise [never]
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> Wbr,
+</I>&gt;<i> Antony Dovgal
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - GoPivotal
+<A HREF="http://invece.org">http://invece.org</A>
+
+To &quot;attack a straw man&quot; is to create the illusion of having refuted a
+proposition by replacing it with a superficially similar yet
+unequivalent proposition (the &quot;straw man&quot;), and to refute it
+       &#8212; Wikipedia (Straw man page)
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000763.html">keeping memory usage at certain limit
+</A></li>
+	<LI>Next message: <A HREF="000762.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#764">[ date ]</a>
+              <a href="thread.html#764">[ thread ]</a>
+              <a href="subject.html#764">[ subject ]</a>
+              <a href="author.html#764">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

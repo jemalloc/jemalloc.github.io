@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> interpretation of malloc_stats_print() output
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20interpretation%20of%20malloc_stats_print%28%29%20output&In-Reply-To=%3CEDC505415B5EF74C80596BD24619C1032C40764A%40xmb-rcd-x07.cisco.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001113.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>interpretation of malloc_stats_print() output</H1>
+    <B>Mayank Kumar (mayankum)</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20interpretation%20of%20malloc_stats_print%28%29%20output&In-Reply-To=%3CEDC505415B5EF74C80596BD24619C1032C40764A%40xmb-rcd-x07.cisco.com%3E"
+       TITLE="interpretation of malloc_stats_print() output">mayankum at cisco.com
+       </A><BR>
+    <I>Tue Jun  2 11:25:58 PDT 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001113.html">interpretation of malloc_stats_print() output
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1112">[ date ]</a>
+              <a href="thread.html#1112">[ thread ]</a>
+              <a href="subject.html#1112">[ subject ]</a>
+              <a href="author.html#1112">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi All
+I am trying to match output from malloc_stats with output from top and also trying to figure out total process virtual memory usage from stats.
+
+What fields in the stats should be added to get the total virtual memory for my process ?
+
+Also is this link an accurate measurement of fragmentation for my process?
+<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html">http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html</A>
+
+from the link it seems active should be less than allocated, but I see otherwise. Is there a documentation somewhere to decipher this interesting output from jemalloc stats ?
+
+
+CPUs: 2
+Arenas: 8
+Pointer size: 4
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 8:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 251363184, active: 270594048, mapped: 415236096
+Current active ceiling: 1488977920
+chunks: nchunks   highchunks    curchunks
+            100           99           99
+huge: nmalloc      ndalloc    allocated
+            0            0            0
+
+Merged arenas stats:
+assigned threads: 21
+dss allocation precedence: N/A
+dirty pages: 66063:6587 active:dirty, 295 sweeps, 7009 madvises, 94136 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:      176254832      8893481      6427006     22584955
+large:       75108352         4791         2711         8062
+total:      251363184      8898272      6429717     22593017
+active:     270594048
+mapped:     411041792
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150602/f0381804/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150602/f0381804/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001113.html">interpretation of malloc_stats_print() output
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1112">[ date ]</a>
+              <a href="thread.html#1112">[ thread ]</a>
+              <a href="subject.html#1112">[ subject ]</a>
+              <a href="author.html#1112">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

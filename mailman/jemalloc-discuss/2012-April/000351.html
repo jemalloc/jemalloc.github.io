@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Remove variable length arrays and declarations	within code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Remove%20variable%20length%20arrays%20and%20declarations%0A%09within%20code&In-Reply-To=%3C20120422084630.GA24075%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000349.html">
+   <LINK REL="Next"  HREF="000354.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Remove variable length arrays and declarations	within code</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Remove%20variable%20length%20arrays%20and%20declarations%0A%09within%20code&In-Reply-To=%3C20120422084630.GA24075%40glandium.org%3E"
+       TITLE="[PATCH 7/7] Remove variable length arrays and declarations	within code">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Sun Apr 22 01:46:30 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000349.html">[PATCH 7/7] Remove variable length arrays and declarations within	code
+</A></li>
+        <LI>Next message: <A HREF="000354.html">[PATCH 7/7] Remove variable length arrays and declarations within	code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#351">[ date ]</a>
+              <a href="thread.html#351">[ thread ]</a>
+              <a href="subject.html#351">[ subject ]</a>
+              <a href="author.html#351">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sun, Apr 22, 2012 at 01:08:19AM -0700, Jason Evans wrote:
+&gt;<i> On Apr 19, 2012, at 11:38 PM, Mike Hommey wrote:
+</I>&gt;<i> &gt; From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; MSVC doesn't support C99, and building as C++ to be able to use them is
+</I>&gt;<i> &gt; dangerous, as C++ and C99 are incompatible.
+</I>&gt;<i> &gt; ---
+</I>&gt;<i> &gt; include/jemalloc/internal/prof.h |    3 ++-
+</I>&gt;<i> &gt; src/arena.c                      |   17 ++++++++++-------
+</I>&gt;<i> &gt; src/chunk_mmap.c                 |    5 +++--
+</I>&gt;<i> &gt; src/ctl.c                        |    6 ++++--
+</I>&gt;<i> &gt; src/stats.c                      |   12 ++++++++----
+</I>&gt;<i> &gt; src/tsd.c                        |    2 +-
+</I>&gt;<i> &gt; test/bitmap.c                    |   12 ++++++++----
+</I>&gt;<i> &gt; 7 files changed, 36 insertions(+), 21 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> This diff adds calls to malloc/free from within the allocator, which
+</I>&gt;<i> perturbs heap profiling.  imalloc/idalloc are probably what you want
+</I>&gt;<i> instead.
+</I>
+alloca might work, too, if you're okay using it. We could also have a
+helper macro using variable length arrays or alloca depending on the
+value of __STDC_VERSION__...
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000349.html">[PATCH 7/7] Remove variable length arrays and declarations within	code
+</A></li>
+	<LI>Next message: <A HREF="000354.html">[PATCH 7/7] Remove variable length arrays and declarations within	code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#351">[ date ]</a>
+              <a href="thread.html#351">[ thread ]</a>
+              <a href="subject.html#351">[ subject ]</a>
+              <a href="author.html#351">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

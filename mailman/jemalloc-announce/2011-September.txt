@@ -1,0 +1,29 @@
+From jasone at canonware.com  Thu Sep  1 13:40:26 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 01 Sep 2011 13:40:26 -0700
+Subject: jemalloc 2.2.3 released
+Message-ID: <4E5FEDBA.6080606@canonware.com>
+
+jemalloc 2.2.3 is now available.  This version fixes numerous bugs 
+related to heap profiling.
+
+   Bug fixes:
+   - Fix a prof-related race condition.  This bug could cause memory
+     corruption, but only occurred in non-default configurations
+     (prof_accum:false).
+   - Fix off-by-one backtracing issues (make sure that prof_alloc_prep()
+     is excluded from backtraces).
+   - Fix a prof-related bug in realloc() (only triggered by OOM errors).
+   - Fix prof-related bugs in allocm() and rallocm().
+   - Fix prof_tdata_cleanup() for --disable-tls builds.
+   - Fix a relative include path, to fix objdir builds.
+
+For the complete ChangeLog, see:
+   http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+   http://www.canonware.com/download/jemalloc/jemalloc-2.2.3.tar.bz2
+
+Starting point for general information:
+   http://www.canonware.com/jemalloc/
+

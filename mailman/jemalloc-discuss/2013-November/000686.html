@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Gather Arena stats
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Gather%20Arena%20stats&In-Reply-To=%3CF9FEBBE0-9864-4372-96DB-A7C4ECA4088B%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000684.html">
+   <LINK REL="Next"  HREF="000687.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Gather Arena stats</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Gather%20Arena%20stats&In-Reply-To=%3CF9FEBBE0-9864-4372-96DB-A7C4ECA4088B%40canonware.com%3E"
+       TITLE="Gather Arena stats">jasone at canonware.com
+       </A><BR>
+    <I>Tue Nov 26 12:01:09 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000684.html">Gather Arena stats
+</A></li>
+        <LI>Next message: <A HREF="000687.html">Gather Arena stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#686">[ date ]</a>
+              <a href="thread.html#686">[ thread ]</a>
+              <a href="subject.html#686">[ subject ]</a>
+              <a href="author.html#686">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 26, 2013, at 11:40 AM, Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+&gt;<i> i am interested into gather memory usage per Linux thread, as i am using jemalloc i think this can be done quering the arenas per thread. if i am correct, do you have some code example that accomplish something similar to this ?
+</I>
+Threads don't own memory; allocated regions can be shared among threads, and allocation/deallocation can be split between threads.  That said, jemalloc does track total volume of allocation and deallocation on a per thread basis, so you can derive the information you want as long as you account for allocated regions that are shared among threads.  Take a look at the &quot;thread.allocated&quot; and &quot;thread.deallocated&quot; mallctl() interfaces in the man page:
+
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html</A>
+
+There is a relevant test program included with jemalloc:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c">https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c</A>
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/f6cd5282/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/f6cd5282/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000684.html">Gather Arena stats
+</A></li>
+	<LI>Next message: <A HREF="000687.html">Gather Arena stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#686">[ date ]</a>
+              <a href="thread.html#686">[ thread ]</a>
+              <a href="subject.html#686">[ subject ]</a>
+              <a href="author.html#686">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

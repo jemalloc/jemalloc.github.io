@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory allocation/release hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3C042D5678-07C0-4677-9F0E-13CF4930257E%40ornl.gov%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001197.html">
+   <LINK REL="Next"  HREF="001199.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory allocation/release hooks</H1>
+    <B>Shamis, Pavel</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3C042D5678-07C0-4677-9F0E-13CF4930257E%40ornl.gov%3E"
+       TITLE="Memory allocation/release hooks">shamisp at ornl.gov
+       </A><BR>
+    <I>Tue Oct 20 12:18:41 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001197.html">Memory allocation/release hooks
+</A></li>
+        <LI>Next message: <A HREF="001199.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1198">[ date ]</a>
+              <a href="thread.html#1198">[ thread ]</a>
+              <a href="subject.html#1198">[ subject ]</a>
+              <a href="author.html#1198">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jeff,
+
+Thanks for the link, seems like a very useful library.
+
+Our goal is a bit different (and very simple/basic).
+We are looking for a malloc library that we can use for integration with our registration cache.
+Essentially, it redirects application's malloc() calls to (through LD_PRELOAD or rpath) jemalloc that is hooked up with a cache (just like in HPX).
+At this stage we don't play with locality.
+
+Thanks !
+
+Pavel (Pasha) Shamis
+---
+Computer Science Research Group
+Computer Science and Math Division
+Oak Ridge National Laboratory
+
+
+
+
+
+
+On Oct 20, 2015, at 11:31 AM, Jeff Hammond &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jeff.science at gmail.com</A>&lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jeff.science at gmail.com</A>&gt;&gt; wrote:
+
+Hi Pavel,
+
+You may find <A HREF="http://memkind.github.io/memkind/">http://memkind.github.io/memkind/</A> relevant.  In particular, <A HREF="http://memkind.github.io/memkind/memkind_arch_20150318.pdf">http://memkind.github.io/memkind/memkind_arch_20150318.pdf</A> section 2.2 and 2.3 discusses exactly the issues you raise.  We also note that memkind is intended to support multiple types of memory within a node, such as one might encounter in a platform such as Knights Landing.  You are free to imagine how it might map to OpenPOWER based upon your superior knowledge of that platform :-)
+
+While I recognize that the origins of memkind at Intel may pose a challenge for some in the OpenPOWER family, it would be tremendously valuable to the community if it was reused for MPI and OpenSHMEM projects, rather than the UCX team trying to implement something new.  As you know, the both MPI and OpenSHMEM should run on a range of platforms, and it doubles the implementation effort in all relevant projects (MPICH, OpenMPI, OpenSHMEM reference, etc.) if UCX goes in a different direction.
+
+I would be happy to introduce you to the memkind developers (I am not one of them, just someone who helps them understand user/client requirements).
+
+Best,
+
+Jeff
+
+
+On Thu, Oct 15, 2015 at 8:45 AM, Shamis, Pavel &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">shamisp at ornl.gov</A>&lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">shamisp at ornl.gov</A>&gt;&gt; wrote:
+Dear Jemalloc Community,
+
+We are developer of UCX project [1] and as part of the effort
+we are looking for a malloc library that supports hooks for alloc/dealloc chunks and can be used for the following:
+
+(a) Allocation of memory that can be shared transparently between processes on the same node. For this purpose we would like to mmap memory with MAP_SHARED. This is very useful for implementation for Remote Memory Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3] communication libraries. This allow a remote process to map user allocated memory and provide RMA operations through memcpy().
+
+(b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+
+Based on this requirements we would like to understand what is the best approach for integration this functionality within jemalloc.
+
+Regards,
+Pasha &amp; Yossi
+
+[1] OpenUCX: <A HREF="https://github.com/openucx/ucx">https://github.com/openucx/ucx</A> or www.openucx.org&lt;<A HREF="http://www.openucx.org/">http://www.openucx.org/</A>&gt;
+[2] MPI SPEC: <A HREF="http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf">http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf</A>
+[3] OpenSHMEM SPEC: <A HREF="http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf">http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf</A>
+
+
+
+
+
+_______________________________________________
+jemalloc-discuss mailing list
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>&lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>&gt;
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+
+
+
+--
+Jeff Hammond
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jeff.science at gmail.com</A>&lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jeff.science at gmail.com</A>&gt;
+<A HREF="http://jeffhammond.github.io/">http://jeffhammond.github.io/</A>
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151020/123b0db8/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151020/123b0db8/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001197.html">Memory allocation/release hooks
+</A></li>
+	<LI>Next message: <A HREF="001199.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1198">[ date ]</a>
+              <a href="thread.html#1198">[ thread ]</a>
+              <a href="subject.html#1198">[ subject ]</a>
+              <a href="author.html#1198">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

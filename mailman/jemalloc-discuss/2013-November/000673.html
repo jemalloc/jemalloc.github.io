@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> tracking paged in memory
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20tracking%20paged%20in%20memory&In-Reply-To=%3CCAOa4UzKsMB_c%3DrXUv8SU%2BHPKvSFxAp9Ysz%3D_br6TdSR%2B%3DsNprA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000672.html">
+   <LINK REL="Next"  HREF="000674.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>tracking paged in memory</H1>
+    <B>Leif Walsh</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20tracking%20paged%20in%20memory&In-Reply-To=%3CCAOa4UzKsMB_c%3DrXUv8SU%2BHPKvSFxAp9Ysz%3D_br6TdSR%2B%3DsNprA%40mail.gmail.com%3E"
+       TITLE="tracking paged in memory">leif.walsh at gmail.com
+       </A><BR>
+    <I>Thu Nov 14 13:00:03 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000672.html">bounds on execution time for various jemalloc APIs
+</A></li>
+        <LI>Next message: <A HREF="000674.html">jemalloc tuning help
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#673">[ date ]</a>
+              <a href="thread.html#673">[ thread ]</a>
+              <a href="subject.html#673">[ subject ]</a>
+              <a href="author.html#673">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I would like to track how much physical memory is in use by my application
+(which uses jemalloc).  For allocations that are eventually served by mmap,
+the physical memory used is the amount of that allocation that I've
+actually touched, rounded up to the page size.  For smaller allocations
+(i.e. those of which I can fit many in a single page), I only want to track
+the actual size of the allocation because I'll sum the sizes for each
+allocation.  I would like to figure out what this threshold is, i.e. what
+is the allocation size such that for all allocations of at least that size,
+only a portion of the allocation may be paged in, based on how much of it
+I've actually touched?
+
+I believe that this number is exactly the page size, for jemalloc, because
+I believe allocations of at least the page size are all aligned to at least
+the page size.  Is this correct?  Is there some configuration parameter I
+can access through mallctl, or should I just trust what I get from
+sysconf(_SC_PAGESIZE)?
+
+-- 
+Cheers,
+Leif
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131114/301b1add/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131114/301b1add/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000672.html">bounds on execution time for various jemalloc APIs
+</A></li>
+	<LI>Next message: <A HREF="000674.html">jemalloc tuning help
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#673">[ date ]</a>
+              <a href="thread.html#673">[ thread ]</a>
+              <a href="subject.html#673">[ subject ]</a>
+              <a href="author.html#673">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

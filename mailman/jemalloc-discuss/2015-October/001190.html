@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> How to check available VMSize with the process using jeMalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20check%20available%20VMSize%20with%20the%20process%20using%20jeMalloc&In-Reply-To=%3CCAL2A8_hkUGhM0ozOsrakA9p0d%2BtV%3DZ83v4Y%2BjL31-vwX-h6YzQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001189.html">
+   <LINK REL="Next"  HREF="001191.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>How to check available VMSize with the process using jeMalloc</H1>
+    <B>Prajakta</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20check%20available%20VMSize%20with%20the%20process%20using%20jeMalloc&In-Reply-To=%3CCAL2A8_hkUGhM0ozOsrakA9p0d%2BtV%3DZ83v4Y%2BjL31-vwX-h6YzQ%40mail.gmail.com%3E"
+       TITLE="How to check available VMSize with the process using jeMalloc">praj.jagtap at gmail.com
+       </A><BR>
+    <I>Fri Oct 16 12:18:55 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001189.html">Release free memory with jemalloc
+</A></li>
+        <LI>Next message: <A HREF="001191.html">How to check available VMSize with the process using jeMalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1190">[ date ]</a>
+              <a href="thread.html#1190">[ thread ]</a>
+              <a href="subject.html#1190">[ subject ]</a>
+              <a href="author.html#1190">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>In my application I need to keep an eye on how much Virtual memory is
+available for application to use.
+I am able to get VM Upper limit for process by using getrlimit() (Getting
+that limit as 15 GB).
+
+If virtual memory for that process reaches to 14.5 GB (i.e. Now only 500 MB
+VM is free.) we need to stop doing the processing.
+So, I need to understand how much virtual memory is consumed by process at
+any point.
+In glibc, we were able to get that information using mallinfo().
+Similar results I want to get using jemalloc. But, I am not getting exact
+results.
+
+Below is the equation I am using to get free VM available:
+
+1. Get maximum size of process's virtual memory (Getting this maxlimit as
+15 GB)
+2. For getting process's fixed part (Text + stack) : (This calculation will
+be done only once)
+     CodeSize = VMSize (Read of /proc/pid/status) - stats.mapped
+   - I assume above equation will give us fixed part of process.
+3. Check if low memory limit hits?
+ if  (maxlimit - CodeSize - stats.allocated ) &lt; 500 MB notify process is
+running out of memory.
+
+Please correct me if I am missing any counters or doing some wrong
+assumptions in my calculation.
+
+Thanks,
+Prajakta
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151017/395367ee/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151017/395367ee/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001189.html">Release free memory with jemalloc
+</A></li>
+	<LI>Next message: <A HREF="001191.html">How to check available VMSize with the process using jeMalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1190">[ date ]</a>
+              <a href="thread.html#1190">[ thread ]</a>
+              <a href="subject.html#1190">[ subject ]</a>
+              <a href="author.html#1190">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Enabling profiling causes hang?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3CA523BB7F-AD5F-47CD-AE74-5D5E2A05CFDD%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001044.html">
+   <LINK REL="Next"  HREF="001046.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Enabling profiling causes hang?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3CA523BB7F-AD5F-47CD-AE74-5D5E2A05CFDD%40canonware.com%3E"
+       TITLE="Enabling profiling causes hang?">jasone at canonware.com
+       </A><BR>
+    <I>Wed Feb 11 15:36:36 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001044.html">Enabling profiling causes hang?
+</A></li>
+        <LI>Next message: <A HREF="001046.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1045">[ date ]</a>
+              <a href="thread.html#1045">[ thread ]</a>
+              <a href="subject.html#1045">[ subject ]</a>
+              <a href="author.html#1045">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 11, 2015, at 2:49 PM, Brock Pytlik &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">brock.pytlik at gmail.com</A>&gt; wrote:
+&gt;<i> So I think we're closing in on the finish line. I've successfully generated profiles from ardb using the gate tip malloc. The problem I'm having is that pprof (the one distributed w/ jemalloc) shows no allocation information. (I use the one distributed w/ jemalloc b/c the one that's part of gperftools 2.4 doesn't know about heap_v2 afaict.) To be clear, pprof loads the file, then I do &quot;top&quot; and it says '0 B', as does &quot;top --cum&quot;.
+</I>&gt;<i> 
+</I>&gt;<i> I haven't found documentation about what the heap_v2 file format is, so I'm not sure where the problem is. I've included what one of the profile files looks like. If you can point me to the documentation for the heap_v2 file format that would be great, then I could possibly interpret what's below. If you know what's going on when you look @ the file below, that would be great as well.
+</I>&gt;<i> 
+</I>&gt;<i> heap_v2/524288
+</I>&gt;<i>   t*: 217: 3029560 [0: 0]
+</I>&gt;<i>   t0: 6: 1015808 [0: 0]
+</I>&gt;<i>   t1: 0: 0 [0: 0]
+</I>&gt;<i>   t2: 207: 1440312 [0: 0]
+</I>&gt;<i>   t3: 0: 0 [0: 0]
+</I>&gt;<i>   t4: 0: 0 [0: 0]
+</I>&gt;<i>   t5: 0: 0 [0: 0]
+</I>&gt;<i>   t6: 0: 0 [0: 0]
+</I>&gt;<i>   t7: 4: 573440 [0: 0]
+</I>&gt;<i> @
+</I>&gt;<i>   t*: 217: 3029560 [0: 0]
+</I>&gt;<i>   t0: 6: 1015808 [0: 0]
+</I>&gt;<i>   t2: 207: 1440312 [0: 0]
+</I>&gt;<i>   t7: 4: 573440 [0: 0]
+</I>
+The line that starts with @ should also have a sequence of hex addresses (the backtrace).  For some reason you appear to be getting zero-length (i.e. failed) backtraces, which means that all samples are being merged into a single record.  Which backtracing mechanism are you using?  See the configure output to determine whether libunwind, libgcc, or gcc intrinsics are being used.
+
+Thanks,
+Jason
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001044.html">Enabling profiling causes hang?
+</A></li>
+	<LI>Next message: <A HREF="001046.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1045">[ date ]</a>
+              <a href="thread.html#1045">[ thread ]</a>
+              <a href="subject.html#1045">[ subject ]</a>
+              <a href="author.html#1045">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

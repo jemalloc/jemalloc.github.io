@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> memcpy warnings on 3.5.0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memcpy%20warnings%20on%203.5.0&In-Reply-To=%3CCAMAQheMsaz0ri4-xqOTUJ%3De7k0-adNp6N8EcMRcenqy628vj8g%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000727.html">
+   <LINK REL="Next"  HREF="000729.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>memcpy warnings on 3.5.0</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memcpy%20warnings%20on%203.5.0&In-Reply-To=%3CCAMAQheMsaz0ri4-xqOTUJ%3De7k0-adNp6N8EcMRcenqy628vj8g%40mail.gmail.com%3E"
+       TITLE="memcpy warnings on 3.5.0">edsiper at gmail.com
+       </A><BR>
+    <I>Tue Jan 28 23:10:01 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000727.html">memcpy warnings on 3.5.0
+</A></li>
+        <LI>Next message: <A HREF="000729.html">memcpy warnings on 3.5.0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#728">[ date ]</a>
+              <a href="thread.html#728">[ thread ]</a>
+              <a href="subject.html#728">[ subject ]</a>
+              <a href="author.html#728">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> &gt; My guess is that you don't have heap profiling enabled (--enable-prof),
+</I>&gt;<i> and that the compiler is complaining about what is effectively dead code.
+</I>&gt;<i>  An easy solution is to protect the memcpy() with a conditional:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;       if (config_prof)
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I'll make a note to do something like this in order to silence the
+</I>&gt;<i> warnings.
+</I>&gt;<i>
+</I>&gt;<i> I took a slightly different approach:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/commit/5f60afa01eb2cf7d44024d162a1ecc6cceedcca1">https://github.com/jemalloc/jemalloc/commit/5f60afa01eb2cf7d44024d162a1ecc6cceedcca1</A>
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>
+
+thanks for your quick response. would make any problem that patch if i set
+my own prefix like --with-jemalloc-prefix=je_ ?
+
+regards,
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/e7b97622/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/e7b97622/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000727.html">memcpy warnings on 3.5.0
+</A></li>
+	<LI>Next message: <A HREF="000729.html">memcpy warnings on 3.5.0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#728">[ date ]</a>
+              <a href="thread.html#728">[ thread ]</a>
+              <a href="subject.html#728">[ subject ]</a>
+              <a href="author.html#728">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

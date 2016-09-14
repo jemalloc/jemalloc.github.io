@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Fix malloc_vsnprintf handling of %o, %u and %x
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Fix%20malloc_vsnprintf%20handling%20of%20%25o%2C%20%25u%20and%20%25x&In-Reply-To=%3C1334684786-17995-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000307.html">
+   <LINK REL="Next"  HREF="000306.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Fix malloc_vsnprintf handling of %o, %u and %x</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Fix%20malloc_vsnprintf%20handling%20of%20%25o%2C%20%25u%20and%20%25x&In-Reply-To=%3C1334684786-17995-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Fix malloc_vsnprintf handling of %o, %u and %x">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr 17 10:46:26 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000307.html">[PATCH] Refactor object and library build,	and only build PIC libraries when PIC_CFLAGS is defined
+</A></li>
+        <LI>Next message: <A HREF="000306.html">[PATCH] Add a test for the TSD system
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#304">[ date ]</a>
+              <a href="thread.html#304">[ thread ]</a>
+              <a href="subject.html#304">[ subject ]</a>
+              <a href="author.html#304">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+These flags take unsigned values, but they were fed with signed values
+taken with va_arg, and that led to sign extension in cases where the
+corresponding value has the most significant bit set.
+---
+ src/util.c |   20 ++++++++++++++++----
+ 1 file changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/src/util.c b/src/util.c
+index 2aab61f..99ae26d 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -320,12 +320,21 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 	case '?':							\
+ 		val = va_arg(ap, int);					\
+ 		break;							\
++	case '?' | 0x80:						\
++		val = va_arg(ap, unsigned int);				\
++		break;							\
+ 	case 'l':							\
+ 		val = va_arg(ap, long);					\
+ 		break;							\
++	case 'l' | 0x80:						\
++		val = va_arg(ap, unsigned long);			\
++		break;							\
+ 	case 'q':							\
+ 		val = va_arg(ap, long long);				\
+ 		break;							\
++	case 'q' | 0x80:						\
++		val = va_arg(ap, unsigned long long);			\
++		break;							\
+ 	case 'j':							\
+ 		val = va_arg(ap, intmax_t);				\
+ 		break;							\
+@@ -335,6 +344,9 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 	case 'z':							\
+ 		val = va_arg(ap, ssize_t);				\
+ 		break;							\
++	case 'z' | 0x80:						\
++		val = va_arg(ap, size_t);				\
++		break;							\
+ 	case 'p': /* Synthetic; used for %p. */				\
+ 		val = va_arg(ap, uintptr_t);				\
+ 		break;							\
+@@ -358,7 +370,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 			bool plus_plus = false;
+ 			int prec = -1;
+ 			int width = -1;
+-			char len = '?';
++			unsigned char len = '?';
+ 
+ 			f++;
+ 			if (*f == '%') {
+@@ -480,7 +492,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 				uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+ 				char buf[O2S_BUFSIZE];
+ 
+-				GET_ARG_NUMERIC(val, len);
++				GET_ARG_NUMERIC(val, len | 0x80);
+ 				s = o2s(val, alt_form, buf, &amp;slen);
+ 				APPEND_PADDED_S(s, slen, width, left_justify);
+ 				f++;
+@@ -489,7 +501,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 				uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+ 				char buf[U2S_BUFSIZE];
+ 
+-				GET_ARG_NUMERIC(val, len);
++				GET_ARG_NUMERIC(val, len | 0x80);
+ 				s = u2s(val, 10, false, buf, &amp;slen);
+ 				APPEND_PADDED_S(s, slen, width, left_justify);
+ 				f++;
+@@ -498,7 +510,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 				uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+ 				char buf[X2S_BUFSIZE];
+ 
+-				GET_ARG_NUMERIC(val, len);
++				GET_ARG_NUMERIC(val, len | 0x80);
+ 				s = x2s(val, alt_form, *f == 'X', buf, &amp;slen);
+ 				APPEND_PADDED_S(s, slen, width, left_justify);
+ 				f++;
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000307.html">[PATCH] Refactor object and library build,	and only build PIC libraries when PIC_CFLAGS is defined
+</A></li>
+	<LI>Next message: <A HREF="000306.html">[PATCH] Add a test for the TSD system
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#304">[ date ]</a>
+              <a href="thread.html#304">[ thread ]</a>
+              <a href="subject.html#304">[ subject ]</a>
+              <a href="author.html#304">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

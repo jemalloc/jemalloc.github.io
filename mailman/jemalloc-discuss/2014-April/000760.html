@@ -1,0 +1,140 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> keeping memory usage at certain limit
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C535F58F1.1040808%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000759.html">
+   <LINK REL="Next"  HREF="000761.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>keeping memory usage at certain limit</H1>
+    <B>Antony Dovgal</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C535F58F1.1040808%40gmail.com%3E"
+       TITLE="keeping memory usage at certain limit">antony.dovgal at gmail.com
+       </A><BR>
+    <I>Tue Apr 29 00:46:57 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000759.html">keeping memory usage at certain limit
+</A></li>
+        <LI>Next message: <A HREF="000761.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#760">[ date ]</a>
+              <a href="thread.html#760">[ thread ]</a>
+              <a href="subject.html#760">[ subject ]</a>
+              <a href="author.html#760">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Here is the output of malloc_stats_print() ~20h after the process start.
+The dirty/active pages ratio is 0.02%, the stats.allocated is stable at 107.42G for about 8 hours already,
+but both maxrss from getrusage() and `top` report slow, but constant growth and the process is currently at 117G.
+
+Can somebody help me to locate the problem?
+Jemalloc is the latest 3.6.1, the server is SLES 11SP2 with 3.0.13-0.28.1-default kernel.
+
+
+Merged arenas stats:
+assigned threads: 1534
+dss allocation precedence: N/A
+dirty pages: 30687799:8168 active:dirty, 33408 sweeps, 601205 madvises, 2438751 purged
+              allocated      nmalloc      ndalloc    nrequests
+small:    93168540424   3004799703   1470963737   9264491673
+large:    22176190464     14660311      9267172     63169190
+total:   115344730888   3019460014   1480230909   9327660863
+active:  125697224704
+mapped:  126835752960
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc    nrequests       nfills     nflushes      newruns       reruns      curruns
+              0     8  501   1       187080      2126908      2103523   1116416777      1555126       581832          259          446          250
+              1    16  252   1   1009393200     73690994     10603919    409774890      1195005       634185       260659      2339496       260298
+              2    32  126   1  25238593216   1023814477    235108439   2436114995     12326052      2442614      6785629     53333719      6749049
+              3    48   84   1   3038375616    904172945    840873453   1949316101     11110139     10331717       835619    279254946       764188
+              4    64   63   1    690966016     53752004     42955660    639269895      1759730      1333503       247975     15673477       171852
+              5    80   50   1  40474885680    650494671    144558600    672186803     13318752      3230015     11177482     32259383     11175827
+              6    96   84   2   1062968448     39626341     28553753    465736871      1112411      1067446       137727     16327920       132170
+              7   112   72   2         2240        31813        31793        60475        21899        22328          153            2            2
+              8   128   63   2   4549588736     62704970     27161308    442268899      1941056       965362       588306     17299897       564516
+              9   160   51   2       878880       884471       878978     10989296       547747        73180         7112         9614          646
+             10   192   63   3   3332299200     68192386     50836661    350773752      1828422      1430862       298788     24850226       280966
+             11   224   72   4        82880       201645       201275      1355238       120818       125326         1985          916          126
+             12   256   63   4   4436903168     65932357     48600704    343566754      1922969      1395158       312713     23206402       298496
+             13   320   63   5       820800       300581       298016      1021102       194469       198863          770         3320          529
+             14   384   63   6   3776567808     38617426     28782614    186385036      1731152      1105440       230725      7560797       218083
+             15   448   63   7       323904       264187       263464      2136968       163723       167838         6654         1232          136
+             16   512   63   8   5546707456     19354481      8521068    221862388      1584431       831055       175294      2714070       172054
+             17   640   51   8         1280        43868        43866      5529027        19499        20648         1299           61            1
+             18   768   47   9          768        26068        26067        11346         5544         6621          722           52            1
+             19   896   45  10            0        15578        15578        24313        15494        15498        15494            0            0
+             20  1024   63  16      1235968       200289       199082      2304970       102401       106699         1035         2014          600
+             21  1280   51  16      5251840        20599        16496       319262        14088        14157          130            2          130
+             22  1536   42  16         1536           85           84           53           39           43            4            0            1
+             23  1792   38  17            0           93           93           67           50           54           50            0            0
+             24  2048   65  33      2504704       330001       328778      7066010       172616       139016         1039         2291          604
+             25  2560   52  33            0          173          173          152          113          117          113            0            0
+             26  3072   43  33            0          199          199          170          144          148          144            0            0
+             27  3584   39  35            0           93           93           63           46           50           46            0            0
+
+
+
+On 04/28/2014 03:08 PM, Antony Dovgal wrote:
+&gt;<i> Hello all,
+</I>&gt;<i>
+</I>&gt;<i> I'm currently working on a daemon that processes a lot of data and has to store the most recent of it.
+</I>&gt;<i> Unfortunately, memory is allocated and freed in small blocks and in totally random (for the allocator) manner.
+</I>&gt;<i> I use &quot;stats.allocated&quot; to measure how much memory is currently in use, delete the oldest data when the memory limit is reached and purge thread caches with &quot;arena.N.purge&quot; from time to time.
+</I>&gt;<i>
+</I>&gt;<i> The problem is that keeping stat.allocated on a certain level doesn't keep the process from growing until it's killed by OOM-killer.
+</I>&gt;<i> I suspect that this is caused by memory fragmentation issues, though I've no idea how to prove it (or at least all my ideas involve complex stats and are quite inefficient).
+</I>&gt;<i>
+</I>&gt;<i> So my main questions are:
+</I>&gt;<i> is there any way to see how much memory is currently being (under)used because of fragmentation in Jemalloc?
+</I>&gt;<i> is there a way to prevent it or force some garbage collection?
+</I>&gt;<i>
+</I>&gt;<i> Thanks in advance.
+</I>&gt;<i>
+</I>
+
+-- 
+Wbr,
+Antony Dovgal
+---
+<A HREF="http://pinba.org">http://pinba.org</A> - realtime profiling for PHP
+
+-- 
+Wbr,
+Antony Dovgal
+---
+<A HREF="http://pinba.org">http://pinba.org</A> - realtime profiling for PHP
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000759.html">keeping memory usage at certain limit
+</A></li>
+	<LI>Next message: <A HREF="000761.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#760">[ date ]</a>
+              <a href="thread.html#760">[ thread ]</a>
+              <a href="subject.html#760">[ subject ]</a>
+              <a href="author.html#760">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

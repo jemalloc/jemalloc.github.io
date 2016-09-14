@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 13/14] Fixup definition of the tls_callback for win32
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2013/14%5D%20Fixup%20definition%20of%20the%20tls_callback%20for%20win32&In-Reply-To=%3C1334833439-5736-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000323.html">
+   <LINK REL="Next"  HREF="000324.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 13/14] Fixup definition of the tls_callback for win32</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2013/14%5D%20Fixup%20definition%20of%20the%20tls_callback%20for%20win32&In-Reply-To=%3C1334833439-5736-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 13/14] Fixup definition of the tls_callback for win32">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 19 04:03:58 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000323.html">[PATCH 12/14] Rename LIB to LIBPREFIX, and set it to nothing on mingw
+</A></li>
+        <LI>Next message: <A HREF="000324.html">[PATCH 14/14] Remove leftovers from the vsnprintf check in	malloc_vsnprintf
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#325">[ date ]</a>
+              <a href="thread.html#325">[ thread ]</a>
+              <a href="subject.html#325">[ subject ]</a>
+              <a href="author.html#325">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ src/tsd.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/tsd.c b/src/tsd.c
+index 417f958..3dee355 100644
+--- a/src/tsd.c
++++ b/src/tsd.c
+@@ -90,6 +90,6 @@ _tls_callback(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+ }
+ 
+ JEMALLOC_ATTR(section(&quot;.CRT$XLY&quot;)) JEMALLOC_ATTR(used)
+-static const BOOL WINAPI (*tls_callback)(HINSTANCE hinstDLL, DWORD fdwReason,
++static const BOOL (WINAPI *tls_callback)(HINSTANCE hinstDLL, DWORD fdwReason,
+ 	LPVOID lpvReserved) = _tls_callback;
+ #endif
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000323.html">[PATCH 12/14] Rename LIB to LIBPREFIX, and set it to nothing on mingw
+</A></li>
+	<LI>Next message: <A HREF="000324.html">[PATCH 14/14] Remove leftovers from the vsnprintf check in	malloc_vsnprintf
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#325">[ date ]</a>
+              <a href="thread.html#325">[ thread ]</a>
+              <a href="subject.html#325">[ subject ]</a>
+              <a href="author.html#325">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

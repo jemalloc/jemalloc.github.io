@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Measuring RSS on Mac when MADV_FREE is used
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Measuring%20RSS%20on%20Mac%20when%20MADV_FREE%20is%20used&In-Reply-To=%3C29AB7B82-9882-4D77-AB44-55C73FFB2B1F%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000036.html">
+   <LINK REL="Next"  HREF="000038.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Measuring RSS on Mac when MADV_FREE is used</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Measuring%20RSS%20on%20Mac%20when%20MADV_FREE%20is%20used&In-Reply-To=%3C29AB7B82-9882-4D77-AB44-55C73FFB2B1F%40canonware.com%3E"
+       TITLE="Measuring RSS on Mac when MADV_FREE is used">jasone at canonware.com
+       </A><BR>
+    <I>Tue Oct 11 20:29:23 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000036.html">Measuring RSS on Mac when MADV_FREE is used
+</A></li>
+        <LI>Next message: <A HREF="000038.html">Measuring RSS on Mac when MADV_FREE is used
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#37">[ date ]</a>
+              <a href="thread.html#37">[ thread ]</a>
+              <a href="subject.html#37">[ subject ]</a>
+              <a href="author.html#37">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 11, 2011, at 7:57 AM, Justin Lebar wrote:
+&gt;<i> At Mozilla, we recently ported our jemalloc fork to MacOS.  It works
+</I>&gt;<i> great, except we've noticed that our RSS measurements are now
+</I>&gt;<i> basically useless, because memory freed with madvise(MADV_FREE) is
+</I>&gt;<i> counted against our process's RSS until the system starts running low
+</I>&gt;<i> on memory and steals those pages away from us.
+</I>&gt;<i> 
+</I>&gt;<i> As far as I can tell, upstream jemalloc has the same behavior.
+</I>&gt;<i> 
+</I>&gt;<i> In contrast, MADV_DONTNEED on Linux releases memory (almost) immediately.
+</I>&gt;<i> 
+</I>&gt;<i> I don't think what MacOS is doing here is so unreasonable; the problem
+</I>&gt;<i> isn't so much that it's holding onto this memory, but rather that I
+</I>&gt;<i> now can't meaningfully measure my process's RSS via the operating
+</I>&gt;<i> system.  (The program can compute this value, of course, by measuring
+</I>&gt;<i> how much memory it's MADV_FREE'd.)
+</I>&gt;<i> 
+</I>&gt;<i> Do you guys know of any way I can force MacOS to drop my MADV_FREE'd
+</I>&gt;<i> pages, short of making a large allocation in another process (which
+</I>&gt;<i> might have other side-effects, like paging out things I want to keep
+</I>&gt;<i> in memory)?  Or is there a way to directly measure how many
+</I>&gt;<i> non-MADV_FREE'd pages my process is using?  I'm pretty stumped.
+</I>
+OS X's MADV_FREE behavior is great from a total system perspective.  jemalloc suffers nontrivial overhead on Linux because all MADV_DONTNEED'ed pages have to be zeroed before they are handed out again.  At Facebook we've considered numerous approaches to the problem, and tried a few of them, but I'd be thrilled to have MADV_DONTNEED on Linux.
+
+I don't think there is a system-supplied way to introspect the number of pages with the MADV_FREE'd bit set.  If all you really care about is memory accounting, then note that starting with jemalloc 1.0.0, there are statistics counters that tell you roughly what you want to know.  In particular, take a look at the &quot;stats.allocated&quot;, &quot;stats.active&quot;, and &quot;stats.mapped&quot; statistics that are accessible via mallctl().  These and many other statistics are documented in the manual page:
+
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html</A>
+
+Internally, jemalloc knows precisely how many unused dirty pages could be MADV_FREE'd (see &quot;stats.arenas.&lt;i&gt;.pdirty&quot;), but once madvise(2) is called for a page, the application has no way of knowing whether the kernel actually reclaimed the page.  As such, you can monitor &quot;stats.active&quot; and have a pretty good idea of how much memory your application is using without counting the MADV_FREE'd pages.  You can also sum the &quot;stats.arenas.&lt;i&gt;.pdirty&quot; stats, but this isn't really necessary unless you want to be very precise, because unused dirty page accumulation is limited to be no more than 1/32 of active memory (by default).
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000036.html">Measuring RSS on Mac when MADV_FREE is used
+</A></li>
+	<LI>Next message: <A HREF="000038.html">Measuring RSS on Mac when MADV_FREE is used
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#37">[ date ]</a>
+              <a href="thread.html#37">[ thread ]</a>
+              <a href="subject.html#37">[ subject ]</a>
+              <a href="author.html#37">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> network registered memory and pages_purge()
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20network%20registered%20memory%20and%20pages_purge%28%29&In-Reply-To=%3C3E99DB95-A42D-4874-B3E6-FAB4A929985D%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000891.html">
+   <LINK REL="Next"  HREF="000885.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>network registered memory and pages_purge()</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20network%20registered%20memory%20and%20pages_purge%28%29&In-Reply-To=%3C3E99DB95-A42D-4874-B3E6-FAB4A929985D%40indiana.edu%3E"
+       TITLE="network registered memory and pages_purge()">ldalessa at indiana.edu
+       </A><BR>
+    <I>Thu Jul 17 10:29:17 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000891.html">Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+</A></li>
+        <LI>Next message: <A HREF="000885.html">network registered memory and pages_purge()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#883">[ date ]</a>
+              <a href="thread.html#883">[ thread ]</a>
+              <a href="subject.html#883">[ subject ]</a>
+              <a href="author.html#883">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi everyone,
+
+We&#8217;re using jemalloc to manage network pinned memory using the custom chunk allocator/deallocator functionality. Essentially we decorate the default chunk allocator with memory registration calls. This mostly works great.
+
+We just discovered though, that sometimes jemalloc will call pages_purge() on our chunks without telling us, which calls madvise().
+
+#0  0x00007ffff6de8890 in madvise () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff719498a in je_pages_purge (addr=0x7ff6ecc06000, length=4096) at ../src/chunk_mmap.c:134
+#2  0x00007ffff7173218 in arena_chunk_purge_stashed (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, mapelms=0x7ffff5bfc3f0) at ../src/arena.c:999
+#3  0x00007ffff71738c3 in arena_chunk_purge (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, all=false) at ../src/arena.c:1088
+#4  0x00007ffff7173bc1 in arena_purge (arena=0x7ffff5e390c0, all=false) at ../src/arena.c:1168
+#5  0x00007ffff7171ed6 in arena_maybe_purge (arena=0x7ffff5e390c0) at ../src/arena.c:888
+#6  0x00007ffff717738b in arena_run_dalloc (arena=0x7ffff5e390c0, run=0x7ff6ecc06000, dirty=true, cleaned=false) at ../src/arena.c:1325
+#7  0x00007ffff718266c in arena_dalloc_bin_run (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, run=0x7ff6ecc06000, bin=0x7ffff5e396d0) at ../src/arena.c:1934
+#8  0x00007ffff7183223 in je_arena_dalloc_bin_locked (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, ptr=0x7ff6ecc06080, mapelm=0x7ff6ecc00030) at ../src/arena.c:1988
+#9  0x00007ffff718346d in je_arena_dalloc_bin (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, ptr=0x7ff6ecc06080, pageind=6, mapelm=0x7ff6ecc00030) at ../src/arena.c:2009
+#10 0x00007ffff7183da6 in je_arena_dalloc_small (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, ptr=0x7ff6ecc06080, pageind=6) at ../src/arena.c:2025
+#11 0x00007ffff715c084 in je_arena_dalloc (try_tcache=false, ptr=0x7ff6ecc06080, chunk=0x7ff6ecc00000) at ../include/jemalloc/internal/arena.h:1158
+#12 je_idalloct (try_tcache=false, ptr=0x7ff6ecc06080) at ../include/jemalloc/internal/jemalloc_internal.h:774
+#13 je_iqalloct (try_tcache=false, ptr=0x7ff6ecc06080) at ../include/jemalloc/internal/jemalloc_internal.h:793
+#14 dallocx (ptr=0x7ff6ecc06080, flags=16640) at ../src/jemalloc.c:1781
+
+This break our network registration, because the network card has already captured the virtual-&gt;physical mapping for the pages, and we&#8217;re not able to (nor do we want to) reregister mappings&#8212;it&#8217;s expensive and complex to keep track of.
+
+We can mlock()/munlock() on some systems, but many of the systems we run on aren&#8217;t under our control and don&#8217;t like it when you mlock().
+
+How important is this functionality? Can it be disabled at configure time? Would it make sense to add a dynamic configuration string to turn this off on a per-arena basis?
+
+Thanks in advance,
+Luke
+</PRE>
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000891.html">Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+</A></li>
+	<LI>Next message: <A HREF="000885.html">network registered memory and pages_purge()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#883">[ date ]</a>
+              <a href="thread.html#883">[ thread ]</a>
+              <a href="subject.html#883">[ subject ]</a>
+              <a href="author.html#883">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

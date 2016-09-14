@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Rounding up huge allocations to page boundaries instead of chunks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Rounding%20up%20huge%20allocations%20to%20page%20boundaries%20instead%20of%20chunks&In-Reply-To=%3C1D21FF6E-126F-4540-A8FD-58F080BE55AB%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000918.html">
+   <LINK REL="Next"  HREF="000934.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Rounding up huge allocations to page boundaries instead of chunks</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Rounding%20up%20huge%20allocations%20to%20page%20boundaries%20instead%20of%20chunks&In-Reply-To=%3C1D21FF6E-126F-4540-A8FD-58F080BE55AB%40canonware.com%3E"
+       TITLE="Rounding up huge allocations to page boundaries instead of chunks">jasone at canonware.com
+       </A><BR>
+    <I>Mon Sep 29 16:07:12 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000918.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+        <LI>Next message: <A HREF="000934.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#932">[ date ]</a>
+              <a href="thread.html#932">[ thread ]</a>
+              <a href="subject.html#932">[ subject ]</a>
+              <a href="author.html#932">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 9, 2014, at 6:51 AM, Guilherme Goncalves &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ggp at mozilla.com</A>&gt; wrote:
+&gt;<i> | Will this sufficiently address your accounting concerns?  There's the
+</I>&gt;<i> | potential to over-report active memory by nearly 1.2X in the worst case, but
+</I>&gt;<i> | that's a lot better than nearly 2X as things currently are.
+</I>&gt;<i> 
+</I>&gt;<i> While that's definitely better than 2X over-reporting, I wonder if we can't just expose the
+</I>&gt;<i> sum of all huge allocations rounded to a page boundary as a new statistic, without actually
+</I>&gt;<i> changing the way the mapping is done. That could give us the more accurate accounting we want
+</I>&gt;<i> without causing fragmentation in the address space.
+</I>&gt;<i> 
+</I>&gt;<i> In more concrete terms, this would add a &quot;stats.arenas.&lt;i&gt;.huge.allocated_pages&quot; statistic,
+</I>&gt;<i> reporting the total size of huge allocations serviced by the i-th arena, but rounded to pages
+</I>&gt;<i> and not chunks (while still mapping memory in chunks as usual).
+</I>&gt;<i> 
+</I>&gt;<i> If I'm not missing anything, a patch to implement this would look similar yet a lot less
+</I>&gt;<i> intrusive than my first attempt [1]. Does this sound reasonable?
+</I>
+I want the sum of malloc_usable_size() for all extant allocations to remain the source of truth about how much memory the application has allocated, and I'm currently on a mission to make size class spacing uniform, so I'm loath to add exceptions before even finishing that.  If 1.2X worst case is too loose a bound for your use case, one other possibility would be to add a configure option to create 8 size classes per size doubling rather than 4, so that the worst case is ~1.11X (or 16 size classes per doubling and 1.06X worst case overhead, etc.).  The size_classes.sh script requires only a single constant be parametrized in order to make this possible.
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000918.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+	<LI>Next message: <A HREF="000934.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#932">[ date ]</a>
+              <a href="thread.html#932">[ thread ]</a>
+              <a href="subject.html#932">[ subject ]</a>
+              <a href="author.html#932">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

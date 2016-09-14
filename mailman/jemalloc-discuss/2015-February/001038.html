@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C54D9A854.8020008%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001037.html">
+   <LINK REL="Next"  HREF="001019.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C54D9A854.8020008%40gmail.com%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">danielmicay at gmail.com
+       </A><BR>
+    <I>Mon Feb  9 22:42:28 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001037.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001019.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1038">[ date ]</a>
+              <a href="thread.html#1038">[ thread ]</a>
+              <a href="subject.html#1038">[ subject ]</a>
+              <a href="author.html#1038">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 10/02/15 01:33 AM, Bradley C. Kuszmaul wrote:
+&gt;<i> Perhaps I am tone deaf. &quot;extremely expensive&quot; sounds, to my ear, worse
+</I>&gt;<i> than the reality that I've experienced.  But one persons &quot;extreme&quot; might
+</I>&gt;<i> be another's &quot;moderate&quot;.  Rather than use that kind of subjective
+</I>&gt;<i> adjective, I've tried to give numbers, and it sounds like we are
+</I>&gt;<i> basically in agreement about the costs.
+</I>&gt;<i> 
+</I>&gt;<i> To me, what is interesting about these numbers is that to overcome the
+</I>&gt;<i> lock overhead, a thread cache can be small.  (There I go with a
+</I>&gt;<i> subjective adjective again...)  For example, if the locked version is 5x
+</I>&gt;<i> as expensive as the unlocked, then a thread cache that holds 5 objects
+</I>&gt;<i> will reduce the effective cost to 2x the unlocked cache, in the worst
+</I>&gt;<i> case.  A thread cache that holds 20 objects reduces the worst-case
+</I>&gt;<i> overhead to 25%.  In some allocators, the thread cache is much larger
+</I>&gt;<i> (perhaps thousands of objects) because it is trying to overcome the
+</I>&gt;<i> 200ns contended-lock overhead instead of the 5ns uncontended-lock
+</I>&gt;<i> overhead.  On modern x86 processors, it isn't always necessary to take
+</I>&gt;<i> heroic measures to avoid locks 99.9% of the time.  It's sometimes good
+</I>&gt;<i> enough to avoid locks in something like 80% of the cases.
+</I>&gt;<i> 
+</I>&gt;<i> One way to make such a thread cache work is to maintain a doubly-linked
+</I>&gt;<i> list so that when the lock *is* acquired (e.g., when the thread cache
+</I>&gt;<i> fills up on a free()), all 5 objects in the thread cache can be moved to
+</I>&gt;<i> the per-core cache with a constant number of memory references.  One
+</I>&gt;<i> also needs a little hysteresis: so one might use two doubly-linked lists
+</I>&gt;<i> in the per-thread cache, and an array of doubly-linked lists (each
+</I>&gt;<i> containing 5 objects) in the per-core cache.  When calling free(), if
+</I>&gt;<i> both doubly-linked lists are full, then move one of them to the per-core
+</I>&gt;<i> cache.  When calling malloc(), if both doubly-linked lists are empty,
+</I>&gt;<i> then get a collection of 5 objects from the per-core cache.  Similarly,
+</I>&gt;<i> when the per-core cache gets too full, a group of 5 objects can be moved
+</I>&gt;<i> from a per-core cache to a global cache using only O(1) operations, and
+</I>&gt;<i> with a little hysteresis, that operation will seldom occur.
+</I>&gt;<i> 
+</I>&gt;<i> I'm curious.  How big is the thread cache in jemalloc?
+</I>&gt;<i> 
+</I>&gt;<i> -Bradley
+</I>
+Yes, it seems we're in total agreement. By extremely expensive I meant
+relative to normal instructions without a LOCK prefix. Slab allocation
+for small size classes means you can have O(1) operations all of the way
+down to chunk allocation so you don't really need anything other than a
+tiny thread cache.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/6784a35e/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/6784a35e/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001037.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001019.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1038">[ date ]</a>
+              <a href="thread.html#1038">[ thread ]</a>
+              <a href="subject.html#1038">[ subject ]</a>
+              <a href="author.html#1038">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Static library usage
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Static%20library%20usage&In-Reply-To=%3CCAHsRzLK7WiUhafBuftQj5AUe_Q7B1xgNPHKE%2B-nko1VBu%2BK_KA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000567.html">
+   <LINK REL="Next"  HREF="000569.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Static library usage</H1>
+    <B>Adam Fried-Gintis</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Static%20library%20usage&In-Reply-To=%3CCAHsRzLK7WiUhafBuftQj5AUe_Q7B1xgNPHKE%2B-nko1VBu%2BK_KA%40mail.gmail.com%3E"
+       TITLE="Static library usage">jemalloc at icosm.net
+       </A><BR>
+    <I>Wed Mar 20 15:10:59 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000567.html">Static library usage
+</A></li>
+        <LI>Next message: <A HREF="000569.html">Memory Fragmentation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#568">[ date ]</a>
+              <a href="thread.html#568">[ thread ]</a>
+              <a href="subject.html#568">[ subject ]</a>
+              <a href="author.html#568">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Sorry, should have mentioned that. CentOS 5.6.
+
+--
+Adam Fried-Gintis
+
+On Wed, Mar 20, 2013 at 12:11 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Mar 20, 2013, at 9:49 AM, Adam Fried-Gintis &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at icosm.net</A>&gt; wrote:
+</I>&gt;<i> &gt; I've noticed that when linking with the static libjemalloc(_pic).a,
+</I>&gt;<i> initialization does not occur unless you make a jemalloc call within your
+</I>&gt;<i> code. In other words, I have to call something like malloc_stats_print() or
+</I>&gt;<i> malloc_usable_size() to get jemalloc initialized. If I don't do this, the
+</I>&gt;<i> normal malloc continues to be used. This is different from the behavior of
+</I>&gt;<i> the shared library. Is this a limitation somewhere, or a bug, or even a
+</I>&gt;<i> autogen/configure setting that I missed? If it can't be changed/fixed, it
+</I>&gt;<i> would be great to see this documented - it's certainly not obvious.
+</I>&gt;<i>
+</I>&gt;<i> This sounds like a weird side effect of lazy run-time symbol resolution in
+</I>&gt;<i> the operating system's dynamic loader.  What platform is this happening on?
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130320/1768f624/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130320/1768f624/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000567.html">Static library usage
+</A></li>
+	<LI>Next message: <A HREF="000569.html">Memory Fragmentation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#568">[ date ]</a>
+              <a href="thread.html#568">[ thread ]</a>
+              <a href="subject.html#568">[ subject ]</a>
+              <a href="author.html#568">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

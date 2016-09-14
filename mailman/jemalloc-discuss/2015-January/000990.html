@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Custom allocator on top of jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Custom%20allocator%20on%20top%20of%20jemalloc&In-Reply-To=%3C54213791-F66A-442A-A9F9-0AD8AA3648E8%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000988.html">
+   <LINK REL="Next"  HREF="000993.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Custom allocator on top of jemalloc</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Custom%20allocator%20on%20top%20of%20jemalloc&In-Reply-To=%3C54213791-F66A-442A-A9F9-0AD8AA3648E8%40canonware.com%3E"
+       TITLE="Custom allocator on top of jemalloc">jasone at canonware.com
+       </A><BR>
+    <I>Tue Jan 20 09:01:33 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000988.html">Custom allocator on top of jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000993.html">Custom allocator on top of jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#990">[ date ]</a>
+              <a href="thread.html#990">[ thread ]</a>
+              <a href="subject.html#990">[ subject ]</a>
+              <a href="author.html#990">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 20, 2015, at 5:17 AM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+&gt;<i> Here is what I am doing currently:
+</I>&gt;<i> 
+</I>&gt;<i> 1. I am trying to carve out 10 MB memory area at the higher end of process address space using mmap (MAP_FIXED..). 
+</I>&gt;<i> 
+</I>&gt;<i> 2. I created a new arena using arenas.extend mallctl
+</I>&gt;<i> 
+</I>&gt;<i> 3. I am using mallocx/dallocx with MALLOCX_ARENA(arena) as documented. 
+</I>&gt;<i> 
+</I>&gt;<i> The issue is how do I connect the arena to mmaped memory chunk ? I see that new arena never gets initialized and all allocations continue to happen from arena 0x0.
+</I>&gt;<i> I thought thread.arena mallctl will connect the arena to mmapped chunk but it just creates a thread &lt;-&gt; arena mapping. 
+</I>&gt;<i> 
+</I>&gt;<i> I looked at the sources to see if there is any other mallctl to create this association but there does not seem to be any, what am I missing here ?
+</I>&gt;<i> 
+</I>&gt;<i> And older sample program I found on this mailing list, uses following mallctl which is not supported in jemalloc 3.6.
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> snprintf(path, sizeof(path), &quot;arena.%u.chunk.alloc&quot;, _arena);
+</I>&gt;<i>   ret = __svm_mallctl(path, (void*)&amp;_chunk_alloc, &amp;sz, (void*)&amp;_chunk_alloc, sizeof(void *));
+</I>&gt;<i>   assert (ret == 0); 
+</I>&gt;<i> 
+</I>&gt;<i> snprintf(path, sizeof(path), &quot;arena.%u.chunk.dalloc&quot;, _arena);
+</I>&gt;<i>   ret = __svm_mallctl(path, (void*)&amp;_chunk_dalloc, &amp;sz, (void*)&amp;_chunk_dalloc, sizeof(void *));
+</I>&gt;<i>   assert (ret == 0); 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> This basically is asking jemalloc to callback user defined functions, is this functionality still available in jemalloc ? Any inputs will be helpful. Thanks. 
+</I>
+The features you're trying to use only exist in the dev version of jemalloc so far (&quot;arena.&lt;i&gt;.chunk.alloc&quot; and &quot;arena.&lt;i&gt;.chunk.dalloc&quot; mallctl interfaces).  Note that related control over dirty page purging still needs to be implemented (<A HREF="https://github.com/jemalloc/jemalloc/issues/93">https://github.com/jemalloc/jemalloc/issues/93</A>).
+
+Jason
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000988.html">Custom allocator on top of jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000993.html">Custom allocator on top of jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#990">[ date ]</a>
+              <a href="thread.html#990">[ thread ]</a>
+              <a href="subject.html#990">[ subject ]</a>
+              <a href="author.html#990">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3C20120312170355.GA22245%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000125.html">
+   <LINK REL="Next"  HREF="000129.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3C20120312170355.GA22245%40glandium.org%3E"
+       TITLE="[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Mar 12 10:03:55 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000125.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+        <LI>Next message: <A HREF="000129.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#126">[ date ]</a>
+              <a href="thread.html#126">[ thread ]</a>
+              <a href="subject.html#126">[ subject ]</a>
+              <a href="author.html#126">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Mar 12, 2012 at 03:36:23PM +0100, Mike Hommey wrote:
+&gt;<i> On Mon, Mar 12, 2012 at 10:49:07AM +0100, Mike Hommey wrote:
+</I>&gt;<i> &gt; On Thu, Mar 01, 2012 at 05:49:33PM -0800, Jason Evans wrote:
+</I>&gt;<i> &gt; &gt; I went a slightly different direction with this and added --with-mangling:
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt;   <A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=0a5489e37da88a1a50fbf8552e0d3a7f8fd93ffc">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=0a5489e37da88a1a50fbf8552e0d3a7f8fd93ffc</A>
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; Please let me know if this fails to meet your needs for some reason.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; The fact that --with-jemalloc-prefix overrides anything set with
+</I>&gt;<i> &gt; --with-mangling makes it unconvenient for our usecase, where we want to
+</I>&gt;<i> &gt; prefix with je_ except a few functions we want to either not prefix (on
+</I>&gt;<i> &gt; desktop) or wrap (on android). Sure, we can use --with-mangling to set
+</I>&gt;<i> &gt; the je_ prefix, but that won't cover new APIs when they appear.
+</I>&gt;<i> 
+</I>&gt;<i> In fact, --with-mangling doesn't work at all. Everything stays as #under
+</I>&gt;<i> in jemalloc.h.
+</I>
+I wasn't looking at the right file, but in fact the problem is that all
+${public_syms} are re-AC_DEFINE_UNQUOTED, even when
+--with-jemalloc-prefix is not used.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000125.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+	<LI>Next message: <A HREF="000129.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#126">[ date ]</a>
+              <a href="thread.html#126">[ thread ]</a>
+              <a href="subject.html#126">[ subject ]</a>
+              <a href="author.html#126">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

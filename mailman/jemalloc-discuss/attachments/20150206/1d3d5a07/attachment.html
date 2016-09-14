@@ -1,0 +1,36 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;I&#39;m&nbsp;trying&nbsp;to&nbsp;track&nbsp;down&nbsp;a&nbsp;possible&nbsp;memory&nbsp;leak&nbsp;in&nbsp;&lt;a&nbsp;href=&quot;https://github.com/yinqiwen/ardb&quot;&gt;ardb&lt;/a&gt;, which&nbsp;uses&nbsp;jemalloc,&nbsp;when&nbsp;running&nbsp;on&nbsp;an&nbsp;arm&nbsp;processor.&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;The&nbsp;problem&nbsp;I&nbsp;have&nbsp;is&nbsp;that&nbsp;when&nbsp;I&nbsp;set&nbsp;&#39;MALLOC_CONF=prof_leak:true&#39;&nbsp;and&nbsp;start&nbsp;ardb,&nbsp;the&nbsp;program&nbsp;hangs.&lt;/div&gt;&lt;div&gt;When&nbsp;I&nbsp;strace&nbsp;it,&nbsp;this&nbsp;is&nbsp;the&nbsp;system&nbsp;call&nbsp;it&nbsp;does:&lt;/div&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0px&nbsp;0px&nbsp;0px&nbsp;0.8ex;border-left-width:1px;border-left-color:rgb(204,204,204);border-left-style:solid;padding-left:1ex&quot;&gt;futex(0xb6db3c0c,&nbsp;FUTEX_WAIT_PRIVATE,&nbsp;2,&nbsp;NULL&lt;/blockquote&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Here&#39;s&nbsp;the&nbsp;stack&nbsp;trace&nbsp;gdb&nbsp;reports:&lt;/div&gt;&lt;div&gt;<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0px&nbsp;0px&nbsp;0px&nbsp;0.8ex;border-left-width:1px;border-left-color:rgb(204,204,204);border-left-style:solid;padding-left:1ex&quot;&gt;(gdb)&nbsp;bt &lt;br&gt;#0 &nbsp;0xb6e1af4c&nbsp;in&nbsp;__lll_lock_wait_private&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;#1 &nbsp;0xb6d79de4&nbsp;in&nbsp;__new_exitfn&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;#2 &nbsp;0xb6d79e34&nbsp;in&nbsp;__internal_atexit&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;#3 &nbsp;0x0016d75c&nbsp;in&nbsp;je_prof_boot2&nbsp;()&nbsp;at&nbsp;src/prof.c:1349&lt;br&gt;#4 &nbsp;0x00143418&nbsp;in&nbsp;malloc_init_hard&nbsp;()&nbsp;at&nbsp;src/jemalloc.c:767&lt;br&gt;#5 &nbsp;0x0014db70&nbsp;in&nbsp;malloc_init&nbsp;()&nbsp;at&nbsp;src/jemalloc.c:292&lt;br&gt;#6 &nbsp;calloc&nbsp;(num=1,&nbsp;size=520)&nbsp;at&nbsp;src/jemalloc.c:1123&lt;br&gt;#7 &nbsp;0xb6d79da4&nbsp;in&nbsp;__new_exitfn&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;#8 &nbsp;0xb6d79e34&nbsp;in&nbsp;__internal_atexit&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;#9 &nbsp;0x00013410&nbsp;in&nbsp;__static_initialization_and_destruction_0&nbsp;(&lt;br&gt; &nbsp; &nbsp;__initialize_p=&lt;optimized&nbsp;out&gt;,&nbsp;__priority=&lt;optimized&nbsp;out&gt;)&lt;br&gt; &nbsp; &nbsp;at&nbsp;&lt;&gt;/include/c++/4.7.3/iostream:75&lt;br&gt;#10&nbsp;_GLOBAL__sub_I_channel.cpp(void)&nbsp;()&nbsp;at&nbsp;common/channel/channel.cpp:738&lt;br&gt;#11&nbsp;0x001786f8&nbsp;in&nbsp;__libc_csu_init&nbsp;()&lt;br&gt;#12&nbsp;0xb6d61834&nbsp;in&nbsp;__libc_start_main&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;#13&nbsp;0x0001424c&nbsp;in&nbsp;_start&nbsp;()&lt;/blockquote&gt;<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;I&#39;ll&nbsp;admit&nbsp;at&nbsp;this&nbsp;point&nbsp;I&#39;m&nbsp;kind&nbsp;of&nbsp;stumped&nbsp;as&nbsp;to&nbsp;how&nbsp;to&nbsp;proceed.&nbsp;I&nbsp;thought&nbsp;I&#39;d&nbsp;start&nbsp;by&nbsp;asking&nbsp;here&nbsp;in&nbsp;case&nbsp;anyone&nbsp;had&nbsp;seen&nbsp;similar&nbsp;behavior&nbsp;or&nbsp;knew&nbsp;what&nbsp;the&nbsp;problem&nbsp;was.&nbsp;I&nbsp;checked&nbsp;the&nbsp;issues&nbsp;at&nbsp;the&nbsp;github&nbsp;page&nbsp;and&nbsp;couldn&#39;t&nbsp;find&nbsp;anything&nbsp;similar.&nbsp;This&nbsp;is&nbsp;using&nbsp;version&nbsp;3.6.0&nbsp;of&nbsp;jemalloc.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;When&nbsp;I&nbsp;looked&nbsp;at&nbsp;the&nbsp;jemalloc.xml&nbsp;user&nbsp;manual&nbsp;in&nbsp;the&nbsp;gate&nbsp;tip&nbsp;(not&nbsp;the&nbsp;3.6.0&nbsp;branch&nbsp;I&#39;m&nbsp;using)&nbsp;I&nbsp;saw&nbsp;some&nbsp;discussion&nbsp;of&nbsp;atexit&nbsp;being&nbsp;problematic&nbsp;in&nbsp;the&nbsp;context&nbsp;of&nbsp;prof_final.&nbsp;If&nbsp;that&#39;s&nbsp;the&nbsp;problem,&nbsp;is&nbsp;there&nbsp;a&nbsp;way&nbsp;to&nbsp;generate&nbsp;profiling&nbsp;information&nbsp;either&nbsp;while&nbsp;the&nbsp;program&nbsp;is&nbsp;running,&nbsp;avoiding&nbsp;the&nbsp;atexit&nbsp;issue?&nbsp;I&nbsp;didn&#39;t&nbsp;quite&nbsp;follow&nbsp;the&nbsp;comment&nbsp;in&nbsp;the&nbsp;user&nbsp;manual&nbsp;that&nbsp;says&nbsp;that&nbsp;an&nbsp;application&nbsp;can&nbsp;register&nbsp;its&nbsp;own&nbsp;atexit&nbsp;parameter&nbsp;with&nbsp;equivalent&nbsp;functionality.&nbsp;Is&nbsp;there&nbsp;an&nbsp;example&nbsp;someplace&nbsp;I&nbsp;could&nbsp;crib&nbsp;from&nbsp;or&nbsp;could&nbsp;someone&nbsp;help&nbsp;me&nbsp;understand&nbsp;that&nbsp;a&nbsp;bit?&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Thanks,&lt;/div&gt;&lt;div&gt;Brock&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+&lt;/div&gt;<br>
+
+</tt>

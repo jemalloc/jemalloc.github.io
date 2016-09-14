@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc hooks clarifications
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20hooks%20clarifications&In-Reply-To=%3CCANP6M4v8nAdbLkcsZHwYhdju%3DAxCgeOx5-yOtzEanLSnc8xWxQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001217.html">
+   <LINK REL="Next"  HREF="001230.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc hooks clarifications</H1>
+    <B>Jakob Buchgraber</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20hooks%20clarifications&In-Reply-To=%3CCANP6M4v8nAdbLkcsZHwYhdju%3DAxCgeOx5-yOtzEanLSnc8xWxQ%40mail.gmail.com%3E"
+       TITLE="jemalloc hooks clarifications">jakob.buchgraber at tum.de
+       </A><BR>
+    <I>Fri Dec  4 03:10:43 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001217.html">jemalloc hooks clarifications
+</A></li>
+        <LI>Next message: <A HREF="001230.html">jemalloc hooks clarifications
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1218">[ date ]</a>
+              <a href="thread.html#1218">[ thread ]</a>
+              <a href="subject.html#1218">[ subject ]</a>
+              <a href="author.html#1218">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Dec 3, 2015 at 8:35 PM, Rogier 'DocWilco' Mulhuijzen &lt;
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">rogier+jemalloc at fastly.com</A>&gt; wrote:
+
+&gt;<i> Maybe I'm saying something stupid, but isn't there a DALLOC on the second
+</I>&gt;<i> line of your output?
+</I>&gt;<i>
+</I>
+That output just states that dalloc was called. However, the dalloc chunk
+hook opts out of deallocation. So next jemalloc calls decommit, again with
+decommit opting out of decommitting the memory and so finally purge gets
+called, which one can't opt out from.
+
+If the memory was deallocated, only dalloc would have been called (no
+decommit or purge).
+
+Best,
+Jakob
+
+On Thu, Dec 3, 2015 at 10:52 AM Jakob Buchgraber &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jakob.buchgraber at tum.de</A>&gt;
+&gt;<i> wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Hello Jason,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I am playing around with the memory management hooks introduced in
+</I>&gt;&gt;<i> version 4.
+</I>&gt;&gt;<i> So I wrote a delegate for the default chunk hooks, that additionally
+</I>&gt;&gt;<i> report to
+</I>&gt;&gt;<i> stdout what's happening [1].
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The test program allocates 1GB of memory and immediately frees it.
+</I>&gt;&gt;<i> It then tries to allocate 4MB and 8MB. The output is as follows
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1,
+</I>&gt;&gt;<i> arena_ind 0, ret 0x7f2f52a00000
+</I>&gt;&gt;<i> DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+</I>&gt;&gt;<i> DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length
+</I>&gt;&gt;<i> 1073741824, arena_ind 0
+</I>&gt;&gt;<i> PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length
+</I>&gt;&gt;<i> 1073741824, arena_ind 0
+</I>&gt;&gt;<i> FREED
+</I>&gt;&gt;<i> ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1,
+</I>&gt;&gt;<i> arena_ind 0, ret 0x7f2f52a00000
+</I>&gt;&gt;<i> ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1,
+</I>&gt;&gt;<i> arena_ind 0, ret 0x7f2f52e00000
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Given that the 1GB has not been deallocated, but purged I would expect
+</I>&gt;&gt;<i> the last two ALLOCations not to have happened. Instead I would expect
+</I>&gt;&gt;<i> the virtual memory from the 1GB allocation before to be reused?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I am running jemalloc 4.0.4 on Linux.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Also, on an unrelated note, is it generally safe to trigger purging for
+</I>&gt;&gt;<i> arena A
+</I>&gt;&gt;<i> from within an allocation chunk hook of arena B, with A &lt;&gt; B?
+</I>&gt;&gt;<i> The reason why am asking this question is that I would generally want to
+</I>&gt;&gt;<i> run with purging disabled on all arenas, but if some threshold of
+</I>&gt;&gt;<i> committed
+</I>&gt;&gt;<i> memory is surpassed I would like to enable purging for some arenas.
+</I>&gt;&gt;<i> Does this sound feasible?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks,
+</I>&gt;&gt;<i> Jakob
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> [1] <A HREF="https://gist.github.com/buchgr/243b0aa9a2abeda2ac39">https://gist.github.com/buchgr/243b0aa9a2abeda2ac39</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> _______________________________________________
+</I>&gt;&gt;<i> jemalloc-discuss mailing list
+</I>&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>
+
+-- 
+
+Mit freundlichen Gr&#252;&#223;en / Best Regards
+Jakob Buchgraber
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151204/6adc8d45/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151204/6adc8d45/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001217.html">jemalloc hooks clarifications
+</A></li>
+	<LI>Next message: <A HREF="001230.html">jemalloc hooks clarifications
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1218">[ date ]</a>
+              <a href="thread.html#1218">[ thread ]</a>
+              <a href="subject.html#1218">[ subject ]</a>
+              <a href="author.html#1218">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Q] Strange hang in jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20hang%20in%20jemalloc&In-Reply-To=%3C035D7B8F-2265-49E5-8FA1-54BCEA864681%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000657.html">
+   <LINK REL="Next"  HREF="000660.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Q] Strange hang in jemalloc</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20hang%20in%20jemalloc&In-Reply-To=%3C035D7B8F-2265-49E5-8FA1-54BCEA864681%40canonware.com%3E"
+       TITLE="[Q] Strange hang in jemalloc">jasone at canonware.com
+       </A><BR>
+    <I>Wed Oct 23 23:24:44 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000657.html">[Q] Strange hang in jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000660.html">[Q] Strange hang in jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#656">[ date ]</a>
+              <a href="thread.html#656">[ thread ]</a>
+              <a href="subject.html#656">[ subject ]</a>
+              <a href="author.html#656">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 23, 2013, at 8:11 PM, Taehwan Weon &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">taehwan.weon at gmail.com</A>&gt; wrote:
+&gt;<i> I am using jemalloc-3.4.0 on Centos 6.3
+</I>&gt;<i> When my SEGV signal handler tried to dump call stacks, hang occurred as following.
+</I>&gt;<i> I don't know why libc's fork called jemalloc_prefork even if I didn't set LD_PRELOAD.
+</I>&gt;<i> 
+</I>&gt;<i> #0  0x000000351d60d654 in __lll_lock_wait () from /lib64/libpthread.so.0
+</I>&gt;<i> #1  0x000000351d608f4a in _L_lock_1034 () from /lib64/libpthread.so.0
+</I>&gt;<i> #2  0x000000351d608e0c in pthread_mutex_lock () from /lib64/libpthread.so.0
+</I>&gt;<i> #3  0x00002b59a8055d6d in malloc_mutex_lock (mutex=0x2b59a84a4320) at include/jemalloc/internal/mutex.h:77
+</I>&gt;<i> #4  malloc_mutex_prefork (mutex=0x2b59a84a4320) at src/mutex.c:109
+</I>&gt;<i> #5  0x00002b59a8044c32 in arena_prefork (arena=0x2b59a84a3d40) at src/arena.c:2344
+</I>&gt;<i> #6  0x00002b59a803f555 in jemalloc_prefork () at src/jemalloc.c:1760
+</I>&gt;<i> #7  0x000000351ca9a2a6 in fork () from /lib64/libc.so.6
+</I>&gt;<i> #8  0x000000351ca6200d in _IO_proc_open@@GLIBC_2.2.5 () from /lib64/libc.so.6
+</I>&gt;<i> #9  0x000000351ca62269 in popen@@GLIBC_2.2.5 () from /lib64/libc.so.6
+</I>&gt;<i> #10 0x00002b59a71bc1f9 in backtrace_lineinfo (number=1, address=&lt;value optimized out&gt;, symbol=0x2b61f4000918 &quot;/usr/lib64/libnc.so.2 [0x2b59a71bc3b1]&quot;) at cfs_apix.c:363
+</I>&gt;<i> #11 0x00002b59a71bc3ff in nc_dump_stack (sig=&lt;value optimized out&gt;) at cfs_apix.c:423
+</I>&gt;<i> #12 &lt;signal handler called&gt;
+</I>&gt;<i> #13 0x00002b59a8047332 in arena_dalloc_bin_locked (arena=0x2b59a84a3d40, chunk=0x2b61ef000000, ptr=&lt;value optimized out&gt;, mapelm=&lt;value optimized out&gt;) at src/arena.c:1717
+</I>&gt;<i> #14 0x00002b59a805fba4 in tcache_bin_flush_small (tbin=0x2b61ef107128, binind=8, rem=9, tcache=0x2b61ef107000) at src/tcache.c:127
+</I>&gt;<i> #15 0x00002b59a805fcd4 in tcache_event_hard (tcache=0x80) at src/tcache.c:39
+</I>&gt;<i> #16 0x00002b59a80428d9 in tcache_event (ptr=0x2b61efd26dc0) at include/jemalloc/internal/tcache.h:271
+</I>&gt;<i> #17 tcache_dalloc_small (ptr=0x2b61efd26dc0) at include/jemalloc/internal/tcache.h:408
+</I>&gt;<i> #18 arena_dalloc (ptr=0x2b61efd26dc0) at include/jemalloc/internal/arena.h:1003
+</I>&gt;<i> #19 idallocx (ptr=0x2b61efd26dc0) at include/jemalloc/internal/jemalloc_internal.h:913
+</I>&gt;<i> #20 iqallocx (ptr=0x2b61efd26dc0) at include/jemalloc/internal/jemalloc_internal.h:932
+</I>&gt;<i> #21 iqalloc (ptr=0x2b61efd26dc0) at include/jemalloc/internal/jemalloc_internal.h:939
+</I>&gt;<i> #22 jefree (ptr=0x2b61efd26dc0) at src/jemalloc.c:1272
+</I>&gt;<i> #23 0x00002b59a71c958b in __nc_free (p=0x2b61efd26dd0, file=&lt;value optimized out&gt;, lno=&lt;value optimized out&gt;) at util.c:1916
+</I>&gt;<i> #24 0x00002b59a71cb975 in tlcq_dequeue (q=0x2b59a9ee3210, msec=&lt;value optimized out&gt;) at tlc_queue.c:215
+</I>&gt;<i> #25 0x00002b59a71c154b in tp_worker (d=&lt;value optimized out&gt;) at threadpool.c:116
+</I>&gt;<i> #26 0x000000351d60683d in start_thread () from /lib64/libpthread.so.0
+</I>&gt;<i> #27 0x000000351cad503d in clone () from /lib64/libc.so.6
+</I>&gt;<i> 
+</I>&gt;<i> Any hint will be highly appreciated.
+</I>
+jemalloc calls pthread_atfork(3) in order to install functions that get called just before and after fork(2).  In this case your application is causing a signal while deep inside jemalloc (very likely due to memory corruption), with locks already acquired.  Deadlock obviously results.  To my surprise, fork() is actually listed in the signal(7) manual page as an async-signal-safe function, though popen(3) isn't, and it would probably allocate memory if it got past the hang during fork().  If you were to call fork() directly, then you'd be hitting a peculiar failure condition and we could make a case for jemalloc's behavior being questionable, but as your signal handler is written, it is simply unreliable due to calling something outside the list of async-signal-safe functions.
+
+Jason
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000657.html">[Q] Strange hang in jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000660.html">[Q] Strange hang in jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#656">[ date ]</a>
+              <a href="thread.html#656">[ thread ]</a>
+              <a href="subject.html#656">[ subject ]</a>
+              <a href="author.html#656">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

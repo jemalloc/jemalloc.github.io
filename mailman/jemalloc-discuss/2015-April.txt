@@ -1,0 +1,512 @@
+From snl20465 at gmail.com  Mon Apr 13 00:32:08 2015
+From: snl20465 at gmail.com (SNL)
+Date: Mon, 13 Apr 2015 13:02:08 +0530
+Subject: Embedding user metadata along with jemalloc metadata
+Message-ID: <CAGvmEXhYEx68pPc8umoKf-b2VJmxVJu_Hq6xVxB7jrhHNhcA=Q@mail.gmail.com>
+
+On each allocation, I need to book keep 64 bytes of metadata which
+describes that allocation. Currently, I do store this metadata outside and
+look it up when need arises. Needless to say this slows down things for
+heavily multithreaded programs. I am trying to optimize my design and data
+structures. It would be great if I can store my metadata along with
+jemalloc and look it up using jemalloc's quick look up which is already
+optimized for concurrency.
+
+
+I found following threads to be relevant, any inputs on existing
+implementations will be helpful.
+
+https://github.com/jemalloc/jemalloc/issues/203
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150413/1b9782d0/attachment.html>
+
+From snl20465 at gmail.com  Mon Apr 20 03:45:54 2015
+From: snl20465 at gmail.com (SNL)
+Date: Mon, 20 Apr 2015 16:15:54 +0530
+Subject: Live allocation iterator
+In-Reply-To: <CAGvmEXgsk6V2Qm5TSzhz+_18B1TrN=xRsLXifgw8COhFuWvmXw@mail.gmail.com>
+References: <CAGvmEXgf1oyWxRNsdUsgDJPpkaZNAuRm7poiiD+OGNPvz8-fKA@mail.gmail.com>
+	<CAGvmEXjg_tk+a7rFOcQo+0uyCn0DwKjtzDfp4ugtzqjjWkUptw@mail.gmail.com>
+	<0D554B36-8244-45DB-B359-67872FD4F051@canonware.com>
+	<CAGvmEXjujWPCJ+c62Z+idu_NWOnOs3MP6C2qqdt=HmOMnk6k+Q@mail.gmail.com>
+	<CAGvmEXgsk6V2Qm5TSzhz+_18B1TrN=xRsLXifgw8COhFuWvmXw@mail.gmail.com>
+Message-ID: <CAGvmEXg6P+Xk87y2Vrv5KfH30571Pt0pj0y=7TrtrfMDv3+Gug@mail.gmail.com>
+
+Jason,
+
+One more query on same line.
+
+Assume that base and extent are start and size of allocation. Is there
+infrastructure in Jemalloc to lookup an address (base + n ), n < extent ?
+My understanding is that such infrastructure does not exist in jemalloc. My
+use case involves checking whether a given pointer is part of a valid
+allocation or not.
+
+
+
+On Wed, Mar 25, 2015 at 2:14 PM, SNL <snl20465 at gmail.com> wrote:
+
+> This looks relevant but never was pushed upstream.
+>
+> https://www.mail-archive.com/jemalloc-discuss at canonware.com/msg00027.html
+>
+>
+> Any thoughts on this patch set keeping in mind jemalloc-dev current state
+> ? Any design/architectural inputs are also appreciated. This seems to have
+> worked well for Alessandro who shared the patchset, I dont see these
+> changes in their current code base though.
+>
+> On Wed, Mar 25, 2015 at 11:25 AM, SNL <snl20465 at gmail.com> wrote:
+>
+>> Does your use case allow you to wrap the allocator and keep a side table
+>> which supports iteration, or can you trace allocation activity and
+>> post-process it?
+>>
+>> => This is what I have implemented currently but this does not scale for
+>> multithreaded programs due to locking issues. I was pondering over idea of
+>> not doing any book keeping myself and use jemalloc data structures ( and
+>> efficient low level locking ) for my purpose.
+>>
+>> Is this not possible even when all my metadata objects ( which hold user
+>> allocation base and extent ) are fixed sized and allocated from a separate
+>> arena ? I was under the impression that I should be able to mask and find
+>> out offsets within chunk->region->pages and find out objects. As my objects
+>> are all fixed size, they would be contiguous in memory. Is this valid
+>> understanding ?
+>>
+>>
+>> On Tue, Mar 24, 2015 at 11:16 PM, Jason Evans <jasone at canonware.com>
+>> wrote:
+>>
+>>> On Mar 24, 2015, at 6:53 AM, SNL <snl20465 at gmail.com> wrote:
+>>>
+>>> If this is not possible ( I see an old post which says jemalloc does not
+>>> have this infra but that was back in 2012 ). Is it possible to iterate over
+>>> just an arena and dump all allocations in it  ? Basically, I have memory
+>>> pool implemented on top of jemalloc which holds metadata about all other
+>>> allocations jemalloc does, if I can iterate over this arena and get hold of
+>>> metadata, I can get hold of each allocation as well.
+>>>
+>>> Any thoughts would be appreciated.
+>>>
+>>> On Tue, Mar 24, 2015 at 5:28 PM, SNL <snl20465 at gmail.com> wrote:
+>>>
+>>>>
+>>>> My use case is to walk through all live allocations ( the ones which
+>>>> are not freed yet) of all sizes the program ever made and dump it as the
+>>>> end of the program or on demand. I have looked at stats but I want
+>>>> something with even more details. Basically, the function should be able to
+>>>> iterate through all arenas and print details on following lines:
+>>>>
+>>>> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+>>>>
+>>>> Is there any api in jemalloc which already does subset of this  ? Any
+>>>> pointers will be helpful.
+>>>>
+>>>
+>>> jemalloc doesn't support iteration over live allocations, and it's
+>>> unlikely to ever directly support iteration, because the feature imposes
+>>> nontrivial additional complexity for limited benefit.  The closest thing
+>>> under consideration is https://github.com/jemalloc/jemalloc/issues/203,
+>>> but I don't plan to work on that until at least next year.
+>>>
+>>> Does your use case allow you to wrap the allocator and keep a side table
+>>> which supports iteration, or can you trace allocation activity and
+>>> post-process it?
+>>>
+>>> Jason
+>>>
+>>
+>>
+>>
+>> --
+>>
+>> Cheers,
+>> Sunny.
+>>
+>
+>
+>
+> --
+>
+> Cheers,
+> Sunny.
+>
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150420/13c588b2/attachment.html>
+
+From jasone at canonware.com  Mon Apr 20 10:28:07 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 20 Apr 2015 10:28:07 -0700
+Subject: Live allocation iterator
+In-Reply-To: <CAGvmEXg6P+Xk87y2Vrv5KfH30571Pt0pj0y=7TrtrfMDv3+Gug@mail.gmail.com>
+References: <CAGvmEXgf1oyWxRNsdUsgDJPpkaZNAuRm7poiiD+OGNPvz8-fKA@mail.gmail.com>
+	<CAGvmEXjg_tk+a7rFOcQo+0uyCn0DwKjtzDfp4ugtzqjjWkUptw@mail.gmail.com>
+	<0D554B36-8244-45DB-B359-67872FD4F051@canonware.com>
+	<CAGvmEXjujWPCJ+c62Z+idu_NWOnOs3MP6C2qqdt=HmOMnk6k+Q@mail.gmail.com>
+	<CAGvmEXgsk6V2Qm5TSzhz+_18B1TrN=xRsLXifgw8COhFuWvmXw@mail.gmail.com>
+	<CAGvmEXg6P+Xk87y2Vrv5KfH30571Pt0pj0y=7TrtrfMDv3+Gug@mail.gmail.com>
+Message-ID: <47D8B6C1-97EF-4BCC-B029-7D3A895630AE@canonware.com>
+
+Correct, jemalloc does not provide a mechanism for looking up interior pointers, nor does it have a mechanism for reliably determining whether a base pointer corresponds to a valid allocation.
+
+> On Apr 20, 2015, at 3:45 AM, SNL <snl20465 at gmail.com> wrote:
+> 
+> Jason,
+> 
+> One more query on same line. 
+> 
+> Assume that base and extent are start and size of allocation. Is there infrastructure in Jemalloc to lookup an address (base + n ), n < extent ? My understanding is that such infrastructure does not exist in jemalloc. My use case involves checking whether a given pointer is part of a valid allocation or not. 
+> 
+> 
+> 
+> On Wed, Mar 25, 2015 at 2:14 PM, SNL <snl20465 at gmail.com> wrote:
+> This looks relevant but never was pushed upstream.
+> 
+> https://www.mail-archive.com/jemalloc-discuss at canonware.com/msg00027.html
+> 
+> 
+> Any thoughts on this patch set keeping in mind jemalloc-dev current state ? Any design/architectural inputs are also appreciated. This seems to have worked well for Alessandro who shared the patchset, I dont see these changes in their current code base though.
+> 
+> On Wed, Mar 25, 2015 at 11:25 AM, SNL <snl20465 at gmail.com> wrote:
+> Does your use case allow you to wrap the allocator and keep a side table which supports iteration, or can you trace allocation activity and post-process it?
+> 
+> => This is what I have implemented currently but this does not scale for multithreaded programs due to locking issues. I was pondering over idea of not doing any book keeping myself and use jemalloc data structures ( and efficient low level locking ) for my purpose. 
+> 
+> Is this not possible even when all my metadata objects ( which hold user allocation base and extent ) are fixed sized and allocated from a separate arena ? I was under the impression that I should be able to mask and find out offsets within chunk->region->pages and find out objects. As my objects are all fixed size, they would be contiguous in memory. Is this valid understanding ? 
+> 
+> 
+> On Tue, Mar 24, 2015 at 11:16 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Mar 24, 2015, at 6:53 AM, SNL <snl20465 at gmail.com> wrote:
+>> If this is not possible ( I see an old post which says jemalloc does not have this infra but that was back in 2012 ). Is it possible to iterate over just an arena and dump all allocations in it  ? Basically, I have memory pool implemented on top of jemalloc which holds metadata about all other allocations jemalloc does, if I can iterate over this arena and get hold of metadata, I can get hold of each allocation as well. 
+>> 
+>> Any thoughts would be appreciated. 
+>> 
+>> On Tue, Mar 24, 2015 at 5:28 PM, SNL <snl20465 at gmail.com> wrote:
+>> 
+>> My use case is to walk through all live allocations ( the ones which are not freed yet) of all sizes the program ever made and dump it as the end of the program or on demand. I have looked at stats but I want something with even more details. Basically, the function should be able to iterate through all arenas and print details on following lines:
+>> 
+>> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+>> 
+>> Is there any api in jemalloc which already does subset of this  ? Any pointers will be helpful. 
+> 
+> jemalloc doesn't support iteration over live allocations, and it's unlikely to ever directly support iteration, because the feature imposes nontrivial additional complexity for limited benefit.  The closest thing under consideration is https://github.com/jemalloc/jemalloc/issues/203, but I don't plan to work on that until at least next year.
+> 
+> Does your use case allow you to wrap the allocator and keep a side table which supports iteration, or can you trace allocation activity and post-process it?
+> 
+> Jason
+> 
+> 
+> 
+> -- 
+> 
+> Cheers,
+> Sunny. 
+> 
+> 
+> 
+> -- 
+> 
+> Cheers,
+> Sunny. 
+> 
+> 
+> 
+> -- 
+> 
+> Cheers,
+> Sunny. 
+
+
+From snl20465 at gmail.com  Tue Apr 28 22:30:52 2015
+From: snl20465 at gmail.com (SNL)
+Date: Wed, 29 Apr 2015 11:00:52 +0530
+Subject: Per thread arenas
+Message-ID: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+
+I am planning to assign each thread its own arena, as per my understanding
+this is akin to having a per thread heap since arena management is
+completely independent of each other.
+
+How this is know to affect performance and memory overheads ? I am sure
+this would depend a lot on application allocation patterns but are any
+generic numbers/data from past ?
+
+In cases where allocation done by thread T1 is freed by thread T2, how does
+jemalloc handles it ? Is there any basic garbage collection or remote-free
+( request to free by remote thread which owns the allocation )
+implementation ? I see that this could lead to memory build up.
+
+Any inputs will be appreciated.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/18f225a1/attachment.html>
+
+From snl20465 at gmail.com  Wed Apr 29 03:20:05 2015
+From: snl20465 at gmail.com (SNL)
+Date: Wed, 29 Apr 2015 15:50:05 +0530
+Subject: Embedding user metadata along with jemalloc metadata
+In-Reply-To: <CAGvmEXhYEx68pPc8umoKf-b2VJmxVJu_Hq6xVxB7jrhHNhcA=Q@mail.gmail.com>
+References: <CAGvmEXhYEx68pPc8umoKf-b2VJmxVJu_Hq6xVxB7jrhHNhcA=Q@mail.gmail.com>
+Message-ID: <CAGvmEXgzRWFuG3cYRQ_UFS6L9PW=7FFAU3KWjUJnwdRPMzvvgA@mail.gmail.com>
+
+Does this question make sense from use case point of view ? Any inputs will
+be highly appreciated.
+
+On Mon, Apr 13, 2015 at 1:02 PM, SNL <snl20465 at gmail.com> wrote:
+
+>
+>
+> On each allocation, I need to book keep 64 bytes of metadata which
+> describes that allocation. Currently, I do store this metadata outside and
+> look it up when need arises. Needless to say this slows down things for
+> heavily multithreaded programs. I am trying to optimize my design and data
+> structures. It would be great if I can store my metadata along with
+> jemalloc and look it up using jemalloc's quick look up which is already
+> optimized for concurrency.
+>
+>
+> I found following threads to be relevant, any inputs on existing
+> implementations will be helpful.
+>
+> https://github.com/jemalloc/jemalloc/issues/203
+>
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/1aab320b/attachment.html>
+
+From danielmicay at gmail.com  Wed Apr 29 04:16:03 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Wed, 29 Apr 2015 07:16:03 -0400
+Subject: Per thread arenas
+In-Reply-To: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+References: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+Message-ID: <5540BD73.8040101@gmail.com>
+
+On 29/04/15 01:30 AM, SNL wrote:
+> 
+> 
+> I am planning to assign each thread its own arena, as per my
+> understanding this is akin to having a per thread heap since arena
+> management is completely independent of each other.
+> 
+> How this is know to affect performance and memory overheads ? I am sure
+> this would depend a lot on application allocation patterns but are any
+> generic numbers/data from past ?
+> 
+> In cases where allocation done by thread T1 is freed by thread T2, how
+> does jemalloc handles it ? Is there any basic garbage collection or
+> remote-free ( request to free by remote thread which owns the allocation
+> ) implementation ? I see that this could lead to memory build up. 
+> 
+> Any inputs will be appreciated.
+
+It returns memory to the arena it came from, so there will still be a
+very low level of lock contention if lots of data is being sent.
+
+There are thread caches so it will do this work in batches, but it won't
+build up much.
+
+Threads are assigned to arenas via round-robin so the default behaviour
+is static assignment of threads to independent arenas as long as there
+aren't more threads than arenas. There are 4*n_cores arenas by default
+which covers a lot of cases without sharing them.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/aee76336/attachment.sig>
+
+From wuqinfan at gmail.com  Wed Apr 29 08:47:09 2015
+From: wuqinfan at gmail.com (Qinfan Wu)
+Date: Wed, 29 Apr 2015 08:47:09 -0700
+Subject: Per thread arenas
+In-Reply-To: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+References: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+Message-ID: <CAMwDBHO2H74ieeFR4LxM-GCXHusyWEL-H3x38b=pVv5Fzy-WDQ@mail.gmail.com>
+
+On Tue, Apr 28, 2015 at 10:30 PM, SNL <snl20465 at gmail.com> wrote:
+
+>
+>
+> I am planning to assign each thread its own arena, as per my understanding
+> this is akin to having a per thread heap since arena management is
+> completely independent of each other.
+>
+> How this is know to affect performance and memory overheads ? I am sure
+> this would depend a lot on application allocation patterns but are any
+> generic numbers/data from past ?
+>
+If you have a lot of threads, having an arena for each thread could
+potentially increasing memory usage and fragmentation. Usually the default
+setting (4 arenas per cpu) is enough to reduce lock contention, since not
+every allocation needs to acquire the arena lock.
+
+>
+> In cases where allocation done by thread T1 is freed by thread T2, how
+> does jemalloc handles it ? Is there any basic garbage collection or
+> remote-free ( request to free by remote thread which owns the allocation )
+> implementation ? I see that this could lead to memory build up.
+>
+> Any inputs will be appreciated.
+>
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/ed9d4d8b/attachment.html>
+
+From snl20465 at gmail.com  Wed Apr 29 09:48:58 2015
+From: snl20465 at gmail.com (SNL)
+Date: Wed, 29 Apr 2015 22:18:58 +0530
+Subject: Per thread arenas
+In-Reply-To: <CAMwDBHO2H74ieeFR4LxM-GCXHusyWEL-H3x38b=pVv5Fzy-WDQ@mail.gmail.com>
+References: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+	<CAMwDBHO2H74ieeFR4LxM-GCXHusyWEL-H3x38b=pVv5Fzy-WDQ@mail.gmail.com>
+Message-ID: <CAGvmEXg1rU_=DNuxQmmzEYrE9EqvACJPm7M_3iseo9WyYHV2OA@mail.gmail.com>
+
+Right. What happens to arenas when thread dies ?
+
+On Wed, Apr 29, 2015 at 9:17 PM, Qinfan Wu <wuqinfan at gmail.com> wrote:
+
+>
+>
+> On Tue, Apr 28, 2015 at 10:30 PM, SNL <snl20465 at gmail.com> wrote:
+>
+>>
+>>
+>> I am planning to assign each thread its own arena, as per my
+>> understanding this is akin to having a per thread heap since arena
+>> management is completely independent of each other.
+>>
+>> How this is know to affect performance and memory overheads ? I am sure
+>> this would depend a lot on application allocation patterns but are any
+>> generic numbers/data from past ?
+>>
+> If you have a lot of threads, having an arena for each thread could
+> potentially increasing memory usage and fragmentation. Usually the default
+> setting (4 arenas per cpu) is enough to reduce lock contention, since not
+> every allocation needs to acquire the arena lock.
+>
+>>
+>> In cases where allocation done by thread T1 is freed by thread T2, how
+>> does jemalloc handles it ? Is there any basic garbage collection or
+>> remote-free ( request to free by remote thread which owns the allocation )
+>> implementation ? I see that this could lead to memory build up.
+>>
+>> Any inputs will be appreciated.
+>>
+>>
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>>
+>
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/6cae190c/attachment.html>
+
+From wuqinfan at gmail.com  Wed Apr 29 12:47:47 2015
+From: wuqinfan at gmail.com (Qinfan Wu)
+Date: Wed, 29 Apr 2015 12:47:47 -0700
+Subject: Per thread arenas
+In-Reply-To: <CAGvmEXg1rU_=DNuxQmmzEYrE9EqvACJPm7M_3iseo9WyYHV2OA@mail.gmail.com>
+References: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+	<CAMwDBHO2H74ieeFR4LxM-GCXHusyWEL-H3x38b=pVv5Fzy-WDQ@mail.gmail.com>
+	<CAGvmEXg1rU_=DNuxQmmzEYrE9EqvACJPm7M_3iseo9WyYHV2OA@mail.gmail.com>
+Message-ID: <CAMwDBHPJEN7+_YZm+1rRzThnn03die5D_jGPakGUuk3BktKEBw@mail.gmail.com>
+
+The arenas would still be there until the whole process dies.
+
+On Wednesday, April 29, 2015, SNL <snl20465 at gmail.com> wrote:
+
+>
+> Right. What happens to arenas when thread dies ?
+>
+> On Wed, Apr 29, 2015 at 9:17 PM, Qinfan Wu <wuqinfan at gmail.com
+> <javascript:_e(%7B%7D,'cvml','wuqinfan at gmail.com');>> wrote:
+>
+>>
+>>
+>> On Tue, Apr 28, 2015 at 10:30 PM, SNL <snl20465 at gmail.com
+>> <javascript:_e(%7B%7D,'cvml','snl20465 at gmail.com');>> wrote:
+>>
+>>>
+>>>
+>>> I am planning to assign each thread its own arena, as per my
+>>> understanding this is akin to having a per thread heap since arena
+>>> management is completely independent of each other.
+>>>
+>>> How this is know to affect performance and memory overheads ? I am sure
+>>> this would depend a lot on application allocation patterns but are any
+>>> generic numbers/data from past ?
+>>>
+>> If you have a lot of threads, having an arena for each thread could
+>> potentially increasing memory usage and fragmentation. Usually the default
+>> setting (4 arenas per cpu) is enough to reduce lock contention, since not
+>> every allocation needs to acquire the arena lock.
+>>
+>>>
+>>> In cases where allocation done by thread T1 is freed by thread T2, how
+>>> does jemalloc handles it ? Is there any basic garbage collection or
+>>> remote-free ( request to free by remote thread which owns the allocation )
+>>> implementation ? I see that this could lead to memory build up.
+>>>
+>>> Any inputs will be appreciated.
+>>>
+>>>
+>>> _______________________________________________
+>>> jemalloc-discuss mailing list
+>>> jemalloc-discuss at canonware.com
+>>> <javascript:_e(%7B%7D,'cvml','jemalloc-discuss at canonware.com');>
+>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>>
+>>>
+>>
+>
+>
+> --
+>
+> Cheers,
+> Sunny.
+>
+
+
+-- 
+Sent from Gmail Mobile
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/535cbb43/attachment.html>
+

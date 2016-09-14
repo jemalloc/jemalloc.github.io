@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Does arena_tcache_fill_small() ever end up bypassing custom chunk	allocation?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Does%20arena_tcache_fill_small%28%29%20ever%20end%20up%20bypassing%20custom%20chunk%0A%09allocation%3F&In-Reply-To=%3CBD6E4EC2-E15A-46CF-88C5-7EA0ABA77DBF%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001048.html">
+   <LINK REL="Next"  HREF="001040.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Does arena_tcache_fill_small() ever end up bypassing custom chunk	allocation?</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Does%20arena_tcache_fill_small%28%29%20ever%20end%20up%20bypassing%20custom%20chunk%0A%09allocation%3F&In-Reply-To=%3CBD6E4EC2-E15A-46CF-88C5-7EA0ABA77DBF%40indiana.edu%3E"
+       TITLE="Does arena_tcache_fill_small() ever end up bypassing custom chunk	allocation?">ldalessa at indiana.edu
+       </A><BR>
+    <I>Tue Feb 10 19:52:12 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001048.html">Enabling profiling causes hang?
+</A></li>
+        <LI>Next message: <A HREF="001040.html">Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1039">[ date ]</a>
+              <a href="thread.html#1039">[ thread ]</a>
+              <a href="subject.html#1039">[ subject ]</a>
+              <a href="author.html#1039">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>We have an arena that we are using for a specific bit of memory that we are managing with a custom chunk allocator.
+
+We&#8217;re seeing initial small allocations through this arena succeed without calling out to our custom chunk allocator. This behavior appears to be new since b617df8. While tracing this behavior, I&#8217;m seeing the initial allocations miss in the cache, and forward to arena_tcache_fill_small() which does some difficult-to-disect stuff including something to do with runs. After this call, the cache succeeds in supplying the allocation, without ever getting our chunk allocator involved.
+
+This causes us issues because the memory we&#8217;re getting back doesn&#8217;t seem to come from the place we&#8217;re expecting it to come from.
+
+Is arena_tcache_fill_small() going somewhere special to find memory that was allocated with some other chunk allocator, previous to our initialization of our arena?
+
+Thanks in advance,
+Luke
+</PRE>
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001048.html">Enabling profiling causes hang?
+</A></li>
+	<LI>Next message: <A HREF="001040.html">Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1039">[ date ]</a>
+              <a href="thread.html#1039">[ thread ]</a>
+              <a href="subject.html#1039">[ subject ]</a>
+              <a href="author.html#1039">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

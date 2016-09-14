@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Q] Strange stack dump when using jemalloc-3.4.0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20stack%20dump%20when%20using%20jemalloc-3.4.0&In-Reply-To=%3CCAH_X2ff-UYRQd91vJt5oH%2BD0mw17Gksrcnk-KR5520Kq7o407A%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000663.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Q] Strange stack dump when using jemalloc-3.4.0</H1>
+    <B>Taehwan Weon</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20stack%20dump%20when%20using%20jemalloc-3.4.0&In-Reply-To=%3CCAH_X2ff-UYRQd91vJt5oH%2BD0mw17Gksrcnk-KR5520Kq7o407A%40mail.gmail.com%3E"
+       TITLE="[Q] Strange stack dump when using jemalloc-3.4.0">taehwan.weon at gmail.com
+       </A><BR>
+    <I>Sat Nov  2 23:04:27 PDT 2013</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000663.html">calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#662">[ date ]</a>
+              <a href="thread.html#662">[ thread ]</a>
+              <a href="subject.html#662">[ subject ]</a>
+              <a href="author.html#662">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi, I am using jemalloc-3.4.0 on CentOs 5.4.
+While running for a few hours, SEGV triggered with the following stack dump.
+nc_dump_stack() is a signal handler.
+As you see, a function in libc is the first jemalloc caller.
+Does this mean some kind of memory corruption in jemalloc()?
+
+
+------------------------ stack dump --------------------------------
+nc_dump_stack at /root/trozan/netcache-core/trunk/netcache/cfs_apix.c:428
+arena_chunk_purge at
+/root/trozan/netcache-core/trunk/jemalloc-3.4.0/src/arena.c:783
+?? at ??:0 (/lib64/libc.so.6) 0x30330)
+malloc_mutex_unlock at
+/root/trozan/netcache-core/trunk/jemalloc-3.4.0/include/jemalloc/internal/mutex.h:92
+tcache_tsd_set at /root/trozan/netcache-core/trunk/jemalloc-3.4.0/include/
+jemalloc/internal/tcache.h:143
+?? at ??:0 (/lib64/libpthread.so.0) 0x5b19)
+?? at ??:0 (/lib64/libc.so.6) 0xd503d)
+
+
+Any hint would be highly appreciated!
+Thanks in advance.
+
+-- 
+weon
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131103/a7810227/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131103/a7810227/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000663.html">calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#662">[ date ]</a>
+              <a href="thread.html#662">[ thread ]</a>
+              <a href="subject.html#662">[ subject ]</a>
+              <a href="author.html#662">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

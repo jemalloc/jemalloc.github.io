@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Crash in arenas_cleanup on linux x86-64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20in%20arenas_cleanup%20on%20linux%20x86-64&In-Reply-To=%3C20120329153450.GA32702%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000202.html">
+   <LINK REL="Next"  HREF="000211.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Crash in arenas_cleanup on linux x86-64</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20in%20arenas_cleanup%20on%20linux%20x86-64&In-Reply-To=%3C20120329153450.GA32702%40glandium.org%3E"
+       TITLE="Crash in arenas_cleanup on linux x86-64">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Mar 29 08:34:50 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000202.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+        <LI>Next message: <A HREF="000211.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#203">[ date ]</a>
+              <a href="thread.html#203">[ thread ]</a>
+              <a href="subject.html#203">[ subject ]</a>
+              <a href="author.html#203">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Mar 28, 2012 at 04:52:23PM -0700, Jason Evans wrote:
+&gt;<i> 
+</I>&gt;<i> On Mar 28, 2012, at 4:30 PM, Jason Evans wrote:
+</I>&gt;<i> 
+</I>&gt;<i> &gt; On Mar 28, 2012, at 12:42 PM, Mike Hommey wrote:
+</I>&gt;<i> &gt;&gt; I'm getting crashes in Firefox in some cases (only one test suite,
+</I>&gt;<i> &gt;&gt; actually), and on Linux x86-64 only (not Linux x86, not Android
+</I>&gt;<i> &gt;&gt; ARM, and not OSX x86 or x86-64).  They are a NULL deref in
+</I>&gt;<i> &gt;&gt; arenas_cleanup, in which the arena variable seems to be NULL.  This
+</I>&gt;<i> &gt;&gt; happens with current dev branch. I had a hunch that I tested, and
+</I>&gt;<i> &gt;&gt; it turns out commit cd9a134 is broken too and 154829d is not, which
+</I>&gt;<i> &gt;&gt; makes cd9a134 the culprit.  I haven't looked why, though.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; It looks to me like the tsd cleanup handler can be called even if
+</I>&gt;<i> &gt; the thread never initialized the tsd for that thread.  I think the
+</I>&gt;<i> &gt; crash you are seeing would happen if a thread never allocated a
+</I>&gt;<i> &gt; small or large object.  I'll work on a fix tonight.
+</I>&gt;<i> 
+</I>&gt;<i> Actually, after further scrutiny, I don't see how this can happen
+</I>&gt;<i> unless TLS (__thread variable memory) is cleared before pthreads TSD
+</I>&gt;<i> destructors are called.  That seems an unlikely explanation though;
+</I>&gt;<i> any other ideas?
+</I>
+I haven't reproduced in a simpler testcase, but I could reproduce the
+failing circumstances in a local Firefox build, with a debugger, and
+here is roughly what happens:
+
+#0  arenas_tsd_set (val=0x7f0cc08cda78) at include/jemalloc/internal/jemalloc_internal.h:443
+#1  0x00000000004035b5 in choose_arena_hard () at memory/jemalloc/src/jemalloc.c:157
+#2  0x0000000000402b1f in choose_arena () at include/jemalloc/internal/jemalloc_internal.h:557
+#3  0x0000000000408807 in tcache_get () at memory/jemalloc/include/jemalloc/internal/tcache.h:226
+#4  0x000000000041036d in arena_dalloc (arena=0x7f0cc6400180, chunk=0x7f0cc6000000, ptr=0x7f0cc60bde00)
+    at memory/jemalloc/include/jemalloc/internal/arena.h:593
+#5  0x0000000000402f75 in idalloc (ptr=0x7f0cc60bde00) at include/jemalloc/internal/jemalloc_internal.h:685
+#6  0x00000000004069c1 in free (ptr=0x7f0cc60bde00) at memory/jemalloc/src/jemalloc.c:1129
+#7  0x00007f0cd1aceaa7 in _dl_deallocate_tls () from /lib64/ld-linux-x86-64.so.2
+#8  0x00007f0cd18a892d in __free_stacks (limit=41943040) at allocatestack.c:278
+#9  0x00007f0cd18a8a39 in queue_stack (stack=&lt;optimized out&gt;) at allocatestack.c:306
+#10 __deallocate_stack (pd=0x64a3c0) at allocatestack.c:758
+
+The arenas_tls value is set when a thread that probably did no
+allocation terminated. Libc doesn't call arenas_cleanup for the
+corresponding key, probably because it already did call key
+destructors for that thread by then.
+
+Then, another thread gets the memory region where arenas_tls was,
+and writes something else there. First another pointer, and after
+that a NULL value.
+
+At some point, another thread ends and libc does call arenas_cleanup
+for the arenas_tls of the previously terminated thread, and this
+is where we segfault. We're actually lucky that something else wrote
+a NULL so that we can notice this issue. The fact that the previous
+tls implementation was using direct pointers was hiding it even more.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000202.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+	<LI>Next message: <A HREF="000211.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#203">[ date ]</a>
+              <a href="thread.html#203">[ thread ]</a>
+              <a href="subject.html#203">[ subject ]</a>
+              <a href="author.html#203">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

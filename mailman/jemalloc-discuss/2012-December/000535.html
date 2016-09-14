@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> valgrind 3.8.1 warning in jemalloc 3.2
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C50C788C3.4080204%40buscape-inc.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000551.html">
+   <LINK REL="Next"  HREF="000536.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>valgrind 3.8.1 warning in jemalloc 3.2</H1>
+    <B>Daniel Mezzatto Rodrigues</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C50C788C3.4080204%40buscape-inc.com%3E"
+       TITLE="valgrind 3.8.1 warning in jemalloc 3.2">danielm at buscape-inc.com
+       </A><BR>
+    <I>Tue Dec 11 11:25:55 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000551.html">[PATCH] Allow to enable ivsalloc independently
+</A></li>
+        <LI>Next message: <A HREF="000536.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#535">[ date ]</a>
+              <a href="thread.html#535">[ thread ]</a>
+              <a href="subject.html#535">[ subject ]</a>
+              <a href="author.html#535">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi.
+
+I have just changed part of my system to use jemalloc (version 3.2). 
+Running valgrind (version 3.8.1) gave me some errors (that does not 
+occur with system malloc). Some of the errors:
+
+==7888== Invalid write of size 8
+==7888==    at 0x4C2C404: memcpy (mc_replace_strmem.c:878)
+==7888==    by 0x586E324: huge_ralloc (string3.h:52)
+==7888==    by 0x585064B: je_realloc (jemalloc_internal.h:986)
+
+==7888== Invalid read of size 8
+==7888==    at 0x58582EB: arena_avail_insert (arena.c:259)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 8
+==7888==    at 0x585833B: arena_avail_insert (arena.c:266)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 8
+==7888==    at 0x5858FB9: arena_chunk_alloc (arena.h:661)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid write of size 8
+==7888==    at 0x5857DDC: arena_avail_tree_insert (arena.c:135)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 1
+==7888==    at 0x585834A: arena_avail_insert (arena.c:269)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid write of size 8
+==7888==    at 0x5857DDC: arena_avail_tree_insert (arena.c:135)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 8
+==7888==    at 0x5858494: arena_run_split (arena.h:502)
+==7888==    by 0x585B942: arena_malloc_large (arena.c:667)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 1
+==7888==    at 0x5857CDA: arena_avail_remove (arena.c:303)
+==7888==    by 0x58584C2: arena_run_split (arena.c:394)
+==7888==    by 0x585B942: arena_malloc_large (arena.c:667)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 8
+==7888==    at 0x585C5F1: arena_ralloc_no_move (arena.h:502)
+==7888==    by 0x585C808: arena_ralloc (arena.c:1982)
+==7888==    by 0x58508BC: je_realloc (jemalloc_internal.h:982)
+
+==7888== Invalid read of size 8
+==7888==    at 0x5858768: arena_run_split (arena.h:649)
+==7888==    by 0x5858E3F: arena_run_alloc_helper (arena.c:637)
+==7888==    by 0x585A5EF: arena_bin_malloc_hard (arena.c:657)
+==7888==    by 0x585B2D0: arena_malloc_small (arena.c:1449)
+==7888==    by 0x585CBA8: arena_ralloc (arena.h:871)
+==7888==    by 0x58508BC: je_realloc (jemalloc_internal.h:982)
+
+I compiled jemallod with ./configure --with-jemalloc-prefix=je_ &amp;&amp; make 
+&amp;&amp; make install.
+
+This code runs inside a custom Apache HTTPD module running with 
+mpm_worker, but a single request generated these valgrind errors (no 
+concurrent being processed by multiple threads). It basically calls 
+je_malloc for many structures and then a bunch of je_realloc for each 
+one of these structures.
+
+Some info about my system:
+
+cat /etc/debian_version
+wheezy/sid
+
+uname -a
+Linux xxx 3.0.0-28-generic #45-Ubuntu SMP Wed Nov 14 21:57:26 UTC 2012 
+x86_64 x86_64 x86_64 GNU/Linux
+
+gcc -v
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6.1/lto-wrapper
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu/Linaro 
+4.6.1-9ubuntu3' --with-bugurl=<A HREF="file:///usr/share/doc/gcc-4.6/README.Bugs">file:///usr/share/doc/gcc-4.6/README.Bugs</A> 
+--enable-languages=c,c++,fortran,objc,obj-c++,go --prefix=/usr 
+--program-suffix=-4.6 --enable-shared --enable-linker-build-id 
+--with-system-zlib --libexecdir=/usr/lib --without-included-gettext 
+--enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 
+--libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu 
+--enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-plugin 
+--enable-objc-gc --disable-werror --with-arch-32=i686 
+--with-tune=generic --enable-checking=release --build=x86_64-linux-gnu 
+--host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.6.1 (Ubuntu/Linaro 4.6.1-9ubuntu3)
+
+valgrind --version
+valgrind-3.8.1
+
+jemalloc 3.2.0-0-g87499f6748eb
+
+httpd -v
+Server version: Apache/2.2.23 (Unix)
+Server built:   Dec  7 2012 17:55:24
+
+Are these errors expected? Am I doing something wrong? Any thoughts?
+
+best regards,
+
+Daniel Mezzatto
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000551.html">[PATCH] Allow to enable ivsalloc independently
+</A></li>
+	<LI>Next message: <A HREF="000536.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#535">[ date ]</a>
+              <a href="thread.html#535">[ thread ]</a>
+              <a href="subject.html#535">[ subject ]</a>
+              <a href="author.html#535">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

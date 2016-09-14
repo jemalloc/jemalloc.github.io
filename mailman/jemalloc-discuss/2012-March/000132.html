@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3C82262E92-B898-4697-A62C-1270A839D477%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000131.html">
+   <LINK REL="Next"  HREF="000133.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3C82262E92-B898-4697-A62C-1270A839D477%40canonware.com%3E"
+       TITLE="[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions">jasone at canonware.com
+       </A><BR>
+    <I>Mon Mar 12 13:36:06 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000131.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+        <LI>Next message: <A HREF="000133.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#132">[ date ]</a>
+              <a href="thread.html#132">[ thread ]</a>
+              <a href="subject.html#132">[ subject ]</a>
+              <a href="author.html#132">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 12, 2012, at 1:12 PM, Jason Evans wrote:
+&gt;<i> On Mar 12, 2012, at 12:28 PM, Mike Hommey wrote:
+</I>&gt;&gt;<i> On Mon, Mar 12, 2012 at 11:44:41AM -0700, Jason Evans wrote:
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> The name mangling that is specified via --with-mangling overrides --with-jemalloc-prefix, so I thought this would do what you want.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> ./autogen.sh --enable-cc-silence --enable-prof --enable-debug --with-mangling=malloc:__wrap_malloc,calloc:__wrap_calloc,realloc:__wrap_realloc,free:__wrap_free --with-jemalloc-prefix=je_
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> After running that, this is what jemalloc_defs.h contains:
+</I>&gt;&gt;<i> #define je_malloc_conf je_malloc_conf
+</I>&gt;&gt;<i> #define je_malloc_message je_malloc_message
+</I>&gt;&gt;<i> #define je_malloc je_malloc
+</I>&gt;&gt;<i> #define je_calloc je_calloc
+</I>&gt;&gt;<i> #define je_posix_memalign je_posix_memalign
+</I>&gt;&gt;<i> #define je_realloc je_realloc
+</I>&gt;&gt;<i> #define je_free je_free
+</I>&gt;&gt;<i> #define je_malloc_usable_size je_malloc_usable_size
+</I>&gt;&gt;<i> #define je_malloc_stats_print je_malloc_stats_print
+</I>&gt;&gt;<i> #define je_mallctl je_mallctl
+</I>&gt;&gt;<i> #define je_mallctlnametomib je_mallctlnametomib
+</I>&gt;&gt;<i> #define je_mallctlbymib je_mallctlbymib
+</I>&gt;&gt;<i> #define je_memalign je_memalign
+</I>&gt;&gt;<i> #define je_valloc je_valloc
+</I>&gt;&gt;<i> #define je_allocm je_allocm
+</I>&gt;&gt;<i> #define je_rallocm je_rallocm
+</I>&gt;&gt;<i> #define je_sallocm je_sallocm
+</I>&gt;&gt;<i> #define je_dallocm je_dallocm
+</I>&gt;&gt;<i> #define je_nallocm je_nallocm
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Even without --with-jemalloc-prefix=je_, I get the same output.
+</I>&gt;<i> 
+</I>&gt;<i> What operating system are you using?
+</I>
+I reproduced the problem on an Ubuntu 10.04 system, and will come up with a fix.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000131.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+	<LI>Next message: <A HREF="000133.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#132">[ date ]</a>
+              <a href="thread.html#132">[ thread ]</a>
+              <a href="subject.html#132">[ subject ]</a>
+              <a href="author.html#132">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

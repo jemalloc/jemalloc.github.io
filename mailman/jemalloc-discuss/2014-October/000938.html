@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Rounding up huge allocations to page boundaries instead of chunks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Rounding%20up%20huge%20allocations%20to%20page%20boundaries%20instead%20of%20chunks&In-Reply-To=%3C81504BBE-E1FC-4B9B-B86A-797C98E5D323%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000937.html">
+   <LINK REL="Next"  HREF="000939.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Rounding up huge allocations to page boundaries instead of chunks</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Rounding%20up%20huge%20allocations%20to%20page%20boundaries%20instead%20of%20chunks&In-Reply-To=%3C81504BBE-E1FC-4B9B-B86A-797C98E5D323%40canonware.com%3E"
+       TITLE="Rounding up huge allocations to page boundaries instead of chunks">jasone at canonware.com
+       </A><BR>
+    <I>Wed Oct  1 16:20:55 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000937.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+        <LI>Next message: <A HREF="000939.html">arenas.extend + thread.arena confusion
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#938">[ date ]</a>
+              <a href="thread.html#938">[ thread ]</a>
+              <a href="subject.html#938">[ subject ]</a>
+              <a href="author.html#938">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 1, 2014, at 4:07 PM, Guilherme Goncalves &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ggp at mozilla.com</A>&gt; wrote:
+&gt;<i> So to summarize, if I understand it correctly:
+</I>&gt;<i> 
+</I>&gt;<i> - There is ongoing work to have all allocations use the same size classes (including,
+</I>&gt;<i> in particular, huge allocations, which is what we're concerned with);
+</I>&gt;<i> 
+</I>&gt;<i> - The size classes will be defined as equal-sized intervals dividing each chunk boundary;
+</I>&gt;<i> to use your example, with 4 intervals per 4MiB chunk, we'll have [4MiB, 5MiB, 6MiB, 7MiB],
+</I>&gt;<i> [8MiB, 10MiB, 12MiB, 14MiB], [16MiB, 20MiB, 24MiB, 28MiB], ...;
+</I>&gt;<i> 
+</I>&gt;<i> - The number of intervals is configurable via the |lg_g| variable in size_classes.sh, which
+</I>&gt;<i> allows us to bound the over-reporting to a ~2^-lg_g factor of the allocated size.
+</I>&gt;<i> 
+</I>&gt;<i> If that's correct, then yes, I believe that satisfies our needs. Is there a GitHub issue I
+</I>&gt;<i> can follow to track progress on this? Or is there otherwise any expected timeframe for this
+</I>&gt;<i> to be completed?
+</I>
+Yes, that's all correct.  You can track progress at:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues/77">https://github.com/jemalloc/jemalloc/issues/77</A>
+
+I think the hard parts are all done now, and I'm hoping to finish up this particular task within the next few weeks.  The timeframe for the 4.0.0 release is still a bit uncertain, but I'm currently shooting for the end of 2014.  You can track how that's going here:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues?q=is%3Aopen+is%3Aissue+milestone%3A4.0.0">https://github.com/jemalloc/jemalloc/issues?q=is%3Aopen+is%3Aissue+milestone%3A4.0.0</A>
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000937.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+	<LI>Next message: <A HREF="000939.html">arenas.extend + thread.arena confusion
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#938">[ date ]</a>
+              <a href="thread.html#938">[ thread ]</a>
+              <a href="subject.html#938">[ subject ]</a>
+              <a href="author.html#938">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

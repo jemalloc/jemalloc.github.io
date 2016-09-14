@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 2MB (hugetlb) page support on Linux
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%202MB%20%28hugetlb%29%20page%20support%20on%20Linux&In-Reply-To=%3C48E01FD9-F40B-479C-BC9E-17A9E03A727E%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000559.html">
+   <LINK REL="Next"  HREF="000557.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>2MB (hugetlb) page support on Linux</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%202MB%20%28hugetlb%29%20page%20support%20on%20Linux&In-Reply-To=%3C48E01FD9-F40B-479C-BC9E-17A9E03A727E%40canonware.com%3E"
+       TITLE="2MB (hugetlb) page support on Linux">jasone at canonware.com
+       </A><BR>
+    <I>Thu Jan 31 12:02:56 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000559.html">2MB (hugetlb) page support on Linux
+</A></li>
+        <LI>Next message: <A HREF="000557.html">[PATCH] include LDFLAGS when linking unit tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#560">[ date ]</a>
+              <a href="thread.html#560">[ thread ]</a>
+              <a href="subject.html#560">[ subject ]</a>
+              <a href="author.html#560">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 31, 2013, at 8:54 AM, Vinay Y S wrote:
+&gt;<i> Ok, I understand that due to more allocations per page the probability of a page being released back to OS will reduce. But is it correct to say that wastage will reduce for 4KB-8KB (and other higher) class allocations and hence utilization will improve?
+</I>
+Internal fragmentation would be reduced for 4-8 KiB allocations, but external fragmentation might increase substantially, depending on the application.
+
+&gt;<i> I also saw the 'medium' size class in the git log as well as on this mailing list discussions. Is there a way to re-introduce that back with, maybe, build-time configurable tradeoffs for memory efficiency vs (?) lock-free purging?
+</I>
+As it happens, I've been working on ways to reintroduce medium size classes over the past few days.  The short synopsis is that I think it is possible to reintroduce medium size classes without dirty page purging sacrifices, but it is going to be complicated to maintain high concurrency between allocation/deallocation and dirty page purging.  The current code protects all dirty page tracking with the arena mutex, but dirty page purging for medium size classes will require a different approach, probably based on atomic operations.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000559.html">2MB (hugetlb) page support on Linux
+</A></li>
+	<LI>Next message: <A HREF="000557.html">[PATCH] include LDFLAGS when linking unit tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#560">[ date ]</a>
+              <a href="thread.html#560">[ thread ]</a>
+              <a href="subject.html#560">[ subject ]</a>
+              <a href="author.html#560">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

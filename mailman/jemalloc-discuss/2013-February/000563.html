@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> How to adjust parameters for jemalloc profiling
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20adjust%20parameters%20for%20jemalloc%20profiling&In-Reply-To=%3CC23297F8-9E63-4934-9411-E73CA69DF4E5%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000562.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>How to adjust parameters for jemalloc profiling</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20adjust%20parameters%20for%20jemalloc%20profiling&In-Reply-To=%3CC23297F8-9E63-4934-9411-E73CA69DF4E5%40canonware.com%3E"
+       TITLE="How to adjust parameters for jemalloc profiling">jasone at canonware.com
+       </A><BR>
+    <I>Thu Feb 28 08:33:43 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000562.html">How to adjust parameters for jemalloc profiling
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#563">[ date ]</a>
+              <a href="thread.html#563">[ thread ]</a>
+              <a href="subject.html#563">[ subject ]</a>
+              <a href="author.html#563">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 25, 2013, at 6:53 AM, Yingfeng Zhang &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">yingfeng.zhang at gmail.com</A>&gt; wrote:
+&gt;<i> Hi, 
+</I>&gt;<i> Recently I've met a profiling challenge that has something to do with jemalloc:
+</I>&gt;<i> There are two threads, one of which runs the following index() function while the other runs search() below. Within each thread, memory allocation is frequently called especially within the index() function.  Although there does not exist any race condition between the two threads, I could see that the performance of search() has been seriously affected---maybe downgraded to tens of times than the situation no index thread is running. From some profiling tools could I conclude that the performance downgrading has something to do with the memory allocation. Suppose within search(), over 2k malloc/free is called, and the overall time could be lowered from 3ms to 0.4s if index thread is started, but search() will never be affected if it runs within a forked process instead of thread. 
+</I>&gt;<i>  
+</I>&gt;<i> void index()
+</I>&gt;<i> {
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> void search()
+</I>&gt;<i> {
+</I>&gt;<i> }
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> I believe it has something to do with the parameter tuning for jemalloc, could anybody help me in figuring out such configuration? 
+</I>&gt;<i> Very grateful!
+</I>
+I don't have a complete enough understanding of you application to offer any concrete advice.  Unless the two threads are acting as producer and consumer (of allocated memory), or the total amount of memory being allocated/deallocated is on the order of many megabytes, it seems unlikely that jemalloc would be directly to blame for the performance degradation.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000562.html">How to adjust parameters for jemalloc profiling
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#563">[ date ]</a>
+              <a href="thread.html#563">[ thread ]</a>
+              <a href="subject.html#563">[ subject ]</a>
+              <a href="author.html#563">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Last call for 3.0.0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Last%20call%20for%203.0.0&In-Reply-To=%3C20120509144515.GA29232%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000394.html">
+   <LINK REL="Next"  HREF="000396.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Last call for 3.0.0</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Last%20call%20for%203.0.0&In-Reply-To=%3C20120509144515.GA29232%40glandium.org%3E"
+       TITLE="Last call for 3.0.0">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May  9 07:45:15 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000394.html">Last call for 3.0.0
+</A></li>
+        <LI>Next message: <A HREF="000396.html">Last call for 3.0.0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#395">[ date ]</a>
+              <a href="thread.html#395">[ thread ]</a>
+              <a href="subject.html#395">[ subject ]</a>
+              <a href="author.html#395">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, May 09, 2012 at 07:27:10AM -0700, Justin Lebar wrote:
+&gt;<i> Oh.
+</I>&gt;<i> 
+</I>&gt;<i> Did you port over a different version of chunk_alloc_mmap for Windows?
+</I>&gt;<i>  I don't recall seeing that in a patch.
+</I>
+Yes, I did.
+
+&gt;<i> See Mozilla's jemalloc; we have to use a different strategy on Windows
+</I>&gt;<i> because Windows requires a 1:1 mapping between VirtualAlloc and
+</I>&gt;<i> VirtualFree.
+</I>
+I noticed that. I'll add an assertion on VirtualFree failing to see if
+it could be that.
+
+I've also been able to reproduce a similar issue on linux and osx
+32-bits by enabling xmalloc (hard failures in case of OOM). The linux
+one is apparently due to --disable-munmap not doing quite a good job,
+but I'm not sure where the OSX one comes from (both OSX and Windows have
+--enable-munmap by default).
+
+BTW, I think we should madvise in chunk_dealloc_mmap when not
+munmap()ing.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000394.html">Last call for 3.0.0
+</A></li>
+	<LI>Next message: <A HREF="000396.html">Last call for 3.0.0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#395">[ date ]</a>
+              <a href="thread.html#395">[ thread ]</a>
+              <a href="subject.html#395">[ subject ]</a>
+              <a href="author.html#395">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

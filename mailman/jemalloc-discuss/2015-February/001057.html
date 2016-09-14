@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150218101511.GA30439%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001056.html">
+   <LINK REL="Next"  HREF="001059.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150218101511.GA30439%40glandium.org%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">mh at glandium.org
+       </A><BR>
+    <I>Wed Feb 18 02:15:11 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001056.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001059.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1057">[ date ]</a>
+              <a href="thread.html#1057">[ thread ]</a>
+              <a href="subject.html#1057">[ subject ]</a>
+              <a href="author.html#1057">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Feb 18, 2015 at 06:34:26PM +0900, Mike Hommey wrote:
+&gt;<i> On Wed, Feb 04, 2015 at 11:54:32AM +0900, Mike Hommey wrote:
+</I>&gt;<i> &gt; On Wed, Feb 04, 2015 at 07:51:17AM +0900, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt; Hi,
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; I've been tracking a startup time regression in Firefox for Android when
+</I>&gt;<i> &gt; &gt; we tried to switch from mozjemalloc (memory refresher: it's derived from
+</I>&gt;<i> &gt; &gt; jemalloc 0.9) to mostly current jemalloc dev.
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; It turned out to be <A HREF="https://github.com/jemalloc/jemalloc/pull/192">https://github.com/jemalloc/jemalloc/pull/192</A>
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; *sigh* and sadly, this doesn't fix it all :(
+</I>&gt;<i> 
+</I>&gt;<i> So, it /might/ be related to the size classes. I don't have all results
+</I>&gt;<i> yet, but it looks like I'm getting good results with #192,
+</I>&gt;<i> --with-lg-quantum=4, --with-lg-tiny-min=2 and replacing size2index,
+</I>&gt;<i> index2size and s2u so that jemalloc3 uses the same size classes as
+</I>&gt;<i> mozjemalloc (IOW, a very bastardized jemalloc3)
+</I>&gt;<i> 
+</I>&gt;<i> If that happens to be true, I'll dig deeper as to what particular size
+</I>&gt;<i> classes changes are making a difference.
+</I>
+And with more results coming in, it's starting to look like it was a red
+herring :(
+The comment about the size classes well above the chunk size still stands,
+though.
+
+Mike
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001056.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001059.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1057">[ date ]</a>
+              <a href="thread.html#1057">[ thread ]</a>
+              <a href="subject.html#1057">[ subject ]</a>
+              <a href="author.html#1057">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

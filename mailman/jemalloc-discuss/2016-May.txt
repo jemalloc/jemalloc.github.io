@@ -1,0 +1,364 @@
+From ingvar at redpill-linpro.com  Wed May  4 06:12:52 2016
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Wed, 04 May 2016 15:12:52 +0200
+Subject: test/integration/mallocx fails on older i686 (Was: jemalloc 4.1.1
+	released)
+In-Reply-To: <46439D75-8BD8-4CFD-97EC-668ED6A8D7D0@canonware.com>
+References: <46439D75-8BD8-4CFD-97EC-668ED6A8D7D0@canonware.com>
+Message-ID: <1462367572.4559.11.camel@redpill-linpro.com>
+
+test/integration/mallocx fails on older i686. It fails on el5, el6,
+though it works on fedora 22.
+
+el5 and el6 dies at the same spot:
+
+=== test/integration/mallocx ===
+test_overflow: pass
+test_oom: pass
+test_basic: pass
+test_alignment_and_size:test/integration/mallocx.c:170: Failed
+assertion: (ps[i]) != (NULL) --> 0x0 == 0x0: mallocx() error for
+alignment=33554432, size=100663291 (0x5fffffb)
+test/test.sh: line 22: 24762 Segmentation fault??????(core dumped) ${t}
+/builddir/build/BUILD/jemalloc-4.1.1/ /builddir/build/BUILD/jemalloc-
+4.1.1/
+Test harness error
+make: *** [check_integration] Error 1
+
+Full build log for el5:?https://ingvar.fedorapeople.org/jemalloc/jemall
+oc-4.1.1.el5.i686.build.log
+
+
+Ingvar
+
+
+From jasone at canonware.com  Wed May  4 11:14:48 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 4 May 2016 11:14:48 -0700
+Subject: test/integration/mallocx fails on older i686 (Was: jemalloc 4.1.1
+	released)
+In-Reply-To: <1462367572.4559.11.camel@redpill-linpro.com>
+References: <46439D75-8BD8-4CFD-97EC-668ED6A8D7D0@canonware.com>
+	<1462367572.4559.11.camel@redpill-linpro.com>
+Message-ID: <2D871235-1D83-49E1-9AE8-8BECEB229623@canonware.com>
+
+On May 4, 2016, at 6:12 AM, Ingvar Hagelund <ingvar at redpill-linpro.com> wrote:
+> test/integration/mallocx fails on older i686. It fails on el5, el6,
+> though it works on fedora 22.
+> 
+> el5 and el6 dies at the same spot:
+> 
+> === test/integration/mallocx ===
+> test_overflow: pass
+> test_oom: pass
+> test_basic: pass
+> test_alignment_and_size:test/integration/mallocx.c:170: Failed
+> assertion: (ps[i]) != (NULL) --> 0x0 == 0x0: mallocx() error for
+> alignment=33554432, size=100663291 (0x5fffffb)
+> test/test.sh: line 22: 24762 Segmentation fault      (core dumped) ${t}
+> /builddir/build/BUILD/jemalloc-4.1.1/ /builddir/build/BUILD/jemalloc-
+> 4.1.1/
+> Test harness error
+> make: *** [check_integration] Error 1
+> 
+> Full build log for el5: https://ingvar.fedorapeople.org/jemalloc/jemall
+> oc-4.1.1.el5.i686.build.log
+
+Is it possible that ~128 MiB is simply too much to allocate on those systems?  Does 4.1.0 also exhibit this behavior?
+
+Thanks,
+Jason
+
+From khannasusa at gmail.com  Tue May 10 15:09:43 2016
+From: khannasusa at gmail.com (sanjay khanna)
+Date: Tue, 10 May 2016 18:09:43 -0400
+Subject: Where do I modify jemalloc 3.5.0?
+Message-ID: <CACthwYhdvaoBU3P8b_=UUKa9ei39iC_ym5-tB=9gW3bS31i4dQ@mail.gmail.com>
+
+Hi Jason and other Jemalloc Experts
+
+I am using jemalloc 3.5.0 on my platform.  I have my own API layer on top
+of Jemalloc.
+On this platform (freebsd based), when a page is sbrk()'ed in, it is set to
+all zeros. This is given.
+
+My API guarantees when Alloc is done by user code, bytes are all zero'ed
+out. So the user does not have to memset() or call calloc() for allocated
+memory. This is also a requirement on my API layer. If my alloc finds
+non-zero bytes in the allocated memory in the debug mode, it asserts
+because I presume that it is a write after free.
+
+When a free() is done, my API layer memset(0) all the allocated bytes
+before calling jemalloc_free().
+This is also a security guarantee given by my API layer.
+
+Right now at Alloc time, I am forced to call memset(0) as sometimes I find
+that there are unwanted non-zero bytes in the allocated memory. If my layer
+memset(0) before jemalloc_free() is called, why & where do these extra
+bytes appear from? These bytes are located in very high on a page address
+and look like jemalloc housekeeping.
+
+Why do we do things like these?
+ Based on  my benchmark tests I know that it is taking me around 118ns
+(nanoseconds) to allocate a say 64 bytes using je_malloc() (without memset)
+and with a forced memset() this cost goes up to 240ns. That is almost
+double.and very expensive.
+
+Since platform is already burning cpu to memset(0) on paging in a physical
+page first time, I think it is sub-optimal to  do additional memset(0) at
+alloc time.
+
+If I were to modify/enhance jemalloc, where do I need to make changes? My
+list so far includes arena_run_split_large_helper(),
+arena_run_split_small() & chunk_recycle().
+
+Any direction you can provide me in this case will be very helpful.
+
+Thank you so much..
+--sk
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160510/cb2fb9f6/attachment.html>
+
+From jasone at canonware.com  Tue May 10 16:48:34 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 10 May 2016 16:48:34 -0700
+Subject: Where do I modify jemalloc 3.5.0?
+In-Reply-To: <CACthwYhdvaoBU3P8b_=UUKa9ei39iC_ym5-tB=9gW3bS31i4dQ@mail.gmail.com>
+References: <CACthwYhdvaoBU3P8b_=UUKa9ei39iC_ym5-tB=9gW3bS31i4dQ@mail.gmail.com>
+Message-ID: <171A936B-6CAF-491B-8E70-65FAD9DC158C@canonware.com>
+
+On May 10, 2016, at 3:09 PM, sanjay khanna <khannasusa at gmail.com> wrote:
+> I am using jemalloc 3.5.0 on my platform.  I have my own API layer on top of Jemalloc.
+> On this platform (freebsd based), when a page is sbrk()'ed in, it is set to all zeros. This is given.
+> 
+> My API guarantees when Alloc is done by user code, bytes are all zero'ed out. So the user does not have to memset() or call calloc() for allocated memory. This is also a requirement on my API layer. If my alloc finds non-zero bytes in the allocated memory in the debug mode, it asserts because I presume that it is a write after free.
+> 
+> When a free() is done, my API layer memset(0) all the allocated bytes before calling jemalloc_free().
+> This is also a security guarantee given by my API layer.
+> 
+> Right now at Alloc time, I am forced to call memset(0) as sometimes I find that there are unwanted non-zero bytes in the allocated memory. If my layer memset(0) before jemalloc_free() is called, why & where do these extra bytes appear from? These bytes are located in very high on a page address and look like jemalloc housekeeping.
+> 
+> Why do we do things like these?
+>  Based on  my benchmark tests I know that it is taking me around 118ns (nanoseconds) to allocate a say 64 bytes using je_malloc() (without memset) and with a forced memset() this cost goes up to 240ns. That is almost double.and very expensive.
+> 
+> Since platform is already burning cpu to memset(0) on paging in a physical page first time, I think it is sub-optimal to  do additional memset(0) at alloc time.
+> 
+> If I were to modify/enhance jemalloc, where do I need to make changes? My list so far includes arena_run_split_large_helper(), arena_run_split_small() & chunk_recycle().
+
+If I understand correctly, you want to rely on an invariant that "as long as all memory is zeroed prior to free(), subsequent malloc() calls will always return zeroed memory".  There are myriad ways this invariant is incompatible with jemalloc's internals.  Perhaps the most widely dispersed effect is that jemalloc calls e.g. imalloc() to allocate ephemeral metadata such as thread caches.  Another big issue is that runs used for small allocations directly embed metadata (no longer true in jemalloc 4).  Long story short, what you want to do isn't even close to being supported by vanilla jemalloc, and if you want to add such support you will need to audit pretty much the entirety of jemalloc to find ways it dirties memory, split APIs into internal/external versions, etc.
+
+Jason
+
+From truhuan at gmail.com  Tue May 10 22:43:54 2016
+From: truhuan at gmail.com (Walter)
+Date: Wed, 11 May 2016 13:43:54 +0800
+Subject: jemalloc memory slim
+Message-ID: <CADyx2V4i-CiR7k94N-z2NNwDakQuCVwir8FG-4-95pimB+Xa6Q@mail.gmail.com>
+
+Hi, Jason,
+
+We want to slim memory usage on jemalloc-4.1. One of the way is disable
+tcache. Would you have other ways?
+
+Thank you so much
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160511/76786eb5/attachment.html>
+
+From jasone at canonware.com  Wed May 11 00:57:43 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 11 May 2016 00:57:43 -0700
+Subject: test/integration/mallocx fails on older i686 (Was: jemalloc 4.1.1
+	released)
+In-Reply-To: <1462367572.4559.11.camel@redpill-linpro.com>
+References: <46439D75-8BD8-4CFD-97EC-668ED6A8D7D0@canonware.com>
+	<1462367572.4559.11.camel@redpill-linpro.com>
+Message-ID: <24AD8C0B-65E8-4CE7-BA7C-1BC05EE081F2@canonware.com>
+
+On May 4, 2016, at 6:12 AM, Ingvar Hagelund <ingvar at redpill-linpro.com> wrote:
+> test/integration/mallocx fails on older i686. It fails on el5, el6,
+> though it works on fedora 22.
+> 
+> el5 and el6 dies at the same spot:
+> 
+> === test/integration/mallocx ===
+> test_overflow: pass
+> test_oom: pass
+> test_basic: pass
+> test_alignment_and_size:test/integration/mallocx.c:170: Failed
+> assertion: (ps[i]) != (NULL) --> 0x0 == 0x0: mallocx() error for
+> alignment=33554432, size=100663291 (0x5fffffb)
+> test/test.sh: line 22: 24762 Segmentation fault      (core dumped) ${t}
+> /builddir/build/BUILD/jemalloc-4.1.1/ /builddir/build/BUILD/jemalloc-
+> 4.1.1/
+> Test harness error
+> make: *** [check_integration] Error 1
+> 
+> Full build log for el5: https://ingvar.fedorapeople.org/jemalloc/jemall
+> oc-4.1.1.el5.i686.build.log
+
+This is probably fixed:
+
+	https://github.com/jemalloc/jemalloc/commit/3a9ec676267cf215ed2591a1060f870daced2472
+
+Thanks,
+Jason
+
+From yoav at monfort.co.il  Wed May 18 02:14:10 2016
+From: yoav at monfort.co.il (Yoav Steinberg)
+Date: Wed, 18 May 2016 12:14:10 +0300
+Subject: huge class sizes
+Message-ID: <573C3262.2040800@monfort.co.il>
+
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160518/7521c4dc/attachment.html>
+
+From jasone at canonware.com  Thu May 19 17:09:10 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 19 May 2016 17:09:10 -0700
+Subject: huge class sizes
+In-Reply-To: <573C3262.2040800@monfort.co.il>
+References: <573C3262.2040800@monfort.co.il>
+Message-ID: <4FA42343-DCE5-4D5B-951E-596545362739@canonware.com>
+
+On May 18, 2016, at 2:14 AM, Yoav Steinberg <yoav at monfort.co.il> wrote:
+> I recently moved from jemalloc 3.x to 4.0.4 and I noticed my 513MB allocations jumped to over 600MB allocations. Digging into the code I see huge allocations are now done using size classes (https://github.com/jemalloc/jemalloc/commit/560a4e1e01d3733c2f107cdb3cc3580f3ed84442). 
+> 
+> This leads to huge internal fragmentation for such allocations. Did anyone consider this degradation when making the change? Is there any clean way to revert to non size classed huge allocations? What's the advantage of size classed huge allocations?
+
+The size class change actually *decreases* worst case internal fragmentation relative to allocation size from 50% to 20%.  For example, malloc(4 MiB + 1) results in a 5 MiB allocation with jemalloc 4.x, rather than 8 MiB with 3.x.  Furthermore, in the case of huge size classes, the internal fragmentation only matters in terms of virtual memory if the application doesn't use the extra space, since no physical pages are ever required.
+
+If maximum 20% internal fragmentation is too high for your tastes, you can configure with --with-lg-size-class-group=3 or 4 to drop maximum internal fragmentation to 11% or 6%, respectively.  But, if you do that you will likely increase external fragmentation as a side effect.
+
+Jason
+
+From b7.10110111 at gmail.com  Fri May 20 06:08:47 2016
+From: b7.10110111 at gmail.com (Ruslan Kabatsayev)
+Date: Fri, 20 May 2016 16:08:47 +0300
+Subject: Crash with programs linked with libasan
+Message-ID: <CAHEcG95_pK63Gp-tX0B3HNLeOOXvpH_yV8_sfniAky7nBkrY1g@mail.gmail.com>
+
+Hello,
+
+Jemalloc seems to be incompatible with libasan (or am I using it
+incorrectly?). Here's how to reproduce the problem with a simple C
+program:
+
+int main(){return 0;}
+
+Compile it with the following command (tested on Kubuntu 14.04 amd64,
+with gcc 5.3.0-3ubuntu1~14.04):
+
+gcc test.c -o test -fsanitize=address
+
+Then run it this way:
+
+LD_PRELOAD=$HOME/opt/jemalloc/lib/libjemalloc.so.2 ./test
+
+and get a crash:
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000000000000000 in ?? ()
+(gdb) bt
+#0  0x0000000000000000 in ?? ()
+#1  0x00007ffff7b82720 in je_malloc_mutex_lock (tsdn=0x0,
+mutex=0x7ffff7dd81c0 <init_lock>) at
+include/jemalloc/internal/mutex.h:94
+#2  malloc_init_hard () at src/jemalloc.c:1401
+#3  0x00007ffff7b865ed in malloc_init () at src/jemalloc.c:302
+#4  ialloc_body (slow_path=true, usize=<synthetic pointer>,
+tsdn=<synthetic pointer>, zero=true, size=<optimized out>) at
+src/jemalloc.c:1498
+#5  calloc (num=<optimized out>, size=<optimized out>) at src/jemalloc.c:1739
+#6  0x00007ffff642b690 in _dlerror_run
+(operate=operate at entry=0x7ffff642b130 <dlsym_doit>,
+args=args at entry=0x7fffffffd840) at dlerror.c:141
+#7  0x00007ffff642b198 in __dlsym
+(handle=handle at entry=0xffffffffffffffff,
+name=name at entry=0x7ffff6cddfba "textdomain") at dlsym.c:70
+#8  0x00007ffff6cc48dc in __interception::GetRealFunctionAddress
+(func_name=func_name at entry=0x7ffff6cddfba "textdomain",
+func_addr=func_addr at entry=0x7ffff71227a8
+<__interception::real_textdomain>,
+    real=real at entry=140737333459696,
+wrapper=wrapper at entry=140737333459696) at
+../../../../src/libsanitizer/interception/interception_linux.cc:21
+#9  0x00007ffff6c9a20f in InitializeCommonInterceptors () at
+../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:4738
+#10 __asan::InitializeAsanInterceptors () at
+../../../../src/libsanitizer/asan/asan_interceptors.cc:734
+#11 0x00007ffff6cade18 in __asan::AsanInitInternal () at
+../../../../src/libsanitizer/asan/asan_rtl.cc:595
+#12 0x00007ffff7dea28a in _dl_init (main_map=0x7ffff7ffe1c8, argc=1,
+argv=0x7fffffffd938, env=0x7fffffffd948) at dl-init.c:111
+#13 0x00007ffff7ddb30a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+#14 0x0000000000000001 in ?? ()
+#15 0x00007fffffffdd5c in ?? ()
+#16 0x0000000000000000 in ?? ()
+
+
+Regards,
+Ruslan
+
+From jasone at canonware.com  Fri May 20 08:57:45 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 20 May 2016 08:57:45 -0700
+Subject: Crash with programs linked with libasan
+In-Reply-To: <CAHEcG95_pK63Gp-tX0B3HNLeOOXvpH_yV8_sfniAky7nBkrY1g@mail.gmail.com>
+References: <CAHEcG95_pK63Gp-tX0B3HNLeOOXvpH_yV8_sfniAky7nBkrY1g@mail.gmail.com>
+Message-ID: <7D973CA1-DF92-42C8-A6A3-AC1D57E28100@canonware.com>
+
+> On May 20, 2016, at 6:08 AM, Ruslan Kabatsayev <b7.10110111 at gmail.com> wrote:
+> Jemalloc seems to be incompatible with libasan (or am I using it
+> incorrectly?). Here's how to reproduce the problem with a simple C
+> program:
+
+ASAN uses its own malloc replacement to work much of its magic, so if you explicitly link with a malloc library, bad things will happen.
+
+Jason
+
+From chen.song.82 at gmail.com  Mon May 23 15:25:08 2016
+From: chen.song.82 at gmail.com (Chen Song)
+Date: Mon, 23 May 2016 18:25:08 -0400
+Subject: question on using jemalloc profile for java app
+Message-ID: <CAGF+3rYtjbf5EZBS7=H=aKUKJjfSu80p0oSz06ECg3Ynao5Cog@mail.gmail.com>
+
+Hi
+
+I started using jemalloc to profile one Java program and I had some
+difficulty getting it working.
+
+My sample Java program is very simple.
+
+
+        int[][] array = new int[1 << 20][];
+        for (int i = 0; i < array.length; i++) {
+            array[i] = new int[1 << 10];
+        }
+
+What it does is to create an higher order array of size 1M, and for each
+slot, create an integer array of size 1K. So in total it should allocate 1M
+* 1K * 4 byte = 4G memory.
+
+I profiled the Java with jemalloc with the following options,
+
+export
+MALLOC_CONF="prof:true,lg_prof_interval:30,lg_prof_sample:10,prof_prefix:/tmp/jeprof.out"
+
+My understanding is jemalloc should be able to dump a file each time 1G is
+allocated, at a sampling frequency of 1K allocation. However, I never see
+any dump file automatically generated.
+
+My jemalloc should be installed correctly b/c I can see memory dump file
+generated with the following option.
+
+export MALLOC_CONF="prof:true,prof_final:true,prof_prefix:/tmp/jeprof.out"
+
+Is there anything I am missing or misusing jemalloc?
+
+Chen
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160523/1532a1e3/attachment.html>
+

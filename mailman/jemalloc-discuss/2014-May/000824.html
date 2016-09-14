@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Move platform headers and tricks from jemalloc_internal.h.in	to a new jemalloc_internal_decls.h header
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Move%20platform%20headers%20and%20tricks%20from%20jemalloc_internal.h.in%0A%09to%20a%20new%20jemalloc_internal_decls.h%20header&In-Reply-To=%3C1401248353-14644-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000805.html">
+   <LINK REL="Next"  HREF="000828.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Move platform headers and tricks from jemalloc_internal.h.in	to a new jemalloc_internal_decls.h header</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Move%20platform%20headers%20and%20tricks%20from%20jemalloc_internal.h.in%0A%09to%20a%20new%20jemalloc_internal_decls.h%20header&In-Reply-To=%3C1401248353-14644-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Move platform headers and tricks from jemalloc_internal.h.in	to a new jemalloc_internal_decls.h header">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue May 27 20:39:13 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000805.html">jemalloc for small applications
+</A></li>
+        <LI>Next message: <A HREF="000828.html">[PATCH] Move platform headers and tricks from	jemalloc_internal.h.in to a new jemalloc_internal_decls.h header
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#824">[ date ]</a>
+              <a href="thread.html#824">[ thread ]</a>
+              <a href="subject.html#824">[ subject ]</a>
+              <a href="author.html#824">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ include/jemalloc/internal/jemalloc_internal.h.in   | 53 +-------------------
+ .../jemalloc/internal/jemalloc_internal_decls.h    | 58 ++++++++++++++++++++++
+ .../jemalloc/internal/jemalloc_internal_macros.h   |  4 --
+ test/include/test/jemalloc_test_defs.h.in          |  1 +
+ 4 files changed, 60 insertions(+), 56 deletions(-)
+ create mode 100644 include/jemalloc/internal/jemalloc_internal_decls.h
+
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index d9bfadf..cf20f1f 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -1,59 +1,8 @@
+ #ifndef JEMALLOC_INTERNAL_H
+ #define	JEMALLOC_INTERNAL_H
+-#include &lt;math.h&gt;
+-#ifdef _WIN32
+-#  include &lt;windows.h&gt;
+-#  define ENOENT ERROR_PATH_NOT_FOUND
+-#  define EINVAL ERROR_BAD_ARGUMENTS
+-#  define EAGAIN ERROR_OUTOFMEMORY
+-#  define EPERM  ERROR_WRITE_FAULT
+-#  define EFAULT ERROR_INVALID_ADDRESS
+-#  define ENOMEM ERROR_NOT_ENOUGH_MEMORY
+-#  undef ERANGE
+-#  define ERANGE ERROR_INVALID_DATA
+-#else
+-#  include &lt;sys/param.h&gt;
+-#  include &lt;sys/mman.h&gt;
+-#  include &lt;sys/syscall.h&gt;
+-#  if !defined(SYS_write) &amp;&amp; defined(__NR_write)
+-#    define SYS_write __NR_write
+-#  endif
+-#  include &lt;sys/uio.h&gt;
+-#  include &lt;pthread.h&gt;
+-#  include &lt;errno.h&gt;
+-#endif
+-#include &lt;sys/types.h&gt;
+-
+-#include &lt;limits.h&gt;
+-#ifndef SIZE_T_MAX
+-#  define SIZE_T_MAX	SIZE_MAX
+-#endif
+-#include &lt;stdarg.h&gt;
+-#include &lt;stdbool.h&gt;
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;stdint.h&gt;
+-#include &lt;stddef.h&gt;
+-#ifndef offsetof
+-#  define offsetof(type, member)	((size_t)&amp;(((type *)NULL)-&gt;member))
+-#endif
+-#include &lt;inttypes.h&gt;
+-#include &lt;string.h&gt;
+-#include &lt;strings.h&gt;
+-#include &lt;ctype.h&gt;
+-#ifdef _MSC_VER
+-#  include &lt;io.h&gt;
+-typedef intptr_t ssize_t;
+-#  define PATH_MAX 1024
+-#  define STDERR_FILENO 2
+-/* Disable warnings about deprecated system functions */
+-#  pragma warning(disable: 4996)
+-#else
+-#  include &lt;unistd.h&gt;
+-#endif
+-#include &lt;fcntl.h&gt;
+ 
+ #include &quot;jemalloc_internal_defs.h&quot;
++#include &quot;jemalloc/internal/jemalloc_internal_decls.h&quot;
+ 
+ #ifdef JEMALLOC_UTRACE
+ #include &lt;sys/ktrace.h&gt;
+diff --git a/include/jemalloc/internal/jemalloc_internal_decls.h b/include/jemalloc/internal/jemalloc_internal_decls.h
+new file mode 100644
+index 0000000..7775ab3
+--- /dev/null
++++ b/include/jemalloc/internal/jemalloc_internal_decls.h
+@@ -0,0 +1,58 @@
++#ifndef JEMALLOC_INTERNAL_DECLS_H
++#define	JEMALLOC_INTERNAL_DECLS_H
++
++#include &lt;math.h&gt;
++#ifdef _WIN32
++#  include &lt;windows.h&gt;
++#  define ENOENT ERROR_PATH_NOT_FOUND
++#  define EINVAL ERROR_BAD_ARGUMENTS
++#  define EAGAIN ERROR_OUTOFMEMORY
++#  define EPERM  ERROR_WRITE_FAULT
++#  define EFAULT ERROR_INVALID_ADDRESS
++#  define ENOMEM ERROR_NOT_ENOUGH_MEMORY
++#  undef ERANGE
++#  define ERANGE ERROR_INVALID_DATA
++#else
++#  include &lt;sys/param.h&gt;
++#  include &lt;sys/mman.h&gt;
++#  include &lt;sys/syscall.h&gt;
++#  if !defined(SYS_write) &amp;&amp; defined(__NR_write)
++#    define SYS_write __NR_write
++#  endif
++#  include &lt;sys/uio.h&gt;
++#  include &lt;pthread.h&gt;
++#  include &lt;errno.h&gt;
++#endif
++#include &lt;sys/types.h&gt;
++
++#include &lt;limits.h&gt;
++#ifndef SIZE_T_MAX
++#  define SIZE_T_MAX	SIZE_MAX
++#endif
++#include &lt;stdarg.h&gt;
++#include &lt;stdbool.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;stdint.h&gt;
++#include &lt;stddef.h&gt;
++#ifndef offsetof
++#  define offsetof(type, member)	((size_t)&amp;(((type *)NULL)-&gt;member))
++#endif
++#include &lt;inttypes.h&gt;
++#include &lt;string.h&gt;
++#include &lt;strings.h&gt;
++#include &lt;ctype.h&gt;
++#ifdef _MSC_VER
++#  include &lt;io.h&gt;
++typedef intptr_t ssize_t;
++#  define PATH_MAX 1024
++#  define STDERR_FILENO 2
++#  define __func__ __FUNCTION__
++/* Disable warnings about deprecated system functions */
++#  pragma warning(disable: 4996)
++#else
++#  include &lt;unistd.h&gt;
++#endif
++#include &lt;fcntl.h&gt;
++
++#endif /* JEMALLOC_INTERNAL_H */
+diff --git a/include/jemalloc/internal/jemalloc_internal_macros.h b/include/jemalloc/internal/jemalloc_internal_macros.h
+index bb81e99..4e23923 100644
+--- a/include/jemalloc/internal/jemalloc_internal_macros.h
++++ b/include/jemalloc/internal/jemalloc_internal_macros.h
+@@ -49,7 +49,3 @@
+ #ifndef JEMALLOC_HAS_RESTRICT
+ #  define restrict
+ #endif
+-
+-#ifdef _MSC_VER
+-#  define __func__ __FUNCTION__
+-#endif
+diff --git a/test/include/test/jemalloc_test_defs.h.in b/test/include/test/jemalloc_test_defs.h.in
+index 18a9773..aaaaec1 100644
+--- a/test/include/test/jemalloc_test_defs.h.in
++++ b/test/include/test/jemalloc_test_defs.h.in
+@@ -1,4 +1,5 @@
+ #include &quot;jemalloc/internal/jemalloc_internal_defs.h&quot;
++#include &quot;jemalloc/internal/jemalloc_internal_decls.h&quot;
+ 
+ /* For use by SFMT. */
+ #undef HAVE_SSE2
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000805.html">jemalloc for small applications
+</A></li>
+	<LI>Next message: <A HREF="000828.html">[PATCH] Move platform headers and tricks from	jemalloc_internal.h.in to a new jemalloc_internal_decls.h header
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#824">[ date ]</a>
+              <a href="thread.html#824">[ thread ]</a>
+              <a href="subject.html#824">[ subject ]</a>
+              <a href="author.html#824">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

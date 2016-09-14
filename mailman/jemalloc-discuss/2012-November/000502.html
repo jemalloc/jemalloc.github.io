@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question about bitmap code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20bitmap%20code&In-Reply-To=%3CCAJXinN_JRjaZF0M5PLFA%2B0AK%2BpPHs9fmMtxz8m4fv46ATfT0bA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000499.html">
+   <LINK REL="Next"  HREF="000503.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question about bitmap code</H1>
+    <B>Mitchell Blank Jr</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20bitmap%20code&In-Reply-To=%3CCAJXinN_JRjaZF0M5PLFA%2B0AK%2BpPHs9fmMtxz8m4fv46ATfT0bA%40mail.gmail.com%3E"
+       TITLE="Question about bitmap code">mitch-jemalloc-discuss at bodyfour.com
+       </A><BR>
+    <I>Mon Nov  5 03:53:13 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000499.html">mallctl(&quot;arenas.purge&quot;) dead-locks
+</A></li>
+        <LI>Next message: <A HREF="000503.html">Question about bitmap code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#502">[ date ]</a>
+              <a href="thread.html#502">[ thread ]</a>
+              <a href="subject.html#502">[ subject ]</a>
+              <a href="author.html#502">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've been looking through some of the jemalloc code and had a question
+about bitmap.h.
+
+Testing on a 64-bit machine, the arena bin with the most elements is size=8
+with 501 items.  Since a cacheline is commonly 64 bytes = 512 bits, a
+simpler single-level bitmap would seem to win just on memory effects.
+
+It's not clear to me if its advantageous on a branching basis, at least on
+64-bit.  On average you'd need to look at 4 words to find an unused 8-byte
+entry, and fewer for other size bins.  I guess on a 32-bit platform, it
+might be a different story.  Still, I wonder if it is worth touching
+another cache line to avoid the comparisons.
+
+Are there cases where the bitmap code is used for more than 512 items in it?
+
+-Mitch
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121105/cc807b87/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121105/cc807b87/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000499.html">mallctl(&quot;arenas.purge&quot;) dead-locks
+</A></li>
+	<LI>Next message: <A HREF="000503.html">Question about bitmap code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#502">[ date ]</a>
+              <a href="thread.html#502">[ thread ]</a>
+              <a href="subject.html#502">[ subject ]</a>
+              <a href="author.html#502">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> dead lock in forked child
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20dead%20lock%20in%20forked%20child&In-Reply-To=%3CCA%2BXzkVe8caMhCU0zE3BBkJpHBT66ZEfwQcc4S7not56jWXm9Ng%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000428.html">
+   <LINK REL="Next"  HREF="000430.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>dead lock in forked child</H1>
+    <B>Salvatore Sanfilippo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20dead%20lock%20in%20forked%20child&In-Reply-To=%3CCA%2BXzkVe8caMhCU0zE3BBkJpHBT66ZEfwQcc4S7not56jWXm9Ng%40mail.gmail.com%3E"
+       TITLE="dead lock in forked child">antirez at gmail.com
+       </A><BR>
+    <I>Fri Jun  1 11:35:57 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000428.html">dead lock in forked child
+</A></li>
+        <LI>Next message: <A HREF="000430.html">dead lock in forked child
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#429">[ date ]</a>
+              <a href="thread.html#429">[ thread ]</a>
+              <a href="subject.html#429">[ subject ]</a>
+              <a href="author.html#429">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jason,
+
+thanks for your reply. Redis is known to surely allocate something in
+the main thread before doing anything else, so this bug should not be
+possible in our case and maybe we were observing something else? Or
+actually Jemalloc &lt; 3.0 had such an issue even if the main thread
+allocate something (I found some mention related to fork+exec in the
+3.0 changelog, we don't do exec btw.)? Thanks.
+
+Cheers,
+Salvatore
+
+On Fri, Jun 1, 2012 at 8:31 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On May 25, 2012, at 2:02 AM, Jokea wrote:
+</I>&gt;<i>
+</I>&gt;<i> I've found that a forked child runs into dead lock in a multithreaded
+</I>&gt;<i> application.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> jemalloc calls pthread_atfork() during initialization, but the test program
+</I>&gt;<i> does no allocation in the main thread before forking, and it launches
+</I>&gt;<i> threads that race with it. &#160;It appears that one of those threads gets part
+</I>&gt;<i> way through allocator initialization before the fork occurs, which leaves
+</I>&gt;<i> the allocator in an inconsistent state (init_lock locked, but initialization
+</I>&gt;<i> incomplete). &#160;The simple workaround is to allocate something before forking.
+</I>&gt;<i>
+</I>&gt;<i> A general fix in jemalloc is messy at best. &#160;The possibilities that come to
+</I>&gt;<i> mind are 1) intercepting pthread_create() (or all fork-like system calls)
+</I>&gt;<i> much as the lazy locking code in mutex.c does and forcing allocator
+</I>&gt;<i> initialization, or 2) using a library initializer (function specified via
+</I>&gt;<i> compiler attribute to be run during library load) to force allocator
+</I>&gt;<i> initialization. &#160;Both of these approaches are somewhat
+</I>&gt;<i> fragile;&#160;dlsym(RTLD_NEXT, &#8230;) can break if other libraries play similar
+</I>&gt;<i> games, and library initializers don't run early enough to prevent all
+</I>&gt;<i> possible failures. &#160;In any case,&#160;I'll make a note to experiment with (2).
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+<A HREF="http://invece.org">http://invece.org</A>
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+&#160; &#160; &#160; &#160;&#8212; David Gelernter
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000428.html">dead lock in forked child
+</A></li>
+	<LI>Next message: <A HREF="000430.html">dead lock in forked child
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#429">[ date ]</a>
+              <a href="thread.html#429">[ thread ]</a>
+              <a href="subject.html#429">[ subject ]</a>
+              <a href="author.html#429">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

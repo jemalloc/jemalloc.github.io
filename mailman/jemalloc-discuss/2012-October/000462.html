@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Fix malloc_usable_size definition
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Fix%20malloc_usable_size%20definition&In-Reply-To=%3CFF2215BF-F99E-4A8B-A2A2-4839F1D5EABF%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000461.html">
+   <LINK REL="Next"  HREF="000466.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Fix malloc_usable_size definition</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Fix%20malloc_usable_size%20definition&In-Reply-To=%3CFF2215BF-F99E-4A8B-A2A2-4839F1D5EABF%40canonware.com%3E"
+       TITLE="[PATCH] Fix malloc_usable_size definition">jasone at canonware.com
+       </A><BR>
+    <I>Tue Oct  9 10:16:07 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000461.html">[PATCH] Fix malloc_usable_size definition
+</A></li>
+        <LI>Next message: <A HREF="000466.html">[PATCH] Fix malloc_usable_size definition
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#462">[ date ]</a>
+              <a href="thread.html#462">[ thread ]</a>
+              <a href="subject.html#462">[ subject ]</a>
+              <a href="author.html#462">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 9, 2012, at 2:21 AM, <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh+jemalloc at glandium.org</A> wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> The function declaration in system headers uses void * instead of const void *, and
+</I>&gt;<i> that can lead to conflicts when building against recent Android NDKs, where string.h
+</I>&gt;<i> includes malloc.h, which contains that conflicting definition.
+</I>&gt;<i> ---
+</I>&gt;<i> include/jemalloc/jemalloc.h.in |    2 +-
+</I>&gt;<i> src/jemalloc.c                 |    2 +-
+</I>&gt;<i> 2 files changed, 2 insertions(+), 2 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+</I>&gt;<i> index ad06948..f210a0b 100644
+</I>&gt;<i> --- a/include/jemalloc/jemalloc.h.in
+</I>&gt;<i> +++ b/include/jemalloc/jemalloc.h.in
+</I>&gt;<i> @@ -59,7 +59,7 @@ JEMALLOC_EXPORT void *	je_memalign(size_t alignment, size_t size)
+</I>&gt;<i> JEMALLOC_EXPORT void *	je_valloc(size_t size) JEMALLOC_ATTR(malloc);
+</I>&gt;<i> #endif
+</I>&gt;<i> 
+</I>&gt;<i> -JEMALLOC_EXPORT size_t	je_malloc_usable_size(const void *ptr);
+</I>&gt;<i> +JEMALLOC_EXPORT size_t	je_malloc_usable_size(void *ptr);
+</I>&gt;<i> JEMALLOC_EXPORT void	je_malloc_stats_print(void (*write_cb)(void *,
+</I>&gt;<i>     const char *), void *je_cbopaque, const char *opts);
+</I>&gt;<i> JEMALLOC_EXPORT int	je_mallctl(const char *name, void *oldp,
+</I>&gt;<i> diff --git a/src/jemalloc.c b/src/jemalloc.c
+</I>&gt;<i> index bc54cd7..9125236 100644
+</I>&gt;<i> --- a/src/jemalloc.c
+</I>&gt;<i> +++ b/src/jemalloc.c
+</I>&gt;<i> @@ -1279,7 +1279,7 @@ JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
+</I>&gt;<i>  */
+</I>&gt;<i> 
+</I>&gt;<i> size_t
+</I>&gt;<i> -je_malloc_usable_size(const void *ptr)
+</I>&gt;<i> +je_malloc_usable_size(void *ptr)
+</I>&gt;<i> {
+</I>&gt;<i> 	size_t ret;
+</I>&gt;<i> 
+</I>&gt;<i> -- 
+</I>&gt;<i> 1.7.10.4
+</I>
+FreeBSD's malloc_usable_size() uses (const void *ptr) as its argument, so I'd like to get a fix in for this that doesn't require patching jemalloc for FreeBSD.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000461.html">[PATCH] Fix malloc_usable_size definition
+</A></li>
+	<LI>Next message: <A HREF="000466.html">[PATCH] Fix malloc_usable_size definition
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#462">[ date ]</a>
+              <a href="thread.html#462">[ thread ]</a>
+              <a href="subject.html#462">[ subject ]</a>
+              <a href="author.html#462">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

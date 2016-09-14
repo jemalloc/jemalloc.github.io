@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> valgrind 3.8.1 warning in jemalloc 3.2
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C9574648D-CBE9-4751-9B3A-DA05446E362A%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000535.html">
+   <LINK REL="Next"  HREF="000537.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>valgrind 3.8.1 warning in jemalloc 3.2</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C9574648D-CBE9-4751-9B3A-DA05446E362A%40canonware.com%3E"
+       TITLE="valgrind 3.8.1 warning in jemalloc 3.2">jasone at canonware.com
+       </A><BR>
+    <I>Wed Dec 12 08:02:54 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000535.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+        <LI>Next message: <A HREF="000537.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#536">[ date ]</a>
+              <a href="thread.html#536">[ thread ]</a>
+              <a href="subject.html#536">[ subject ]</a>
+              <a href="author.html#536">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Dec 11, 2012, at 11:25 AM, Daniel Mezzatto Rodrigues &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">danielm at buscape-inc.com</A>&gt; wrote:
+&gt;<i> I have just changed part of my system to use jemalloc (version 3.2). Running valgrind (version 3.8.1) gave me some errors (that does not occur with system malloc). Some of the errors:
+</I>&gt;<i> 
+</I>&gt;<i> [&#8230;]
+</I>&gt;<i> 
+</I>&gt;<i> I compiled jemallod with ./configure --with-jemalloc-prefix=je_ &amp;&amp; make &amp;&amp; make install.
+</I>&gt;<i> 
+</I>&gt;<i> This code runs inside a custom Apache HTTPD module running with mpm_worker, but a single request generated these valgrind errors (no concurrent being processed by multiple threads). It basically calls je_malloc for many structures and then a bunch of je_realloc for each one of these structures.
+</I>&gt;<i> 
+</I>&gt;<i> Some info about my system:
+</I>&gt;<i> 
+</I>&gt;<i> cat /etc/debian_version
+</I>&gt;<i> wheezy/sid
+</I>&gt;<i> 
+</I>&gt;<i> uname -a
+</I>&gt;<i> Linux xxx 3.0.0-28-generic #45-Ubuntu SMP Wed Nov 14 21:57:26 UTC 2012 x86_64 x86_64 x86_64 GNU/Linux
+</I>&gt;<i> 
+</I>&gt;<i> gcc -v
+</I>&gt;<i> Using built-in specs.
+</I>&gt;<i> COLLECT_GCC=gcc
+</I>&gt;<i> COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6.1/lto-wrapper
+</I>&gt;<i> Target: x86_64-linux-gnu
+</I>&gt;<i> Configured with: ../src/configure -v --with-pkgversion='Ubuntu/Linaro 4.6.1-9ubuntu3' --with-bugurl=<A HREF="file:///usr/share/doc/gcc-4.6/README.Bugs">file:///usr/share/doc/gcc-4.6/README.Bugs</A> --enable-languages=c,c++,fortran,objc,obj-c++,go --prefix=/usr --program-suffix=-4.6 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-plugin --enable-objc-gc --disable-werror --with-arch-32=i686 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+</I>&gt;<i> Thread model: posix
+</I>&gt;<i> gcc version 4.6.1 (Ubuntu/Linaro 4.6.1-9ubuntu3)
+</I>&gt;<i> 
+</I>&gt;<i> valgrind --version
+</I>&gt;<i> valgrind-3.8.1
+</I>&gt;<i> 
+</I>&gt;<i> jemalloc 3.2.0-0-g87499f6748eb
+</I>&gt;<i> 
+</I>&gt;<i> httpd -v
+</I>&gt;<i> Server version: Apache/2.2.23 (Unix)
+</I>&gt;<i> Server built:   Dec  7 2012 17:55:24
+</I>&gt;<i> 
+</I>&gt;<i> Are these errors expected? Am I doing something wrong? Any thoughts?
+</I>
+Is jemalloc configuring itself to support valgrind?  In order for valgrind configuration to succeed, it needs to be able to find the valgrind headers (valgrind/valgrind.h and valgrind/memcheck.h).  It's conceivable that jemalloc's valgrind support might have some holes (it's pretty tricky to get totally right), but the valgrind errors you pasted look like ones that would occur if jemalloc were completely missing valgrind support.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000535.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+	<LI>Next message: <A HREF="000537.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#536">[ date ]</a>
+              <a href="thread.html#536">[ thread ]</a>
+              <a href="subject.html#536">[ subject ]</a>
+              <a href="author.html#536">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

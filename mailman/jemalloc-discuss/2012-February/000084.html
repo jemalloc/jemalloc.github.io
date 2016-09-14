@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/2] Remove unused variable in arena_run_split
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Remove%20unused%20variable%20in%20arena_run_split&In-Reply-To=%3C1329830329-30367-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000108.html">
+   <LINK REL="Next"  HREF="000109.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/2] Remove unused variable in arena_run_split</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Remove%20unused%20variable%20in%20arena_run_split&In-Reply-To=%3C1329830329-30367-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 1/2] Remove unused variable in arena_run_split">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Feb 21 05:18:49 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000108.html">[PATCH] Remove unused variables in tcache_dalloc_large
+</A></li>
+        <LI>Next message: <A HREF="000109.html">[PATCH 1/2] Remove unused variable in arena_run_split
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#84">[ date ]</a>
+              <a href="thread.html#84">[ thread ]</a>
+              <a href="subject.html#84">[ subject ]</a>
+              <a href="author.html#84">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ src/arena.c |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
+
+diff --git a/src/arena.c b/src/arena.c
+index 33f3f85..c3413f3 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -281,12 +281,11 @@ arena_run_split(arena_t *arena, arena_run_t *run, size_t size, bool large,
+     bool zero)
+ {
+ 	arena_chunk_t *chunk;
+-	size_t old_ndirty, run_ind, total_pages, need_pages, rem_pages, i;
++	size_t run_ind, total_pages, need_pages, rem_pages, i;
+ 	size_t flag_dirty;
+ 	arena_avail_tree_t *runs_avail;
+ 
+ 	chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(run);
+-	old_ndirty = chunk-&gt;ndirty;
+ 	run_ind = (unsigned)(((uintptr_t)run - (uintptr_t)chunk)
+ 	    &gt;&gt; PAGE_SHIFT);
+ 	flag_dirty = chunk-&gt;map[run_ind-map_bias].bits &amp; CHUNK_MAP_DIRTY;
+-- 
+1.7.9
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000108.html">[PATCH] Remove unused variables in tcache_dalloc_large
+</A></li>
+	<LI>Next message: <A HREF="000109.html">[PATCH 1/2] Remove unused variable in arena_run_split
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#84">[ date ]</a>
+              <a href="thread.html#84">[ thread ]</a>
+              <a href="subject.html#84">[ subject ]</a>
+              <a href="author.html#84">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

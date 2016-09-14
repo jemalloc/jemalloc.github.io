@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Don%27t%20use%20pthread_atfork%20to%20register%20prefork/postfork%0A%09handlers%20on%20OSX&In-Reply-To=%3C8DF6145C-79FD-4142-998D-EC609CADCF06%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000197.html">
+   <LINK REL="Next"  HREF="000198.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Don%27t%20use%20pthread_atfork%20to%20register%20prefork/postfork%0A%09handlers%20on%20OSX&In-Reply-To=%3C8DF6145C-79FD-4142-998D-EC609CADCF06%40canonware.com%3E"
+       TITLE="[PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX">jasone at canonware.com
+       </A><BR>
+    <I>Wed Mar 28 16:18:14 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000197.html">[PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX
+</A></li>
+        <LI>Next message: <A HREF="000198.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#200">[ date ]</a>
+              <a href="thread.html#200">[ thread ]</a>
+              <a href="subject.html#200">[ subject ]</a>
+              <a href="author.html#200">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 28, 2012, at 12:53 AM, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> OSX libc calls zone allocators' force_lock/force_unlock already.
+</I>
+Applied; thanks.
+
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000197.html">[PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX
+</A></li>
+	<LI>Next message: <A HREF="000198.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#200">[ date ]</a>
+              <a href="thread.html#200">[ thread ]</a>
+              <a href="subject.html#200">[ subject ]</a>
+              <a href="author.html#200">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

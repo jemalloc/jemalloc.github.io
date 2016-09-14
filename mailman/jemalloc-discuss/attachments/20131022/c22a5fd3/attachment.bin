@@ -1,0 +1,106 @@
+diff --git include/jemalloc/internal/tsd.h include/jemalloc/internal/tsd.h
+index 0037cf3..56b4511 100644
+--- include/jemalloc/internal/tsd.h
++++ include/jemalloc/internal/tsd.h
+@@ -81,6 +81,7 @@ extern bool		a_name##_booted;
+ #else
+ #define	malloc_tsd_externs(a_name, a_type)				\
+ extern pthread_key_t	a_name##_tsd;					\
++extern tsd_init_head_t	a_name##_tsd_init_head;				\
+ extern bool		a_name##_booted;
+ #endif
+ 
+@@ -105,6 +106,11 @@ a_attr bool		a_name##_booted = false;
+ #else
+ #define	malloc_tsd_data(a_attr, a_name, a_type, a_initializer)		\
+ a_attr pthread_key_t	a_name##_tsd;					\
++a_attr tsd_init_head_t	a_name##_tsd_init_head = {			\
++	(tsd_init_block_t*)&(a_name##_tsd_init_head),			\
++	(tsd_init_block_t*)&(a_name##_tsd_init_head),			\
++	PTHREAD_MUTEX_INITIALIZER,					\
++};									\
+ a_attr bool		a_name##_booted = false;
+ #endif
+ 
+@@ -284,6 +290,56 @@ a_name##_tsd_set(a_type *val)						\
+ 		wrapper->initialized = true;				\
+ }
+ #else
++
++typedef struct tsd_init_block tsd_init_block_t;
++struct tsd_init_block {
++	tsd_init_block_t *prev;
++	tsd_init_block_t *next;
++	pthread_t thread;
++	void *data;
++};
++
++typedef struct {
++	tsd_init_block_t *prev;
++	tsd_init_block_t *next;
++	pthread_mutex_t lock;
++} tsd_init_head_t;
++
++static inline void* tsd_init_checkrec(
++		tsd_init_block_t* block,
++		tsd_init_head_t* head)
++{
++	pthread_t self = pthread_self();
++	/* check */
++	tsd_init_block_t *iter;
++	pthread_mutex_lock(&head->lock);
++	for (iter = head->next; iter->next != (tsd_init_block_t*)head; iter = iter->next)
++	{
++		if (iter->thread == self) {
++			pthread_mutex_unlock(&head->lock);
++			return iter->data;
++		}
++	}
++	/* add self */
++	block->thread = self;
++	block->next = head->next;
++	block->prev = (tsd_init_block_t*)head;
++	head->next->prev = block;
++	head->next = block;
++	pthread_mutex_unlock(&head->lock);
++	return NULL;
++}
++
++static inline void tsd_init_finish(
++		tsd_init_block_t* block,
++		tsd_init_head_t* head)
++{
++	pthread_mutex_lock(&head->lock);
++	block->next->prev = block->prev;
++	block->prev->next = block->next;
++	pthread_mutex_unlock(&head->lock);
++}
++
+ #define	malloc_tsd_funcs(a_attr, a_name, a_type, a_initializer,		\
+     a_cleanup)								\
+ /* Data structure. */							\
+@@ -333,8 +389,14 @@ a_name##_tsd_get_wrapper(void)						\
+ 	    pthread_getspecific(a_name##_tsd);				\
+ 									\
+ 	if (wrapper == NULL) {						\
++		struct tsd_init_block block;				\
++		wrapper = tsd_init_checkrec(&block,			\
++				&a_name##_tsd_init_head);		\
++		if (wrapper)						\
++		    return wrapper;					\
+ 		wrapper = (a_name##_tsd_wrapper_t *)			\
+ 		    malloc_tsd_malloc(sizeof(a_name##_tsd_wrapper_t));	\
++		block.data = wrapper;					\
+ 		if (wrapper == NULL) {					\
+ 			malloc_write("<jemalloc>: Error allocating"	\
+ 			    " TSD for "#a_name"\n");			\
+@@ -350,6 +412,7 @@ a_name##_tsd_get_wrapper(void)						\
+ 			    " TSD for "#a_name"\n");			\
+ 			abort();					\
+ 		}							\
++		tsd_init_finish(&block, &a_name##_tsd_init_head);	\
+ 	}								\
+ 	return (wrapper);						\
+ }									\
+
+

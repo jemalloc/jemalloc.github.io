@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Crash with jemalloc 2.2.1
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20with%20jemalloc%202.2.1&In-Reply-To=%3C4DAC9D9F.5080307%40taghos.com.br%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000012.html">
+   <LINK REL="Next"  HREF="000016.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Crash with jemalloc 2.2.1</H1>
+    <B>Felipe Wilhelms Damasio - Taghos</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20with%20jemalloc%202.2.1&In-Reply-To=%3C4DAC9D9F.5080307%40taghos.com.br%3E"
+       TITLE="Crash with jemalloc 2.2.1">felipewd at taghos.com.br
+       </A><BR>
+    <I>Mon Apr 18 13:22:55 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000012.html">Crash with jemalloc 2.2.1
+</A></li>
+        <LI>Next message: <A HREF="000016.html">Crash with jemalloc 2.2.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#13">[ date ]</a>
+              <a href="thread.html#13">[ thread ]</a>
+              <a href="subject.html#13">[ subject ]</a>
+              <a href="author.html#13">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>    Hi Again,
+
+    I don't know if this helps, but here it is with &quot;bt full&quot;:
+
+#0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+src/arena.c:222
+        b_size = 0
+#1  arena_avail_tree_nsearch (arena=0x1000a80, size=36864, large=true,
+zero=true) at src/arena.c:249
+        cmp = 1
+#2  arena_run_alloc (arena=0x1000a80, size=36864, large=true, zero=true) at
+src/arena.c:593
+        chunk = &lt;value optimized out&gt;
+        run = &lt;value optimized out&gt;
+        mapelm = 0x0
+        key = {u = {rb_link = {rbn_left = 0x17, rbn_right_red = 0x1},
+ql_link = {qre_next = 0x17, qre_prev = 0x1}}, bits = 36865}
+#3  0x00007fe240427b20 in arena_malloc_large (arena=0x1000a80, size=36864,
+zero=80) at src/arena.c:1474
+        ret = &lt;value optimized out&gt;
+#4  0x00007fe240422007 in icalloc (num=&lt;value optimized out&gt;, size=35472) at
+include/jemalloc/internal/jemalloc_internal.h:620
+No locals.
+#5  calloc (num=&lt;value optimized out&gt;, size=35472) at src/jemalloc.c:1185
+        ret = &lt;value optimized out&gt;
+        num_size = 0
+        usize = 36864
+#6  0x0000000000408a76 in SES_new (fd=11191) at cache_session.c:11
+        http = 0x4dac9495
+        t = 0x100000001
+#7  0x000000000041563e in main (argc=3, argv=0x7fff357085c8) at server.c:2261
+        tmp = 0x59c96000
+        opt = -1
+        hints = {ai_flags = 1, ai_family = 0, ai_socktype = 1, ai_protocol =
+0, ai_addrlen = 0, ai_addr = 0x0, ai_canonname = 0x0, ai_next = 0x0}
+        res = 0x1410680
+        r = 0x0
+        b = 1
+        a = 0x14106b0
+        serv_sock = 5
+        client_sock = 11191
+        client_length = 16
+        cont = 3
+        serv_address = {sin_family = 2, sin_port = 56581, sin_addr = {s_addr
+= 0}, sin_zero = &quot;\000\000\000\000\000\000\000&quot;}
+        client_address = {sin_family = 2, sin_port = 57593, sin_addr =
+{s_addr = 1363629243}, sin_zero = &quot;\000\000\000\000\000\000\000&quot;}
+        timeout_session_thread = 140566642198288
+        purge_backup_thread = 140566650590992
+        i = 16
+        tmp = 0x0
+        sac = {__sigaction_handler = {sa_handler = 0x1, sa_sigaction = 0x1},
+sa_mask = {__val = {0 &lt;repeats 16 times&gt;}}, sa_flags = 268435456,
+          sa_restorer = 0}
+        on = 1
+        attr = {__size = '\000' &lt;repeats 17 times&gt;, &quot;\020&quot;, '\000' &lt;repeats
+16 times&gt;, &quot;\b&quot;, '\000' &lt;repeats 20 times&gt;, __align = 0}
+        WSPoolThreads = 0x7fff35708270
+
+
+    Cheers,
+
+--
+Felipe Wilhelms Damasio
+
+
+TAGHOS - Tecnologia
+
+Rua Prof. Alvaro Alvim, 211
+
+Porto Alegre - RS - (51) 3239-3180
+
+www.taghos.com.br &lt;<A HREF="http://www.taghos.com.br/">http://www.taghos.com.br/</A>&gt;
+
+
+
+Em 18/04/2011 17:11, Felipe Wilhelms Damasio - Taghos escreveu:
+&gt;<i> Hi all,
+</I>&gt;<i>
+</I>&gt;<i> I'm using jemalloc to build a webcache system.
+</I>&gt;<i>
+</I>&gt;<i> I'm doing around 600-700 calloc/free per second. (a calloc-per-new-session).
+</I>&gt;<i>
+</I>&gt;<i> It's a linux machine with kernel 2.6.34 and glibc 2.11.2.
+</I>&gt;<i>
+</I>&gt;<i> jemalloc was compiled with:
+</I>&gt;<i>
+</I>&gt;<i>     ./configure  --enable-prof --enable-dss --enable-fill --enable-stats 
+</I>&gt;<i> --enable-xmalloc --enable-swap
+</I>&gt;<i>
+</I>&gt;<i> I have no malloc options file.
+</I>&gt;<i>
+</I>&gt;<i> At some point, my program crashed. I generated a core dump and a gdb bt
+</I>&gt;<i> showed this:
+</I>&gt;<i>
+</I>&gt;<i> #0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+</I>&gt;<i> src/arena.c:222
+</I>&gt;<i> 222        size_t b_size = b-&gt;bits &amp; ~PAGE_MASK;
+</I>&gt;<i> (gdb) bt
+</I>&gt;<i> #0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+</I>&gt;<i> src/arena.c:222
+</I>&gt;<i> #1  arena_avail_tree_nsearch (arena=0x1000a80, size=36864, large=true,
+</I>&gt;<i> zero=true) at src/arena.c:249
+</I>&gt;<i> #2  arena_run_alloc (arena=0x1000a80, size=36864, large=true, zero=true) at
+</I>&gt;<i> src/arena.c:593
+</I>&gt;<i> #3  0x00007fe240427b20 in arena_malloc_large (arena=0x1000a80, size=36864,
+</I>&gt;<i> zero=80) at src/arena.c:1474
+</I>&gt;<i> #4  0x00007fe240422007 in icalloc (num=&lt;value optimized out&gt;, size=35472) at
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h:620
+</I>&gt;<i> #5  calloc (num=&lt;value optimized out&gt;, size=35472) at src/jemalloc.c:1185
+</I>&gt;<i> #6  0x0000000000408a76 in SES_new (fd=11191) at cache_session.c:11
+</I>&gt;<i> #7  0x000000000041563e in main (argc=3, argv=0x7fff357085c8) at server.c:2261
+</I>&gt;<i>
+</I>&gt;<i> Is this indication of a bug in jemalloc or in my program?
+</I>&gt;<i>
+</I>&gt;<i> What other info can I provide to help track this down?
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000012.html">Crash with jemalloc 2.2.1
+</A></li>
+	<LI>Next message: <A HREF="000016.html">Crash with jemalloc 2.2.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#13">[ date ]</a>
+              <a href="thread.html#13">[ thread ]</a>
+              <a href="subject.html#13">[ subject ]</a>
+              <a href="author.html#13">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

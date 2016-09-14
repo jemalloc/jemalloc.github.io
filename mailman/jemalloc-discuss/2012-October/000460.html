@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc and STL
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20and%20STL&In-Reply-To=%3C4FBFEF2E-192E-4221-9F29-A2252E09C667%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000457.html">
+   <LINK REL="Next"  HREF="000461.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc and STL</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20and%20STL&In-Reply-To=%3C4FBFEF2E-192E-4221-9F29-A2252E09C667%40canonware.com%3E"
+       TITLE="jemalloc and STL">jasone at canonware.com
+       </A><BR>
+    <I>Mon Oct  8 23:11:26 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000457.html">LG_QUANTUM hppa definition
+</A></li>
+        <LI>Next message: <A HREF="000461.html">[PATCH] Fix malloc_usable_size definition
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#460">[ date ]</a>
+              <a href="thread.html#460">[ thread ]</a>
+              <a href="subject.html#460">[ subject ]</a>
+              <a href="author.html#460">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 26, 2012, at 8:13 AM, Aaron Evers &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">eversa at gmail.com</A>&gt; wrote:
+&gt;<i> Is it sufficient to link in jemalloc at compile time (i.e. -ljemalloc)
+</I>&gt;<i> if I want it to be used by STL containers?  Or do I need to specify
+</I>&gt;<i> the allocator, as in:
+</I>&gt;<i> typedef std::list&lt;int, malloc_alloc&gt; mylist;
+</I>
+It should be sufficient to link in jemalloc.  Note however that as far as I know, glibc still has what amounts to a huge stl memory leak that can be worked around by defining GLIBCXX_FORCE_NEW=1 in the environment when running your application.  tcmalloc does this automatically, but jemalloc does not.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000457.html">LG_QUANTUM hppa definition
+</A></li>
+	<LI>Next message: <A HREF="000461.html">[PATCH] Fix malloc_usable_size definition
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#460">[ date ]</a>
+              <a href="thread.html#460">[ thread ]</a>
+              <a href="subject.html#460">[ subject ]</a>
+              <a href="author.html#460">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> why jemalloc expand virtual memory space so quickly
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20why%20jemalloc%20expand%20virtual%20memory%20space%20so%20quickly&In-Reply-To=%3C676A609C6AC1B24494C4AFCEC0707579092D1200%40ssdexch1a%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000032.html">
+   <LINK REL="Next"  HREF="000034.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>why jemalloc expand virtual memory space so quickly</H1>
+    <B>Ma, Bo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20why%20jemalloc%20expand%20virtual%20memory%20space%20so%20quickly&In-Reply-To=%3C676A609C6AC1B24494C4AFCEC0707579092D1200%40ssdexch1a%3E"
+       TITLE="why jemalloc expand virtual memory space so quickly">bma at websense.com
+       </A><BR>
+    <I>Wed Aug  3 23:52:41 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000032.html">I made a jemalloc patch for solaris 5.8
+</A></li>
+        <LI>Next message: <A HREF="000034.html">why jemalloc expand virtual memory space so quickly
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#33">[ date ]</a>
+              <a href="thread.html#33">[ thread ]</a>
+              <a href="subject.html#33">[ subject ]</a>
+              <a href="author.html#33">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Guys,
+    It seems that gemalloc costs more virtual memory than glibc_malloc.
+We are estimating the possibility that replace glibc_malloc by jemalloc.We have seen that jemalloc is really
+faster than glibc_malloc and costs less physical memory.But the amount  of virtual memory increase  quickly.
+Though we ends our test,it still occupies many virtual memory.
+Because we have more physical memory than 4G but we are still using 32bit Linux,virtual memory is also badly needed.
+Is there any way to reduce the virtual memory cost of jemalloc?
+
+Thanks
+Kevin
+
+
+ Physical Memory:
+[cid:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">image003.png at 01CC52B3.4E733B20</A>]
+
+Virtual Memory:
+[cid:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">image004.png at 01CC52B3.4E733B20</A>]
+
+
+ Protected by Websense Hosted Email Security -- www.websense.com 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: image003.png
+Type: image/png
+Size: 33324 bytes
+Desc: image003.png
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment.png">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment.png</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: image004.png
+Type: image/png
+Size: 35863 bytes
+Desc: image004.png
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment-0001.png">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment-0001.png</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000032.html">I made a jemalloc patch for solaris 5.8
+</A></li>
+	<LI>Next message: <A HREF="000034.html">why jemalloc expand virtual memory space so quickly
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#33">[ date ]</a>
+              <a href="thread.html#33">[ thread ]</a>
+              <a href="subject.html#33">[ subject ]</a>
+              <a href="author.html#33">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

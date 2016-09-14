@@ -1,0 +1,29 @@
+From jasone at canonware.com  Sun Jun  2 21:35:48 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 2 Jun 2013 21:35:48 -0700
+Subject: jemalloc 3.4.0 released
+Message-ID: <AA95F861-0D9C-482B-81D5-0EC48C56E1FC@canonware.com>
+
+jemalloc 3.4.0 is now available.  This version is essentially a small bugfix release, but the addition of aarch64 support requires that the minor version be incremented.
+
+Bug fixes:
+- Fix race-triggered deadlocks in chunk_record().  These deadlocks were typically triggered by multiple threads concurrently deallocating huge objects.
+
+New features:
+- Add support for the aarch64 architecture.
+
+For the complete ChangeLog, see:
+	http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+	http://www.canonware.com/download/jemalloc/jemalloc-3.4.0.tar.bz2
+
+Starting point for general information:
+	http://www.canonware.com/jemalloc/
+
+Browsable revision history:
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-announce/attachments/20130602/00f6a11d/attachment.html>
+

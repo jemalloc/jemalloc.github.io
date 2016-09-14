@@ -1,0 +1,265 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Workload causes significant internal fragmentation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Workload%20causes%20significant%20internal%20fragmentation&In-Reply-To=%3COF812460B7.073F778B-ON85257B65.0067593A-85257B65.00675D72%40us.ibm.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000587.html">
+   <LINK REL="Next"  HREF="000588.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Workload causes significant internal fragmentation</H1>
+    <B>Thomas W Savage</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Workload%20causes%20significant%20internal%20fragmentation&In-Reply-To=%3COF812460B7.073F778B-ON85257B65.0067593A-85257B65.00675D72%40us.ibm.com%3E"
+       TITLE="Workload causes significant internal fragmentation">savagetw at us.ibm.com
+       </A><BR>
+    <I>Wed May  8 11:49:01 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000587.html">Workload causes significant internal fragmentation
+</A></li>
+        <LI>Next message: <A HREF="000588.html">jemalloc performance for very small allocations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#589">[ date ]</a>
+              <a href="thread.html#589">[ thread ]</a>
+              <a href="subject.html#589">[ subject ]</a>
+              <a href="author.html#589">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Jason,
+
+Thank you for taking the time to reply to my note! A few data points and
+some questions...
+
+1. We did indeed verify that we have the same fragmentation outcome when
+running with narenas:1, suggesting that your second possibility was not the
+cause.
+
+2. You suggested that this is likely because we have not yet reached the
+high water mark for our application. This is true, as the scenario I'm
+describing happens during the &quot;preload phase&quot; of the user's run. In this
+situation, the user is attempting to allocate 10g of data and the
+&quot;eviction&quot; thread is moving data from memory to disk until the user's load
+has completed. The goal of our application is to enforce a strict upper
+bound on user allocations and use eviction threads to enforce that
+boundary.
+
+3. For user loads which use object sizes greater than the page size (4k),
+we have not observed the same type of internal fragmentation when the
+eviction threads start firing. Is this problem somehow specific to the
+small bins? If so, why would that be?
+
+4. Our assumption was that the holes left in memory due to the eviction
+thread would be available for the further &quot;insert&quot; threads to leverage. Is
+this not what's happening?
+
+5.  Maybe we could place &quot;evictable&quot; data objects into specific chunks. At
+our application level, do we have any efficient introspection that we can
+do to gain insight into which chunks different objs end up living?
+
+Thanks,
+Thom
+
+
+
+|<i>------------&gt;
+</I>|<i> From:      |
+</I>|<i>------------&gt;
+</I>  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;                                                                                                              |
+  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+|<i>------------&gt;
+</I>|<i> To:        |
+</I>|<i>------------&gt;
+</I>  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Thomas W Savage/Durham/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">IBM at IBMUS</A>,                                                                                                               |
+  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+|<i>------------&gt;
+</I>|<i> Cc:        |
+</I>|<i>------------&gt;
+</I>  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+  |<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>                                                                                                                  |
+  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+|<i>------------&gt;
+</I>|<i> Date:      |
+</I>|<i>------------&gt;
+</I>  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+  |05/07/2013 05:10 PM                                                                                                                             |
+  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+|<i>------------&gt;
+</I>|<i> Subject:   |
+</I>|<i>------------&gt;
+</I>  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Re: Workload causes significant internal fragmentation                                                                                          |
+  &gt;------------------------------------------------------------------------------------------------------------------------------------------------|
+
+
+
+
+
+On May 7, 2013, at 1:16 PM, Thomas W Savage wrote:
+
+
+      My team is having trouble determining how to address increasing
+      internal fragmentation (sizeable diff b/w Jm allocated and active)
+      for a particular workload.
+
+      We are allocating objects into three small bins (48, 320, 896). We
+      start with an insertion phase in which we continually allocate
+      &quot;entries&quot;, which are made up of four allocations: 2x 48-byte objects,
+      1x 320 obj, and 1x 896 obj. Once we have inserted entries up to a
+      certain threshold, we begin an eviction phase in which we have some
+      threads continuing insertion and another thread freeing 320's and
+      896's (not touching the 48's). By the end of this run, we observe
+      significant internal fragmentation as demonstrated in the stats
+      below. Is there anything that can be done to mitigate this internal
+      frag?
+
+      Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+      Assertions disabled
+      Run-time option settings:
+        opt.abort: false
+        opt.lg_chunk: 21
+        opt.dss: &quot;secondary&quot;
+        opt.narenas: 96
+        opt.lg_dirty_mult: 1
+        opt.stats_print: false
+        opt.junk: false
+        opt.quarantine: 0
+        opt.redzone: false
+        opt.zero: false
+      CPUs: 24
+      Arenas: 96
+      Pointer size: 8
+      Quantum size: 16
+      Page size: 4096
+      Min active:dirty page ratio per arena: 2:1
+      Chunk size: 2097152 (2&#710;21)
+      Allocated: 7574200736, active: 8860864512, mapped: 9013559296
+      Current active ceiling: 8963227648
+      chunks: nchunks   highchunks    curchunks
+                 4553         4298         4298
+      huge: nmalloc      ndalloc    allocated
+                 16           15     35651584
+
+      Merged arenas stats:
+      assigned threads: 79
+      dss allocation precedence: N/A
+      dirty pages: 2154593:0 active:dirty, 0 sweeps, 0 madvises, 0 purged
+                  allocated      nmalloc      ndalloc    nrequests
+      small:     7515054496     29540988      3552884     29540988
+      large:       23494656         1432            0         1432
+      total:     7538549152     29542420      3552884     29542420
+      active:    8825212928
+      mapped:    8973713408
+      bins:     bin  size regs pgs    allocated      nmalloc      ndalloc
+      newruns       reruns      curruns
+                  0     8  501   1          176           22            0
+      11            0           11
+      [1]
+                  2    32  126   1        68448         2187           48
+      22            0           21
+                  3    48   84   1         13880077            0
+      165272            0       165272
+      [4]
+                  5    80   50   1         1760           22            0
+      11            0           11
+                  6    96   84   2         2112           22            0
+      11            0           11
+      [7..12]
+                 13   320   63   5   2221154560      8717502      1776394
+      125156       701794       125156
+      [14..18]
+                 19   896   45  10   4627583744      6941156      1776442
+      135776       692084       135774
+      [20..27]
+      large:   size pages      nmalloc      ndalloc    nrequests
+      curruns
+      [1]
+               8192     2           22            0           22
+      22
+      [1]
+              16384     4         1408            0         1408
+      1408
+      [13]
+              73728    18            1            0            1
+      1
+      [23]
+             172032    42            1            0            1
+      1
+      [467]
+      --- End jemalloc statistics ---
+
+
+The external fragmentation for 320- and 896-byte region runs is 12% and
+15%, respectively.  First off, that doesn't strike me as terrible,
+depending on the details of what's going on in the application.  There are
+two possible explanations (not mutually exclusive): 1) the application's
+memory usage is not at the high water mark, and 2) the eviction thread does
+not evict in a pattern that impacts the allocating threads proportionally
+to their allocation volumes.  Say that there are two arenas, and 75% of the
+evictions are objects allocated from arena 0, but arenas 0 and 1 are
+utilized equally by the allocating threads.  The result will be substantial
+arena 0 external fragmentation in the equilibrium state.  You can figure
+out whether (2) is a factor by running with one arena (which will surely
+impact performance, since you have thread caching disabled).  If
+fragmentation remains the same with one arena, then (1) is the entire
+explanation.
+
+One possible solution that should be allocator-agnostic would be to
+interleave eviction with normal allocation in all threads, such that
+threads evict their own previous allocations at a rate proportional to
+their allocation rates.  This changes the global eviction policy to one
+that is distributed though, so it may not be appropriate, depending on what
+your application does.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: graycol.gif
+Type: image/gif
+Size: 105 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment.gif">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment.gif</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ecblank.gif
+Type: image/gif
+Size: 45 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment-0001.gif">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130508/a495564e/attachment-0001.gif</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000587.html">Workload causes significant internal fragmentation
+</A></li>
+	<LI>Next message: <A HREF="000588.html">jemalloc performance for very small allocations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#589">[ date ]</a>
+              <a href="thread.html#589">[ thread ]</a>
+              <a href="subject.html#589">[ subject ]</a>
+              <a href="author.html#589">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

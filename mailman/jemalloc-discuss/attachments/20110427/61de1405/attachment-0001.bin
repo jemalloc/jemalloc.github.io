@@ -1,0 +1,14 @@
+Index: jemalloc-2.2.1/include/jemalloc/internal/jemalloc_internal.h.in
+===================================================================
+--- jemalloc-2.2.1.orig/include/jemalloc/internal/jemalloc_internal.h.in
++++ jemalloc-2.2.1/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -150,6 +150,9 @@ extern void	(*JEMALLOC_P(malloc_message)
+ #ifdef __s390x__
+ #  define LG_QUANTUM		4
+ #endif
++#ifdef __SH4__
++#  define LG_QUANTUM		4
++#endif
+ 
+ #define	QUANTUM			((size_t)(1U << LG_QUANTUM))
+ #define	QUANTUM_MASK		(QUANTUM - 1)

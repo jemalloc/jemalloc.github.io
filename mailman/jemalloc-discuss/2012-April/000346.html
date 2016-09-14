@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 1kb and 2kb allocation &quot;waste&quot;
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%201kb%20and%202kb%20allocation%20%22waste%22&In-Reply-To=%3CCAFWcpZ5x0My9bZSVgHe9a5v5LvxKzWRJUE5LLRMS4zr6JOQ9Eg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000337.html">
+   <LINK REL="Next"  HREF="000347.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>1kb and 2kb allocation &quot;waste&quot;</H1>
+    <B>Justin Lebar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%201kb%20and%202kb%20allocation%20%22waste%22&In-Reply-To=%3CCAFWcpZ5x0My9bZSVgHe9a5v5LvxKzWRJUE5LLRMS4zr6JOQ9Eg%40mail.gmail.com%3E"
+       TITLE="1kb and 2kb allocation &quot;waste&quot;">justin.lebar at gmail.com
+       </A><BR>
+    <I>Fri Apr 20 04:55:12 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000337.html">On static library naming
+</A></li>
+        <LI>Next message: <A HREF="000347.html">1kb and 2kb allocation &quot;waste&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#346">[ date ]</a>
+              <a href="thread.html#346">[ thread ]</a>
+              <a href="subject.html#346">[ subject ]</a>
+              <a href="author.html#346">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>It turns out that 1kb and 2kb allocations are responsible for upwards
+of 1/3 of all wasted space in Firefox, where by &quot;wasted space&quot;, I
+mean: Open a bunch of tabs, close them, and call &quot;waste&quot; any heap
+memory which is committed but not part of an active allocation.
+(We've been calling this &quot;external fragmentation&quot;, but that doesn't
+quite match up with the common definition, as I understand it.)
+
+I recorded a session of malloc/free's and played it back with the
+malloc's from various call stacks removed, to see if the allocation
+pattern around some call sites was for most of this wasted space.  But
+the waste is remarkably sticky -- even when I cut out the vast
+majority of 2kb allocations, I still get a large amount of waste.
+This leads me to believe that ridding ourselves of this waste may
+require changes to the allocator.
+
+The essential problem, as I understand it, is that 1kb and 2kb chunks
+are allocated as part of larger runs (32kb in Firefox's jemalloc -- I
+haven't checked in jemalloc2).  We can't (rather, we don't)
+munmap/MADV_DONTNEED one page out of a run, so a single 2kb allocation
+can keep alive 32kb of memory.
+
+My idea is that we can address this by adding a new allocation method,
+between small and large.  These &quot;medium&quot; allocations are allocated
+inside a chunk and don't have a run header, like large allocations.
+But whereas one large allocation gets one entry in the chunk metadata
+table, two or four medium allocations will share one entry in the
+chunk metadata table.  It looks like we have plenty of bits available
+to express &quot;{first,second,third,fourth} quarter of this page is an
+active 1kb alloc&quot; and &quot;{first,second} half of this page is an active
+2kb alloc&quot;.
+
+This may, of course, increase fragmentation inside our chunks (in
+exactly the same way as if we increased the number of 4kb
+allocations).  I think the trade-off should be sound, because if we
+end up allocating more chunks, we can still decommit the fragmented
+memory, so we're not necessarily wasting physical memory.
+
+An alternative solution would be to implement munmap/MADV_DONTNEED for
+portions of runs.  Offhand, I think this isn't as good as the first
+solution, since I think it would end up requiring more madvise calls:
+The run itself has metadata, so we have to madvise() around two live
+objects instead of just one, which reduces our ability to coalesce
+madvise calls.  Not to mention the fact that the run header is not
+free.
+
+It looks like jemalloc2 introduced size classes between 1kb and 2kb.
+I haven't dug in enough to figure out if it would be possible to keep
+these additional size classes and treat 1kb and 2kb specially, or if
+we'd have to choose between the additional size classes and these
+medium allocations.  I don't know whether the benefits of medium
+allocations would outweigh the benefits of the additional size classes
+for Firefox, but I'd give it good odds.
+
+This is a solution which likely makes sense only for systems with 4kb
+pages, and it looks like jemalloc2 tries hard to be agnostic about
+things like page size.  I don't know how much this speaks against the
+solution, partially because I have no idea how these 64kb pages come
+into play.  Perhaps I'm misunderstanding what LG_PAGE==16 is meant to
+mean.
+
+Anyway, before I waste more time on this, I was hoping to get your
+thoughts.  Perhaps you've thought of or even tried something like this
+before?  Please let me know if you think I'm barking up the wrong
+tree.
+
+Regards,
+-Justin
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000337.html">On static library naming
+</A></li>
+	<LI>Next message: <A HREF="000347.html">1kb and 2kb allocation &quot;waste&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#346">[ date ]</a>
+              <a href="thread.html#346">[ thread ]</a>
+              <a href="subject.html#346">[ subject ]</a>
+              <a href="author.html#346">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

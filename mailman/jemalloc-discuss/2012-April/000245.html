@@ -1,0 +1,648 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Replace %z in format strings with configure-time determined	printf length modifier
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Replace%20%25z%20in%20format%20strings%20with%20configure-time%20determined%0A%09printf%20length%20modifier&In-Reply-To=%3C1334147247-10553-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000261.html">
+   <LINK REL="Next"  HREF="000246.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Replace %z in format strings with configure-time determined	printf length modifier</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Replace%20%25z%20in%20format%20strings%20with%20configure-time%20determined%0A%09printf%20length%20modifier&In-Reply-To=%3C1334147247-10553-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Replace %z in format strings with configure-time determined	printf length modifier">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Apr 11 05:27:27 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000261.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+        <LI>Next message: <A HREF="000246.html">[PATCH] Replace %z in format strings with configure-time	determined printf length modifier
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#245">[ date ]</a>
+              <a href="thread.html#245">[ thread ]</a>
+              <a href="subject.html#245">[ subject ]</a>
+              <a href="author.html#245">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ configure.ac                        |   14 +++++++++
+ include/jemalloc/jemalloc_defs.h.in |    8 ++++++
+ src/prof.c                          |    2 +-
+ src/stats.c                         |   54 +++++++++++++++++------------------
+ test/aligned_alloc.c                |   14 ++++-----
+ test/allocm.c                       |   22 +++++++-------
+ test/mremap.c                       |    6 ++--
+ test/posix_memalign.c               |   14 ++++-----
+ test/rallocm.c                      |   16 +++++------
+ 9 files changed, 86 insertions(+), 64 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 8e94b5c..d6fa40b 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -168,6 +168,20 @@ else
+ fi
+ AC_DEFINE_UNQUOTED([LG_SIZEOF_INTMAX_T], [$LG_SIZEOF_INTMAX_T])
+ 
++AC_CHECK_SIZEOF([size_t])
++if test &quot;x${ac_cv_sizeof_size_t}&quot; = &quot;x4&quot; ; then
++  PRI_z=&quot;&quot;
++elif test &quot;x${ac_cv_sizeof_size_t}&quot; = &quot;x8&quot; ; then
++  if test &quot;x${ac_cv_sizeof_long}&quot; = &quot;x4&quot; ; then
++    PRI_z=&quot;ll&quot;
++  else
++    PRI_z=&quot;l&quot;
++  fi
++else
++  AC_MSG_ERROR([Unsupported size_t size: ${ac_cv_sizeof_size_t}])
++fi
++AC_DEFINE_UNQUOTED([PRI_z], [&quot;$PRI_z&quot;])
++
+ AC_CANONICAL_HOST
+ dnl CPU-specific settings.
+ CPU_SPINWAIT=&quot;&quot;
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 8e7442d..5bfd7fa 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -215,3 +215,11 @@
+ 
+ /* sizeof(intmax_t) == 2^LG_SIZEOF_INTMAX_T. */
+ #undef LG_SIZEOF_INTMAX_T
++
++/* Length modifier to use in printf for size_t */
++#undef PRI_z
++
++/* Macros similar to inttypes.h's PRI* macros, for size_t */
++#define PRIuz PRI_z &quot;u&quot;
++#define PRIdz PRI_z &quot;d&quot;
++#define PRIxz PRI_z &quot;x&quot;
+diff --git a/src/prof.c b/src/prof.c
+index b509aae..7fa228e 100644
+--- a/src/prof.c
++++ b/src/prof.c
+@@ -899,7 +899,7 @@ prof_dump(bool propagate_err, const char *filename, bool leakcheck)
+ 
+ 	if (leakcheck &amp;&amp; cnt_all.curbytes != 0) {
+ 		malloc_printf(&quot;&lt;jemalloc&gt;: Leak summary: %&quot;PRId64&quot; byte%s, %&quot;
+-		    PRId64&quot; object%s, %zu context%s\n&quot;,
++		    PRId64&quot; object%s, %&quot;PRIuz&quot; context%s\n&quot;,
+ 		    cnt_all.curbytes, (cnt_all.curbytes != 1) ? &quot;s&quot; : &quot;&quot;,
+ 		    cnt_all.curobjs, (cnt_all.curobjs != 1) ? &quot;s&quot; : &quot;&quot;,
+ 		    leak_nctx, (leak_nctx != 1) ? &quot;s&quot; : &quot;&quot;);
+diff --git a/src/stats.c b/src/stats.c
+index 0cd70b0..1e73b16 100644
+--- a/src/stats.c
++++ b/src/stats.c
+@@ -125,18 +125,18 @@ stats_arena_bins_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			    size_t);
+ 			if (config_tcache) {
+ 				malloc_cprintf(write_cb, cbopaque,
+-				    &quot;%13u %5zu %4u %3zu %12zu %12&quot;PRIu64
++				    &quot;%13u %5&quot;PRIuz&quot; %4u %3&quot;PRIuz&quot; %12&quot;PRIuz&quot; %12&quot;PRIu64
+ 				    &quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64
+ 				    &quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64
+-				    &quot; %12zu\n&quot;,
++				    &quot; %12&quot;PRIuz&quot;\n&quot;,
+ 				    j, reg_size, nregs, run_size / page,
+ 				    allocated, nmalloc, ndalloc, nrequests,
+ 				    nfills, nflushes, nruns, reruns, curruns);
+ 			} else {
+ 				malloc_cprintf(write_cb, cbopaque,
+-				    &quot;%13u %5zu %4u %3zu %12zu %12&quot;PRIu64
++				    &quot;%13u %5&quot;PRIuz&quot; %4u %3&quot;PRIuz&quot; %12&quot;PRIuz&quot; %12&quot;PRIu64
+ 				    &quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64
+-				    &quot; %12zu\n&quot;,
++				    &quot; %12&quot;PRIuz&quot;\n&quot;,
+ 				    j, reg_size, nregs, run_size / page,
+ 				    allocated, nmalloc, ndalloc, nruns, reruns,
+ 				    curruns);
+@@ -186,19 +186,19 @@ stats_arena_lruns_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			CTL_IJ_GET(&quot;stats.arenas.0.lruns.0.curruns&quot;, &amp;curruns,
+ 			    size_t);
+ 			if (gap_start != -1) {
+-				malloc_cprintf(write_cb, cbopaque, &quot;[%zu]\n&quot;,
++				malloc_cprintf(write_cb, cbopaque, &quot;[%&quot;PRIuz&quot;]\n&quot;,
+ 				    j - gap_start);
+ 				gap_start = -1;
+ 			}
+ 			malloc_cprintf(write_cb, cbopaque,
+-			    &quot;%13zu %5zu %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64
+-			    &quot; %12zu\n&quot;,
++			    &quot;%13&quot;PRIuz&quot; %5&quot;PRIuz&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64
++			    &quot; %12&quot;PRIuz&quot;\n&quot;,
+ 			    run_size, run_size / page, nmalloc, ndalloc,
+ 			    nrequests, curruns);
+ 		}
+ 	}
+ 	if (gap_start != -1)
+-		malloc_cprintf(write_cb, cbopaque, &quot;[%zu]\n&quot;, j - gap_start);
++		malloc_cprintf(write_cb, cbopaque, &quot;[%&quot;PRIuz&quot;]\n&quot;, j - gap_start);
+ }
+ 
+ static void
+@@ -224,7 +224,7 @@ stats_arena_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 	CTL_I_GET(&quot;stats.arenas.0.nmadvise&quot;, &amp;nmadvise, uint64_t);
+ 	CTL_I_GET(&quot;stats.arenas.0.purged&quot;, &amp;purged, uint64_t);
+ 	malloc_cprintf(write_cb, cbopaque,
+-	    &quot;dirty pages: %zu:%zu active:dirty, %&quot;PRIu64&quot; sweep%s,&quot;
++	    &quot;dirty pages: %&quot;PRIuz&quot;:%&quot;PRIuz&quot; active:dirty, %&quot;PRIu64&quot; sweep%s,&quot;
+ 	    &quot; %&quot;PRIu64&quot; madvise%s, %&quot;PRIu64&quot; purged\n&quot;,
+ 	    pactive, pdirty, npurge, npurge == 1 ? &quot;&quot; : &quot;s&quot;,
+ 	    nmadvise, nmadvise == 1 ? &quot;&quot; : &quot;s&quot;, purged);
+@@ -236,24 +236,24 @@ stats_arena_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 	CTL_I_GET(&quot;stats.arenas.0.small.ndalloc&quot;, &amp;small_ndalloc, uint64_t);
+ 	CTL_I_GET(&quot;stats.arenas.0.small.nrequests&quot;, &amp;small_nrequests, uint64_t);
+ 	malloc_cprintf(write_cb, cbopaque,
+-	    &quot;small:   %12zu %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot;\n&quot;,
++	    &quot;small:   %12&quot;PRIuz&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot;\n&quot;,
+ 	    small_allocated, small_nmalloc, small_ndalloc, small_nrequests);
+ 	CTL_I_GET(&quot;stats.arenas.0.large.allocated&quot;, &amp;large_allocated, size_t);
+ 	CTL_I_GET(&quot;stats.arenas.0.large.nmalloc&quot;, &amp;large_nmalloc, uint64_t);
+ 	CTL_I_GET(&quot;stats.arenas.0.large.ndalloc&quot;, &amp;large_ndalloc, uint64_t);
+ 	CTL_I_GET(&quot;stats.arenas.0.large.nrequests&quot;, &amp;large_nrequests, uint64_t);
+ 	malloc_cprintf(write_cb, cbopaque,
+-	    &quot;large:   %12zu %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot;\n&quot;,
++	    &quot;large:   %12&quot;PRIuz&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot;\n&quot;,
+ 	    large_allocated, large_nmalloc, large_ndalloc, large_nrequests);
+ 	malloc_cprintf(write_cb, cbopaque,
+-	    &quot;total:   %12zu %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot;\n&quot;,
++	    &quot;total:   %12&quot;PRIuz&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot;\n&quot;,
+ 	    small_allocated + large_allocated,
+ 	    small_nmalloc + large_nmalloc,
+ 	    small_ndalloc + large_ndalloc,
+ 	    small_nrequests + large_nrequests);
+-	malloc_cprintf(write_cb, cbopaque, &quot;active:  %12zu\n&quot;, pactive * page);
++	malloc_cprintf(write_cb, cbopaque, &quot;active:  %12&quot;PRIuz&quot;\n&quot;, pactive * page);
+ 	CTL_I_GET(&quot;stats.arenas.0.mapped&quot;, &amp;mapped, size_t);
+-	malloc_cprintf(write_cb, cbopaque, &quot;mapped:  %12zu\n&quot;, mapped);
++	malloc_cprintf(write_cb, cbopaque, &quot;mapped:  %12&quot;PRIuz&quot;\n&quot;, mapped);
+ 
+ 	if (bins)
+ 		stats_arena_bins_print(write_cb, cbopaque, i);
+@@ -360,13 +360,13 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		if ((err = je_mallctl(&quot;opt.&quot;#n, &amp;sv, &amp;ssz, NULL, 0))	\
+ 		    == 0) {						\
+ 			malloc_cprintf(write_cb, cbopaque,		\
+-			&quot;  opt.&quot;#n&quot;: %zu\n&quot;, sv);			\
++			&quot;  opt.&quot;#n&quot;: %&quot;PRIuz&quot;\n&quot;, sv);			\
+ 		}
+ #define OPT_WRITE_SSIZE_T(n)						\
+ 		if ((err = je_mallctl(&quot;opt.&quot;#n, &amp;ssv, &amp;sssz, NULL, 0))	\
+ 		    == 0) {						\
+ 			malloc_cprintf(write_cb, cbopaque,		\
+-			    &quot;  opt.&quot;#n&quot;: %zd\n&quot;, ssv);			\
++			    &quot;  opt.&quot;#n&quot;: %&quot;PRIdz&quot;\n&quot;, ssv);			\
+ 		}
+ #define OPT_WRITE_CHAR_P(n)						\
+ 		if ((err = je_mallctl(&quot;opt.&quot;#n, &amp;cpv, &amp;cpsz, NULL, 0))	\
+@@ -406,14 +406,14 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		CTL_GET(&quot;arenas.narenas&quot;, &amp;uv, unsigned);
+ 		malloc_cprintf(write_cb, cbopaque, &quot;Max arenas: %u\n&quot;, uv);
+ 
+-		malloc_cprintf(write_cb, cbopaque, &quot;Pointer size: %zu\n&quot;,
++		malloc_cprintf(write_cb, cbopaque, &quot;Pointer size: %&quot;PRIuz&quot;\n&quot;,
+ 		    sizeof(void *));
+ 
+ 		CTL_GET(&quot;arenas.quantum&quot;, &amp;sv, size_t);
+-		malloc_cprintf(write_cb, cbopaque, &quot;Quantum size: %zu\n&quot;, sv);
++		malloc_cprintf(write_cb, cbopaque, &quot;Quantum size: %&quot;PRIuz&quot;\n&quot;, sv);
+ 
+ 		CTL_GET(&quot;arenas.page&quot;, &amp;sv, size_t);
+-		malloc_cprintf(write_cb, cbopaque, &quot;Page size: %zu\n&quot;, sv);
++		malloc_cprintf(write_cb, cbopaque, &quot;Page size: %&quot;PRIuz&quot;\n&quot;, sv);
+ 
+ 		CTL_GET(&quot;opt.lg_dirty_mult&quot;, &amp;ssv, ssize_t);
+ 		if (ssv &gt;= 0) {
+@@ -427,20 +427,20 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		if ((err = je_mallctl(&quot;arenas.tcache_max&quot;, &amp;sv, &amp;ssz, NULL, 0))
+ 		    == 0) {
+ 			malloc_cprintf(write_cb, cbopaque,
+-			    &quot;Maximum thread-cached size class: %zu\n&quot;, sv);
++			    &quot;Maximum thread-cached size class: %&quot;PRIuz&quot;\n&quot;, sv);
+ 		}
+ 		if ((err = je_mallctl(&quot;opt.prof&quot;, &amp;bv, &amp;bsz, NULL, 0)) == 0 &amp;&amp;
+ 		    bv) {
+ 			CTL_GET(&quot;opt.lg_prof_sample&quot;, &amp;sv, size_t);
+ 			malloc_cprintf(write_cb, cbopaque,
+ 			    &quot;Average profile sample interval: %&quot;PRIu64
+-			    &quot; (2^%zu)\n&quot;, (((uint64_t)1U) &lt;&lt; sv), sv);
++			    &quot; (2^%&quot;PRIuz&quot;)\n&quot;, (((uint64_t)1U) &lt;&lt; sv), sv);
+ 
+ 			CTL_GET(&quot;opt.lg_prof_interval&quot;, &amp;ssv, ssize_t);
+ 			if (ssv &gt;= 0) {
+ 				malloc_cprintf(write_cb, cbopaque,
+ 				    &quot;Average profile dump interval: %&quot;PRIu64
+-				    &quot; (2^%zd)\n&quot;,
++				    &quot; (2^%&quot;PRIdz&quot;)\n&quot;,
+ 				    (((uint64_t)1U) &lt;&lt; ssv), ssv);
+ 			} else {
+ 				write_cb(cbopaque,
+@@ -448,7 +448,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			}
+ 		}
+ 		CTL_GET(&quot;opt.lg_chunk&quot;, &amp;sv, size_t);
+-		malloc_cprintf(write_cb, cbopaque, &quot;Chunk size: %zu (2^%zu)\n&quot;,
++		malloc_cprintf(write_cb, cbopaque, &quot;Chunk size: %&quot;PRIuz&quot; (2^%&quot;PRIuz&quot;)\n&quot;,
+ 		    (ZU(1) &lt;&lt; sv), sv);
+ 	}
+ 
+@@ -465,10 +465,10 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		CTL_GET(&quot;stats.active&quot;, &amp;active, size_t);
+ 		CTL_GET(&quot;stats.mapped&quot;, &amp;mapped, size_t);
+ 		malloc_cprintf(write_cb, cbopaque,
+-		    &quot;Allocated: %zu, active: %zu, mapped: %zu\n&quot;,
++		    &quot;Allocated: %&quot;PRIuz&quot;, active: %&quot;PRIuz&quot;, mapped: %&quot;PRIuz&quot;\n&quot;,
+ 		    allocated, active, mapped);
+ 		malloc_cprintf(write_cb, cbopaque,
+-		    &quot;Current active ceiling: %zu\n&quot;, atomic_read_z(cactive));
++		    &quot;Current active ceiling: %&quot;PRIuz&quot;\n&quot;, atomic_read_z(cactive));
+ 
+ 		/* Print chunk stats. */
+ 		CTL_GET(&quot;stats.chunks.total&quot;, &amp;chunks_total, uint64_t);
+@@ -476,7 +476,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		CTL_GET(&quot;stats.chunks.current&quot;, &amp;chunks_current, size_t);
+ 		malloc_cprintf(write_cb, cbopaque, &quot;chunks: nchunks   &quot;
+ 		    &quot;highchunks    curchunks\n&quot;);
+-		malloc_cprintf(write_cb, cbopaque, &quot;  %13&quot;PRIu64&quot;%13zu%13zu\n&quot;,
++		malloc_cprintf(write_cb, cbopaque, &quot;  %13&quot;PRIu64&quot;%13&quot;PRIuz&quot;%13&quot;PRIuz&quot;\n&quot;,
+ 		    chunks_total, chunks_high, chunks_current);
+ 
+ 		/* Print huge stats. */
+@@ -486,7 +486,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		malloc_cprintf(write_cb, cbopaque,
+ 		    &quot;huge: nmalloc      ndalloc    allocated\n&quot;);
+ 		malloc_cprintf(write_cb, cbopaque,
+-		    &quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12zu\n&quot;,
++		    &quot; %12&quot;PRIu64&quot; %12&quot;PRIu64&quot; %12&quot;PRIuz&quot;\n&quot;,
+ 		    huge_nmalloc, huge_ndalloc, huge_allocated);
+ 
+ 		if (merged) {
+diff --git a/test/aligned_alloc.c b/test/aligned_alloc.c
+index 2a95604..8aa87ca 100644
+--- a/test/aligned_alloc.c
++++ b/test/aligned_alloc.c
+@@ -28,7 +28,7 @@ main(void)
+ 	p = aligned_alloc(alignment, 1);
+ 	if (p != NULL || errno != EINVAL) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for invalid alignment %zu\n&quot;, alignment);
++		    &quot;Expected error for invalid alignment %&quot;PRIuz&quot;\n&quot;, alignment);
+ 	}
+ 
+ 	for (alignment = sizeof(size_t); alignment &lt; MAXALIGN;
+@@ -37,7 +37,7 @@ main(void)
+ 		p = aligned_alloc(alignment + 1, 1);
+ 		if (p != NULL || errno != EINVAL) {
+ 			fprintf(stderr,
+-			    &quot;Expected error for invalid alignment %zu\n&quot;,
++			    &quot;Expected error for invalid alignment %&quot;PRIuz&quot;\n&quot;,
+ 			    alignment + 1);
+ 		}
+ 	}
+@@ -53,7 +53,7 @@ main(void)
+ 	p = aligned_alloc(alignment, size);
+ 	if (p != NULL || errno != ENOMEM) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for aligned_alloc(%zu, %zu)\n&quot;,
++		    &quot;Expected error for aligned_alloc(%&quot;PRIuz&quot;, %&quot;PRIuz&quot;)\n&quot;,
+ 		    alignment, size);
+ 	}
+ 
+@@ -68,7 +68,7 @@ main(void)
+ 	p = aligned_alloc(alignment, size);
+ 	if (p != NULL || errno != ENOMEM) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for aligned_alloc(%zu, %zu)\n&quot;,
++		    &quot;Expected error for aligned_alloc(%&quot;PRIuz&quot;, %&quot;PRIuz&quot;)\n&quot;,
+ 		    alignment, size);
+ 	}
+ 
+@@ -82,7 +82,7 @@ main(void)
+ 	p = aligned_alloc(alignment, size);
+ 	if (p != NULL || errno != ENOMEM) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for aligned_alloc(&amp;p, %zu, %zu)\n&quot;,
++		    &quot;Expected error for aligned_alloc(&amp;p, %&quot;PRIuz&quot;, %&quot;PRIuz&quot;)\n&quot;,
+ 		    alignment, size);
+ 	}
+ 
+@@ -93,7 +93,7 @@ main(void)
+ 	    alignment &lt;= MAXALIGN;
+ 	    alignment &lt;&lt;= 1) {
+ 		total = 0;
+-		fprintf(stderr, &quot;Alignment: %zu\n&quot;, alignment);
++		fprintf(stderr, &quot;Alignment: %&quot;PRIuz&quot;\n&quot;, alignment);
+ 		for (size = 1;
+ 		    size &lt; 3 * alignment &amp;&amp; size &lt; (1U &lt;&lt; 31);
+ 		    size += (alignment &gt;&gt; (LG_SIZEOF_PTR-1)) - 1) {
+@@ -101,7 +101,7 @@ main(void)
+ 				ps[i] = aligned_alloc(alignment, size);
+ 				if (ps[i] == NULL) {
+ 					fprintf(stderr,
+-					    &quot;Error for size %zu (%#zx): %s\n&quot;,
++					    &quot;Error for size %&quot;PRIuz&quot; (%#&quot;PRIxz&quot;): %s\n&quot;,
+ 					    size, size, strerror(errno));
+ 					exit(1);
+ 				}
+diff --git a/test/allocm.c b/test/allocm.c
+index 3aa0fd2..4f8b908 100644
+--- a/test/allocm.c
++++ b/test/allocm.c
+@@ -77,14 +77,14 @@ main(void)
+ 	r = nallocm(&amp;nsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for nallocm(&amp;nsz, %zu, %#x)\n&quot;,
++		    &quot;Expected error for nallocm(&amp;nsz, %&quot;PRIuz&quot;, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 	rsz = 0;
+ 	r = allocm(&amp;p, &amp;rsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for allocm(&amp;p, %zu, %#x)\n&quot;,
++		    &quot;Expected error for allocm(&amp;p, %&quot;PRIuz&quot;, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 	if (nsz != rsz)
+@@ -105,7 +105,7 @@ main(void)
+ 	r = allocm(&amp;p, &amp;rsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for allocm(&amp;p, %zu, %#x)\n&quot;,
++		    &quot;Expected error for allocm(&amp;p, %&quot;PRIuz&quot;, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 
+@@ -119,14 +119,14 @@ main(void)
+ 	r = nallocm(&amp;nsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for nallocm(&amp;nsz, %zu, %#x)\n&quot;,
++		    &quot;Expected error for nallocm(&amp;nsz, %&quot;PRIuz&quot;, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 	rsz = 0;
+ 	r = allocm(&amp;p, &amp;rsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for allocm(&amp;p, %zu, %#x)\n&quot;,
++		    &quot;Expected error for allocm(&amp;p, %&quot;PRIuz&quot;, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 	if (nsz != rsz)
+@@ -139,7 +139,7 @@ main(void)
+ 	    alignment &lt;= MAXALIGN;
+ 	    alignment &lt;&lt;= 1) {
+ 		total = 0;
+-		fprintf(stderr, &quot;Alignment: %zu\n&quot;, alignment);
++		fprintf(stderr, &quot;Alignment: %&quot;PRIuz&quot;\n&quot;, alignment);
+ 		for (sz = 1;
+ 		    sz &lt; 3 * alignment &amp;&amp; sz &lt; (1U &lt;&lt; 31);
+ 		    sz += (alignment &gt;&gt; (LG_SIZEOF_PTR-1)) - 1) {
+@@ -149,8 +149,8 @@ main(void)
+ 				    ALLOCM_ALIGN(alignment) | ALLOCM_ZERO);
+ 				if (r != ALLOCM_SUCCESS) {
+ 					fprintf(stderr,
+-					    &quot;nallocm() error for size %zu&quot;
+-					    &quot; (%#zx): %d\n&quot;,
++					    &quot;nallocm() error for size %&quot;PRIuz&quot;&quot;
++					    &quot; (%#&quot;PRIxz&quot;): %d\n&quot;,
+ 					    sz, sz, r);
+ 					exit(1);
+ 				}
+@@ -159,8 +159,8 @@ main(void)
+ 				    ALLOCM_ALIGN(alignment) | ALLOCM_ZERO);
+ 				if (r != ALLOCM_SUCCESS) {
+ 					fprintf(stderr,
+-					    &quot;allocm() error for size %zu&quot;
+-					    &quot; (%#zx): %d\n&quot;,
++					    &quot;allocm() error for size %&quot;PRIuz&quot;&quot;
++					    &quot; (%#&quot;PRIxz&quot;): %d\n&quot;,
+ 					    sz, sz, r);
+ 					exit(1);
+ 				}
+@@ -177,7 +177,7 @@ main(void)
+ 				if ((uintptr_t)p &amp; (alignment-1)) {
+ 					fprintf(stderr,
+ 					    &quot;%p inadequately aligned for&quot;
+-					    &quot; alignment: %zu\n&quot;, p, alignment);
++					    &quot; alignment: %&quot;PRIuz&quot;\n&quot;, p, alignment);
+ 				}
+ 				sallocm(ps[i], &amp;rsz, 0);
+ 				total += rsz;
+diff --git a/test/mremap.c b/test/mremap.c
+index cac3bd8..969fc77 100644
+--- a/test/mremap.c
++++ b/test/mremap.c
+@@ -28,7 +28,7 @@ main(void)
+ 
+ 	p = (char *)malloc(chunksize);
+ 	if (p == NULL) {
+-		fprintf(stderr, &quot;malloc(%zu) --&gt; %p\n&quot;, chunksize, p);
++		fprintf(stderr, &quot;malloc(%&quot;PRIuz&quot;) --&gt; %p\n&quot;, chunksize, p);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+@@ -36,7 +36,7 @@ main(void)
+ 
+ 	q = (char *)realloc(p, chunksize * 2);
+ 	if (q == NULL) {
+-		fprintf(stderr, &quot;realloc(%p, %zu) --&gt; %p\n&quot;, p, chunksize * 2,
++		fprintf(stderr, &quot;realloc(%p, %&quot;PRIuz&quot;) --&gt; %p\n&quot;, p, chunksize * 2,
+ 		    q);
+ 		ret = 1;
+ 		goto label_return;
+@@ -49,7 +49,7 @@ main(void)
+ 
+ 	q = (char *)realloc(p, chunksize);
+ 	if (q == NULL) {
+-		fprintf(stderr, &quot;realloc(%p, %zu) --&gt; %p\n&quot;, p, chunksize, q);
++		fprintf(stderr, &quot;realloc(%p, %&quot;PRIuz&quot;) --&gt; %p\n&quot;, p, chunksize, q);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+diff --git a/test/posix_memalign.c b/test/posix_memalign.c
+index 0ea35c8..f096fd2 100644
+--- a/test/posix_memalign.c
++++ b/test/posix_memalign.c
+@@ -28,7 +28,7 @@ main(void)
+ 		err = posix_memalign(&amp;p, alignment, 1);
+ 		if (err != EINVAL) {
+ 			fprintf(stderr,
+-			    &quot;Expected error for invalid alignment %zu\n&quot;,
++			    &quot;Expected error for invalid alignment %&quot;PRIuz&quot;\n&quot;,
+ 			    alignment);
+ 		}
+ 	}
+@@ -38,7 +38,7 @@ main(void)
+ 		err = posix_memalign(&amp;p, alignment + 1, 1);
+ 		if (err == 0) {
+ 			fprintf(stderr,
+-			    &quot;Expected error for invalid alignment %zu\n&quot;,
++			    &quot;Expected error for invalid alignment %&quot;PRIuz&quot;\n&quot;,
+ 			    alignment + 1);
+ 		}
+ 	}
+@@ -53,7 +53,7 @@ main(void)
+ 	err = posix_memalign(&amp;p, alignment, size);
+ 	if (err == 0) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for posix_memalign(&amp;p, %zu, %zu)\n&quot;,
++		    &quot;Expected error for posix_memalign(&amp;p, %&quot;PRIuz&quot;, %&quot;PRIuz&quot;)\n&quot;,
+ 		    alignment, size);
+ 	}
+ 
+@@ -67,7 +67,7 @@ main(void)
+ 	err = posix_memalign(&amp;p, alignment, size);
+ 	if (err == 0) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for posix_memalign(&amp;p, %zu, %zu)\n&quot;,
++		    &quot;Expected error for posix_memalign(&amp;p, %&quot;PRIuz&quot;, %&quot;PRIuz&quot;)\n&quot;,
+ 		    alignment, size);
+ 	}
+ 
+@@ -80,7 +80,7 @@ main(void)
+ 	err = posix_memalign(&amp;p, alignment, size);
+ 	if (err == 0) {
+ 		fprintf(stderr,
+-		    &quot;Expected error for posix_memalign(&amp;p, %zu, %zu)\n&quot;,
++		    &quot;Expected error for posix_memalign(&amp;p, %&quot;PRIuz&quot;, %&quot;PRIuz&quot;)\n&quot;,
+ 		    alignment, size);
+ 	}
+ 
+@@ -91,7 +91,7 @@ main(void)
+ 	    alignment &lt;= MAXALIGN;
+ 	    alignment &lt;&lt;= 1) {
+ 		total = 0;
+-		fprintf(stderr, &quot;Alignment: %zu\n&quot;, alignment);
++		fprintf(stderr, &quot;Alignment: %&quot;PRIuz&quot;\n&quot;, alignment);
+ 		for (size = 1;
+ 		    size &lt; 3 * alignment &amp;&amp; size &lt; (1U &lt;&lt; 31);
+ 		    size += (alignment &gt;&gt; (LG_SIZEOF_PTR-1)) - 1) {
+@@ -100,7 +100,7 @@ main(void)
+ 				    alignment, size);
+ 				if (err) {
+ 					fprintf(stderr,
+-					    &quot;Error for size %zu (%#zx): %s\n&quot;,
++					    &quot;Error for size %&quot;PRIuz&quot; (%#&quot;PRIxz&quot;): %s\n&quot;,
+ 					    size, size, strerror(err));
+ 					exit(1);
+ 				}
+diff --git a/test/rallocm.c b/test/rallocm.c
+index 9c0df40..6d5a939 100644
+--- a/test/rallocm.c
++++ b/test/rallocm.c
+@@ -37,7 +37,7 @@ main(void)
+ 	if (q != p)
+ 		fprintf(stderr, &quot;Unexpected object move\n&quot;);
+ 	if (tsz != sz) {
+-		fprintf(stderr, &quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
++		fprintf(stderr, &quot;Unexpected size change: %&quot;PRIuz&quot; --&gt; %&quot;PRIuz&quot;\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 
+@@ -48,7 +48,7 @@ main(void)
+ 	if (q != p)
+ 		fprintf(stderr, &quot;Unexpected object move\n&quot;);
+ 	if (tsz != sz) {
+-		fprintf(stderr, &quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
++		fprintf(stderr, &quot;Unexpected size change: %&quot;PRIuz&quot; --&gt; %&quot;PRIuz&quot;\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 
+@@ -59,7 +59,7 @@ main(void)
+ 	if (q != p)
+ 		fprintf(stderr, &quot;Unexpected object move\n&quot;);
+ 	if (tsz != sz) {
+-		fprintf(stderr, &quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
++		fprintf(stderr, &quot;Unexpected size change: %&quot;PRIuz&quot; --&gt; %&quot;PRIuz&quot;\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 
+@@ -70,7 +70,7 @@ main(void)
+ 	if (q == p)
+ 		fprintf(stderr, &quot;Expected object move\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		fprintf(stderr, &quot;Expected size change: %&quot;PRIuz&quot; --&gt; %&quot;PRIuz&quot;\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	p = q;
+@@ -82,7 +82,7 @@ main(void)
+ 	if (q == p)
+ 		fprintf(stderr, &quot;Expected object move\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		fprintf(stderr, &quot;Expected size change: %&quot;PRIuz&quot; --&gt; %&quot;PRIuz&quot;\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	p = q;
+@@ -92,7 +92,7 @@ main(void)
+ 	if (r != ALLOCM_SUCCESS)
+ 		fprintf(stderr, &quot;Unexpected rallocm() error\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		fprintf(stderr, &quot;Expected size change: %&quot;PRIuz&quot; --&gt; %&quot;PRIuz&quot;\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	p = q;
+@@ -104,7 +104,7 @@ main(void)
+ 	if (q != p)
+ 		fprintf(stderr, &quot;Unexpected object move\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		fprintf(stderr, &quot;Expected size change: %&quot;PRIuz&quot; --&gt; %&quot;PRIuz&quot;\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	sz = tsz;
+@@ -115,7 +115,7 @@ main(void)
+ 	if (q != p)
+ 		fprintf(stderr, &quot;Unexpected object move\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		fprintf(stderr, &quot;Expected size change: %&quot;PRIuz&quot; --&gt; %&quot;PRIuz&quot;\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	sz = tsz;
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000261.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+	<LI>Next message: <A HREF="000246.html">[PATCH] Replace %z in format strings with configure-time	determined printf length modifier
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#245">[ date ]</a>
+              <a href="thread.html#245">[ thread ]</a>
+              <a href="subject.html#245">[ subject ]</a>
+              <a href="author.html#245">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

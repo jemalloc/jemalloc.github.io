@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 2.2.3 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%202.2.3%20released&In-Reply-To=%3C4E5FEDBA.6080606%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 2.2.3 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%202.2.3%20released&In-Reply-To=%3C4E5FEDBA.6080606%40canonware.com%3E"
+       TITLE="jemalloc 2.2.3 released">jasone at canonware.com
+       </A><BR>
+    <I>Thu Sep  1 13:40:26 PDT 2011</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3">[ date ]</a>
+              <a href="thread.html#3">[ thread ]</a>
+              <a href="subject.html#3">[ subject ]</a>
+              <a href="author.html#3">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 2.2.3 is now available.  This version fixes numerous bugs 
+related to heap profiling.
+
+   Bug fixes:
+   - Fix a prof-related race condition.  This bug could cause memory
+     corruption, but only occurred in non-default configurations
+     (prof_accum:false).
+   - Fix off-by-one backtracing issues (make sure that prof_alloc_prep()
+     is excluded from backtraces).
+   - Fix a prof-related bug in realloc() (only triggered by OOM errors).
+   - Fix prof-related bugs in allocm() and rallocm().
+   - Fix prof_tdata_cleanup() for --disable-tls builds.
+   - Fix a relative include path, to fix objdir builds.
+
+For the complete ChangeLog, see:
+   <A HREF="http://www.canonware.com/jemalloc/ChangeLog.html">http://www.canonware.com/jemalloc/ChangeLog.html</A>
+
+Direct download:
+   <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-2.2.3.tar.bz2">http://www.canonware.com/download/jemalloc/jemalloc-2.2.3.tar.bz2</A>
+
+Starting point for general information:
+   <A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3">[ date ]</a>
+              <a href="thread.html#3">[ thread ]</a>
+              <a href="subject.html#3">[ subject ]</a>
+              <a href="author.html#3">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question regarding jemalloc and JVM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20regarding%20jemalloc%20and%20JVM&In-Reply-To=%3CD9EA7E6C-258F-4CD7-AAAB-96BE9DBDFC91%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000167.html">
+   <LINK REL="Next"  HREF="000169.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question regarding jemalloc and JVM</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20regarding%20jemalloc%20and%20JVM&In-Reply-To=%3CD9EA7E6C-258F-4CD7-AAAB-96BE9DBDFC91%40canonware.com%3E"
+       TITLE="Question regarding jemalloc and JVM">jasone at canonware.com
+       </A><BR>
+    <I>Sat Mar 24 21:00:17 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000167.html">Question regarding jemalloc and JVM
+</A></li>
+        <LI>Next message: <A HREF="000169.html">Question regarding jemalloc and JVM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#168">[ date ]</a>
+              <a href="thread.html#168">[ thread ]</a>
+              <a href="subject.html#168">[ subject ]</a>
+              <a href="author.html#168">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 24, 2012, at 11:46 AM, Jason Evans wrote:
+&gt;<i> On Mar 23, 2012, at 4:21 PM, Vijay wrote:
+</I>&gt;&gt;<i> Is there any reason i should not be using LD_PRELOAD to force JVM use jemalloc instead of native gcc malloc?
+</I>&gt;&gt;<i> Background: This is for Apache-Cassandra we do off-heap cache where we explicitly call malloc and free and by using jemalloc we see a fair amount of space savings and was wondering if there is anything which we have to consider before using it.
+</I>&gt;<i> 
+</I>&gt;<i> LD_PRELOAD'ing jemalloc should be okay as long as the JVM doesn't statically link a different malloc implementation.  I expect that if it isn't safe, you'll experience crashes quite early on, so give it a try and see what happens.
+</I>
+I was just looking through some of my notes and noticed an issue that may be relevant here.  jemalloc has a configure option called lazy-lock that has apparently caused problems in some Java use cases.  Java was using dlopen() to load a library that was dynamically linked with jemalloc, so jemalloc came along too late to intercept pthread_create() calls and turn on locking.  I don't think your use case will hit the same issue, but beware of dlopen() anywhere in the mix.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000167.html">Question regarding jemalloc and JVM
+</A></li>
+	<LI>Next message: <A HREF="000169.html">Question regarding jemalloc and JVM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#168">[ date ]</a>
+              <a href="thread.html#168">[ thread ]</a>
+              <a href="subject.html#168">[ subject ]</a>
+              <a href="author.html#168">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

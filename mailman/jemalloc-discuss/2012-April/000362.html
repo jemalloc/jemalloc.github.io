@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 3/7] Few configure.ac adjustments
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/7%5D%20Few%20configure.ac%20adjustments&In-Reply-To=%3C1335782311-8040-3-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000361.html">
+   <LINK REL="Next"  HREF="000364.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 3/7] Few configure.ac adjustments</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/7%5D%20Few%20configure.ac%20adjustments&In-Reply-To=%3C1335782311-8040-3-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 3/7] Few configure.ac adjustments">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 30 03:38:27 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000361.html">[PATCH 2/7] Use Get/SetLastError on Win32
+</A></li>
+        <LI>Next message: <A HREF="000364.html">[PATCH 5/7] Replace JEMALLOC_ATTR with various different macros when	it makes sense
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#362">[ date ]</a>
+              <a href="thread.html#362">[ thread ]</a>
+              <a href="subject.html#362">[ subject ]</a>
+              <a href="author.html#362">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+- Use the extensions autoconf finds for object and executable files.
+- Remove the sorev variable, and replace SOREV definition with sorev's.
+- Default to je_ prefix on win32.
+---
+ bin/jemalloc.sh.in |    2 +-
+ configure.ac       |   18 ++++++------------
+ 2 files changed, 7 insertions(+), 13 deletions(-)
+
+diff --git a/bin/jemalloc.sh.in b/bin/jemalloc.sh.in
+index 58683f5..cdf3673 100644
+--- a/bin/jemalloc.sh.in
++++ b/bin/jemalloc.sh.in
+@@ -4,6 +4,6 @@ prefix=@prefix@
+ exec_prefix=@exec_prefix@
+ libdir=@libdir@
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at LD_PRELOAD_VAR</A>@=${libdir}/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc. at sorev</A>@
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">+ at LD_PRELOAD_VAR</A>@=${libdir}/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc. at SOREV</A>@
+ export @LD_PRELOAD_VAR@
+ exec &quot;$@&quot;
+diff --git a/configure.ac b/configure.ac
+index 98211c8..6e74238 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -195,14 +195,13 @@ AC_DEFINE_UNQUOTED([CPU_SPINWAIT], [$CPU_SPINWAIT])
+ 
+ LD_PRELOAD_VAR=&quot;LD_PRELOAD&quot;
+ so=&quot;so&quot;
+-o=&quot;o&quot;
++o=&quot;$ac_objext&quot;
+ a=&quot;a&quot;
+-exe=
++exe=&quot;$ac_exeext&quot;
+ libprefix=&quot;lib&quot;
+ DSO_LDFLAGS='-shared -Wl,-soname,$(@F)'
+ RPATH='-Wl,-rpath,$(1)'
+-SOREV='$(SO).$(REV)'
+-sorev=&quot;${so}.${rev}&quot;
++SOREV=&quot;${so}.${rev}&quot;
+ PIC_CFLAGS='-fPIC -DPIC'
+ 
+ dnl Heap profiling uses the log(3) function.
+@@ -226,8 +225,7 @@ case &quot;${host}&quot; in
+ 	so=&quot;dylib&quot;
+ 	force_tls=&quot;0&quot;
+ 	DSO_LDFLAGS='-shared -Wl,-dylib_install_name,$(@F)'
+-	SOREV='$(REV).$(SO)'
+-	sorev=&quot;${rev}.${so}&quot;
++	SOREV=&quot;${rev}.${so}&quot;
+ 	;;
+   *-*-freebsd*)
+ 	CFLAGS=&quot;$CFLAGS&quot;
+@@ -281,12 +279,9 @@ case &quot;${host}&quot; in
+ 	RPATH=&quot;&quot;
+ 	so=&quot;dll&quot;
+ 	DSO_LDFLAGS=&quot;-shared&quot;
+-	o=&quot;obj&quot;
+ 	a=&quot;lib&quot;
+ 	libprefix=&quot;&quot;
+-	exe=&quot;.exe&quot;
+-	SOREV='$(SO)'
+-	sorev=&quot;${so}&quot;
++	SOREV=&quot;${so}&quot;
+ 	PIC_CFLAGS=&quot;&quot;
+ 	;;
+   *)
+@@ -304,7 +299,6 @@ AC_SUBST([exe])
+ AC_SUBST([libprefix])
+ AC_SUBST([DSO_LDFLAGS])
+ AC_SUBST([SOREV])
+-AC_SUBST([sorev])
+ AC_SUBST([PIC_CFLAGS])
+ 
+ JE_COMPILABLE([__attribute__ syntax],
+@@ -419,7 +413,7 @@ dnl Do not prefix public APIs by default.
+ AC_ARG_WITH([jemalloc_prefix],
+   [AS_HELP_STRING([--with-jemalloc-prefix=&lt;prefix&gt;], [Prefix to prepend to all public APIs])],
+   [JEMALLOC_PREFIX=&quot;$with_jemalloc_prefix&quot;],
+-  [if test &quot;x$abi&quot; != &quot;xmacho&quot; ; then
++  [if test &quot;x$abi&quot; != &quot;xmacho&quot; -a &quot;x$abi&quot; != &quot;xpecoff&quot;; then
+   JEMALLOC_PREFIX=&quot;&quot;
+ else
+   JEMALLOC_PREFIX=&quot;je_&quot;
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000361.html">[PATCH 2/7] Use Get/SetLastError on Win32
+</A></li>
+	<LI>Next message: <A HREF="000364.html">[PATCH 5/7] Replace JEMALLOC_ATTR with various different macros when	it makes sense
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#362">[ date ]</a>
+              <a href="thread.html#362">[ thread ]</a>
+              <a href="subject.html#362">[ subject ]</a>
+              <a href="author.html#362">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,430 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 3/3] Improve zone support for OSX
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/3%5D%20Improve%20zone%20support%20for%20OSX&In-Reply-To=%3C1332262898-31839-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000144.html">
+   <LINK REL="Next"  HREF="000156.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 3/3] Improve zone support for OSX</H1>
+    <B>mh+jemalloc at glandium.org</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/3%5D%20Improve%20zone%20support%20for%20OSX&In-Reply-To=%3C1332262898-31839-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 3/3] Improve zone support for OSX">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Mar 20 10:01:38 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000144.html">d81e4bdd Implement malloc_vsnprintf().
+</A></li>
+        <LI>Next message: <A HREF="000156.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#154">[ date ]</a>
+              <a href="thread.html#154">[ thread ]</a>
+              <a href="subject.html#154">[ subject ]</a>
+              <a href="author.html#154">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+I tested a build from 10.7 run on 10.7 and 10.6, and a build from 10.6
+run on 10.6.
+The AC_COMPILE_IFELSE limbo is to avoid running a program during
+configure, which presumably makes it work when cross compiling for iOS.
+
+ configure.ac   |   59 ++++++++----------
+ src/jemalloc.c |   20 ++++--
+ src/zone.c     |  191 +++++++-------------------------------------------------
+ 3 files changed, 63 insertions(+), 207 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 76cb670..02d4f53 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -877,39 +877,32 @@ if test &quot;x${abi}&quot; = &quot;xmacho&quot; ; then
+   dnl releases.  malloc_zone_t and malloc_introspection_t have new fields in
+   dnl 10.6, which is the only source-level indication of the change.
+   AC_MSG_CHECKING([malloc zone version])
+-  AC_TRY_COMPILE([#include &lt;stdlib.h&gt;
+-#include &lt;malloc/malloc.h&gt;], [
+-	static malloc_zone_t zone;
+-	static struct malloc_introspection_t zone_introspect;
+-
+-	zone.size = NULL;
+-	zone.malloc = NULL;
+-	zone.calloc = NULL;
+-	zone.valloc = NULL;
+-	zone.free = NULL;
+-	zone.realloc = NULL;
+-	zone.destroy = NULL;
+-	zone.zone_name = &quot;jemalloc_zone&quot;;
+-	zone.batch_malloc = NULL;
+-	zone.batch_free = NULL;
+-	zone.introspect = &amp;zone_introspect;
+-	zone.version = 6;
+-	zone.memalign = NULL;
+-	zone.free_definite_size = NULL;
+-
+-	zone_introspect.enumerator = NULL;
+-	zone_introspect.good_size = NULL;
+-	zone_introspect.check = NULL;
+-	zone_introspect.print = NULL;
+-	zone_introspect.log = NULL;
+-	zone_introspect.force_lock = NULL;
+-	zone_introspect.force_unlock = NULL;
+-	zone_introspect.statistics = NULL;
+-	zone_introspect.zone_locked = NULL;
+-], [AC_DEFINE_UNQUOTED([JEMALLOC_ZONE_VERSION], [6])
+-    AC_MSG_RESULT([6])],
+-   [AC_DEFINE_UNQUOTED([JEMALLOC_ZONE_VERSION], [3])
+-   AC_MSG_RESULT([3])])
++  AC_DEFUN([JE_ZONE_PROGRAM],
++    [AC_LANG_PROGRAM(
++      [#include &lt;malloc/malloc.h&gt;],
++      [static foo[[sizeof($1) $2 sizeof(void *) * $3 ? 1 : -1]]]
++    )])
++
++  AC_COMPILE_IFELSE([JE_ZONE_PROGRAM(malloc_zone_t,==,14)],[JEMALLOC_ZONE_VERSION=3],[
++  AC_COMPILE_IFELSE([JE_ZONE_PROGRAM(malloc_zone_t,==,15)],[JEMALLOC_ZONE_VERSION=5],[
++  AC_COMPILE_IFELSE([JE_ZONE_PROGRAM(malloc_zone_t,==,16)],[
++    AC_COMPILE_IFELSE([JE_ZONE_PROGRAM(malloc_introspection_t,==,9)],[JEMALLOC_ZONE_VERSION=6],[
++    AC_COMPILE_IFELSE([JE_ZONE_PROGRAM(malloc_introspection_t,==,13)],[JEMALLOC_ZONE_VERSION=7],[JEMALLOC_ZONE_VERSION=]
++  )])],[
++  AC_COMPILE_IFELSE([JE_ZONE_PROGRAM(malloc_zone_t,==,17)],[JEMALLOC_ZONE_VERSION=8],[
++  AC_COMPILE_IFELSE([JE_ZONE_PROGRAM(malloc_zone_t,&gt;,17)],[JEMALLOC_ZONE_VERSION=9],[JEMALLOC_ZONE_VERSION=]
++  )])])])])
++  if test &quot;x${JEMALLOC_ZONE_VERSION}&quot; = &quot;x&quot;; then
++    AC_MSG_RESULT([unsupported])
++    AC_MSG_ERROR([Unsupported malloc zone version])
++  fi
++  if test &quot;${JEMALLOC_ZONE_VERSION}&quot; = 9; then
++    JEMALLOC_ZONE_VERSION=8
++    AC_MSG_RESULT([&gt; 8])
++  else
++    AC_MSG_RESULT([$JEMALLOC_ZONE_VERSION])
++  fi
++  AC_DEFINE_UNQUOTED(JEMALLOC_ZONE_VERSION, [$JEMALLOC_ZONE_VERSION])
+ fi
+ 
+ dnl ============================================================================
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index e2b6134..2610452 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -747,15 +747,23 @@ malloc_init_hard(void)
+ 	arenas[0] = init_arenas[0];
+ 
+ #ifdef JEMALLOC_ZONE
+-	/* Register the custom zone. */
+-	malloc_zone_register(create_zone());
++	/* Register the custom zone. At this point it won't be the default. */
++	malloc_zone_t *jemalloc_zone = create_zone();
++	malloc_zone_register(jemalloc_zone);
+ 
+ 	/*
+-	 * Convert the default szone to an &quot;overlay zone&quot; that is capable of
+-	 * deallocating szone-allocated objects, but allocating new objects
+-	 * from jemalloc.
++	 * Unregister and reregister the default zone. On OSX &gt;= 10.6,
++	 * unregistering takes the last registered zone and places it at the
++	 * location of the specified zone. Unregistering the default zone thus
++	 * makes the last registered one the default. On OSX &lt; 10.6,
++	 * unregistering shifts all registered zones. The first registered zone
++	 * then becomes the default.
+ 	 */
+-	szone2ozone(malloc_default_zone());
++	do {
++		malloc_zone_t *default_zone = malloc_default_zone();
++		malloc_zone_unregister(default_zone);
++		malloc_zone_register(default_zone);
++	} while (malloc_default_zone() != jemalloc_zone);
+ #endif
+ 
+ 	malloc_initialized = true;
+diff --git a/src/zone.c b/src/zone.c
+index a0372e1..a8f09c9 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -6,8 +6,8 @@
+ /******************************************************************************/
+ /* Data. */
+ 
+-static malloc_zone_t zone, szone;
+-static struct malloc_introspection_t zone_introspect, ozone_introspect;
++static malloc_zone_t zone;
++static struct malloc_introspection_t zone_introspect;
+ 
+ /******************************************************************************/
+ /* Function prototypes for non-inline static functions. */
+@@ -18,8 +18,10 @@ static void	*zone_calloc(malloc_zone_t *zone, size_t num, size_t size);
+ static void	*zone_valloc(malloc_zone_t *zone, size_t size);
+ static void	zone_free(malloc_zone_t *zone, void *ptr);
+ static void	*zone_realloc(malloc_zone_t *zone, void *ptr, size_t size);
+-#if (JEMALLOC_ZONE_VERSION &gt;= 6)
++#if (JEMALLOC_ZONE_VERSION &gt;= 5)
+ static void	*zone_memalign(malloc_zone_t *zone, size_t alignment,
++#endif
++#if (JEMALLOC_ZONE_VERSION &gt;= 6)
+     size_t size);
+ static void	zone_free_definite_size(malloc_zone_t *zone, void *ptr,
+     size_t size);
+@@ -28,19 +30,6 @@ static void	*zone_destroy(malloc_zone_t *zone);
+ static size_t	zone_good_size(malloc_zone_t *zone, size_t size);
+ static void	zone_force_lock(malloc_zone_t *zone);
+ static void	zone_force_unlock(malloc_zone_t *zone);
+-static size_t	ozone_size(malloc_zone_t *zone, void *ptr);
+-static void	ozone_free(malloc_zone_t *zone, void *ptr);
+-static void	*ozone_realloc(malloc_zone_t *zone, void *ptr, size_t size);
+-static unsigned	ozone_batch_malloc(malloc_zone_t *zone, size_t size,
+-    void **results, unsigned num_requested);
+-static void	ozone_batch_free(malloc_zone_t *zone, void **to_be_freed,
+-    unsigned num);
+-#if (JEMALLOC_ZONE_VERSION &gt;= 6)
+-static void	ozone_free_definite_size(malloc_zone_t *zone, void *ptr,
+-    size_t size);
+-#endif
+-static void	ozone_force_lock(malloc_zone_t *zone);
+-static void	ozone_force_unlock(malloc_zone_t *zone);
+ 
+ /******************************************************************************/
+ /*
+@@ -101,7 +90,7 @@ zone_realloc(malloc_zone_t *zone, void *ptr, size_t size)
+ 	return (je_realloc(ptr, size));
+ }
+ 
+-#if (JEMALLOC_ZONE_VERSION &gt;= 6)
++#if (JEMALLOC_ZONE_VERSION &gt;= 5)
+ static void *
+ zone_memalign(malloc_zone_t *zone, size_t alignment, size_t size)
+ {
+@@ -111,7 +100,9 @@ zone_memalign(malloc_zone_t *zone, size_t alignment, size_t size)
+ 
+ 	return (ret);
+ }
++#endif
+ 
++#if (JEMALLOC_ZONE_VERSION &gt;= 6)
+ static void
+ zone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
+ {
+@@ -171,10 +162,15 @@ create_zone(void)
+ 	zone.batch_free = NULL;
+ 	zone.introspect = &amp;zone_introspect;
+ 	zone.version = JEMALLOC_ZONE_VERSION;
+-#if (JEMALLOC_ZONE_VERSION &gt;= 6)
++#if (JEMALLOC_ZONE_VERSION &gt;= 5)
+ 	zone.memalign = zone_memalign;
++#endif
++#if (JEMALLOC_ZONE_VERSION &gt;= 6)
+ 	zone.free_definite_size = zone_free_definite_size;
+ #endif
++#if (JEMALLOC_ZONE_VERSION &gt;= 8)
++	zone.pressure_relief = NULL;
++#endif
+ 
+ 	zone_introspect.enumerator = NULL;
+ 	zone_introspect.good_size = (void *)zone_good_size;
+@@ -187,156 +183,15 @@ create_zone(void)
+ #if (JEMALLOC_ZONE_VERSION &gt;= 6)
+ 	zone_introspect.zone_locked = NULL;
+ #endif
+-
+-	return (&amp;zone);
+-}
+-
+-static size_t
+-ozone_size(malloc_zone_t *zone, void *ptr)
+-{
+-	size_t ret;
+-
+-	ret = ivsalloc(ptr);
+-	if (ret == 0)
+-		ret = szone.size(zone, ptr);
+-
+-	return (ret);
+-}
+-
+-static void
+-ozone_free(malloc_zone_t *zone, void *ptr)
+-{
+-
+-	if (ivsalloc(ptr) != 0)
+-		je_free(ptr);
+-	else {
+-		size_t size = szone.size(zone, ptr);
+-		if (size != 0)
+-			(szone.free)(zone, ptr);
+-	}
+-}
+-
+-static void *
+-ozone_realloc(malloc_zone_t *zone, void *ptr, size_t size)
+-{
+-	size_t oldsize;
+-
+-	if (ptr == NULL)
+-		return (je_malloc(size));
+-
+-	oldsize = ivsalloc(ptr);
+-	if (oldsize != 0)
+-		return (je_realloc(ptr, size));
+-	else {
+-		oldsize = szone.size(zone, ptr);
+-		if (oldsize == 0)
+-			return (je_malloc(size));
+-		else {
+-			void *ret = je_malloc(size);
+-			if (ret != NULL) {
+-				memcpy(ret, ptr, (oldsize &lt; size) ? oldsize :
+-				    size);
+-				(szone.free)(zone, ptr);
+-			}
+-			return (ret);
+-		}
+-	}
+-}
+-
+-static unsigned
+-ozone_batch_malloc(malloc_zone_t *zone, size_t size, void **results,
+-    unsigned num_requested)
+-{
+-
+-	/* Don't bother implementing this interface, since it isn't required. */
+-	return (0);
+-}
+-
+-static void
+-ozone_batch_free(malloc_zone_t *zone, void **to_be_freed, unsigned num)
+-{
+-	unsigned i;
+-
+-	for (i = 0; i &lt; num; i++)
+-		ozone_free(zone, to_be_freed[i]);
+-}
+-
+-#if (JEMALLOC_ZONE_VERSION &gt;= 6)
+-static void
+-ozone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
+-{
+-
+-	if (ivsalloc(ptr) != 0) {
+-		assert(ivsalloc(ptr) == size);
+-		je_free(ptr);
+-	} else {
+-		assert(size == szone.size(zone, ptr));
+-		szone.free_definite_size(zone, ptr, size);
+-	}
+-}
+-#endif
+-
+-static void
+-ozone_force_lock(malloc_zone_t *zone)
+-{
+-
+-	/* jemalloc locking is taken care of by the normal jemalloc zone. */
+-	szone.introspect-&gt;force_lock(zone);
+-}
+-
+-static void
+-ozone_force_unlock(malloc_zone_t *zone)
+-{
+-
+-	/* jemalloc locking is taken care of by the normal jemalloc zone. */
+-	szone.introspect-&gt;force_unlock(zone);
+-}
+-
+-/*
+- * Overlay the default scalable zone (szone) such that existing allocations are
+- * drained, and further allocations come from jemalloc.  This is necessary
+- * because Core Foundation directly accesses and uses the szone before the
+- * jemalloc library is even loaded.
+- */
+-void
+-szone2ozone(malloc_zone_t *zone)
+-{
+-
+-	/*
+-	 * Stash a copy of the original szone so that we can call its
+-	 * functions as needed.  Note that the internally, the szone stores its
+-	 * bookkeeping data structures immediately following the malloc_zone_t
+-	 * header, so when calling szone functions, we need to pass a pointer
+-	 * to the original zone structure.
+-	 */
+-	memcpy(&amp;szone, zone, sizeof(malloc_zone_t));
+-
+-	zone-&gt;size = (void *)ozone_size;
+-	zone-&gt;malloc = (void *)zone_malloc;
+-	zone-&gt;calloc = (void *)zone_calloc;
+-	zone-&gt;valloc = (void *)zone_valloc;
+-	zone-&gt;free = (void *)ozone_free;
+-	zone-&gt;realloc = (void *)ozone_realloc;
+-	zone-&gt;destroy = (void *)zone_destroy;
+-	zone-&gt;zone_name = &quot;jemalloc_ozone&quot;;
+-	zone-&gt;batch_malloc = ozone_batch_malloc;
+-	zone-&gt;batch_free = ozone_batch_free;
+-	zone-&gt;introspect = &amp;ozone_introspect;
+-	zone-&gt;version = JEMALLOC_ZONE_VERSION;
+-#if (JEMALLOC_ZONE_VERSION &gt;= 6)
+-	zone-&gt;memalign = zone_memalign;
+-	zone-&gt;free_definite_size = ozone_free_definite_size;
++#if (JEMALLOC_ZONE_VERSION &gt;= 7)
++	zone_introspect.enable_discharge_checking = NULL;
++	zone_introspect.disable_discharge_checking = NULL;
++	zone_introspect.discharge = NULL;
++#ifdef __BLOCKS__
++	zone_introspect.enumerate_discharged_pointers = NULL;
++#else
++	zone_introspect.enumerate_unavailable_without_blocks = NULL;
+ #endif
+-
+-	ozone_introspect.enumerator = NULL;
+-	ozone_introspect.good_size = (void *)zone_good_size;
+-	ozone_introspect.check = NULL;
+-	ozone_introspect.print = NULL;
+-	ozone_introspect.log = NULL;
+-	ozone_introspect.force_lock = (void *)ozone_force_lock;
+-	ozone_introspect.force_unlock = (void *)ozone_force_unlock;
+-	ozone_introspect.statistics = NULL;
+-#if (JEMALLOC_ZONE_VERSION &gt;= 6)
+-	ozone_introspect.zone_locked = NULL;
+ #endif
++	return (&amp;zone);
+ }
+-- 
+1.7.5.4
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000144.html">d81e4bdd Implement malloc_vsnprintf().
+</A></li>
+	<LI>Next message: <A HREF="000156.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#154">[ date ]</a>
+              <a href="thread.html#154">[ thread ]</a>
+              <a href="subject.html#154">[ subject ]</a>
+              <a href="author.html#154">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

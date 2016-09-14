@@ -1,0 +1,1073 @@
+From chaudry.adnan.akbar at gmail.com  Tue Oct  1 05:56:03 2013
+From: chaudry.adnan.akbar at gmail.com (adnan akbar)
+Date: Tue, 1 Oct 2013 17:56:03 +0500
+Subject: Segfault with jemalloc 3.4.
+Message-ID: <CAHdTFUu7G+sJ1aA46rG72+2-yjRhywvecBhe6V6anALeGQLPuQ@mail.gmail.com>
+
+Hi All,
+
+I have been using the
+jemalloc 3.4.0-0-g0ed518e5dab789ad2171bb38977a8927e2a26775. Usually  it
+runs fine but i have a rare crash at the following location. And sometime
+while allocating. Any pointer regarding the resolution would be helpful.
+
+Thanks in advance.
+
+(gdb) bt
+#0  tcache_dalloc_small (ptr=0x7f1be585cc00)
+    at include/jemalloc/internal/tcache.h:405
+#1  arena_dalloc (ptr=0x7f1be585cc00) at
+include/jemalloc/internal/arena.h:1003
+#2  idallocx (ptr=0x7f1be585cc00)
+    at include/jemalloc/internal/jemalloc_internal.h:913
+#3  iqallocx (ptr=0x7f1be585cc00)
+    at include/jemalloc/internal/jemalloc_internal.h:932
+#4  iqalloc (ptr=0x7f1be585cc00)
+    at include/jemalloc/internal/jemalloc_internal.h:939
+#5  js_free (ptr=0x7f1be585cc00) at src/jemalloc.c:1272
+#6  0x00007f1c4af5180d in std::basic_string<char, std::char_traits<char>,
+mcommons::mem::JEAllocator<char>
+>::_Rep::_M_destroy(mcommons::mem::JEAllocator<char> const&) () from
+../mcommons/output/libmcommons.so
+#7  0x00007f1c42dec17f in
+handlers::userhandlers::handleUserSessionEvent(mcommons::security::Session*,
+bool) () from ../LPConnector/output/libLPConnector.so
+#8  0x00007f1c4af9de93 in
+mcommons::framework::Consumer::processDescIO(unsigned long, unsigned long)
+const () from ../mcommons/output/libmcommons.so
+---Type <return> to continue, or q <return> to quit---
+#9  0x00007f1c4af9e2ee in mcommons::framework::Consumer::run() ()
+   from ../mcommons/output/libmcommons.so
+#10 0x00007f1c4af66389 in start_persistent_thread(void*) ()
+   from ../mcommons/output/libmcommons.so
+#11 0x0000003bd7007851 in start_thread () from /lib64/libpthread.so.0
+#12 0x0000003bd64e890d in nfsservctl () from /lib64/libc.so.6
+#13 0x0000000000000000 in ?? ()
+
+-- 
+
+Regards,
+
+----------------------
+Adnan Akbar
+Software Engineer
+Mob: +92-333-3643680
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131001/f93e1d98/attachment.html>
+
+From jasone at canonware.com  Thu Oct  3 14:11:49 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 3 Oct 2013 14:11:49 -0700
+Subject: Segfault with jemalloc 3.4.
+In-Reply-To: <CAHdTFUu7G+sJ1aA46rG72+2-yjRhywvecBhe6V6anALeGQLPuQ@mail.gmail.com>
+References: <CAHdTFUu7G+sJ1aA46rG72+2-yjRhywvecBhe6V6anALeGQLPuQ@mail.gmail.com>
+Message-ID: <D7CA1FED-88B7-43C8-8307-A849D5E8B2AD@canonware.com>
+
+On Oct 1, 2013, at 5:56 AM, adnan akbar <chaudry.adnan.akbar at gmail.com> wrote:
+> I have been using the jemalloc 3.4.0-0-g0ed518e5dab789ad2171bb38977a8927e2a26775. Usually  it runs fine but i have a rare crash at the following location. And sometime while allocating. Any pointer regarding the resolution would be helpful. 
+> 
+> (gdb) bt
+> #0  tcache_dalloc_small (ptr=0x7f1be585cc00)
+>     at include/jemalloc/internal/tcache.h:405
+> #1  arena_dalloc (ptr=0x7f1be585cc00) at include/jemalloc/internal/arena.h:1003
+> #2  idallocx (ptr=0x7f1be585cc00)
+>     at include/jemalloc/internal/jemalloc_internal.h:913
+> #3  iqallocx (ptr=0x7f1be585cc00)
+>     at include/jemalloc/internal/jemalloc_internal.h:932
+> #4  iqalloc (ptr=0x7f1be585cc00)
+>     at include/jemalloc/internal/jemalloc_internal.h:939
+> #5  js_free (ptr=0x7f1be585cc00) at src/jemalloc.c:1272
+> #6  0x00007f1c4af5180d in std::basic_string<char, std::char_traits<char>, mcommons::mem::JEAllocator<char> >::_Rep::_M_destroy(mcommons::mem::JEAllocator<char> const&) () from ../mcommons/output/libmcommons.so
+> #7  0x00007f1c42dec17f in handlers::userhandlers::handleUserSessionEvent(mcommons::security::Session*, bool) () from ../LPConnector/output/libLPConnector.so
+> #8  0x00007f1c4af9de93 in mcommons::framework::Consumer::processDescIO(unsigned long, unsigned long) const () from ../mcommons/output/libmcommons.so
+> ---Type <return> to continue, or q <return> to quit---
+> #9  0x00007f1c4af9e2ee in mcommons::framework::Consumer::run() ()
+>    from ../mcommons/output/libmcommons.so
+> #10 0x00007f1c4af66389 in start_persistent_thread(void*) ()
+>    from ../mcommons/output/libmcommons.so
+> #11 0x0000003bd7007851 in start_thread () from /lib64/libpthread.so.0
+> #12 0x0000003bd64e890d in nfsservctl () from /lib64/libc.so.6
+> #13 0x0000000000000000 in ?? ()
+
+This backtrace may indicate that your application is double-freeing an allocation.  The crash may occur long after the double-free occurs.  In order to narrow down the problem, I recommend using a debug build of jemalloc and disabling tcache (either at compile time or at run time) so that assertions in the arena code catch the error immediately.
+
+Jason
+
+From jasone at canonware.com  Thu Oct  3 14:27:42 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 3 Oct 2013 14:27:42 -0700
+Subject: maximally misaligned
+In-Reply-To: <CAKSyJXdmf0h=z1Ha3ivhjdaX7ZwPzaAJszDcT+jzy9p2i6Je7w@mail.gmail.com>
+References: <CAKSyJXdmf0h=z1Ha3ivhjdaX7ZwPzaAJszDcT+jzy9p2i6Je7w@mail.gmail.com>
+Message-ID: <A847B49A-A228-4F0C-B19E-6C4B000FC458@canonware.com>
+
+On Dec 26, 2012, at 3:50 PM, Bradley C. Kuszmaul <kuszmaul at gmail.com> wrote:
+> It would be useful if there were a way to configure jemalloc to give
+> the worst acceptable alignment for every returned object.
+> 
+> I'm currently debugging a program that uses O_DIRECT for file I/O.
+> This option requires that all pointers passed to read() and write() be
+> 512-byte aligned.  There is an occasional function that uses malloc()
+> to create a buffer instead of something like memalign().  I'd like it
+> if the malloc() could be tweaked so that the returned pointer from
+> malloc(4096) was aligned to be off by, say 16 bytes.  Otherwise there
+> fact that malloc(4096) seems to return a 512-byte aligned pointer
+> masks a bug in the program.
+> 
+> I've implemented this misaligned mallocator on top of malloc() for my purposes.
+> 
+> Is this something that might belong in the jemalloc library instead of
+> in my code?  Maybe it's already there and I don't know about it.
+> Maybe this is a dumb idea and it really belongs in the application, as
+> I've done it.
+
+I have tentative plans to make alignment of allocations more random, in order to reduce CPU cache conflicts.  However, I don't think intentional minimal alignment for allocations will ever fit well in jemalloc, because jemalloc tries hard to pack objects in ways that conflict with the misalignment feature you built.
+
+Jason
+
+From ofers at iMesh.com  Tue Oct  8 22:05:06 2013
+From: ofers at iMesh.com (Ofer Samocha)
+Date: Wed, 9 Oct 2013 05:05:06 +0000
+Subject: Segfault with jemalloc 3.4
+Message-ID: <9733c88d76a54aa0942c7cf2f4c539c5@EX13.iMesh.com>
+
+Hi,
+
+I have been using the jemalloc 3.4.0. Usually  it runs fine but i have a rare crash at the following location.
+Any pointer regarding the resolution would be helpful.
+
+Thanks in advance.
+
+#0  0x0000000000aa4abe in arena_chunk_purge (arena=0x7ff5398000c0, all=<value optimized out>) at src/arena.c:783
+#1  arena_purge (arena=0x7ff5398000c0, all=<value optimized out>) at src/arena.c:952
+#2  0x0000000000aa5542 in arena_run_trim_tail (ptr=0x7ff52543a000, oldsize=20480, size=<value optimized out>, extra=<value optimized out>, zero=<value optimized out>) at src/arena.c:1165
+#3  arena_ralloc_large_shrink (ptr=0x7ff52543a000, oldsize=20480, size=<value optimized out>, extra=<value optimized out>, zero=<value optimized out>) at src/arena.c:1794
+#4  arena_ralloc_large (ptr=0x7ff52543a000, oldsize=20480, size=<value optimized out>, extra=<value optimized out>, zero=<value optimized out>) at src/arena.c:1909
+#5  arena_ralloc_no_move (ptr=0x7ff52543a000, oldsize=20480, size=<value optimized out>, extra=<value optimized out>, zero=<value optimized out>) at src/arena.c:1951
+#6  0x0000000000aa799d in arena_ralloc (arena=0x0, ptr=0x7ff52543a000, oldsize=32768, size=2985, extra=1024, alignment=16498863232710968265, zero=false, try_tcache_alloc=true, try_tcache_dalloc=true) at src/arena.c:1971
+#7  0x0000000000a9e65d in irallocx (ptr=0x7ff52543a000, size=8462) at include/jemalloc/internal/jemalloc_internal.h:1001
+#8  iralloc (ptr=0x7ff52543a000, size=8462) at include/jemalloc/internal/jemalloc_internal.h:1016
+#9  realloc (ptr=0x7ff52543a000, size=8462) at src/jemalloc.c:1181
+#10 0x00000000008e91ac in reserve (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartBuffer.h:138
+#11 resize (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartBuffer.h:126
+#12 readFromSocket<sti::IRWPollableObject> (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/streaminterface.h:487
+#13 CMsgSockHandlerImpl::recvBuffer (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:566
+#14 0x00000000008ed77c in CMsgSockHandlerImpl::HandleInput (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:290
+#15 0x0000000000870d94 in sti::CSocketAttachedEventHandler<sti::IRWPollableObject>::HandleInput (this=0x7ff502a62480, sock=<value optimized out>) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SocketEventHandler.h:362
+#16 0x00000000008734ce in sti::CSocketEventHandler<sti::IRWPollableObject>::disHandleInput (this=0x7ff502a62480, sock=<value optimized out>) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SocketEventHandler.h:175
+#17 0x00000000009d655f in sti::CDispatcher::HandleEvents (this=0x7ff53942b300, timeout=0) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:551
+#18 0x000000000080db3b in CServerHelper::HandleEvents (this=0x7ff539421020) at /home/imesh/SFIM2Rel/src/servercomm/ServerHelper.cpp:397
+#19 0x00000000005c8e6e in main (argc=<value optimized out>, argv=<value optimized out>) at /home/imesh/SFIM2Rel/src/SN/SN.cpp:34
+
+Best Regards,
+Ofer
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131009/c3c6d12c/attachment.html>
+
+From jasone at canonware.com  Sun Oct 13 16:00:06 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 13 Oct 2013 16:00:06 -0700
+Subject: [PATCH] malloc_conf_init: revert errno value when readlink(2)
+	fail.
+In-Reply-To: <523C983E.4020104@kaworu.ch>
+References: <523C983E.4020104@kaworu.ch>
+Message-ID: <5D20219F-CB39-4E97-BE31-0C1769291C10@canonware.com>
+
+On Sep 20, 2013, at 11:47 AM, Alex <alex at kaworu.ch> wrote:
+> In malloc_conf_init(), readlink(2) is called in order to read "/etc/malloc.conf". When readlink(2) fail (which is a common case, for exemple when "/etc/malloc.conf" does not exists) errno is set. This can lead to unexpected behaviour of malloc(), in my case malloc() set errno=2 (ENOENT) because "/etc/malloc.conf" does not exist (see test.c attached).
+> 
+> I wrote a patch that fixed the issue (against the dev branch). At first I didn't catch the !_WIN32 condition, so review is welcome (I could not test it under Windows). Also I thought it might be better to save & restore errno in malloc_init(), because it could catch other function call modifying errno. Does this make sens ?
+
+Thanks for the patch; I just pushed it on the dev branch.  In this case I think it's reasonable to preserve errno, but FWIW jemalloc currently makes no principled effort to preserve errno in non-error cases.  The main place this is a real issue right now is in the heap profiling code.  It's probably worth cleaning up over time, but I want to make sure that it involves no extra code in the fast path.
+
+Jason
+
+From jasone at canonware.com  Sun Oct 13 16:25:35 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 13 Oct 2013 16:25:35 -0700
+Subject: Segfault with jemalloc 3.4
+In-Reply-To: <9733c88d76a54aa0942c7cf2f4c539c5@EX13.iMesh.com>
+References: <9733c88d76a54aa0942c7cf2f4c539c5@EX13.iMesh.com>
+Message-ID: <33CA6F03-1E8D-4B1C-853F-3D3805D549A6@canonware.com>
+
+On Oct 8, 2013, at 10:05 PM, Ofer Samocha <ofers at iMesh.com> wrote:
+> I have been using the jemalloc 3.4.0. Usually  it runs fine but i have a rare crash at the following location.
+> Any pointer regarding the resolution would be helpful.
+>  
+> Thanks in advance.
+>  
+> #0  0x0000000000aa4abe in arena_chunk_purge (arena=0x7ff5398000c0, all=<value optimized out>) at src/arena.c:783
+> #1  arena_purge (arena=0x7ff5398000c0, all=<value optimized out>) at src/arena.c:952
+> #2  0x0000000000aa5542 in arena_run_trim_tail (ptr=0x7ff52543a000, oldsize=20480, size=<value optimized out>, extra=<value optimized out>, zero=<value optimized out>) at src/arena.c:1165
+> #3  arena_ralloc_large_shrink (ptr=0x7ff52543a000, oldsize=20480, size=<value optimized out>, extra=<value optimized out>, zero=<value optimized out>) at src/arena.c:1794
+> #4  arena_ralloc_large (ptr=0x7ff52543a000, oldsize=20480, size=<value optimized out>, extra=<value optimized out>, zero=<value optimized out>) at src/arena.c:1909
+> #5  arena_ralloc_no_move (ptr=0x7ff52543a000, oldsize=20480, size=<value optimized out>, extra=<value optimized out>, zero=<value optimized out>) at src/arena.c:1951
+> #6  0x0000000000aa799d in arena_ralloc (arena=0x0, ptr=0x7ff52543a000, oldsize=32768, size=2985, extra=1024, alignment=16498863232710968265, zero=false, try_tcache_alloc=true, try_tcache_dalloc=true) at src/arena.c:1971
+> #7  0x0000000000a9e65d in irallocx (ptr=0x7ff52543a000, size=8462) at include/jemalloc/internal/jemalloc_internal.h:1001
+> #8  iralloc (ptr=0x7ff52543a000, size=8462) at include/jemalloc/internal/jemalloc_internal.h:1016
+> #9  realloc (ptr=0x7ff52543a000, size=8462) at src/jemalloc.c:1181
+> #10 0x00000000008e91ac in reserve (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartBuffer.h:138
+> #11 resize (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartBuffer.h:126
+> #12 readFromSocket<sti::IRWPollableObject> (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/streaminterface.h:487
+> #13 CMsgSockHandlerImpl::recvBuffer (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:566
+> #14 0x00000000008ed77c in CMsgSockHandlerImpl::HandleInput (this=0x7ff4d1cdd200) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:290
+> #15 0x0000000000870d94 in sti::CSocketAttachedEventHandler<sti::IRWPollableObject>::HandleInput (this=0x7ff502a62480, sock=<value optimized out>) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SocketEventHandler.h:362
+> #16 0x00000000008734ce in sti::CSocketEventHandler<sti::IRWPollableObject>::disHandleInput (this=0x7ff502a62480, sock=<value optimized out>) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SocketEventHandler.h:175
+> #17 0x00000000009d655f in sti::CDispatcher::HandleEvents (this=0x7ff53942b300, timeout=0) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:551
+> #18 0x000000000080db3b in CServerHelper::HandleEvents (this=0x7ff539421020) at /home/imesh/SFIM2Rel/src/servercomm/ServerHelper.cpp:397
+> #19 0x00000000005c8e6e in main (argc=<value optimized out>, argv=<value optimized out>) at /home/imesh/SFIM2Rel/src/SN/SN.cpp:34
+
+It looks like the only way jemalloc can crash here is if the chunk pointer is pointing to unmapped memory, in which case some really bad memory corruption has occurred.  I don't have any good working theories as to how this can happen.  Just how similar do the backtraces look when you see this crash (e.g. is shrinking realloc() always involved)?  What else can you tell me about the app re: number of threads, memory usage, etc.?
+
+Thanks,
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131013/8b1e1b49/attachment.html>
+
+From jasone at canonware.com  Sat Oct 19 17:29:01 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 19 Oct 2013 17:29:01 -0700
+Subject: 3.4.0 build log using gcc-4.8.1
+In-Reply-To: <20130919230422.332b16e2@darkbook.lan.box>
+References: <20130830092104.29c1e616@darkbook.lan.box>
+	<C784CA45-C7B0-4036-807D-3175C4CEE562@canonware.com>
+	<20130919230422.332b16e2@darkbook.lan.box>
+Message-ID: <ACA47865-FD7D-4344-8150-FDF330CA595D@canonware.com>
+
+On Sep 19, 2013, at 7:04 PM, Ricardo Nabinger Sanchez <rnsanchez at wait4.org> wrote:
+> With --enable-cc-silence, only these:
+> 
+> gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.o src/jemalloc.c
+> src/jemalloc.c:303:1: warning: always_inline function might not be inlinable [-Wattributes]
+> malloc_init(void)
+> ^
+> src/jemalloc.c:286:1: warning: always_inline function might not be inlinable [-Wattributes]
+> malloc_thread_init(void)
+> ^
+> 
+> src/ctl.c: In function 'epoch_ctl':
+> src/ctl.c:1112:11: warning: variable 'newval' set but not used [-Wunused-but-set-variable]
+>  uint64_t newval;
+>           ^
+
+Now fixed on the dev branch:
+
+	https://github.com/jemalloc/jemalloc/commit/3ab682d341f033017d042e8498578c2332eacd69
+	https://github.com/jemalloc/jemalloc/commit/543abf7e6c7de06fe9654e91190b5c44a11b065e
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131019/943bc8cd/attachment.html>
+
+From rnsanchez at wait4.org  Sat Oct 19 19:17:12 2013
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Sat, 19 Oct 2013 23:17:12 -0300
+Subject: 3.4.0 build log using gcc-4.8.1
+In-Reply-To: <ACA47865-FD7D-4344-8150-FDF330CA595D@canonware.com>
+References: <20130830092104.29c1e616@darkbook.lan.box>
+	<C784CA45-C7B0-4036-807D-3175C4CEE562@canonware.com>
+	<20130919230422.332b16e2@darkbook.lan.box>
+	<ACA47865-FD7D-4344-8150-FDF330CA595D@canonware.com>
+Message-ID: <20131019231712.5bdc90ff@darkbook.lan.box>
+
+On Sat, 19 Oct 2013 17:29:01 -0700
+Jason Evans <jasone at canonware.com> wrote:
+
+> Now fixed on the dev branch:
+> 
+> 	https://github.com/jemalloc/jemalloc/commit/3ab682d341f033017d042e8498578c2332eacd69
+> 	https://github.com/jemalloc/jemalloc/commit/543abf7e6c7de06fe9654e91190b5c44a11b065e
+
+Thank you for looking into it!
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+
+From jasone at canonware.com  Sat Oct 19 21:46:18 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 19 Oct 2013 21:46:18 -0700
+Subject: valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+In-Reply-To: <C18B0E43-B0DB-444A-A486-9CD366E16604@netskope.com>
+References: <C18B0E43-B0DB-444A-A486-9CD366E16604@netskope.com>
+Message-ID: <29F84D80-CEE3-4D2B-84AC-CBAF95EB30C8@canonware.com>
+
+On Jul 8, 2013, at 9:23 AM, Piyush Patel <piyush at netskope.com> wrote:
+> I've ran into similar issue that Daniel Mezzato ran into(email thread around Dec 11, 2012).  I get following warnings:
+> 
+> ==28997== Conditional jump or move depends on uninitialised value(s)
+> ==28997==    at 0x4E438C1: arena_run_split (arena.c:454)
+> ==28997==    by 0x4E441DF: arena_run_alloc_helper (arena.c:645)
+> ==28997==    by 0x4E469ED: arena_malloc_large (arena.c:665)
+> ==28997==    by 0x4E3BA48: calloc (arena.h:930)
+> ==28997==    by 0x400661: main (jemalloc_test.cpp:8)
+> ==28997== 
+> ==28997== Conditional jump or move depends on uninitialised value(s)
+> ==28997==    at 0x4E438E9: arena_run_split (arena.c:454)
+> ==28997==    by 0x4E441DF: arena_run_alloc_helper (arena.c:645)
+> ==28997==    by 0x4E469ED: arena_malloc_large (arena.c:665)
+> ==28997==    by 0x4E3BA48: calloc (arena.h:930)
+> ==28997==    by 0x400661: main (jemalloc_test.cpp:8)
+
+A fix is now available in the dev branch:
+
+	https://github.com/jemalloc/jemalloc/commit/87a02d2bb18dbcb2955541b849bc95862e864803
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131019/e131edbf/attachment.html>
+
+From ofers at iMesh.com  Mon Oct 21 01:32:11 2013
+From: ofers at iMesh.com (Ofer Samocha)
+Date: Mon, 21 Oct 2013 08:32:11 +0000
+Subject: Segfault with jemalloc 3.4
+In-Reply-To: <95d7b1ef89414192b4d3129fdec15dd4@EX13.iMesh.com>
+References: <9733c88d76a54aa0942c7cf2f4c539c5@EX13.iMesh.com>
+	<33CA6F03-1E8D-4B1C-853F-3D3805D549A6@canonware.com>
+	<95d7b1ef89414192b4d3129fdec15dd4@EX13.iMesh.com>
+Message-ID: <502cff3b03ba487fac3caf40266b24e3@EX13.iMesh.com>
+
+Hi Jason,
+
+Thanks for your prompt reply.
+
+Here is some additional info on this matter:
+
+
+*         We get crashes with different stack traces in jemalloc. Here is another, different example then the original one we sent you. Here it looks like we start with area_dalloc and not area_ralloc.
+
+
+#0  0x0000000000aa4abe in arena_chunk_purge (arena=0x7f6bb14000c0, all=<value optimized out>) at src/arena.c:783
+#1  arena_purge (arena=0x7f6bb14000c0, all=<value optimized out>) at src/arena.c:952
+#2  0x0000000000aa56e7 in arena_dalloc_large_locked (arena=0x7f6bb14000c0, chunk=<value optimized out>, ptr=0x7f6b52248000) at src/arena.c:1770
+#3  arena_dalloc_large (arena=0x7f6bb14000c0, chunk=<value optimized out>, ptr=0x7f6b52248000) at src/arena.c:1778
+#4  0x00000000008ee9e8 in checked_delete<IMsgDecoder> (this=<value optimized out>, __in_chrg=<value optimized out>) at /usr/local/include/boost/checked_delete.hpp:34
+#5  CMsgSockHandlerImpl::~CMsgSockHandlerImpl (this=<value optimized out>, __in_chrg=<value optimized out>) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:252
+#6  0x00000000008f2942 in checked_delete<CMsgSockHandlerImpl> (this=<value optimized out>) at /usr/local/include/boost/checked_delete.hpp:34
+#7  operator() (this=<value optimized out>) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartPointers.h:21
+#8  boost::detail::sp_counted_impl_pd<CMsgSockHandlerImpl*, sti::sti_deleter<CMsgSockHandlerImpl> >::dispose (this=<value optimized out>) at /usr/local/include/boost/smart_ptr/detail/sp_counted_impl.hpp:148
+#9  0x00000000008e543c in release (this=0x7f6b8bf52780, __in_chrg=<value optimized out>) at /usr/local/include/boost/smart_ptr/detail/sp_counted_base_gcc_x86.hpp:145
+#10 ~shared_count (this=0x7f6b8bf52780, __in_chrg=<value optimized out>) at /usr/local/include/boost/smart_ptr/detail/shared_count.hpp:305
+#11 ~shared_ptr (this=0x7f6b8bf52780, __in_chrg=<value optimized out>) at /usr/local/include/boost/smart_ptr/shared_ptr.hpp:165
+#12 reset (this=0x7f6b8bf52780, __in_chrg=<value optimized out>) at /usr/local/include/boost/smart_ptr/shared_ptr.hpp:382
+#13 reset (this=0x7f6b8bf52780, __in_chrg=<value optimized out>) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartPointers.h:101
+#14 CMsgSockHandler::~CMsgSockHandler (this=0x7f6b8bf52780, __in_chrg=<value optimized out>) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:40
+#15 0x00000000009cb591 in release (this=0x7f6bb102b300, sock=...) at /usr/local/include/boost/smart_ptr/detail/sp_counted_base_gcc_x86.hpp:145
+#16 ~shared_count (this=0x7f6bb102b300, sock=...) at /usr/local/include/boost/smart_ptr/detail/shared_count.hpp:305
+#17 ~shared_ptr (this=0x7f6bb102b300, sock=...) at /usr/local/include/boost/smart_ptr/shared_ptr.hpp:165
+#18 ~shared_ptr (this=0x7f6bb102b300, sock=...) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartPointers.h:57
+#19 sti::CDispatcher::doRemoveSocket (this=0x7f6bb102b300, sock=...) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:863
+#20 0x00000000009cb839 in sti::CDispatcher::RemoveDetachedSockets (this=0x7f6bb102b300) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:900
+#21 0x00000000009d7b09 in sti::CDispatcher::HandleEvents (this=0x7f6bb102b300, timeout=6) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:590
+#22 0x000000000080db3b in CServerHelper::HandleEvents (this=0x7f6bb1021020) at /home/imesh/SFIM2Rel/src/servercomm/ServerHelper.cpp:397
+#23 0x00000000005c8e6e in main (argc=<value optimized out>, argv=<value optimized out>) at /home/imesh/SFIM2Rel/src/SN/SN.cpp:34
+
+
+
+*         Our application in single threaded. To be more accurate, there are two threads - one the main thread and the other the log4cplus thread that samples the logger file every minute.
+
+
+
+*         The compile flags we use are:
+
+
+enable_autogen='0'
+enable_debug='0'
+enable_dss='0'
+enable_experimental='0'
+enable_fill='0'
+enable_lazy_lock='0'
+enable_mremap='0'
+enable_munmap='0'
+enable_prof='0'
+enable_stats='0'
+enable_tcache='1'
+enable_tls='1'
+enable_utrace='0'
+enable_valgrind='0'
+enable_xmalloc='0'
+enable_zone_allocator=''
+
+
+
+Thanks,
+Ofer
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131021/bd5a739b/attachment.html>
+
+From lcrestez at ixiacom.com  Mon Oct 21 14:10:56 2013
+From: lcrestez at ixiacom.com (Leonard Crestez)
+Date: Tue, 22 Oct 2013 00:10:56 +0300
+Subject: [PATCH 0/2] Add support for old systems based on LinuxThreads.
+Message-ID: <52659860.2020109@ixiacom.com>
+
+Hello,
+
+I attempted to port jemalloc to an old embedded system. It has linux 
+2.6.7/gcc 4.2.4/glibc 2.3.3 and uses linux threads instead of NPTL.
+
+On this system there are a couple of additional recursive allocations 
+inside pthread_atfork and pthread_setspecific.
+
+I fixed the first issues by delaying pthread_atfork (and hoping we don't 
+get forked during malloc_init_hard).
+
+The second issue is nastier, see comments on the second patch.
+
+Please let me know if you see anything obviously wrong. I did not test 
+much, without these patches I get an immediate deadlock on startup or on 
+the first allocation in a new thread. It should not affect systems with 
+real TLS (__thread) support.
+
+Please keep me in CC, I'm not subscribed to the list.
+
+Crestez Dan Leonard (2):
+   Delay pthread_atfork registering.
+   Add support for LinuxThreads.
+
+  include/jemalloc/internal/tsd.h | 63 
++++++++++++++++++++++++++++++++++++++++++
+  src/jemalloc.c                  | 23 ++++++++-------
+  2 files changed, 75 insertions(+), 11 deletions(-)
+
+-- 
+1.8.4.rc3
+
+
+
+
+
+From lcrestez at ixiacom.com  Mon Oct 21 14:11:09 2013
+From: lcrestez at ixiacom.com (Leonard Crestez)
+Date: Tue, 22 Oct 2013 00:11:09 +0300
+Subject: [PATCH 1/2] Delay pthread_atfork registering.
+Message-ID: <5265986D.7080301@ixiacom.com>
+
+This function causes recursive allocation on LinuxThreads.
+
+Signed-off-by: Crestez Dan Leonard <lcrestez at ixiacom.com>
+---
+   src/jemalloc.c | 23 ++++++++++++-----------
+   1 file changed, 12 insertions(+), 11 deletions(-)
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Delay-pthread_atfork-registering.patch
+Type: text/x-patch
+Size: 1129 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131022/629738c2/attachment.bin>
+
+From lcrestez at ixiacom.com  Mon Oct 21 14:12:16 2013
+From: lcrestez at ixiacom.com (Leonard Crestez)
+Date: Tue, 22 Oct 2013 00:12:16 +0300
+Subject: [PATCH 2/2] Add support for LinuxThreads.
+Message-ID: <526598B0.5050204@ixiacom.com>
+
+When using LinuxThreads pthread_setspecific triggers recursive 
+allocation on all threads. Work around this by creating a global linked 
+list of in-progress tsd initializations.
+
+This modifies the _tsd_get_wrapper macro-generated function. When it has
+to initialize an TSD object it will push the item to the linked list
+first. If this causes a recursive allocation then the _get_wrapper
+request is satisfied from the list. When pthread_setspecific returns the 
+item is removed from the list.
+
+This effectively adds a very poor substitute for real TLS used only
+during pthread_setspecific allocation recursion.
+
+Signed-off-by: Crestez Dan Leonard <lcrestez at ixiacom.com>
+---
+   include/jemalloc/internal/tsd.h | 63 
++++++++++++++++++++++++++++++++++++++++++
+   1 file changed, 63 insertions(+)
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0002-Add-support-for-LinuxThreads.patch
+Type: text/x-patch
+Size: 3023 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131022/c22a5fd3/attachment.bin>
+
+From jasone at canonware.com  Tue Oct 22 13:16:55 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 22 Oct 2013 13:16:55 -0700
+Subject: [PATCH 2/2] Add support for LinuxThreads.
+In-Reply-To: <526598B0.5050204@ixiacom.com>
+References: <526598B0.5050204@ixiacom.com>
+Message-ID: <1D301548-801E-4C25-95CC-411F2E2D6255@canonware.com>
+
+On Oct 21, 2013, at 2:12 PM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+> When using LinuxThreads pthread_setspecific triggers recursive allocation on all threads. Work around this by creating a global linked list of in-progress tsd initializations.
+> 
+> This modifies the _tsd_get_wrapper macro-generated function. When it has
+> to initialize an TSD object it will push the item to the linked list
+> first. If this causes a recursive allocation then the _get_wrapper
+> request is satisfied from the list. When pthread_setspecific returns the item is removed from the list.
+> 
+> This effectively adds a very poor substitute for real TLS used only
+> during pthread_setspecific allocation recursion.
+> 
+> Signed-off-by: Crestez Dan Leonard <lcrestez at ixiacom.com>
+> ---
+>  include/jemalloc/internal/tsd.h | 63 +++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 63 insertions(+)
+
+I don't see how this code can work.  It stack-allocates block (struct tsd_init_block block;), then permanently links it into a ring.  There are other less critical issues (e.g. no cleanup during thread exit, using pthread_mutex_t rather than malloc_mutex_t, and coding style conformance), but let's worry first about whether there's a feasible way to restructure the initialization code.
+
+Thanks,
+Jason
+
+From lcrestez at ixiacom.com  Tue Oct 22 13:31:12 2013
+From: lcrestez at ixiacom.com (Leonard Crestez)
+Date: Tue, 22 Oct 2013 23:31:12 +0300
+Subject: [PATCH 2/2] Add support for LinuxThreads.
+In-Reply-To: <1D301548-801E-4C25-95CC-411F2E2D6255@canonware.com>
+References: <526598B0.5050204@ixiacom.com>
+	<1D301548-801E-4C25-95CC-411F2E2D6255@canonware.com>
+Message-ID: <5266E090.3050203@ixiacom.com>
+
+On 10/22/2013 11:16 PM, Jason Evans wrote:
+> On Oct 21, 2013, at 2:12 PM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+>> When using LinuxThreads pthread_setspecific triggers recursive allocation on all threads. Work around this by creating a global linked list of in-progress tsd initializations.
+>>
+>> This modifies the _tsd_get_wrapper macro-generated function. When it has
+>> to initialize an TSD object it will push the item to the linked list
+>> first. If this causes a recursive allocation then the _get_wrapper
+>> request is satisfied from the list. When pthread_setspecific returns the item is removed from the list.
+>>
+>> This effectively adds a very poor substitute for real TLS used only
+>> during pthread_setspecific allocation recursion.
+>>
+>> Signed-off-by: Crestez Dan Leonard <lcrestez at ixiacom.com>
+>> ---
+>>   include/jemalloc/internal/tsd.h | 63 +++++++++++++++++++++++++++++++++++++++++
+>>   1 file changed, 63 insertions(+)
+> I don't see how this code can work.  It stack-allocates block (struct tsd_init_block block;), then permanently links it into a ring.  There are other less critical issues (e.g. no cleanup during thread exit, using pthread_mutex_t rather than malloc_mutex_t, and coding style conformance), but let's worry first about whether there's a feasible way to restructure the initialization code.
+Hello,
+
+The link is not permanent, it is temporary until pthread_setspecific 
+returns. The stack-allocated block is inserted in the list by 
+tsd_init_checkrec and removed by tsd_init_finish, immediately after 
+pthread_setspecific returns. It is allocated on the stack because the 
+lifetime is so short. Unless a lot of threads are created the list will 
+only contain at most one item during the first allocation on each thread.
+
+I can replace pthread_mutex_t. What should I fix about the coding style 
+to make it acceptable? Should I move the tsd_init_* inside the 
+malloc_tsd_funcs macro or to some separate file?
+
+Regards,
+Leonard
+
+
+
+From jasone at canonware.com  Tue Oct 22 13:33:37 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 22 Oct 2013 13:33:37 -0700
+Subject: [PATCH 1/2] Delay pthread_atfork registering.
+In-Reply-To: <5265986D.7080301@ixiacom.com>
+References: <5265986D.7080301@ixiacom.com>
+Message-ID: <057DDDE8-AC18-409B-9D46-918410447831@canonware.com>
+
+On Oct 21, 2013, at 2:11 PM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+> This function causes recursive allocation on LinuxThreads.
+> 
+> Signed-off-by: Crestez Dan Leonard <lcrestez at ixiacom.com>
+> ---
+>  src/jemalloc.c | 23 ++++++++++++-----------
+>  1 file changed, 12 insertions(+), 11 deletions(-)
+
+We should probably keep the pthread_atfork() call prior to releasing init_lock (just need to move it up a couple of lines).  Although jemalloc cannot completely prevent races between allocator initialization and fork(2), it can at least prevent races if all threads allocate prior to the fork().
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Oct 22 13:47:09 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 22 Oct 2013 13:47:09 -0700
+Subject: [PATCH 2/2] Add support for LinuxThreads.
+In-Reply-To: <5266E090.3050203@ixiacom.com>
+References: <526598B0.5050204@ixiacom.com>
+	<1D301548-801E-4C25-95CC-411F2E2D6255@canonware.com>
+	<5266E090.3050203@ixiacom.com>
+Message-ID: <B9DFB781-43D0-4ED7-A75F-51B6CD5CEEF3@canonware.com>
+
+On Oct 22, 2013, at 1:31 PM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+> On 10/22/2013 11:16 PM, Jason Evans wrote:
+>> On Oct 21, 2013, at 2:12 PM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+>>> When using LinuxThreads pthread_setspecific triggers recursive allocation on all threads. Work around this by creating a global linked list of in-progress tsd initializations.
+>>> 
+>>> This modifies the _tsd_get_wrapper macro-generated function. When it has
+>>> to initialize an TSD object it will push the item to the linked list
+>>> first. If this causes a recursive allocation then the _get_wrapper
+>>> request is satisfied from the list. When pthread_setspecific returns the item is removed from the list.
+>>> 
+>>> This effectively adds a very poor substitute for real TLS used only
+>>> during pthread_setspecific allocation recursion.
+>>> 
+>>> Signed-off-by: Crestez Dan Leonard <lcrestez at ixiacom.com>
+>>> ---
+>>>  include/jemalloc/internal/tsd.h | 63 +++++++++++++++++++++++++++++++++++++++++
+>>>  1 file changed, 63 insertions(+)
+>> I don't see how this code can work.  It stack-allocates block (struct tsd_init_block block;), then permanently links it into a ring.  There are other less critical issues (e.g. no cleanup during thread exit, using pthread_mutex_t rather than malloc_mutex_t, and coding style conformance), but let's worry first about whether there's a feasible way to restructure the initialization code.
+> Hello,
+> 
+> The link is not permanent, it is temporary until pthread_setspecific returns. The stack-allocated block is inserted in the list by tsd_init_checkrec and removed by tsd_init_finish, immediately after pthread_setspecific returns. It is allocated on the stack because the lifetime is so short. Unless a lot of threads are created the list will only contain at most one item during the first allocation on each thread.
+
+Ah, I misread the ring removal code in tsd_init_finish().
+
+> I can replace pthread_mutex_t. What should I fix about the coding style to make it acceptable? Should I move the tsd_init_* inside the malloc_tsd_funcs macro or to some separate file?
+
+Hmm, there numerous minor style issues, but I don't want to take up a bunch of your time trying to deal with that.  I'll take it from here.  For future patches, take a look at FreeBSD's style(9) manual page (http://www.freebsd.org/cgi/man.cgi?query=style) for guidance.
+
+Thanks,
+Jason
+
+From lcrestez at ixiacom.com  Wed Oct 23 09:20:42 2013
+From: lcrestez at ixiacom.com (Leonard Crestez)
+Date: Wed, 23 Oct 2013 16:20:42 +0000
+Subject: [PATCH 1/2] Delay pthread_atfork registering.
+In-Reply-To: <057DDDE8-AC18-409B-9D46-918410447831@canonware.com>
+References: <5265986D.7080301@ixiacom.com>,
+	<057DDDE8-AC18-409B-9D46-918410447831@canonware.com>
+Message-ID: <AF61061ABF82AD4D92495D95F35113CE47A3BF1A@BY2PRD0610MB377.namprd06.prod.outlook.com>
+
+Hello,
+
+You mean between the "malloc_initialized = true;" and "malloc_mutex_unlock(&init_lock);"?
+
+It's not clear what this protects against. malloc_init_hard should complete during the first malloc in the process. As long as nobody forks during the first malloc delaying pthread_atfork should be safe, right?
+
+Regards,
+Leonard
+________________________________________
+From: Jason Evans [jasone at canonware.com]
+Sent: Tuesday, October 22, 2013 23:33
+To: Leonard Crestez
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: [PATCH 1/2] Delay pthread_atfork registering.
+
+On Oct 21, 2013, at 2:11 PM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+> This function causes recursive allocation on LinuxThreads.
+>
+> Signed-off-by: Crestez Dan Leonard <lcrestez at ixiacom.com>
+> ---
+>  src/jemalloc.c | 23 ++++++++++++-----------
+>  1 file changed, 12 insertions(+), 11 deletions(-)
+
+We should probably keep the pthread_atfork() call prior to releasing init_lock (just need to move it up a couple of lines).  Although jemalloc cannot completely prevent races between allocator initialization and fork(2), it can at least prevent races if all threads allocate prior to the fork().
+
+Thanks,
+Jason
+
+
+
+From jasone at canonware.com  Wed Oct 23 13:00:36 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 Oct 2013 13:00:36 -0700
+Subject: [PATCH 1/2] Delay pthread_atfork registering.
+In-Reply-To: <AF61061ABF82AD4D92495D95F35113CE47A3BF1A@BY2PRD0610MB377.namprd06.prod.outlook.com>
+References: <5265986D.7080301@ixiacom.com>,
+	<057DDDE8-AC18-409B-9D46-918410447831@canonware.com>
+	<AF61061ABF82AD4D92495D95F35113CE47A3BF1A@BY2PRD0610MB377.namprd06.prod.outlook.com>
+Message-ID: <F57F9E3F-8988-400C-8B40-C1F115A2DE8A@canonware.com>
+
+On Oct 23, 2013, at 9:20 AM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+> You mean between the "malloc_initialized = true;" and "malloc_mutex_unlock(&init_lock);"?
+
+Yes.
+
+> It's not clear what this protects against. malloc_init_hard should complete during the first malloc in the process. As long as nobody forks during the first malloc delaying pthread_atfork should be safe, right?
+
+Consider this comment above jemalloc_constructor() in src/jemalloc.c:
+
+/*
+ * If an application creates a thread before doing any allocation in the main
+ * thread, then calls fork(2) in the main thread followed by memory allocation
+ * in the child process, a race can occur that results in deadlock within the
+ * child: the main thread may have forked while the created thread had
+ * partially initialized the allocator.  Ordinarily jemalloc prevents
+ * fork/malloc races via the following functions it registers during
+ * initialization using pthread_atfork(), but of course that does no good if
+ * the allocator isn't fully initialized at fork time.  The following library
+ * constructor is a partial solution to this problem.  It may still possible to
+ * trigger the deadlock described above, but doing so would involve forking via
+ * a library constructor that runs before jemalloc's runs.
+ */
+
+After your change, there are additional failure modes.  For example, the main thread can create a new thread, malloc, then fork, and if the other thread makes it through malloc initialization (but not to the pthread_atfork() call) prior to the main thread's malloc and fork, then deadlock can occur.  In practice jemalloc_constructor() should make it really hard to hit such races, but I remain paranoid about relaxing the initialization sequence.
+
+Thanks,
+Jason
+
+From taehwan.weon at gmail.com  Wed Oct 23 20:11:04 2013
+From: taehwan.weon at gmail.com (Taehwan Weon)
+Date: Thu, 24 Oct 2013 12:11:04 +0900
+Subject: [Q] Strange hang in jemalloc
+Message-ID: <CAH_X2fczSML5ZwZN8yb40k-5svDc_nhAtjnjasRh+XZy=-5=OA@mail.gmail.com>
+
+Hi,
+
+I am using jemalloc-3.4.0 on Centos 6.3
+When my SEGV signal handler tried to dump call stacks, hang occurred as
+following.
+I don't know why libc's fork called jemalloc_prefork even if I didn't set
+LD_PRELOAD.
+
+
+
+#0  0x000000351d60d654 in __lll_lock_wait () from /lib64/libpthread.so.0
+#1  0x000000351d608f4a in _L_lock_1034 () from /lib64/libpthread.so.0
+#2  0x000000351d608e0c in pthread_mutex_lock () from /lib64/libpthread.so.0
+#3  0x00002b59a8055d6d in malloc_mutex_lock (mutex=0x2b59a84a4320) at
+include/jemalloc/internal/mutex.h:77
+#4  malloc_mutex_prefork (mutex=0x2b59a84a4320) at src/mutex.c:109
+#5  0x00002b59a8044c32 in arena_prefork (arena=0x2b59a84a3d40) at
+src/arena.c:2344
+#6  0x00002b59a803f555 in jemalloc_prefork () at src/jemalloc.c:1760
+#7  0x000000351ca9a2a6 in fork () from /lib64/libc.so.6
+#8  0x000000351ca6200d in _IO_proc_open@@GLIBC_2.2.5 () from
+/lib64/libc.so.6
+#9  0x000000351ca62269 in popen@@GLIBC_2.2.5 () from /lib64/libc.so.6
+#10 0x00002b59a71bc1f9 in backtrace_lineinfo (number=1, address=<value
+optimized out>, symbol=0x2b61f4000918 "/usr/lib64/libnc.so.2
+[0x2b59a71bc3b1]") at cfs_apix.c:363
+#11 0x00002b59a71bc3ff in nc_dump_stack (sig=<value optimized out>) at
+cfs_apix.c:423
+#12 <signal handler called>
+#13 0x00002b59a8047332 in arena_dalloc_bin_locked (arena=0x2b59a84a3d40,
+chunk=0x2b61ef000000, ptr=<value optimized out>, mapelm=<value optimized
+out>) at src/arena.c:1717
+#14 0x00002b59a805fba4 in tcache_bin_flush_small (tbin=0x2b61ef107128,
+binind=8, rem=9, tcache=0x2b61ef107000) at src/tcache.c:127
+#15 0x00002b59a805fcd4 in tcache_event_hard (tcache=0x80) at src/tcache.c:39
+#16 0x00002b59a80428d9 in tcache_event (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/tcache.h:271
+#17 tcache_dalloc_small (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/tcache.h:408
+#18 arena_dalloc (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/arena.h:1003
+#19 idallocx (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/jemalloc_internal.h:913
+#20 iqallocx (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/jemalloc_internal.h:932
+#21 iqalloc (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/jemalloc_internal.h:939
+#22 jefree (ptr=0x2b61efd26dc0) at src/jemalloc.c:1272
+#23 0x00002b59a71c958b in __nc_free (p=0x2b61efd26dd0, file=<value
+optimized out>, lno=<value optimized out>) at util.c:1916
+#24 0x00002b59a71cb975 in tlcq_dequeue (q=0x2b59a9ee3210, msec=<value
+optimized out>) at tlc_queue.c:215
+#25 0x00002b59a71c154b in tp_worker (d=<value optimized out>) at
+threadpool.c:116
+#26 0x000000351d60683d in start_thread () from /lib64/libpthread.so.0
+#27 0x000000351cad503d in clone () from /lib64/libc.so.6
+
+
+Any hint will be highly appreciated.
+
+----------
+weon
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131024/62e159b3/attachment.html>
+
+From jasone at canonware.com  Wed Oct 23 23:24:44 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 Oct 2013 23:24:44 -0700
+Subject: [Q] Strange hang in jemalloc
+In-Reply-To: <CAH_X2fczSML5ZwZN8yb40k-5svDc_nhAtjnjasRh+XZy=-5=OA@mail.gmail.com>
+References: <CAH_X2fczSML5ZwZN8yb40k-5svDc_nhAtjnjasRh+XZy=-5=OA@mail.gmail.com>
+Message-ID: <035D7B8F-2265-49E5-8FA1-54BCEA864681@canonware.com>
+
+On Oct 23, 2013, at 8:11 PM, Taehwan Weon <taehwan.weon at gmail.com> wrote:
+> I am using jemalloc-3.4.0 on Centos 6.3
+> When my SEGV signal handler tried to dump call stacks, hang occurred as following.
+> I don't know why libc's fork called jemalloc_prefork even if I didn't set LD_PRELOAD.
+> 
+> #0  0x000000351d60d654 in __lll_lock_wait () from /lib64/libpthread.so.0
+> #1  0x000000351d608f4a in _L_lock_1034 () from /lib64/libpthread.so.0
+> #2  0x000000351d608e0c in pthread_mutex_lock () from /lib64/libpthread.so.0
+> #3  0x00002b59a8055d6d in malloc_mutex_lock (mutex=0x2b59a84a4320) at include/jemalloc/internal/mutex.h:77
+> #4  malloc_mutex_prefork (mutex=0x2b59a84a4320) at src/mutex.c:109
+> #5  0x00002b59a8044c32 in arena_prefork (arena=0x2b59a84a3d40) at src/arena.c:2344
+> #6  0x00002b59a803f555 in jemalloc_prefork () at src/jemalloc.c:1760
+> #7  0x000000351ca9a2a6 in fork () from /lib64/libc.so.6
+> #8  0x000000351ca6200d in _IO_proc_open@@GLIBC_2.2.5 () from /lib64/libc.so.6
+> #9  0x000000351ca62269 in popen@@GLIBC_2.2.5 () from /lib64/libc.so.6
+> #10 0x00002b59a71bc1f9 in backtrace_lineinfo (number=1, address=<value optimized out>, symbol=0x2b61f4000918 "/usr/lib64/libnc.so.2 [0x2b59a71bc3b1]") at cfs_apix.c:363
+> #11 0x00002b59a71bc3ff in nc_dump_stack (sig=<value optimized out>) at cfs_apix.c:423
+> #12 <signal handler called>
+> #13 0x00002b59a8047332 in arena_dalloc_bin_locked (arena=0x2b59a84a3d40, chunk=0x2b61ef000000, ptr=<value optimized out>, mapelm=<value optimized out>) at src/arena.c:1717
+> #14 0x00002b59a805fba4 in tcache_bin_flush_small (tbin=0x2b61ef107128, binind=8, rem=9, tcache=0x2b61ef107000) at src/tcache.c:127
+> #15 0x00002b59a805fcd4 in tcache_event_hard (tcache=0x80) at src/tcache.c:39
+> #16 0x00002b59a80428d9 in tcache_event (ptr=0x2b61efd26dc0) at include/jemalloc/internal/tcache.h:271
+> #17 tcache_dalloc_small (ptr=0x2b61efd26dc0) at include/jemalloc/internal/tcache.h:408
+> #18 arena_dalloc (ptr=0x2b61efd26dc0) at include/jemalloc/internal/arena.h:1003
+> #19 idallocx (ptr=0x2b61efd26dc0) at include/jemalloc/internal/jemalloc_internal.h:913
+> #20 iqallocx (ptr=0x2b61efd26dc0) at include/jemalloc/internal/jemalloc_internal.h:932
+> #21 iqalloc (ptr=0x2b61efd26dc0) at include/jemalloc/internal/jemalloc_internal.h:939
+> #22 jefree (ptr=0x2b61efd26dc0) at src/jemalloc.c:1272
+> #23 0x00002b59a71c958b in __nc_free (p=0x2b61efd26dd0, file=<value optimized out>, lno=<value optimized out>) at util.c:1916
+> #24 0x00002b59a71cb975 in tlcq_dequeue (q=0x2b59a9ee3210, msec=<value optimized out>) at tlc_queue.c:215
+> #25 0x00002b59a71c154b in tp_worker (d=<value optimized out>) at threadpool.c:116
+> #26 0x000000351d60683d in start_thread () from /lib64/libpthread.so.0
+> #27 0x000000351cad503d in clone () from /lib64/libc.so.6
+> 
+> Any hint will be highly appreciated.
+
+jemalloc calls pthread_atfork(3) in order to install functions that get called just before and after fork(2).  In this case your application is causing a signal while deep inside jemalloc (very likely due to memory corruption), with locks already acquired.  Deadlock obviously results.  To my surprise, fork() is actually listed in the signal(7) manual page as an async-signal-safe function, though popen(3) isn't, and it would probably allocate memory if it got past the hang during fork().  If you were to call fork() directly, then you'd be hitting a peculiar failure condition and we could make a case for jemalloc's behavior being questionable, but as your signal handler is written, it is simply unreliable due to calling something outside the list of async-signal-safe functions.
+
+Jason
+
+
+
+From mitchblank at gmail.com  Wed Oct 23 22:26:46 2013
+From: mitchblank at gmail.com (Mitchell Blank Jr)
+Date: Wed, 23 Oct 2013 22:26:46 -0700
+Subject: [Q] Strange hang in jemalloc
+In-Reply-To: <CAH_X2fczSML5ZwZN8yb40k-5svDc_nhAtjnjasRh+XZy=-5=OA@mail.gmail.com>
+References: <CAH_X2fczSML5ZwZN8yb40k-5svDc_nhAtjnjasRh+XZy=-5=OA@mail.gmail.com>
+Message-ID: <5268AF96.6040409@gmail.com>
+
+Taehwan Weon wrote:
+> #6  0x00002b59a803f555 in jemalloc_prefork () at src/jemalloc.c:1760
+> #7  0x000000351ca9a2a6 in fork () from /lib64/libc.so.6
+> #8  0x000000351ca6200d in _IO_proc_open@@GLIBC_2.2.5 () from
+> /lib64/libc.so.6
+> #9  0x000000351ca62269 in popen@@GLIBC_2.2.5 () from /lib64/libc.so.6
+> #10 0x00002b59a71bc1f9 in backtrace_lineinfo (number=1, address=<value
+> optimized out>, symbol=0x2b61f4000918 "/usr/lib64/libnc.so.2
+> [0x2b59a71bc3b1]") at cfs_apix.c:363
+> #11 0x00002b59a71bc3ff in nc_dump_stack (sig=<value optimized out>) at
+> cfs_apix.c:423
+> #12 <signal handler called>
+
+Just a side note: popen() is not an async-signal safe function, so you 
+should not expect that to work from inside a signal handler.  Neither is 
+malloc().  I'd be even more careful about something from a 
+SIGSEGV/SIGBUS handler since the heap might be damaged.
+
+I believe, however, that fork() is supposed to be signal-safe (at least 
+according to "man 7 signal") so there might be a jemalloc issue in this 
+deadlock as well.  However it looks like it can only happen if the 
+fork() is being called from a SEGV handler that happened inside jemalloc 
+itself, which is a bit of an edge case.
+
+-Mitch
+
+
+From jasone at canonware.com  Thu Oct 24 16:44:32 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 24 Oct 2013 16:44:32 -0700
+Subject: [PATCH 1/2] Delay pthread_atfork registering.
+In-Reply-To: <F57F9E3F-8988-400C-8B40-C1F115A2DE8A@canonware.com>
+References: <5265986D.7080301@ixiacom.com>,
+	<057DDDE8-AC18-409B-9D46-918410447831@canonware.com>
+	<AF61061ABF82AD4D92495D95F35113CE47A3BF1A@BY2PRD0610MB377.namprd06.prod.outlook.com>
+	<F57F9E3F-8988-400C-8B40-C1F115A2DE8A@canonware.com>
+Message-ID: <C40B741C-A391-4343-9901-DF2AB6E6D760@canonware.com>
+
+On Oct 23, 2013, at 1:00 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Oct 23, 2013, at 9:20 AM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+>> You mean between the "malloc_initialized = true;" and "malloc_mutex_unlock(&init_lock);"?
+> 
+> Yes.
+
+I got to looking closer at this change, and realized that the pthead_atfork() call really needs to be adjacent to the malloc_ncpus() call.
+
+Merged: https://github.com/jemalloc/jemalloc/commit/ac4403cacb225c0cf2c926179af39c21bd7bfc3a
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Thu Oct 24 18:33:47 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 24 Oct 2013 18:33:47 -0700
+Subject: [PATCH 2/2] Add support for LinuxThreads.
+In-Reply-To: <526598B0.5050204@ixiacom.com>
+References: <526598B0.5050204@ixiacom.com>
+Message-ID: <21F8A756-AF21-4464-B563-EC4A648B1ECD@canonware.com>
+
+On Oct 21, 2013, at 2:12 PM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+> When using LinuxThreads pthread_setspecific triggers recursive allocation on all threads. Work around this by creating a global linked list of in-progress tsd initializations.
+
+
+Merged: https://github.com/jemalloc/jemalloc/commit/cb17fc6a8f1ce29be18de7af6d03e66056751fb2
+
+I tested it on OS X after making various minor changes, but please make sure it works with LinuxThreads as well.
+
+Thanks,
+Jason
+
+From taehwan.weon at gmail.com  Thu Oct 24 20:45:26 2013
+From: taehwan.weon at gmail.com (Taehwan Weon)
+Date: Fri, 25 Oct 2013 12:45:26 +0900
+Subject: [Q] Strange hang in jemalloc
+In-Reply-To: <035D7B8F-2265-49E5-8FA1-54BCEA864681@canonware.com>
+References: <CAH_X2fczSML5ZwZN8yb40k-5svDc_nhAtjnjasRh+XZy=-5=OA@mail.gmail.com>
+	<035D7B8F-2265-49E5-8FA1-54BCEA864681@canonware.com>
+Message-ID: <CAH_X2fdfiaoa-GoK9G8aCwV1RE-GPC38+aQ29JiKeigu9cR1_Q@mail.gmail.com>
+
+Thanks for much.
+
+I need some other wheel.
+But, I hope jemalloc handle properly later. :-)
+Anyway, thanks again!
+
+-----
+weon
+
+
+
+2013/10/24 Jason Evans <jasone at canonware.com>
+
+> On Oct 23, 2013, at 8:11 PM, Taehwan Weon <taehwan.weon at gmail.com> wrote:
+> > I am using jemalloc-3.4.0 on Centos 6.3
+> > When my SEGV signal handler tried to dump call stacks, hang occurred as
+> following.
+> > I don't know why libc's fork called jemalloc_prefork even if I didn't
+> set LD_PRELOAD.
+> >
+> > #0  0x000000351d60d654 in __lll_lock_wait () from /lib64/libpthread.so.0
+> > #1  0x000000351d608f4a in _L_lock_1034 () from /lib64/libpthread.so.0
+> > #2  0x000000351d608e0c in pthread_mutex_lock () from
+> /lib64/libpthread.so.0
+> > #3  0x00002b59a8055d6d in malloc_mutex_lock (mutex=0x2b59a84a4320) at
+> include/jemalloc/internal/mutex.h:77
+> > #4  malloc_mutex_prefork (mutex=0x2b59a84a4320) at src/mutex.c:109
+> > #5  0x00002b59a8044c32 in arena_prefork (arena=0x2b59a84a3d40) at
+> src/arena.c:2344
+> > #6  0x00002b59a803f555 in jemalloc_prefork () at src/jemalloc.c:1760
+> > #7  0x000000351ca9a2a6 in fork () from /lib64/libc.so.6
+> > #8  0x000000351ca6200d in _IO_proc_open@@GLIBC_2.2.5 () from
+> /lib64/libc.so.6
+> > #9  0x000000351ca62269 in popen@@GLIBC_2.2.5 () from /lib64/libc.so.6
+> > #10 0x00002b59a71bc1f9 in backtrace_lineinfo (number=1, address=<value
+> optimized out>, symbol=0x2b61f4000918 "/usr/lib64/libnc.so.2
+> [0x2b59a71bc3b1]") at cfs_apix.c:363
+> > #11 0x00002b59a71bc3ff in nc_dump_stack (sig=<value optimized out>) at
+> cfs_apix.c:423
+> > #12 <signal handler called>
+> > #13 0x00002b59a8047332 in arena_dalloc_bin_locked (arena=0x2b59a84a3d40,
+> chunk=0x2b61ef000000, ptr=<value optimized out>, mapelm=<value optimized
+> out>) at src/arena.c:1717
+> > #14 0x00002b59a805fba4 in tcache_bin_flush_small (tbin=0x2b61ef107128,
+> binind=8, rem=9, tcache=0x2b61ef107000) at src/tcache.c:127
+> > #15 0x00002b59a805fcd4 in tcache_event_hard (tcache=0x80) at
+> src/tcache.c:39
+> > #16 0x00002b59a80428d9 in tcache_event (ptr=0x2b61efd26dc0) at
+> include/jemalloc/internal/tcache.h:271
+> > #17 tcache_dalloc_small (ptr=0x2b61efd26dc0) at
+> include/jemalloc/internal/tcache.h:408
+> > #18 arena_dalloc (ptr=0x2b61efd26dc0) at
+> include/jemalloc/internal/arena.h:1003
+> > #19 idallocx (ptr=0x2b61efd26dc0) at
+> include/jemalloc/internal/jemalloc_internal.h:913
+> > #20 iqallocx (ptr=0x2b61efd26dc0) at
+> include/jemalloc/internal/jemalloc_internal.h:932
+> > #21 iqalloc (ptr=0x2b61efd26dc0) at
+> include/jemalloc/internal/jemalloc_internal.h:939
+> > #22 jefree (ptr=0x2b61efd26dc0) at src/jemalloc.c:1272
+> > #23 0x00002b59a71c958b in __nc_free (p=0x2b61efd26dd0, file=<value
+> optimized out>, lno=<value optimized out>) at util.c:1916
+> > #24 0x00002b59a71cb975 in tlcq_dequeue (q=0x2b59a9ee3210, msec=<value
+> optimized out>) at tlc_queue.c:215
+> > #25 0x00002b59a71c154b in tp_worker (d=<value optimized out>) at
+> threadpool.c:116
+> > #26 0x000000351d60683d in start_thread () from /lib64/libpthread.so.0
+> > #27 0x000000351cad503d in clone () from /lib64/libc.so.6
+> >
+> > Any hint will be highly appreciated.
+>
+> jemalloc calls pthread_atfork(3) in order to install functions that get
+> called just before and after fork(2).  In this case your application is
+> causing a signal while deep inside jemalloc (very likely due to memory
+> corruption), with locks already acquired.  Deadlock obviously results.  To
+> my surprise, fork() is actually listed in the signal(7) manual page as an
+> async-signal-safe function, though popen(3) isn't, and it would probably
+> allocate memory if it got past the hang during fork().  If you were to call
+> fork() directly, then you'd be hitting a peculiar failure condition and we
+> could make a case for jemalloc's behavior being questionable, but as your
+> signal handler is written, it is simply unreliable due to calling something
+> outside the list of async-signal-safe functions.
+>
+> Jason
+>
+>
+
+
+-- 
+
+*? ??*? ???/COO
+
+** **
+
+(?)??? ****
+
+??? ??? ??? 747-2 ???? 7?****
+
+*T* 02-2182-3600     *F* 02-2058-2651 ****
+
+*M* 010-3335-8258  *E* weon at solbox.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131025/1fb4770b/attachment.html>
+
+From lcrestez at ixiacom.com  Fri Oct 25 13:04:19 2013
+From: lcrestez at ixiacom.com (Leonard Crestez)
+Date: Fri, 25 Oct 2013 20:04:19 +0000
+Subject: [PATCH 2/2] Add support for LinuxThreads.
+In-Reply-To: <21F8A756-AF21-4464-B563-EC4A648B1ECD@canonware.com>
+References: <526598B0.5050204@ixiacom.com>,
+	<21F8A756-AF21-4464-B563-EC4A648B1ECD@canonware.com>
+Message-ID: <AF61061ABF82AD4D92495D95F35113CE47A3D3D3@BY2PRD0610MB377.namprd06.prod.outlook.com>
+
+Hello,
+
+I tested this modified version on my target platform and it seems to work. Thanks a lot!
+
+Regards,
+Leonard
+________________________________________
+From: Jason Evans [jasone at canonware.com]
+Sent: Friday, October 25, 2013 04:33
+To: Leonard Crestez
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: [PATCH 2/2] Add support for LinuxThreads.
+
+On Oct 21, 2013, at 2:12 PM, Leonard Crestez <lcrestez at ixiacom.com> wrote:
+> When using LinuxThreads pthread_setspecific triggers recursive allocation on all threads. Work around this by creating a global linked list of in-progress tsd initializations.
+
+
+Merged: https://github.com/jemalloc/jemalloc/commit/cb17fc6a8f1ce29be18de7af6d03e66056751fb2
+
+I tested it on OS X after making various minor changes, but please make sure it works with LinuxThreads as well.
+
+Thanks,
+Jason
+
+
+

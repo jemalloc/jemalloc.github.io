@@ -1,0 +1,786 @@
+From jasone at canonware.com  Sun Jun  1 20:52:28 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 1 Jun 2014 20:52:28 -0700
+Subject: [PATCH] Fix thd_join on win64
+In-Reply-To: <1401321780-734-1-git-send-email-mh+jemalloc@glandium.org>
+References: <CAJ5r4P2Dv5tWKNv+pDdroX3pUL8nBmAek92MuPGg+AG=S43RLA@mail.gmail.com>
+	<1401321780-734-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <8A3C8FE6-D8DE-4A12-B71D-21A12F443E05@canonware.com>
+
+On May 28, 2014, at 5:03 PM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> ---
+> test/src/thd.c | 7 +++++--
+> 1 file changed, 5 insertions(+), 2 deletions(-)
+> 
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/999e1b5cc74e299a25cc718ddf9fae370cf45264
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Jun  1 21:37:37 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 1 Jun 2014 21:37:37 -0700
+Subject: [PATCH] Don't use msvc_compat's C99 headers with MSVC versions
+	that have (some) C99 support
+In-Reply-To: <1401348782-9264-1-git-send-email-mh+jemalloc@glandium.org>
+References: <20140529073120.GA9186@glandium.org>
+	<1401348782-9264-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <7939AEC5-EAA9-414E-B727-CD8181B97F97@canonware.com>
+
+On May 29, 2014, at 12:33 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> ---
+> configure.ac                       |   4 +
+> include/msvc_compat/C99/inttypes.h | 313 +++++++++++++++++++++++++++++++++++++
+> include/msvc_compat/C99/stdbool.h  |  16 ++
+> include/msvc_compat/C99/stdint.h   | 247 +++++++++++++++++++++++++++++
+> include/msvc_compat/inttypes.h     | 313 -------------------------------------
+> include/msvc_compat/stdbool.h      |  16 --
+> include/msvc_compat/stdint.h       | 247 -----------------------------
+> 7 files changed, 580 insertions(+), 576 deletions(-)
+> create mode 100644 include/msvc_compat/C99/inttypes.h
+> create mode 100644 include/msvc_compat/C99/stdbool.h
+> create mode 100644 include/msvc_compat/C99/stdint.h
+> delete mode 100644 include/msvc_compat/inttypes.h
+> delete mode 100644 include/msvc_compat/stdbool.h
+> delete mode 100644 include/msvc_compat/stdint.h
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/ff2e999667cbd06e5e80c243277c1f3c72d6d263
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Jun  1 21:39:19 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 1 Jun 2014 21:39:19 -0700
+Subject: [PATCH] Add -FS flag to support parallel builds with MSVC 2013
+In-Reply-To: <1401350301-12812-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1401350301-12812-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <CA568732-FBA9-4FF4-820E-F53497B28BA2@canonware.com>
+
+On May 29, 2014, at 12:58 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> ---
+> configure.ac | 1 +
+> 1 file changed, 1 insertion(+)
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/8c6157558aca6cb764b4f312c3d4f285664ef3e7
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Jun  1 21:40:55 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 1 Jun 2014 21:40:55 -0700
+Subject: [PATCH] Make in-tree MSVC builds work
+In-Reply-To: <1401350470-12887-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1401350470-12887-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <1BE21035-7D8F-49FD-913D-705C036683C4@canonware.com>
+
+On May 29, 2014, at 1:01 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> ---
+> configure.ac | 4 ++--
+> 1 file changed, 2 insertions(+), 2 deletions(-)
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/6f6704c35b28e919552a50e9e1d89a75a8b7c962
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Jun  1 21:43:37 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 1 Jun 2014 21:43:37 -0700
+Subject: jemalloc consistent use of bool?...
+In-Reply-To: <5387B78D.9080006@gmail.com>
+References: <5387B78D.9080006@gmail.com>
+Message-ID: <16749E19-2B42-44FF-A277-5E6849FBCB9B@canonware.com>
+
+On May 29, 2014, at 3:41 PM, Paul Pedriana <ppedriana at gmail.com> wrote:
+> While tracing through the jemalloc source code, I noticed that it seems to use bool inconsistently with respect to success/failure. Sometimes true means success and false means failure, while other times it's the reverse. For example, the prof_dump_flush function returns true upon success and false upon error. But the malloc_init_hard function returns false upon success and true upon failure. There appear to be cases of functions acting both ways. Or am I misreading the code?
+
+The intention is for true to indicate error, and false to indicate success (no error).  In the case of prof_dump_flush(), it looks to me like it follows this convention.  Are there additional functions you noticed that appear to deviate?
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Jun  1 22:07:22 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 1 Jun 2014 22:07:22 -0700
+Subject: d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0 broken MSVC builds
+In-Reply-To: <20140529074419.GB9186@glandium.org>
+References: <20140529074419.GB9186@glandium.org>
+Message-ID: <B2EF1DDA-007F-482E-885F-76C10AE89428@canonware.com>
+
+On May 29, 2014, at 12:44 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0 makes rtree.exe assert:
+> <jemalloc>: z:\jemalloc-dev\include\jemalloc/internal/arena.h:553:
+> Failed assertion: "ret == small_size2bin_compute(size)"
+
+Fixed:
+
+	https://github.com/jemalloc/jemalloc/commit/0b5c92213fbafc52c5b5a5dc84e91eacc812ae0b
+
+I apparently neglected to test the fallback implementations of lg_floor(), and perhaps unsurprisingly, both of them were broken.
+
+Thanks,
+Jason
+
+From mh+jemalloc at glandium.org  Tue Jun  3 00:26:56 2014
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 3 Jun 2014 16:26:56 +0900
+Subject: d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0 broken MSVC builds
+In-Reply-To: <B2EF1DDA-007F-482E-885F-76C10AE89428@canonware.com>
+References: <20140529074419.GB9186@glandium.org>
+	<B2EF1DDA-007F-482E-885F-76C10AE89428@canonware.com>
+Message-ID: <20140603072656.GA32073@glandium.org>
+
+On Sun, Jun 01, 2014 at 10:07:22PM -0700, Jason Evans wrote:
+> On May 29, 2014, at 12:44 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> > d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0 makes rtree.exe assert:
+> > <jemalloc>: z:\jemalloc-dev\include\jemalloc/internal/arena.h:553:
+> > Failed assertion: "ret == small_size2bin_compute(size)"
+> 
+> Fixed:
+> 
+> 	https://github.com/jemalloc/jemalloc/commit/0b5c92213fbafc52c5b5a5dc84e91eacc812ae0b
+> 
+> I apparently neglected to test the fallback implementations of lg_floor(), and perhaps unsurprisingly, both of them were broken.
+
+Confirmed to fix it.
+
+Which leaves us with the following problems on Windows:
+- test/unit/mq.c doesn't build because of nanosleep()
+- test/unit/SFMT.c crashes in gen_rand_array
+- test/unit/tsd.c fails because of lack of initialization (See
+  http://www.canonware.com/pipermail/jemalloc-discuss/2014-May/000838.html)
+- lg_floor fails to build on win64 because while LG_SIZEOF_PTR is 3,
+  LG_SIZEOF_PTR and LG_SIZEOF_LONG are different.
+
+Cheers,
+
+Mike
+
+From Sheppard.Parker at maxpoint.com  Tue Jun  3 11:41:55 2014
+From: Sheppard.Parker at maxpoint.com (Sheppard Parker)
+Date: Tue, 3 Jun 2014 18:41:55 +0000
+Subject: RES memory footprint on Ubuntu 14.04
+Message-ID: <154D056EBA41274386AAF68C1AB00D65E36EFA0F@ex-01.corp.maxpointinteractive.com>
+
+We have been running a particular jemalloc-aware application on Ubuntu Server 12.04 LTS for about a year now with no trouble (thx btw... we were having major fragmentation issues prior to trying jemalloc). Nominal RES memory footprint is between 23GB and 27GB depending on how much data is loaded at any given time of the day or day of the week.
+
+We recently purchased some new hardware that came with Ubuntu Server 14.04 LTS and now our same app shows almost 2X the RES memory footprint when loaded with the same data. I don't think it is growing, so it may not be a big deal, but I am still concerned. Why the major difference? Exact same executable installed, no code changes, even the same hardware (Dell R620s). Only difference is the move from Ubuntu Server 12.04 (3.8.0-36-generic #52~precise1-Ubuntu SMP) to Ubuntu Server 14.04 (one machine is 3.13.0-24-generic #47-Ubuntu SMP, another is 3.13.0-27-generic #50-Ubuntu SMP).
+
+Any ideas? Is there something enabled/disabled on Ubuntu 14.04 that I need to modify to get things working like they do on the older 12.04? FWWIW,  we have been using jemalloc v3.5.0.
+
+I tried rebuilding our app (again, no code changes) with jemalloc 3.5.1 and 3.6.0. No change. Seems like jemalloc is unhappy about something on Ubuntu 14.04 (or visa versa), but what? Has anybody else encountered anything similar?
+
+Thanks in advance,
+Sheppard
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140603/5071afdf/attachment.html>
+
+From jasone at canonware.com  Tue Jun  3 12:36:07 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 3 Jun 2014 12:36:07 -0700
+Subject: RES memory footprint on Ubuntu 14.04
+In-Reply-To: <154D056EBA41274386AAF68C1AB00D65E36EFA0F@ex-01.corp.maxpointinteractive.com>
+References: <154D056EBA41274386AAF68C1AB00D65E36EFA0F@ex-01.corp.maxpointinteractive.com>
+Message-ID: <520E635F-694A-4C50-851E-92ED18844AD3@canonware.com>
+
+On Jun 3, 2014, at 11:41 AM, Sheppard Parker <Sheppard.Parker at maxpoint.com> wrote:
+> We have been running a particular jemalloc-aware application on Ubuntu Server 12.04 LTS for about a year now with no trouble (thx btw? we were having major fragmentation issues prior to trying jemalloc). Nominal RES memory footprint is between 23GB and 27GB depending on how much data is loaded at any given time of the day or day of the week.
+>  
+> We recently purchased some new hardware that came with Ubuntu Server 14.04 LTS and now our same app shows almost 2X the RES memory footprint when loaded with the same data. I don?t think it is growing, so it may not be a big deal, but I am still concerned. Why the major difference? Exact same executable installed, no code changes, even the same hardware (Dell R620s). Only difference is the move from Ubuntu Server 12.04 (3.8.0-36-generic #52~precise1-Ubuntu SMP) to Ubuntu Server 14.04 (one machine is 3.13.0-24-generic #47-Ubuntu SMP, another is 3.13.0-27-generic #50-Ubuntu SMP).
+>  
+> Any ideas? Is there something enabled/disabled on Ubuntu 14.04 that I need to modify to get things working like they do on the older 12.04? FWWIW,  we have been using jemalloc v3.5.0.
+>  
+> I tried rebuilding our app (again, no code changes) with jemalloc 3.5.1 and 3.6.0. No change. Seems like jemalloc is unhappy about something on Ubuntu 14.04 (or visa versa), but what? Has anybody else encountered anything similar?
+
+My only guess is that the newer system is using transparent huge pages, whereas the older one is not.  I recently came across this related blog post:
+
+	http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb
+
+In short, madvise() isn't actually purging unused dirty (4 KiB) pages if the underlying memory has been promoted to huge (2 MiB) pages.  In the short term, the solution seems to be disabling transparent huge pages.  In the long run I hope the Linux kernel improves its algorithms for such usage patterns, and I'm also contemplating layout strategies that coexist better with huge pages.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140603/53dac6c6/attachment.html>
+
+From Sheppard.Parker at maxpoint.com  Tue Jun  3 13:02:01 2014
+From: Sheppard.Parker at maxpoint.com (Sheppard Parker)
+Date: Tue, 3 Jun 2014 20:02:01 +0000
+Subject: RES memory footprint on Ubuntu 14.04
+In-Reply-To: <520E635F-694A-4C50-851E-92ED18844AD3@canonware.com>
+References: <154D056EBA41274386AAF68C1AB00D65E36EFA0F@ex-01.corp.maxpointinteractive.com>
+	<520E635F-694A-4C50-851E-92ED18844AD3@canonware.com>
+Message-ID: <154D056EBA41274386AAF68C1AB00D65E36EFCEF@ex-01.corp.maxpointinteractive.com>
+
+Turns out transparent_hugepages is set to "always" on 14.04, was set to "madvise" on 12.04. Should it be set to "never" everywhere rather than "madvise"?
+
+Testing now... will update here when results are clear.
+
+Thanks,
+Sheppard
+
+
+From: Jason Evans [mailto:jasone at canonware.com]
+Sent: Tuesday, June 03, 2014 2:36 PM
+To: Sheppard Parker
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: RES memory footprint on Ubuntu 14.04
+
+On Jun 3, 2014, at 11:41 AM, Sheppard Parker <Sheppard.Parker at maxpoint.com<mailto:Sheppard.Parker at maxpoint.com>> wrote:
+We have been running a particular jemalloc-aware application on Ubuntu Server 12.04 LTS for about a year now with no trouble (thx btw... we were having major fragmentation issues prior to trying jemalloc). Nominal RES memory footprint is between 23GB and 27GB depending on how much data is loaded at any given time of the day or day of the week.
+
+We recently purchased some new hardware that came with Ubuntu Server 14.04 LTS and now our same app shows almost 2X the RES memory footprint when loaded with the same data. I don't think it is growing, so it may not be a big deal, but I am still concerned. Why the major difference? Exact same executable installed, no code changes, even the same hardware (Dell R620s). Only difference is the move from Ubuntu Server 12.04 (3.8.0-36-generic #52~precise1-Ubuntu SMP) to Ubuntu Server 14.04 (one machine is 3.13.0-24-generic #47-Ubuntu SMP, another is 3.13.0-27-generic #50-Ubuntu SMP).
+
+Any ideas? Is there something enabled/disabled on Ubuntu 14.04 that I need to modify to get things working like they do on the older 12.04? FWWIW,  we have been using jemalloc v3.5.0.
+
+I tried rebuilding our app (again, no code changes) with jemalloc 3.5.1 and 3.6.0. No change. Seems like jemalloc is unhappy about something on Ubuntu 14.04 (or visa versa), but what? Has anybody else encountered anything similar?
+
+My only guess is that the newer system is using transparent huge pages, whereas the older one is not.  I recently came across this related blog post:
+
+            http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb
+
+In short, madvise() isn't actually purging unused dirty (4 KiB) pages if the underlying memory has been promoted to huge (2 MiB) pages.  In the short term, the solution seems to be disabling transparent huge pages.  In the long run I hope the Linux kernel improves its algorithms for such usage patterns, and I'm also contemplating layout strategies that coexist better with huge pages.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140603/c7c455d8/attachment.html>
+
+From mh+jemalloc at glandium.org  Tue Jun  3 20:09:08 2014
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed,  4 Jun 2014 12:09:08 +0900
+Subject: [PATCH] Check for __builtin_ffsl before ffsl.
+Message-ID: <1401851348-13513-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+When building with -O0, GCC doesn't use builtins for ffs and ffsl calls,
+and uses library function calls instead. But the Android NDK doesn't have
+those functions exported from any library, leading to build failure.
+However, using __builtin_ffs* uses the builtin inlines.
+---
+ configure.ac | 27 ++++++++++++++-------------
+ 1 file changed, 14 insertions(+), 13 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 29edcb6..f456bd2 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1109,43 +1109,44 @@ elif test "x${force_tls}" = "x1" ; then
+ fi
+ 
+ dnl ============================================================================
+-dnl Check for ffsl(3), then __builtin_ffsl(), and fail if neither are found.
++dnl Check for  __builtin_ffsl(), then ffsl(3), and fail if neither are found.
+ dnl One of those two functions should (theoretically) exist on all platforms
+ dnl that jemalloc currently has a chance of functioning on without modification.
+ dnl We additionally assume ffs() or __builtin_ffs() are defined if
+ dnl ffsl() or __builtin_ffsl() are defined, respectively.
+-JE_COMPILABLE([a program using ffsl], [
++JE_COMPILABLE([a program using __builtin_ffsl], [
+ #include <stdio.h>
+ #include <strings.h>
+ #include <string.h>
+ ], [
+ 	{
+-		int rv = ffsl(0x08);
++		int rv = __builtin_ffsl(0x08);
+ 		printf("%d\n", rv);
+ 	}
+-], [je_cv_function_ffsl])
+-if test "x${je_cv_function_ffsl}" == "xyes" ; then
+-  AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [ffsl])
+-  AC_DEFINE([JEMALLOC_INTERNAL_FFS], [ffs])
++], [je_cv_gcc_builtin_ffsl])
++if test "x${je_cv_gcc_builtin_ffsl}" == "xyes" ; then
++  AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [__builtin_ffsl])
++  AC_DEFINE([JEMALLOC_INTERNAL_FFS], [__builtin_ffs])
+ else
+-  JE_COMPILABLE([a program using __builtin_ffsl], [
++  JE_COMPILABLE([a program using ffsl], [
+   #include <stdio.h>
+   #include <strings.h>
+   #include <string.h>
+   ], [
+ 	{
+-		int rv = __builtin_ffsl(0x08);
++		int rv = ffsl(0x08);
+ 		printf("%d\n", rv);
+ 	}
+-  ], [je_cv_gcc_builtin_ffsl])
+-  if test "x${je_cv_gcc_builtin_ffsl}" == "xyes" ; then
+-    AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [__builtin_ffsl])
+-    AC_DEFINE([JEMALLOC_INTERNAL_FFS], [__builtin_ffs])
++  ], [je_cv_function_ffsl])
++  if test "x${je_cv_function_ffsl}" == "xyes" ; then
++    AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [ffsl])
++    AC_DEFINE([JEMALLOC_INTERNAL_FFS], [ffs])
+   else
+     AC_MSG_ERROR([Cannot build without ffsl(3) or __builtin_ffsl()])
+   fi
+ fi
+ 
++
+ dnl ============================================================================
+ dnl Check for atomic(9) operations as provided on FreeBSD.
+ 
+-- 
+2.0.0.rc2
+
+
+From mh+jemalloc at glandium.org  Tue Jun  3 20:12:55 2014
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed,  4 Jun 2014 12:12:55 +0900
+Subject: [PATCH] Use JEMALLOC_INTERNAL_FFSL in STATIC_PAGE_SHIFT test
+Message-ID: <1401851575-16085-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ configure.ac | 79 ++++++++++++++++++++++++++++++------------------------------
+ 1 file changed, 39 insertions(+), 40 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index f456bd2..e977534 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -935,6 +935,44 @@ if test "x$enable_xmalloc" = "x1" ; then
+ fi
+ AC_SUBST([enable_xmalloc])
+ 
++dnl ============================================================================
++dnl Check for  __builtin_ffsl(), then ffsl(3), and fail if neither are found.
++dnl One of those two functions should (theoretically) exist on all platforms
++dnl that jemalloc currently has a chance of functioning on without modification.
++dnl We additionally assume ffs() or __builtin_ffs() are defined if
++dnl ffsl() or __builtin_ffsl() are defined, respectively.
++JE_COMPILABLE([a program using __builtin_ffsl], [
++#include <stdio.h>
++#include <strings.h>
++#include <string.h>
++], [
++	{
++		int rv = __builtin_ffsl(0x08);
++		printf("%d\n", rv);
++	}
++], [je_cv_gcc_builtin_ffsl])
++if test "x${je_cv_gcc_builtin_ffsl}" == "xyes" ; then
++  AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [__builtin_ffsl])
++  AC_DEFINE([JEMALLOC_INTERNAL_FFS], [__builtin_ffs])
++else
++  JE_COMPILABLE([a program using ffsl], [
++  #include <stdio.h>
++  #include <strings.h>
++  #include <string.h>
++  ], [
++	{
++		int rv = ffsl(0x08);
++		printf("%d\n", rv);
++	}
++  ], [je_cv_function_ffsl])
++  if test "x${je_cv_function_ffsl}" == "xyes" ; then
++    AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [ffsl])
++    AC_DEFINE([JEMALLOC_INTERNAL_FFS], [ffs])
++  else
++    AC_MSG_ERROR([Cannot build without ffsl(3) or __builtin_ffsl()])
++  fi
++fi
++
+ AC_CACHE_CHECK([STATIC_PAGE_SHIFT],
+                [je_cv_static_page_shift],
+                AC_RUN_IFELSE([AC_LANG_PROGRAM(
+@@ -961,7 +999,7 @@ AC_CACHE_CHECK([STATIC_PAGE_SHIFT],
+     if (result == -1) {
+ 	return 1;
+     }
+-    result = ffsl(result) - 1;
++    result = JEMALLOC_INTERNAL_FFSL(result) - 1;
+ 
+     f = fopen("conftest.out", "w");
+     if (f == NULL) {
+@@ -1109,45 +1147,6 @@ elif test "x${force_tls}" = "x1" ; then
+ fi
+ 
+ dnl ============================================================================
+-dnl Check for  __builtin_ffsl(), then ffsl(3), and fail if neither are found.
+-dnl One of those two functions should (theoretically) exist on all platforms
+-dnl that jemalloc currently has a chance of functioning on without modification.
+-dnl We additionally assume ffs() or __builtin_ffs() are defined if
+-dnl ffsl() or __builtin_ffsl() are defined, respectively.
+-JE_COMPILABLE([a program using __builtin_ffsl], [
+-#include <stdio.h>
+-#include <strings.h>
+-#include <string.h>
+-], [
+-	{
+-		int rv = __builtin_ffsl(0x08);
+-		printf("%d\n", rv);
+-	}
+-], [je_cv_gcc_builtin_ffsl])
+-if test "x${je_cv_gcc_builtin_ffsl}" == "xyes" ; then
+-  AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [__builtin_ffsl])
+-  AC_DEFINE([JEMALLOC_INTERNAL_FFS], [__builtin_ffs])
+-else
+-  JE_COMPILABLE([a program using ffsl], [
+-  #include <stdio.h>
+-  #include <strings.h>
+-  #include <string.h>
+-  ], [
+-	{
+-		int rv = ffsl(0x08);
+-		printf("%d\n", rv);
+-	}
+-  ], [je_cv_function_ffsl])
+-  if test "x${je_cv_function_ffsl}" == "xyes" ; then
+-    AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [ffsl])
+-    AC_DEFINE([JEMALLOC_INTERNAL_FFS], [ffs])
+-  else
+-    AC_MSG_ERROR([Cannot build without ffsl(3) or __builtin_ffsl()])
+-  fi
+-fi
+-
+-
+-dnl ============================================================================
+ dnl Check for atomic(9) operations as provided on FreeBSD.
+ 
+ JE_COMPILABLE([atomic(9)], [
+-- 
+2.0.0.rc2
+
+
+From jasone at canonware.com  Tue Jun  3 21:12:26 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 3 Jun 2014 21:12:26 -0700
+Subject: [PATCH] Use JEMALLOC_INTERNAL_FFSL in STATIC_PAGE_SHIFT test
+In-Reply-To: <1401851575-16085-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1401851575-16085-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <B34D6A34-4E8C-4852-A699-1AE6D2134634@canonware.com>
+
+On Jun 3, 2014, at 8:12 PM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> ---
+> configure.ac | 79 ++++++++++++++++++++++++++++++------------------------------
+> 1 file changed, 39 insertions(+), 40 deletions(-)
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/8f50ec8eda262e87ad547ec50b6ca928ea3e31c4
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Jun  3 21:57:30 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 3 Jun 2014 21:57:30 -0700
+Subject: [PATCH] Check for __builtin_ffsl before ffsl.
+In-Reply-To: <1401851348-13513-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1401851348-13513-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <C429CDF7-A35F-4DB9-A026-D29A229F0434@canonware.com>
+
+On Jun 3, 2014, at 8:09 PM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> When building with -O0, GCC doesn't use builtins for ffs and ffsl calls,
+> and uses library function calls instead. But the Android NDK doesn't have
+> those functions exported from any library, leading to build failure.
+> However, using __builtin_ffs* uses the builtin inlines.
+> ---
+> configure.ac | 27 ++++++++++++++-------------
+> 1 file changed, 14 insertions(+), 13 deletions(-)
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/1a3eafd1b045163f27e4a5acf01280edfe28c309
+
+Thanks,
+Jason
+
+From Sheppard.Parker at maxpoint.com  Wed Jun  4 08:17:05 2014
+From: Sheppard.Parker at maxpoint.com (Sheppard Parker)
+Date: Wed, 4 Jun 2014 15:17:05 +0000
+Subject: RES memory footprint on Ubuntu 14.04
+References: <154D056EBA41274386AAF68C1AB00D65E36EFA0F@ex-01.corp.maxpointinteractive.com>
+	<520E635F-694A-4C50-851E-92ED18844AD3@canonware.com> 
+Message-ID: <154D056EBA41274386AAF68C1AB00D65E36F2FF1@ex-01.corp.maxpointinteractive.com>
+
+Setting transparent_hugepages to madvise fixed my issue. Thanks for all the help!
+
+Sheppard
+
+
+From: Sheppard Parker
+Sent: Tuesday, June 03, 2014 3:02 PM
+To: 'Jason Evans'
+Cc: jemalloc-discuss at canonware.com
+Subject: RE: RES memory footprint on Ubuntu 14.04
+
+Turns out transparent_hugepages is set to "always" on 14.04, was set to "madvise" on 12.04. Should it be set to "never" everywhere rather than "madvise"?
+
+Testing now... will update here when results are clear.
+
+Thanks,
+Sheppard
+
+
+From: Jason Evans [mailto:jasone at canonware.com]
+Sent: Tuesday, June 03, 2014 2:36 PM
+To: Sheppard Parker
+Cc: jemalloc-discuss at canonware.com<mailto:jemalloc-discuss at canonware.com>
+Subject: Re: RES memory footprint on Ubuntu 14.04
+
+On Jun 3, 2014, at 11:41 AM, Sheppard Parker <Sheppard.Parker at maxpoint.com<mailto:Sheppard.Parker at maxpoint.com>> wrote:
+We have been running a particular jemalloc-aware application on Ubuntu Server 12.04 LTS for about a year now with no trouble (thx btw... we were having major fragmentation issues prior to trying jemalloc). Nominal RES memory footprint is between 23GB and 27GB depending on how much data is loaded at any given time of the day or day of the week.
+
+We recently purchased some new hardware that came with Ubuntu Server 14.04 LTS and now our same app shows almost 2X the RES memory footprint when loaded with the same data. I don't think it is growing, so it may not be a big deal, but I am still concerned. Why the major difference? Exact same executable installed, no code changes, even the same hardware (Dell R620s). Only difference is the move from Ubuntu Server 12.04 (3.8.0-36-generic #52~precise1-Ubuntu SMP) to Ubuntu Server 14.04 (one machine is 3.13.0-24-generic #47-Ubuntu SMP, another is 3.13.0-27-generic #50-Ubuntu SMP).
+
+Any ideas? Is there something enabled/disabled on Ubuntu 14.04 that I need to modify to get things working like they do on the older 12.04? FWWIW,  we have been using jemalloc v3.5.0.
+
+I tried rebuilding our app (again, no code changes) with jemalloc 3.5.1 and 3.6.0. No change. Seems like jemalloc is unhappy about something on Ubuntu 14.04 (or visa versa), but what? Has anybody else encountered anything similar?
+
+My only guess is that the newer system is using transparent huge pages, whereas the older one is not.  I recently came across this related blog post:
+
+            http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb
+
+In short, madvise() isn't actually purging unused dirty (4 KiB) pages if the underlying memory has been promoted to huge (2 MiB) pages.  In the short term, the solution seems to be disabling transparent huge pages.  In the long run I hope the Linux kernel improves its algorithms for such usage patterns, and I'm also contemplating layout strategies that coexist better with huge pages.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140604/4582d6f2/attachment.html>
+
+From jasone at canonware.com  Wed Jun  4 13:58:38 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 4 Jun 2014 13:58:38 -0700
+Subject: d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0 broken MSVC builds
+In-Reply-To: <20140603072656.GA32073@glandium.org>
+References: <20140529074419.GB9186@glandium.org>
+	<B2EF1DDA-007F-482E-885F-76C10AE89428@canonware.com>
+	<20140603072656.GA32073@glandium.org>
+Message-ID: <07D03711-3E28-4652-93F5-20161593FEF4@canonware.com>
+
+On Jun 3, 2014, at 12:26 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> On Sun, Jun 01, 2014 at 10:07:22PM -0700, Jason Evans wrote:
+>> On May 29, 2014, at 12:44 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+>>> d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0 makes rtree.exe assert:
+>>> <jemalloc>: z:\jemalloc-dev\include\jemalloc/internal/arena.h:553:
+>>> Failed assertion: "ret == small_size2bin_compute(size)"
+>> 
+>> Fixed:
+>> 
+>> 	https://github.com/jemalloc/jemalloc/commit/0b5c92213fbafc52c5b5a5dc84e91eacc812ae0b
+>> 
+>> I apparently neglected to test the fallback implementations of lg_floor(), and perhaps unsurprisingly, both of them were broken.
+> 
+> Confirmed to fix it.
+> 
+> Which leaves us with the following problems on Windows:
+> - test/unit/mq.c doesn't build because of nanosleep()
+> - test/unit/SFMT.c crashes in gen_rand_array
+> - test/unit/tsd.c fails because of lack of initialization (See
+>  http://www.canonware.com/pipermail/jemalloc-discuss/2014-May/000838.html)
+> - lg_floor fails to build on win64 because while LG_SIZEOF_PTR is 3,
+>  LG_SIZEOF_PTR and LG_SIZEOF_LONG are different.
+
+Thanks for the update.  I?ll start working through these issues once I have Windows fully set up (Windows installed now, but still need to set up the development environment).
+
+Jason
+
+From mh+jemalloc at glandium.org  Tue Jun 10 02:18:22 2014
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 10 Jun 2014 18:18:22 +0900
+Subject: [PATCH] Ensure the default purgeable zone is after the default zone
+	on OS X
+Message-ID: <1402391902-20160-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ src/zone.c | 34 +++++++++++++++++++++++++---------
+ 1 file changed, 25 insertions(+), 9 deletions(-)
+
+diff --git a/src/zone.c b/src/zone.c
+index e0302ef..a722287 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -176,6 +176,7 @@ register_zone(void)
+ 	 * register jemalloc's.
+ 	 */
+ 	malloc_zone_t *default_zone = malloc_default_zone();
++	malloc_zone_t *purgeable_zone = NULL;
+ 	if (!default_zone->zone_name ||
+ 	    strcmp(default_zone->zone_name, "DefaultMallocZone") != 0) {
+ 		return;
+@@ -237,22 +238,37 @@ register_zone(void)
+ 	 * run time.
+ 	 */
+ 	if (malloc_default_purgeable_zone != NULL)
+-		malloc_default_purgeable_zone();
++		purgeable_zone = malloc_default_purgeable_zone();
+ 
+ 	/* Register the custom zone.  At this point it won't be the default. */
+ 	malloc_zone_register(&zone);
+ 
+-	/*
+-	 * Unregister and reregister the default zone.  On OSX >= 10.6,
+-	 * unregistering takes the last registered zone and places it at the
+-	 * location of the specified zone.  Unregistering the default zone thus
+-	 * makes the last registered one the default.  On OSX < 10.6,
+-	 * unregistering shifts all registered zones.  The first registered zone
+-	 * then becomes the default.
+-	 */
+ 	do {
+ 		default_zone = malloc_default_zone();
++		/*
++		 * Unregister and reregister the default zone.  On OSX >= 10.6,
++		 * unregistering takes the last registered zone and places it
++		 * at the location of the specified zone.  Unregistering the
++		 * default zone thus makes the last registered one the default.
++		 * On OSX < 10.6, unregistering shifts all registered zones.
++		 * The first registered zone then becomes the default.
++		 */
+ 		malloc_zone_unregister(default_zone);
+ 		malloc_zone_register(default_zone);
++		/*
++		 * On OSX 10.6, having the default purgeable zone appear before
++		 * the default zone makes some things crash because it thinks it
++		 * owns the default zone allocated pointers. We thus unregister/
++		 * re-register it in order to ensure it's always after the
++		 * default zone. On OSX < 10.6, there is no purgeable zone, so
++		 * this does nothing. On OSX >= 10.6, unregistering replaces the
++		 * purgeable zone with the last registered zone above, i.e the
++		 * default zone. Registering it again then puts it at the end,
++		 * obviously after the default zone.
++		 */
++		if (purgeable_zone) {
++			malloc_zone_unregister(purgeable_zone);
++			malloc_zone_register(purgeable_zone);
++		}
+ 	} while (malloc_default_zone() != &zone);
+ }
+-- 
+2.0.0.rc2
+
+
+From jasone at canonware.com  Tue Jun 10 07:21:22 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 10 Jun 2014 07:21:22 -0700
+Subject: [PATCH] Ensure the default purgeable zone is after the default
+	zone on OS X
+In-Reply-To: <1402391902-20160-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1402391902-20160-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <140CE36C-B34D-4A4C-A1FA-E6A369BFDF49@canonware.com>
+
+On Jun 10, 2014, at 2:18 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> ---
+> src/zone.c | 34 +++++++++++++++++++++++++---------
+> 1 file changed, 25 insertions(+), 9 deletions(-)
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/6f533c1903a1d067dacfca2f06c6cc9754fdf67e
+
+Thanks,
+Jason
+
+From mh+jemalloc at glandium.org  Wed Jun 11 21:07:31 2014
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 12 Jun 2014 13:07:31 +0900
+Subject: [PATCH] Allow to build with clang-cl
+Message-ID: <1402546051-27863-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ include/msvc_compat/C99/stdbool.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/msvc_compat/C99/stdbool.h b/include/msvc_compat/C99/stdbool.h
+index da9ee8b..d92160e 100644
+--- a/include/msvc_compat/C99/stdbool.h
++++ b/include/msvc_compat/C99/stdbool.h
+@@ -5,7 +5,11 @@
+ 
+ /* MSVC doesn't define _Bool or bool in C, but does have BOOL */
+ /* Note this doesn't pass autoconf's test because (bool) 0.5 != true */
++/* Clang-cl uses MSVC headers, so needs msvc_compat, but has _Bool as
++ * a built-in type. */
++#ifndef __clang__
+ typedef BOOL _Bool;
++#endif
+ 
+ #define bool _Bool
+ #define true 1
+-- 
+2.0.0.rc2
+
+
+From jasone at canonware.com  Thu Jun 12 10:41:04 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 12 Jun 2014 10:41:04 -0700
+Subject: [PATCH] Allow to build with clang-cl
+In-Reply-To: <1402546051-27863-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1402546051-27863-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <B4086A8C-AF2B-4C16-9324-9A4D375021E5@canonware.com>
+
+On Jun 11, 2014, at 9:07 PM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> ---
+> include/msvc_compat/C99/stdbool.h | 4 ++++
+> 1 file changed, 4 insertions(+)
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/c521df5dcf7410898cabdcb556f919535cf16d19
+
+Thanks,
+Jason
+
+From ingvar at redpill-linpro.com  Thu Jun 19 01:01:23 2014
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Thu, 19 Jun 2014 10:01:23 +0200
+Subject: jemalloc-3.6.0 fails to build on to-be-fedora-21
+Message-ID: <53A298D3.7050105@redpill-linpro.com>
+
+jemalloc-3.6.0 fails to build on to-be-fedora-21
+
+https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log
+
+Seems like gcc-4.9.0 changed emmintrin.h
+
+Ingvar
+
+From ingvar at redpill-linpro.com  Thu Jun 19 01:37:25 2014
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Thu, 19 Jun 2014 10:37:25 +0200
+Subject: jemalloc-3.6.0 fails to build on to-be-fedora-21
+In-Reply-To: <53A298D3.7050105@redpill-linpro.com>
+References: <53A298D3.7050105@redpill-linpro.com>
+Message-ID: <53A2A145.3000904@redpill-linpro.com>
+
+Den 19. juni 2014 10:01, skrev Ingvar Hagelund:
+> jemalloc-3.6.0 fails to build on to-be-fedora-21
+> 
+> https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log
+> 
+> Seems like gcc-4.9.0 changed emmintrin.h
+
+... though only when compiling against Fedora's i686 target, that is
+"gcc -m32 -march=i686 -mtune=atom"
+
+x86_64 and the generic i386 target, that is "gcc -march=i386
+-mtune=generic" , works fine (though generic i386 is not a primary
+Fedora target anymore).
+
+Ingvar
+
+

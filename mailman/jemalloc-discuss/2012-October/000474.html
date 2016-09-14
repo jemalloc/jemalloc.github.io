@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> document what stats.active does not track
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20document%20what%20stats.active%20does%20not%20track&In-Reply-To=%3C1TOZuV-000Azw-5L%40internal.tormail.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000470.html">
+   <LINK REL="Next"  HREF="000475.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>document what stats.active does not track</H1>
+    <B>Jan Beich</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20document%20what%20stats.active%20does%20not%20track&In-Reply-To=%3C1TOZuV-000Azw-5L%40internal.tormail.org%3E"
+       TITLE="document what stats.active does not track">jbeich at tormail.org
+       </A><BR>
+    <I>Wed Oct 17 13:06:32 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000470.html">Version number in dev branch builds is wrong
+</A></li>
+        <LI>Next message: <A HREF="000475.html">[PATCH] Don't register jemalloc's zone allocator if something else	already replaced the system default zone
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#474">[ date ]</a>
+              <a href="thread.html#474">[ thread ]</a>
+              <a href="subject.html#474">[ subject ]</a>
+              <a href="author.html#474">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Based on <A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2012-March/000164.html">http://www.canonware.com/pipermail/jemalloc-discuss/2012-March/000164.html</A>
+---
+ doc/jemalloc.xml.in | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/doc/jemalloc.xml.in b/doc/jemalloc.xml.in
+index 441c1a4..f1ae576 100644
+--- a/doc/jemalloc.xml.in
++++ b/doc/jemalloc.xml.in
+@@ -1503,25 +1503,27 @@ malloc_conf = &quot;xmalloc:true&quot;;]]&gt;&lt;/programlisting&gt;
+ 
+       &lt;varlistentry id=&quot;stats.active&quot;&gt;
+         &lt;term&gt;
+           &lt;mallctl&gt;stats.active&lt;/mallctl&gt;
+           (&lt;type&gt;size_t&lt;/type&gt;)
+           &lt;literal&gt;r-&lt;/literal&gt;
+           [&lt;option&gt;--enable-stats&lt;/option&gt;]
+         &lt;/term&gt;
+         &lt;listitem&gt;&lt;para&gt;Total number of bytes in active pages allocated by the
+         application.  This is a multiple of the page size, and greater than or
+         equal to &lt;link
+         linkend=&quot;stats.allocated&quot;&gt;&lt;mallctl&gt;stats.allocated&lt;/mallctl&gt;&lt;/link&gt;.
+-        &lt;/para&gt;&lt;/listitem&gt;
++        This does not include &lt;link linkend=&quot;stats.arenas.i.pdirty&quot;&gt;
++        &lt;mallctl&gt;stats.arenas.&lt;i&gt;.pdirty&lt;/mallctl&gt;&lt;/link&gt; and pages
++        entirely devoted to allocator metadata.&lt;/para&gt;&lt;/listitem&gt;
+       &lt;/varlistentry&gt;
+ 
+       &lt;varlistentry&gt;
+         &lt;term&gt;
+           &lt;mallctl&gt;stats.mapped&lt;/mallctl&gt;
+           (&lt;type&gt;size_t&lt;/type&gt;)
+           &lt;literal&gt;r-&lt;/literal&gt;
+           [&lt;option&gt;--enable-stats&lt;/option&gt;]
+         &lt;/term&gt;
+         &lt;listitem&gt;&lt;para&gt;Total number of bytes in chunks mapped on behalf of the
+         application.  This is a multiple of the chunk size, and is at least as
+         large as &lt;link
+@@ -1619,25 +1621,25 @@ malloc_conf = &quot;xmalloc:true&quot;;]]&gt;&lt;/programlisting&gt;
+         arena.&lt;/para&gt;&lt;/listitem&gt;
+       &lt;/varlistentry&gt;
+ 
+       &lt;varlistentry&gt;
+         &lt;term&gt;
+           &lt;mallctl&gt;stats.arenas.&lt;i&gt;.pactive&lt;/mallctl&gt;
+           (&lt;type&gt;size_t&lt;/type&gt;)
+           &lt;literal&gt;r-&lt;/literal&gt;
+         &lt;/term&gt;
+         &lt;listitem&gt;&lt;para&gt;Number of pages in active runs.&lt;/para&gt;&lt;/listitem&gt;
+       &lt;/varlistentry&gt;
+ 
+-      &lt;varlistentry&gt;
++      &lt;varlistentry id=&quot;stats.arenas.i.pdirty&quot;&gt;
+         &lt;term&gt;
+           &lt;mallctl&gt;stats.arenas.&lt;i&gt;.pdirty&lt;/mallctl&gt;
+           (&lt;type&gt;size_t&lt;/type&gt;)
+           &lt;literal&gt;r-&lt;/literal&gt;
+         &lt;/term&gt;
+         &lt;listitem&gt;&lt;para&gt;Number of pages within unused runs that are potentially
+         dirty, and for which &lt;function&gt;madvise&lt;parameter&gt;...&lt;/parameter&gt;
+         &lt;parameter&gt;&lt;constant&gt;MADV_DONTNEED&lt;/constant&gt;&lt;/parameter&gt;&lt;/function&gt; or
+         similar has not been called.&lt;/para&gt;&lt;/listitem&gt;
+       &lt;/varlistentry&gt;
+ 
+       &lt;varlistentry&gt;
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000470.html">Version number in dev branch builds is wrong
+</A></li>
+	<LI>Next message: <A HREF="000475.html">[PATCH] Don't register jemalloc's zone allocator if something else	already replaced the system default zone
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#474">[ date ]</a>
+              <a href="thread.html#474">[ thread ]</a>
+              <a href="subject.html#474">[ subject ]</a>
+              <a href="author.html#474">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

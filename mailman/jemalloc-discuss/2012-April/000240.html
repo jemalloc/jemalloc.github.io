@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3C66661490-9D63-433D-9686-BED5F7E72FBA%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000235.html">
+   <LINK REL="Next"  HREF="000244.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3C66661490-9D63-433D-9686-BED5F7E72FBA%40canonware.com%3E"
+       TITLE="[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks">jasone at canonware.com
+       </A><BR>
+    <I>Tue Apr 10 14:59:03 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000235.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+        <LI>Next message: <A HREF="000244.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#240">[ date ]</a>
+              <a href="thread.html#240">[ thread ]</a>
+              <a href="subject.html#240">[ subject ]</a>
+              <a href="author.html#240">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 10, 2012, at 10:54 AM, Mike Hommey wrote:
+&gt;<i> On Tue, Apr 10, 2012 at 07:50:33PM +0200, Mike Hommey wrote:
+</I>&gt;&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> ---
+</I>&gt;&gt;<i> include/jemalloc/internal/chunk.h      |   15 ++++++++++-
+</I>&gt;&gt;<i> include/jemalloc/internal/chunk_dss.h  |    2 +-
+</I>&gt;&gt;<i> include/jemalloc/internal/chunk_mmap.h |    2 +-
+</I>&gt;&gt;<i> src/chunk.c                            |    7 ++---
+</I>&gt;&gt;<i> src/chunk_dss.c                        |   46 +++++++++++++++++++-------------
+</I>&gt;&gt;<i> src/chunk_mmap.c                       |   28 +++++++++----------
+</I>&gt;&gt;<i> src/huge.c                             |   33 ++---------------------
+</I>&gt;&gt;<i> 7 files changed, 63 insertions(+), 70 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> The reason why I'm interested in this is that the way VirtualAlloc and
+</I>&gt;<i> VirtualFree work on Windows makes it cumbersome to do &quot;huge&quot; alignment,
+</I>&gt;<i> and would require going through hoops and repeating code between huge.c
+</I>&gt;<i> and chunk_mmap.c. It gets simpler if everything is handled in one place.
+</I>&gt;<i> 
+</I>&gt;<i> I'm not sure how to best stress test the changes in chunk_dss.c, so I'm
+</I>&gt;<i> not sure it doesn't break in subtle ways. The changes in chunk_mmap.c
+</I>&gt;<i> are much more straightforward.
+</I>
+There were problems in the dss code that I had to fix, and I did some other refactoring that this change allowed (e.g. huge_malloc() now just calls huge_palloc()).  The result is committed now; please let me know if you encounter any problems with the changes I made.
+
+By the way, I'm excited to see hints of Windows support in the works. =)
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000235.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+	<LI>Next message: <A HREF="000244.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#240">[ date ]</a>
+              <a href="thread.html#240">[ thread ]</a>
+              <a href="subject.html#240">[ subject ]</a>
+              <a href="author.html#240">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

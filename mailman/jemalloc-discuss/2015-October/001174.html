@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc 4.0.3 configure script breaks building inside a different	git repository.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%204.0.3%20configure%20script%20breaks%20building%20inside%20a%20different%0A%09git%20repository.&In-Reply-To=%3CCA%2BXzkVdQ0Cr2ip0LVONYTmNDQ0mMWVPV4Q1NOCtgf6OWKBiO7g%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001173.html">
+   <LINK REL="Next"  HREF="001175.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc 4.0.3 configure script breaks building inside a different	git repository.</H1>
+    <B>Salvatore Sanfilippo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%204.0.3%20configure%20script%20breaks%20building%20inside%20a%20different%0A%09git%20repository.&In-Reply-To=%3CCA%2BXzkVdQ0Cr2ip0LVONYTmNDQ0mMWVPV4Q1NOCtgf6OWKBiO7g%40mail.gmail.com%3E"
+       TITLE="Jemalloc 4.0.3 configure script breaks building inside a different	git repository.">antirez at gmail.com
+       </A><BR>
+    <I>Wed Oct  7 00:09:54 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001173.html">Jemalloc on CYGWIN
+</A></li>
+        <LI>Next message: <A HREF="001175.html">Jemalloc 4.0.3 configure script breaks building inside a	different git repository.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1174">[ date ]</a>
+              <a href="thread.html#1174">[ thread ]</a>
+              <a href="subject.html#1174">[ subject ]</a>
+              <a href="author.html#1174">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+I was trying to upgrade Redis jemalloc version from 3.6 to 4.0. Redis
+uses its own private copy of jemalloc. Our copy is not modified but we
+have all our dependencies inside /dep so that a given version of Redis
+has a very specific behavior and does not change depending on what the
+user happens to have installed in its system.
+
+So this means that jemalloc, in the case of Redis, happens to be
+inside a directory of a different Git repository (the Redis one).
+
+The new Jemalloc 4.0 configure script replaces the VERSION file
+without doing a sane check that previous versions did, that is:
+
+if test -d &quot;${srcroot}.git&quot; ; then ...
+
+So even if the Jemalloc root directory does not include a git
+repository, but jemalloc just happens to be contained into another git
+repository, the new configure script will attempt to generate a
+VERSION file. As a result it will generate a bogus version file
+matching some commit that happens to contain the specified pattern
+[0-9].[0-9].[0-9].
+
+This in turn means that testing for Jemalloc versions features will break.
+
+In the specific case of Redis I'll just modify the configure script,
+but in general would be good if jemalloc was able to build cleanly
+when embedded into a different Git repository.
+
+Thanks for all the work that went into the 4.0 release, we hope Redis
+users will benefit from this ASAP. Btw for us the ability to configure
+size classes from the configure script was a good change.
+
+Cheers,
+Salvatore
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - Redis Labs <A HREF="https://redislabs.com">https://redislabs.com</A>
+
+&quot;If a system is to have conceptual integrity, someone must control the
+concepts.&quot;
+       &#8212; Fred Brooks, &quot;The Mythical Man-Month&quot;, 1975.
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001173.html">Jemalloc on CYGWIN
+</A></li>
+	<LI>Next message: <A HREF="001175.html">Jemalloc 4.0.3 configure script breaks building inside a	different git repository.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1174">[ date ]</a>
+              <a href="thread.html#1174">[ thread ]</a>
+              <a href="subject.html#1174">[ subject ]</a>
+              <a href="author.html#1174">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

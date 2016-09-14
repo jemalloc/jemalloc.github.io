@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> New Allocator features
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20New%20Allocator%20features&In-Reply-To=%3Cd724304f3e0e7ce29372f3bb44b25520%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000021.html">
+   <LINK REL="Next"  HREF="000022.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>New Allocator features</H1>
+    <B>Terrell Magee</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20New%20Allocator%20features&In-Reply-To=%3Cd724304f3e0e7ce29372f3bb44b25520%40mail.gmail.com%3E"
+       TITLE="New Allocator features">tmagee at conveycomputer.com
+       </A><BR>
+    <I>Tue May 10 09:58:51 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000021.html">[patch] Add pthread to test linking options
+</A></li>
+        <LI>Next message: <A HREF="000022.html">New Allocator features
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#20">[ date ]</a>
+              <a href="thread.html#20">[ thread ]</a>
+              <a href="subject.html#20">[ subject ]</a>
+              <a href="author.html#20">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I have been using jemalloc for the past year with good results.  Our product
+has a couple of new requirements that I have not come across before.
+
+
+
+1)      The first is the ability to completely segregate control data from
+allocated data.  This makes the allocator more like a resource manager in
+that you allocate and mange the resource but have no access to it.  The data
+structure design of jemalloc lends itself fairly well to meeting this
+requirement.
+
+2)      The second requirement is focused on multi-node NUMA systems.
+Consider the requirement to allocate memory on a specified node.  A buffer
+is returned to the application on the requested node but the application
+then migrates the data to another node for processing.  When the app frees
+the buffer, it is returned to the allocator&#8217;s free pool.  The problem is the
+memory is now located on the wrong node.  Subsequent allocations can result
+in misplaced data and performance anomalies.  This behavior is true for any
+allocator; libc malloc(3), etc.
+
+
+
+Have these types of requirements been considered or solved by other systems?
+
+
+
+Thanks
+
+Terrell
+
+Convey Computer Systems
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110510/58ed5f60/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110510/58ed5f60/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000021.html">[patch] Add pthread to test linking options
+</A></li>
+	<LI>Next message: <A HREF="000022.html">New Allocator features
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#20">[ date ]</a>
+              <a href="thread.html#20">[ thread ]</a>
+              <a href="subject.html#20">[ subject ]</a>
+              <a href="author.html#20">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

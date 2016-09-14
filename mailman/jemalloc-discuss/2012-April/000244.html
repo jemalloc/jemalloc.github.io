@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3C20120411122416.GA6315%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000240.html">
+   <LINK REL="Next"  HREF="000256.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3C20120411122416.GA6315%40glandium.org%3E"
+       TITLE="[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Apr 11 05:24:16 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000240.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+        <LI>Next message: <A HREF="000256.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#244">[ date ]</a>
+              <a href="thread.html#244">[ thread ]</a>
+              <a href="subject.html#244">[ subject ]</a>
+              <a href="author.html#244">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Apr 10, 2012 at 02:59:03PM -0700, Jason Evans wrote:
+&gt;<i> On Apr 10, 2012, at 10:54 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt; On Tue, Apr 10, 2012 at 07:50:33PM +0200, Mike Hommey wrote:
+</I>&gt;<i> &gt;&gt; From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> &gt;&gt; 
+</I>&gt;<i> &gt;&gt; ---
+</I>&gt;<i> &gt;&gt; include/jemalloc/internal/chunk.h      |   15 ++++++++++-
+</I>&gt;<i> &gt;&gt; include/jemalloc/internal/chunk_dss.h  |    2 +-
+</I>&gt;<i> &gt;&gt; include/jemalloc/internal/chunk_mmap.h |    2 +-
+</I>&gt;<i> &gt;&gt; src/chunk.c                            |    7 ++---
+</I>&gt;<i> &gt;&gt; src/chunk_dss.c                        |   46 +++++++++++++++++++-------------
+</I>&gt;<i> &gt;&gt; src/chunk_mmap.c                       |   28 +++++++++----------
+</I>&gt;<i> &gt;&gt; src/huge.c                             |   33 ++---------------------
+</I>&gt;<i> &gt;&gt; 7 files changed, 63 insertions(+), 70 deletions(-)
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; The reason why I'm interested in this is that the way VirtualAlloc and
+</I>&gt;<i> &gt; VirtualFree work on Windows makes it cumbersome to do &quot;huge&quot; alignment,
+</I>&gt;<i> &gt; and would require going through hoops and repeating code between huge.c
+</I>&gt;<i> &gt; and chunk_mmap.c. It gets simpler if everything is handled in one place.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I'm not sure how to best stress test the changes in chunk_dss.c, so I'm
+</I>&gt;<i> &gt; not sure it doesn't break in subtle ways. The changes in chunk_mmap.c
+</I>&gt;<i> &gt; are much more straightforward.
+</I>&gt;<i> 
+</I>&gt;<i> There were problems in the dss code that I had to fix, and I did some
+</I>&gt;<i> other refactoring that this change allowed (e.g. huge_malloc() now
+</I>&gt;<i> just calls huge_palloc()).  The result is committed now; please let me
+</I>&gt;<i> know if you encounter any problems with the changes I made.
+</I>
+It looks good, although I didn't test dss since Windows doesn't have
+sbrk. Since I don't think it makes sense to emulate sbrk in jemalloc,
+chunk_dss should be completely disabled there. How would you feel about
+a patch that doesn't build chunk_dss.c and sets all functions declared in
+chunk_dss.h to be dummy inline functions when dss is not enabled? That
+would allow to keep the if (config_dss) parts and avoid replacing them
+with #ifdefs. Or are you just fine with replacing them with #ifdefs?
+
+&gt;<i> By the way, I'm excited to see hints of Windows support in the works. =)
+</I>
+At this point, I have jemalloc working single-threaded with mingw and
+mingw64: the test suite pass, but I have random asserts in the threaded
+tests. I haven't implemented tsd and proper mutexes yet.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000240.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+	<LI>Next message: <A HREF="000256.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#244">[ date ]</a>
+              <a href="thread.html#244">[ thread ]</a>
+              <a href="subject.html#244">[ subject ]</a>
+              <a href="author.html#244">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

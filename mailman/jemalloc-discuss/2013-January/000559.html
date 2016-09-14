@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 2MB (hugetlb) page support on Linux
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%202MB%20%28hugetlb%29%20page%20support%20on%20Linux&In-Reply-To=%3CCAB6p_2654tCj7GkQiArt9-cNyKQWkqTx9C7Kusp4QET_pA1jyw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000558.html">
+   <LINK REL="Next"  HREF="000560.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>2MB (hugetlb) page support on Linux</H1>
+    <B>Vinay Y S</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%202MB%20%28hugetlb%29%20page%20support%20on%20Linux&In-Reply-To=%3CCAB6p_2654tCj7GkQiArt9-cNyKQWkqTx9C7Kusp4QET_pA1jyw%40mail.gmail.com%3E"
+       TITLE="2MB (hugetlb) page support on Linux">vinay.ys at gmail.com
+       </A><BR>
+    <I>Thu Jan 31 08:54:46 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000558.html">2MB (hugetlb) page support on Linux
+</A></li>
+        <LI>Next message: <A HREF="000560.html">2MB (hugetlb) page support on Linux
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#559">[ date ]</a>
+              <a href="thread.html#559">[ thread ]</a>
+              <a href="subject.html#559">[ subject ]</a>
+              <a href="author.html#559">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Ok, I understand that due to more allocations per page the probability of a
+page being released back to OS will reduce. But is it correct to say that
+wastage will reduce for 4KB-8KB (and other higher) class allocations and
+hence utilization will improve?
+
+I also saw the 'medium' size class in the git log as well as on this
+mailing list discussions. Is there a way to re-introduce that back with,
+maybe, build-time configurable tradeoffs for memory efficiency vs (?)
+lock-free purging?
+
+Thanks,
+Vinay
+
+On Thu, Jan 31, 2013 at 5:16 AM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Jan 29, 2013, at 11:01 AM, Vinay Y S wrote:
+</I>&gt;<i> &gt; I'm trying to use jemalloc as the allocator for Membase (a
+</I>&gt;<i> persistent/replicated memcached) on x86_64 Linux. With 4KB page size, the
+</I>&gt;<i> overhead (fragmentation) for allocations greater than 4KB (say 5000 bytes)
+</I>&gt;<i> that fall into 8KB 'large' allocation class is pretty high.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; To make the wastage a bit less, we would need more classes in the
+</I>&gt;<i> 'small' size. Given how page purge works, I understand just adding more
+</I>&gt;<i> classes in there or faking a higher page size won't work.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Luckily my target OS - x86_64 linux supports 2MB huge pages. Can
+</I>&gt;<i> jemalloc take advantage of this? Is there a way to enable this?
+</I>&gt;<i>
+</I>&gt;<i> Huge pages actually make the dirty page purging problems worse with regard
+</I>&gt;<i> to fragmentation, because in order to keep huge pages intact, purging has
+</I>&gt;<i> to be all or nothing.  It is possible with a bit of trickery to get Linux
+</I>&gt;<i> to use huge pages for memory that jemalloc allocates, but it only makes
+</I>&gt;<i> sense to do so if the memory is densely used (lots of malloc()s, few
+</I>&gt;<i> free()s).
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130131/5fb2e8e3/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130131/5fb2e8e3/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000558.html">2MB (hugetlb) page support on Linux
+</A></li>
+	<LI>Next message: <A HREF="000560.html">2MB (hugetlb) page support on Linux
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#559">[ date ]</a>
+              <a href="thread.html#559">[ thread ]</a>
+              <a href="subject.html#559">[ subject ]</a>
+              <a href="author.html#559">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

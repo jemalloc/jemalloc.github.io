@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Avoid NULL check in je_free
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Avoid%20NULL%20check%20in%20je_free&In-Reply-To=%3CAAF1C29F-168A-4E16-BB66-6141355A4D8F%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000216.html">
+   <LINK REL="Next"  HREF="000220.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Avoid NULL check in je_free</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Avoid%20NULL%20check%20in%20je_free&In-Reply-To=%3CAAF1C29F-168A-4E16-BB66-6141355A4D8F%40canonware.com%3E"
+       TITLE="[PATCH] Avoid NULL check in je_free">jasone at canonware.com
+       </A><BR>
+    <I>Mon Apr  2 15:00:48 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000216.html">[PATCH] Avoid NULL check in je_free
+</A></li>
+        <LI>Next message: <A HREF="000220.html">[PATCH] Avoid NULL check in je_free
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#219">[ date ]</a>
+              <a href="thread.html#219">[ thread ]</a>
+              <a href="subject.html#219">[ subject ]</a>
+              <a href="author.html#219">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+On Apr 2, 2012, at 2:37 AM, Mike Hommey wrote:
+
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> The original patch from Igor Bukanov &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">igor at mir2.org</A>&gt;, in
+</I>&gt;<i> <A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=571332,">https://bugzilla.mozilla.org/show_bug.cgi?id=571332,</A> was also
+</I>&gt;<i> modifying idalloc and arena_dalloc to avoid two CHUNK_ADDR2BASE
+</I>&gt;<i> invocation, but since both functions are inlined, I doubt this
+</I>&gt;<i> actually makes a difference.
+</I>&gt;<i> ---
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h.in |   10 +++-------
+</I>&gt;<i> src/jemalloc.c                                   |   22 ++++++++++------------
+</I>&gt;<i> 2 files changed, 13 insertions(+), 19 deletions(-)
+</I>
+Applied, with some tweaks and additional tests.
+
+<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=96d4120ac08db3f2d566e8e5c3bc134a24aa0afc">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=96d4120ac08db3f2d566e8e5c3bc134a24aa0afc</A>
+
+Unfortunately, I just realized that it introduces a bug due to overly strict assertions, but I'll get that fixed in a moment.
+
+Thanks,
+Jason
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000216.html">[PATCH] Avoid NULL check in je_free
+</A></li>
+	<LI>Next message: <A HREF="000220.html">[PATCH] Avoid NULL check in je_free
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#219">[ date ]</a>
+              <a href="thread.html#219">[ thread ]</a>
+              <a href="subject.html#219">[ subject ]</a>
+              <a href="author.html#219">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

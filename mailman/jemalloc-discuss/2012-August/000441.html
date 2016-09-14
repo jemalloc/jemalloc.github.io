@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> hint on debugging what seems to be a deadlock
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20hint%20on%20debugging%20what%20seems%20to%20be%20a%20deadlock&In-Reply-To=%3C20120809161052.5da86885%40darkbook.lan.box%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000440.html">
+   <LINK REL="Next"  HREF="000442.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>hint on debugging what seems to be a deadlock</H1>
+    <B>Ricardo Nabinger Sanchez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20hint%20on%20debugging%20what%20seems%20to%20be%20a%20deadlock&In-Reply-To=%3C20120809161052.5da86885%40darkbook.lan.box%3E"
+       TITLE="hint on debugging what seems to be a deadlock">rnsanchez at wait4.org
+       </A><BR>
+    <I>Thu Aug  9 12:10:52 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000440.html">hint on debugging what seems to be a deadlock
+</A></li>
+        <LI>Next message: <A HREF="000442.html">Patch set: support for iterating over all objects allocated in a	certain arena
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#441">[ date ]</a>
+              <a href="thread.html#441">[ thread ]</a>
+              <a href="subject.html#441">[ subject ]</a>
+              <a href="author.html#441">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Jason,
+
+On Thu, 9 Aug 2012 11:48:10 -0700
+Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> My experience with such deadlocks has been that either there's a bootstrapping issue due to jemalloc calling some library API that recursively allocates, or the application is trying to allocate inside a signal handler when a signal was raised due to memory corruption.  As far as I know, jemalloc's bootstrapping issues have been worked out, but I've been wrong about that a few times before. =/  In any case, bootstrapping is unlikely to be the issue here, given how far into execution your application has already gotten (assuming the pthread_once() call isn't initiated by jemalloc itself).
+</I>&gt;<i> 
+</I>&gt;<i> Take a look at the gdb output from the following command and make sure you don't see any signs of recursive allocation.
+</I>&gt;<i> 
+</I>&gt;<i> 	t apply all bt
+</I>&gt;<i> 
+</I>&gt;<i> If nothing pops out at you, I don't have any other immediate suggestions.  If you find that not all the mutex-related backtraces are the same as pasted above, there may be a deadlock bug in jemalloc that I can't spot from just one backtrace; feel free to send full gdb backtrace output my way if it's non-trivial to interpret.
+</I>
+Thanks for the feedback.
+
+Right now I am suspecting that something abort()ed within the
+application, and there are paths that may dump a (glibc) backtrace()
+alongside a backtrace_symbols().  From the manpage and some bugzilla
+entries I've read thus far, it seems that backtrace_symbols could be
+triggering the deadlock, by allocating memory on its behalf.
+
+From an older ticket we have for tracking this, the backtrace()
+hypothesis seems to match the point you've raised about recursive
+allocation:
+
+(gdb) thread apply all bt   (most output removed for brevity)
+...
+
+Thread 27 (Thread 0x7e4d277ff700 (LWP 6122)):
+#0  0x00007f7703217d3b in pthread_once () from /lib/libpthread.so.0
+#1  0x00007f7702f6582c in backtrace () from /lib/libc.so.6
+#2  0x000000000041f79d in back () at server.c
+#3  0x000000000042ba92 in sig_crash (status=11) at server.c
+#4  &lt;signal handler called&gt;
+...
+
+Thread 18 (Thread 0x7f7702ce4700 (LWP 6132)):  (a few threads like this)
+#0  0x00007f7703219304 in __lll_lock_wait () from /lib/libpthread.so.0
+#1  0x00007f7703214789 in _L_lock_534 () from /lib/libpthread.so.0
+#2  0x00007f770321459e in pthread_mutex_lock ()
+from /lib/libpthread.so.0
+...
+
+Thread 16 (Thread 0x7e4d2577a700 (LWP 6134)):
+#0  0x00007f7703219304 in __lll_lock_wait () from /lib/libpthread.so.0
+#1  0x00007f7703214789 in _L_lock_534 () from /lib/libpthread.so.0
+#2  0x00007f770321459e in pthread_mutex_lock () from /lib/libpthread.so.0
+#3  0x00007f7703431e4d in malloc_mutex_lock (arena=0x7f77028645c0, chunk=0x7e4c87c00000, run=0x7e4c87c4f000, bin=0x7f7702864748)
+    at include/jemalloc/internal/mutex.h:77
+#4  arena_dalloc_bin_run (arena=0x7f77028645c0, chunk=0x7e4c87c00000, run=0x7e4c87c4f000, bin=0x7f7702864748) at src/arena.c:1520
+#5  0x00007f770343282a in arena_dalloc_bin_locked (arena=0x7f77028645c0, chunk=0x7e4c87c00000, ptr=&lt;value optimized out&gt;, 
+    mapelm=&lt;value optimized out&gt;) at src/arena.c:1593
+#6  0x00007f770344aa57 in tcache_bin_flush_small (tbin=0x7e4d62c06048, binind=1, rem=100, tcache=0x7e4d62c06000) at src/tcache.c:128
+#7  0x00007f770342bf85 in tcache_dalloc_small (ptr=0x7e4d27ad4530) at include/jemalloc/internal/tcache.h:399
+#8  arena_dalloc (ptr=0x7e4d27ad4530) at include/jemalloc/internal/arena.h:956
+#9  idalloc (ptr=0x7e4d27ad4530) at include/jemalloc/internal/jemalloc_internal.h:840
+#10 iqalloc (ptr=0x7e4d27ad4530) at include/jemalloc/internal/jemalloc_internal.h:852
+#11 free (ptr=0x7e4d27ad4530) at src/jemalloc.c:1212
+...
+
+Thread 12 (Thread 0x7e4d25576700 (LWP 6138)):
+#0  0x00007f7703217d3b in pthread_once () from /lib/libpthread.so.0
+#1  0x00007f7702f6582c in backtrace () from /lib/libc.so.6
+#2  0x000000000041f79d in back () at server.c
+#3  0x000000000042ba92 in sig_crash (status=11) at server.c
+#4  &lt;signal handler called&gt;
+
+So it would be a matter of making sure a crash-reporting code doesn't
+actually cause more harm than good.
+
+Thanks again for your insight into this.  :-)
+
+Regards
+
+-- 
+Ricardo Nabinger Sanchez           <A HREF="http://rnsanchez.wait4.org/">http://rnsanchez.wait4.org/</A>
+  &quot;Left to themselves, things tend to go from bad to worse.&quot;
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000440.html">hint on debugging what seems to be a deadlock
+</A></li>
+	<LI>Next message: <A HREF="000442.html">Patch set: support for iterating over all objects allocated in a	certain arena
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#441">[ date ]</a>
+              <a href="thread.html#441">[ thread ]</a>
+              <a href="subject.html#441">[ subject ]</a>
+              <a href="author.html#441">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

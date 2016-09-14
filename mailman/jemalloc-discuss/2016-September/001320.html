@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc initialization in a shared library
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20initialization%20in%20a%20shared%20library&In-Reply-To=%3CEB268B6A-8B73-49EC-914A-0D023AA4B485%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001319.html">
+   <LINK REL="Next"  HREF="001323.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc initialization in a shared library</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20initialization%20in%20a%20shared%20library&In-Reply-To=%3CEB268B6A-8B73-49EC-914A-0D023AA4B485%40canonware.com%3E"
+       TITLE="jemalloc initialization in a shared library">jasone at canonware.com
+       </A><BR>
+    <I>Thu Sep  8 09:28:48 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001319.html">jemalloc initialization in a shared library
+</A></li>
+        <LI>Next message: <A HREF="001323.html">jemalloc initialization in a shared library
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1320">[ date ]</a>
+              <a href="thread.html#1320">[ thread ]</a>
+              <a href="subject.html#1320">[ subject ]</a>
+              <a href="author.html#1320">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Aug 30, 2016, at 2:43 PM, Paul Smith &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">paul at mad-scientist.net</A>&gt; wrote:
+&gt;<i> [...]
+</I>&gt;<i> 
+</I>&gt;<i> I'm compiling jemalloc as a static library (with -fPIC) then I link it
+</I>&gt;<i> into my own shared library (.so).  I use -fvisibility=hidden so that
+</I>&gt;<i> the jemalloc symbols are not visible outside the shared library (e.g.,
+</I>&gt;<i> when I use &quot;nm&quot; on my .so, all the jemalloc symbols are marked &quot;t&quot; not
+</I>&gt;<i> &quot;T&quot;).
+</I>&gt;<i> 
+</I>&gt;<i> It works all the time for my testing and most of the time for my users.
+</I>&gt;<i> However, in some situations I've had users report that their process is
+</I>&gt;<i> hanging and when I get a stacktrace, the hang is happening inside
+</I>&gt;<i> pthread_mutex_unlock called from within jemalloc tls stuff.  Note that
+</I>&gt;<i> my library is not being linked directly, it's being dlopen()'d, so the
+</I>&gt;<i> process is running for a bit before my library is loaded.  To be
+</I>&gt;<i> precise, it's being loaded inside an openjdk 1.8 JVM and invoked from
+</I>&gt;<i> Java using JNI.
+</I>
+This may a separate issue from the TLS initialization issue you're hitting, but linking a malloc implementation into a dlopen()ed library is exceedingly difficult to make work correctly, because it's very difficult to avoid mixed allocator use, e.g. calling malloc() of one implementation and erroneously calling free() of the other.  You can work around this by using mangled names for one implementation, and being very careful to match calls correctly.
+
+&gt;<i> Here's a sample stacktrace:
+</I>&gt;<i> 
+</I>&gt;<i> #0  0x0000003793a0a8a9 in pthread_mutex_unlock () from ./lib64/libpthread.so.0
+</I>&gt;<i> #1  0x00000037932110d2 in tls_get_addr_tail () from ./lib64/ld-linux-x86-64.so.2
+</I>&gt;<i> #2  0x0000003793211500 in __tls_get_addr () from ./lib64/ld-linux-x86-64.so.2
+</I>&gt;<i> #3  0x00007f0181a7ab7f in tcache_enabled_get () at jemalloc/include/jemalloc/internal/tcache.h:172
+</I>&gt;<i> #4  tcache_get (create=true) at jemalloc/include/jemalloc/internal/tcache.h:238
+</I>&gt;<i> #5  arena_malloc (arena=0x0, zero=false, try_tcache=true, size=96) at jemalloc/include/jemalloc/internal/arena.h:873
+</I>&gt;<i> #6  imallocx (try_tcache=true, arena=0x0, size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:767
+</I>&gt;<i> #7  imalloc (size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:776
+</I>&gt;<i> #8  prof_tdata_init () at jemalloc/src/prof.c:1244
+</I>&gt;<i> #9  0x00007f0181a5f7dd in prof_tdata_get () at jemalloc/include/jemalloc/internal/prof.h:317
+</I>&gt;<i> #10 malloc (size=&lt;optimized out&gt;) at jemalloc/src/jemalloc.c:850
+</I>&gt;<i> #11 0x00007f018185fbb1 in operator new [] (size=19) at core/Allocator.h:86
+</I>&gt;<i> #12 String::allocate (this=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">this at entry</A>=0x7f0189c93e40, length=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">length at entry</A>=6) at core/StringClass.cpp:158
+</I>&gt;<i>   ...
+</I>
+This is probably related to attempts at reentrant allocation inside the glibc TLS machinery.  For the most part we avoid this by bootstrapping prior to accessing TLS, but perhaps that's not happening early enough as some side effect of dlopen().
+
+&gt;<i> (I should come clean and mention this is an older version of jemalloc:
+</I>&gt;<i> 3.1 I believe--if that's likely to be the issue I can look into
+</I>&gt;<i> updating).
+</I>
+I huge amount has changed in the TLS-related code since 3.1, so it's hard for me to recall the exact quirks relative to the current release.  Trying a newer version is certainly worthwhile.
+
+&gt;<i> [...]
+</I>&gt;<i> 
+</I>&gt;<i> Does this seem like it might be plausible?  If so is there anything
+</I>&gt;<i> that can be done (other than sweeping all my code to remove any
+</I>&gt;<i> allocation done during a static constructor)?  It's OK if this is a
+</I>&gt;<i> GCC-only solution, such as using __attribute__((init_priority())) or
+</I>&gt;<i> something...
+</I>
+The init_priority attribute could help, but note that there's no simple way to guarantee that some other linked code isn't also using the maximum priority, thus resulting in arbitrary initialization order.
+
+&gt;<i> It would be much simpler if I could reproduce the problem myself, then
+</I>&gt;<i> I could just experiment, but so far no luck.
+</I>
+You may be able to work around this by making jemalloc_constructor() visible and calling it directly, i.e. look it up via dlsym() and call it immediately after dlopen().  However, your comments make it sound as though this is happening before dlopen() returns.
+
+Jason
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001319.html">jemalloc initialization in a shared library
+</A></li>
+	<LI>Next message: <A HREF="001323.html">jemalloc initialization in a shared library
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1320">[ date ]</a>
+              <a href="thread.html#1320">[ thread ]</a>
+              <a href="subject.html#1320">[ subject ]</a>
+              <a href="author.html#1320">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

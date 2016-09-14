@@ -1,0 +1,1147 @@
+From edsiper at gmail.com  Tue Mar  3 06:38:27 2015
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Tue, 3 Mar 2015 08:38:27 -0600
+Subject: Memory usage: jemalloc v/s libc allocator
+Message-ID: <CAMAQheNtYG_EQDvfbv+F361KcN-yRBJD0HCDvKcT4jF-+=8OMw@mail.gmail.com>
+
+Hi,
+
+I got some reports about high memory usage by our open source project
+when jemalloc is enabled, to put you in context: Monkey HTTP Server[0]
+by default uses jemalloc in static linking mode, but optionally at
+build time can use the common system allocator.
+
+When starting the server with jemalloc, the server uses an average of
+8MB, when is disabled (common system allocator) it goes down to 174KB.
+This is a major concern when used on Embedded environments so I would
+like to know how can we reduce the space used by jemalloc initially.
+
+If required I can provide steps to reproduce the scenario.
+
+[0] http://monkey-project.com
+
+thanks for your time,
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+
+From danielmicay at gmail.com  Tue Mar  3 08:49:29 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Tue, 03 Mar 2015 11:49:29 -0500
+Subject: Memory usage: jemalloc v/s libc allocator
+In-Reply-To: <CAMAQheNtYG_EQDvfbv+F361KcN-yRBJD0HCDvKcT4jF-+=8OMw@mail.gmail.com>
+References: <CAMAQheNtYG_EQDvfbv+F361KcN-yRBJD0HCDvKcT4jF-+=8OMw@mail.gmail.com>
+Message-ID: <54F5E619.3060805@gmail.com>
+
+On 03/03/15 09:38 AM, Eduardo Silva wrote:
+> Hi,
+> 
+> I got some reports about high memory usage by our open source project
+> when jemalloc is enabled, to put you in context: Monkey HTTP Server[0]
+> by default uses jemalloc in static linking mode, but optionally at
+> build time can use the common system allocator.
+> 
+> When starting the server with jemalloc, the server uses an average of
+> 8MB, when is disabled (common system allocator) it goes down to 174KB.
+> This is a major concern when used on Embedded environments so I would
+> like to know how can we reduce the space used by jemalloc initially.
+> 
+> If required I can provide steps to reproduce the scenario.
+> 
+> [0] http://monkey-project.com
+> 
+> thanks for your time,
+
+How are you measuring memory usage?
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150303/3c758136/attachment.sig>
+
+From edsiper at gmail.com  Tue Mar  3 09:21:46 2015
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Tue, 3 Mar 2015 11:21:46 -0600
+Subject: Memory usage: jemalloc v/s libc allocator
+In-Reply-To: <54F5E619.3060805@gmail.com>
+References: <CAMAQheNtYG_EQDvfbv+F361KcN-yRBJD0HCDvKcT4jF-+=8OMw@mail.gmail.com>
+	<54F5E619.3060805@gmail.com>
+Message-ID: <CAMAQheN4COb2QZxrpP=e6NNfN8KfzN+h6pKV2RfYrjQrm08cqw@mail.gmail.com>
+
+Initially I used gnome-system-monitor, then I did it with ps_mem.py
+script which can be found here:
+
+         https://raw.githubusercontent.com/pixelb/ps_mem/master/ps_mem.py
+
+the results are:
+
+1) System malloc:
+
+$ python ps_mem.py -p 22545
+   Private  +   Shared  =  RAM used    Program
+
+   2.5 MiB +  41.0 KiB =   2.5 MiB    monkey
+   ---------------------------------
+                                  2.5 MiB
+
+2) with Jemalloc:
+
+$ python ps_mem.py -p 26105
+   Private  +   Shared  =  RAM used    Program
+
+   14.6 MiB +  42.5 KiB =  14.6 MiB    monkey
+   ---------------------------------
+                                14.6 MiB
+
+note: the server is not receiving any request.
+
+thanks
+
+
+On Tue, Mar 3, 2015 at 10:49 AM, Daniel Micay <danielmicay at gmail.com> wrote:
+> On 03/03/15 09:38 AM, Eduardo Silva wrote:
+>> Hi,
+>>
+>> I got some reports about high memory usage by our open source project
+>> when jemalloc is enabled, to put you in context: Monkey HTTP Server[0]
+>> by default uses jemalloc in static linking mode, but optionally at
+>> build time can use the common system allocator.
+>>
+>> When starting the server with jemalloc, the server uses an average of
+>> 8MB, when is disabled (common system allocator) it goes down to 174KB.
+>> This is a major concern when used on Embedded environments so I would
+>> like to know how can we reduce the space used by jemalloc initially.
+>>
+>> If required I can provide steps to reproduce the scenario.
+>>
+>> [0] http://monkey-project.com
+>>
+>> thanks for your time,
+>
+> How are you measuring memory usage?
+>
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+
+
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+
+From jasone at canonware.com  Tue Mar  3 10:07:03 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 3 Mar 2015 10:07:03 -0800
+Subject: Memory usage: jemalloc v/s libc allocator
+In-Reply-To: <CAMAQheN4COb2QZxrpP=e6NNfN8KfzN+h6pKV2RfYrjQrm08cqw@mail.gmail.com>
+References: <CAMAQheNtYG_EQDvfbv+F361KcN-yRBJD0HCDvKcT4jF-+=8OMw@mail.gmail.com>
+	<54F5E619.3060805@gmail.com>
+	<CAMAQheN4COb2QZxrpP=e6NNfN8KfzN+h6pKV2RfYrjQrm08cqw@mail.gmail.com>
+Message-ID: <6BF62C2D-11E8-4442-8216-A27C296EAD29@canonware.com>
+
+It appears that you're measuring all privately mapped virtual memory, but what you really want to measure is physical memory usage.  jemalloc typically maps at least two 4 MiB chunks of virtual memory early during startup, but most of that memory is initially untouched, and therefore not a significant resource utilization issue.  Look at "resident" memory usage (RSS column reported by the top utility) instead of virtual memory usage.
+
+Thanks,
+Jason
+
+> On Mar 3, 2015, at 9:21 AM, Eduardo Silva <edsiper at gmail.com> wrote:
+> 
+> Initially I used gnome-system-monitor, then I did it with ps_mem.py
+> script which can be found here:
+> 
+>         https://raw.githubusercontent.com/pixelb/ps_mem/master/ps_mem.py
+> 
+> the results are:
+> 
+> 1) System malloc:
+> 
+> $ python ps_mem.py -p 22545
+>   Private  +   Shared  =  RAM used    Program
+> 
+>   2.5 MiB +  41.0 KiB =   2.5 MiB    monkey
+>   ---------------------------------
+>                                  2.5 MiB
+> 
+> 2) with Jemalloc:
+> 
+> $ python ps_mem.py -p 26105
+>   Private  +   Shared  =  RAM used    Program
+> 
+>   14.6 MiB +  42.5 KiB =  14.6 MiB    monkey
+>   ---------------------------------
+>                                14.6 MiB
+> 
+> note: the server is not receiving any request.
+> 
+> thanks
+> 
+> 
+> On Tue, Mar 3, 2015 at 10:49 AM, Daniel Micay <danielmicay at gmail.com> wrote:
+>> On 03/03/15 09:38 AM, Eduardo Silva wrote:
+>>> Hi,
+>>> 
+>>> I got some reports about high memory usage by our open source project
+>>> when jemalloc is enabled, to put you in context: Monkey HTTP Server[0]
+>>> by default uses jemalloc in static linking mode, but optionally at
+>>> build time can use the common system allocator.
+>>> 
+>>> When starting the server with jemalloc, the server uses an average of
+>>> 8MB, when is disabled (common system allocator) it goes down to 174KB.
+>>> This is a major concern when used on Embedded environments so I would
+>>> like to know how can we reduce the space used by jemalloc initially.
+>>> 
+>>> If required I can provide steps to reproduce the scenario.
+>>> 
+>>> [0] http://monkey-project.com
+>>> 
+>>> thanks for your time,
+>> 
+>> How are you measuring memory usage?
+>> 
+>> 
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>> 
+> 
+> 
+> 
+> -- 
+> Eduardo Silva
+> http://edsiper.linuxchile.cl
+> http://monkey-project.com
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> 
+
+
+From mh at glandium.org  Tue Mar  3 18:54:18 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 4 Mar 2015 11:54:18 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150218101511.GA30439@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<20150204025432.GA5248@glandium.org>
+	<20150218093426.GA15780@glandium.org>
+	<20150218101511.GA30439@glandium.org>
+Message-ID: <20150304025418.GA29516@glandium.org>
+
+On Wed, Feb 18, 2015 at 07:15:11PM +0900, Mike Hommey wrote:
+> On Wed, Feb 18, 2015 at 06:34:26PM +0900, Mike Hommey wrote:
+> > On Wed, Feb 04, 2015 at 11:54:32AM +0900, Mike Hommey wrote:
+> > > On Wed, Feb 04, 2015 at 07:51:17AM +0900, Mike Hommey wrote:
+> > > > Hi,
+> > > > 
+> > > > I've been tracking a startup time regression in Firefox for Android when
+> > > > we tried to switch from mozjemalloc (memory refresher: it's derived from
+> > > > jemalloc 0.9) to mostly current jemalloc dev.
+> > > > 
+> > > > It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+> > > 
+> > > *sigh* and sadly, this doesn't fix it all :(
+> > 
+> > So, it /might/ be related to the size classes. I don't have all results
+> > yet, but it looks like I'm getting good results with #192,
+> > --with-lg-quantum=4, --with-lg-tiny-min=2 and replacing size2index,
+> > index2size and s2u so that jemalloc3 uses the same size classes as
+> > mozjemalloc (IOW, a very bastardized jemalloc3)
+> > 
+> > If that happens to be true, I'll dig deeper as to what particular size
+> > classes changes are making a difference.
+> 
+> And with more results coming in, it's starting to look like it was a red
+> herring :(
+> The comment about the size classes well above the chunk size still stands,
+> though.
+
+... and we do have regressions on x86 as well, on, presumably,
+allocation intensive workflows. We also have a RSS regression on
+Windows that I'll have to look at more closely.
+
+Mike
+
+From mh at glandium.org  Tue Mar  3 18:59:20 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 4 Mar 2015 11:59:20 +0900
+Subject: Removing macros in tsd.h
+Message-ID: <20150304025919.GB29516@glandium.org>
+
+Hi,
+
+Today, as I was debugging an issue that led me to
+https://github.com/jemalloc/jemalloc/pull/198 I had this thought:
+
+Ever since 5460aa6, there is only one use of malloc_tsd_funcs, if you
+don't count the one in the tsd unit test. I think the genericity of the
+tsd code through the use of macros is now outweighed by the fact that
+using macros make it essentially undebuggable.
+
+How would you welcome a patch that unwraps all of tsd.h such that it
+doesn't use macros anymore?
+
+Cheers,
+
+Mike
+
+From jasone at canonware.com  Tue Mar  3 21:58:31 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 3 Mar 2015 21:58:31 -0800
+Subject: Removing macros in tsd.h
+In-Reply-To: <20150304025919.GB29516@glandium.org>
+References: <20150304025919.GB29516@glandium.org>
+Message-ID: <3E827588-E850-4C80-BCA7-7949CDFB6835@canonware.com>
+
+On Mar 3, 2015, at 6:59 PM, Mike Hommey <mh at glandium.org> wrote:
+> Today, as I was debugging an issue that led me to
+> https://github.com/jemalloc/jemalloc/pull/198 I had this thought:
+> 
+> Ever since 5460aa6, there is only one use of malloc_tsd_funcs, if you
+> don't count the one in the tsd unit test. I think the genericity of the
+> tsd code through the use of macros is now outweighed by the fact that
+> using macros make it essentially undebuggable.
+> 
+> How would you welcome a patch that unwraps all of tsd.h such that it
+> doesn't use macros anymore?
+
+As long as the tsd code is still testable, I'd consider such a patch a distinct improvement. =)
+
+Thanks,
+Jason
+
+From stevecobb47 at yahoo.com  Fri Mar  6 17:26:18 2015
+From: stevecobb47 at yahoo.com (Steve Cobb)
+Date: Sat, 7 Mar 2015 01:26:18 +0000 (UTC)
+Subject: Questions about jemalloc releasing memory to OS
+Message-ID: <949991828.6464854.1425691578906.JavaMail.yahoo@mail.yahoo.com>
+
+
+Hi Folks,I am busily reading web pages etc about tuning jemalloc etc, but would like to get some direct comments on how aggressive jemalloc is at releasing freed memory to the system - either by munmap or madvise(MADV_DONTNEED).
+The problem we are facing - this is using glibc malloc, on embedded systems running Linux -? is that we have applications that can scale way up in size, then scale way down. These systems have no swap partition. Using some tools to dump the heaps of these applications, after the scale-down, we find large chunks of memory retained on malloc free lists, but none of that memory can be trimmed from the heap and unmapped. This is on the order of 100s of M free, with contiguous blocks of of 50M on the free lists.
+It turns out that glibc malloc appears very reluctant to trim its arenas. Particularly, the "main arena" is allocated via sbrk, and that can obviously only shrink at the end of the sbrk value. But the mmap'd arena's, one would hope would be more easily trimmed, but that does not seem to be the case.
+So we are looking at jemalloc in hopes of solving this problem. 
+
+I hope I have made my question clear. Can someone point out the basic implementation details here - the bottom line question is: how aggresive is jemalloc at returning memory to the system, and are there any tuning knobs for this type of behavior.
+Thanks//Steve
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150307/bcd5ff34/attachment.html>
+
+From dave at linuxprogrammer.org  Fri Mar 13 12:32:07 2015
+From: dave at linuxprogrammer.org (Dave Huseby)
+Date: Fri, 13 Mar 2015 12:32:07 -0700
+Subject: another bitrig fix
+Message-ID: <55033B37.5070103@linuxprogrammer.org>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+PR: https://github.com/jemalloc/jemalloc/pull/209
+
+this pull request fixes a few issues on bitrig related to sbrk and the
+lack of thread-local storage.  this is part of the bitrig rust port.
+once this lands, i can cherry-pick it into the rust fork.
+
+- --dave
+-----BEGIN PGP SIGNATURE-----
+
+iF4EAREIAAYFAlUDOzcACgkQvt/JvmUQuOme1QD/alk6IU0PuQtjstZuF8aKQIEP
+6091eIsp99cUvDvmcjcA/1WSk4SYFJBVHG3GmQtmYHNMcRZIIgndvjWT4FgeYrfG
+=y8V6
+-----END PGP SIGNATURE-----
+
+From jasone at canonware.com  Fri Mar 13 16:37:56 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 13 Mar 2015 16:37:56 -0700
+Subject: Questions about jemalloc releasing memory to OS
+In-Reply-To: <949991828.6464854.1425691578906.JavaMail.yahoo@mail.yahoo.com>
+References: <949991828.6464854.1425691578906.JavaMail.yahoo@mail.yahoo.com>
+Message-ID: <291AEFE2-EFDF-46A4-8DDE-B8B9F3B10252@canonware.com>
+
+On Mar 6, 2015, at 5:26 PM, Steve Cobb <stevecobb47 at yahoo.com> wrote:
+> I am busily reading web pages etc about tuning jemalloc etc, but would like to get some direct comments on how aggressive jemalloc is at releasing freed memory to the system - either by munmap or madvise(MADV_DONTNEED).
+> 
+> The problem we are facing - this is using glibc malloc, on embedded systems running Linux -  is that we have applications that can scale way up in size, then scale way down. These systems have no swap partition. Using some tools to dump the heaps of these applications, after the scale-down, we find large chunks of memory retained on malloc free lists, but none of that memory can be trimmed from the heap and unmapped. This is on the order of 100s of M free, with contiguous blocks of of 50M on the free lists.
+> 
+> It turns out that glibc malloc appears very reluctant to trim its arenas. Particularly, the "main arena" is allocated via sbrk, and that can obviously only shrink at the end of the sbrk value. But the mmap'd arena's, one would hope would be more easily trimmed, but that does not seem to be the case.
+> 
+> So we are looking at jemalloc in hopes of solving this problem. 
+> 
+> I hope I have made my question clear. Can someone point out the basic implementation details here - the bottom line question is: how aggresive is jemalloc at returning memory to the system, and are there any tuning knobs for this type of behavior.
+
+jemalloc is moderately aggressive about returning memory to the system by default, and it can be tuned to be very aggressive.  See the lg_dirty_mult option for more information.
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_dirty_mult <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_dirty_mult>
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150313/a7bcf4f8/attachment.html>
+
+From snl20465 at gmail.com  Tue Mar 24 04:58:12 2015
+From: snl20465 at gmail.com (SNL)
+Date: Tue, 24 Mar 2015 17:28:12 +0530
+Subject: Live allocation iterator
+Message-ID: <CAGvmEXgf1oyWxRNsdUsgDJPpkaZNAuRm7poiiD+OGNPvz8-fKA@mail.gmail.com>
+
+My use case is to walk through all live allocations ( the ones which are
+not freed yet) of all sizes the program ever made and dump it as the end of
+the program or on demand. I have looked at stats but I want something with
+even more details. Basically, the function should be able to iterate
+through all arenas and print details on following lines:
+
+arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+
+Is there any api in jemalloc which already does subset of this  ? Any
+pointers will be helpful.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150324/4abe1692/attachment.html>
+
+From snl20465 at gmail.com  Tue Mar 24 06:53:37 2015
+From: snl20465 at gmail.com (SNL)
+Date: Tue, 24 Mar 2015 19:23:37 +0530
+Subject: Live allocation iterator
+In-Reply-To: <CAGvmEXgf1oyWxRNsdUsgDJPpkaZNAuRm7poiiD+OGNPvz8-fKA@mail.gmail.com>
+References: <CAGvmEXgf1oyWxRNsdUsgDJPpkaZNAuRm7poiiD+OGNPvz8-fKA@mail.gmail.com>
+Message-ID: <CAGvmEXjg_tk+a7rFOcQo+0uyCn0DwKjtzDfp4ugtzqjjWkUptw@mail.gmail.com>
+
+If this is not possible ( I see an old post which says jemalloc does not
+have this infra but that was back in 2012 ). Is it possible to iterate over
+just an arena and dump all allocations in it  ? Basically, I have memory
+pool implemented on top of jemalloc which holds metadata about all other
+allocations jemalloc does, if I can iterate over this arena and get hold of
+metadata, I can get hold of each allocation as well.
+
+Any thoughts would be appreciated.
+
+On Tue, Mar 24, 2015 at 5:28 PM, SNL <snl20465 at gmail.com> wrote:
+
+>
+> My use case is to walk through all live allocations ( the ones which are
+> not freed yet) of all sizes the program ever made and dump it as the end of
+> the program or on demand. I have looked at stats but I want something with
+> even more details. Basically, the function should be able to iterate
+> through all arenas and print details on following lines:
+>
+> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+>
+> Is there any api in jemalloc which already does subset of this  ? Any
+> pointers will be helpful.
+>
+>
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150324/71cf0ea8/attachment.html>
+
+From jasone at canonware.com  Tue Mar 24 10:46:52 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 24 Mar 2015 10:46:52 -0700
+Subject: Live allocation iterator
+In-Reply-To: <CAGvmEXjg_tk+a7rFOcQo+0uyCn0DwKjtzDfp4ugtzqjjWkUptw@mail.gmail.com>
+References: <CAGvmEXgf1oyWxRNsdUsgDJPpkaZNAuRm7poiiD+OGNPvz8-fKA@mail.gmail.com>
+	<CAGvmEXjg_tk+a7rFOcQo+0uyCn0DwKjtzDfp4ugtzqjjWkUptw@mail.gmail.com>
+Message-ID: <0D554B36-8244-45DB-B359-67872FD4F051@canonware.com>
+
+On Mar 24, 2015, at 6:53 AM, SNL <snl20465 at gmail.com> wrote:
+> If this is not possible ( I see an old post which says jemalloc does not have this infra but that was back in 2012 ). Is it possible to iterate over just an arena and dump all allocations in it  ? Basically, I have memory pool implemented on top of jemalloc which holds metadata about all other allocations jemalloc does, if I can iterate over this arena and get hold of metadata, I can get hold of each allocation as well. 
+> 
+> Any thoughts would be appreciated. 
+> 
+> On Tue, Mar 24, 2015 at 5:28 PM, SNL <snl20465 at gmail.com <mailto:snl20465 at gmail.com>> wrote:
+> 
+> My use case is to walk through all live allocations ( the ones which are not freed yet) of all sizes the program ever made and dump it as the end of the program or on demand. I have looked at stats but I want something with even more details. Basically, the function should be able to iterate through all arenas and print details on following lines:
+> 
+> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+> 
+> Is there any api in jemalloc which already does subset of this  ? Any pointers will be helpful. 
+
+jemalloc doesn't support iteration over live allocations, and it's unlikely to ever directly support iteration, because the feature imposes nontrivial additional complexity for limited benefit.  The closest thing under consideration is https://github.com/jemalloc/jemalloc/issues/203 <https://github.com/jemalloc/jemalloc/issues/203>, but I don't plan to work on that until at least next year.
+
+Does your use case allow you to wrap the allocator and keep a side table which supports iteration, or can you trace allocation activity and post-process it?
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150324/bfab44d4/attachment.html>
+
+From snl20465 at gmail.com  Tue Mar 24 22:55:47 2015
+From: snl20465 at gmail.com (SNL)
+Date: Wed, 25 Mar 2015 11:25:47 +0530
+Subject: Live allocation iterator
+In-Reply-To: <0D554B36-8244-45DB-B359-67872FD4F051@canonware.com>
+References: <CAGvmEXgf1oyWxRNsdUsgDJPpkaZNAuRm7poiiD+OGNPvz8-fKA@mail.gmail.com>
+	<CAGvmEXjg_tk+a7rFOcQo+0uyCn0DwKjtzDfp4ugtzqjjWkUptw@mail.gmail.com>
+	<0D554B36-8244-45DB-B359-67872FD4F051@canonware.com>
+Message-ID: <CAGvmEXjujWPCJ+c62Z+idu_NWOnOs3MP6C2qqdt=HmOMnk6k+Q@mail.gmail.com>
+
+Does your use case allow you to wrap the allocator and keep a side table
+which supports iteration, or can you trace allocation activity and
+post-process it?
+
+=> This is what I have implemented currently but this does not scale for
+multithreaded programs due to locking issues. I was pondering over idea of
+not doing any book keeping myself and use jemalloc data structures ( and
+efficient low level locking ) for my purpose.
+
+Is this not possible even when all my metadata objects ( which hold user
+allocation base and extent ) are fixed sized and allocated from a separate
+arena ? I was under the impression that I should be able to mask and find
+out offsets within chunk->region->pages and find out objects. As my objects
+are all fixed size, they would be contiguous in memory. Is this valid
+understanding ?
+
+
+On Tue, Mar 24, 2015 at 11:16 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Mar 24, 2015, at 6:53 AM, SNL <snl20465 at gmail.com> wrote:
+>
+> If this is not possible ( I see an old post which says jemalloc does not
+> have this infra but that was back in 2012 ). Is it possible to iterate over
+> just an arena and dump all allocations in it  ? Basically, I have memory
+> pool implemented on top of jemalloc which holds metadata about all other
+> allocations jemalloc does, if I can iterate over this arena and get hold of
+> metadata, I can get hold of each allocation as well.
+>
+> Any thoughts would be appreciated.
+>
+> On Tue, Mar 24, 2015 at 5:28 PM, SNL <snl20465 at gmail.com> wrote:
+>
+>>
+>> My use case is to walk through all live allocations ( the ones which are
+>> not freed yet) of all sizes the program ever made and dump it as the end of
+>> the program or on demand. I have looked at stats but I want something with
+>> even more details. Basically, the function should be able to iterate
+>> through all arenas and print details on following lines:
+>>
+>> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+>>
+>> Is there any api in jemalloc which already does subset of this  ? Any
+>> pointers will be helpful.
+>>
+>
+> jemalloc doesn't support iteration over live allocations, and it's
+> unlikely to ever directly support iteration, because the feature imposes
+> nontrivial additional complexity for limited benefit.  The closest thing
+> under consideration is https://github.com/jemalloc/jemalloc/issues/203,
+> but I don't plan to work on that until at least next year.
+>
+> Does your use case allow you to wrap the allocator and keep a side table
+> which supports iteration, or can you trace allocation activity and
+> post-process it?
+>
+> Jason
+>
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150325/6fb1810b/attachment.html>
+
+From snl20465 at gmail.com  Wed Mar 25 01:44:06 2015
+From: snl20465 at gmail.com (SNL)
+Date: Wed, 25 Mar 2015 14:14:06 +0530
+Subject: Live allocation iterator
+In-Reply-To: <CAGvmEXjujWPCJ+c62Z+idu_NWOnOs3MP6C2qqdt=HmOMnk6k+Q@mail.gmail.com>
+References: <CAGvmEXgf1oyWxRNsdUsgDJPpkaZNAuRm7poiiD+OGNPvz8-fKA@mail.gmail.com>
+	<CAGvmEXjg_tk+a7rFOcQo+0uyCn0DwKjtzDfp4ugtzqjjWkUptw@mail.gmail.com>
+	<0D554B36-8244-45DB-B359-67872FD4F051@canonware.com>
+	<CAGvmEXjujWPCJ+c62Z+idu_NWOnOs3MP6C2qqdt=HmOMnk6k+Q@mail.gmail.com>
+Message-ID: <CAGvmEXgsk6V2Qm5TSzhz+_18B1TrN=xRsLXifgw8COhFuWvmXw@mail.gmail.com>
+
+This looks relevant but never was pushed upstream.
+
+https://www.mail-archive.com/jemalloc-discuss at canonware.com/msg00027.html
+
+
+Any thoughts on this patch set keeping in mind jemalloc-dev current state ?
+Any design/architectural inputs are also appreciated. This seems to have
+worked well for Alessandro who shared the patchset, I dont see these
+changes in their current code base though.
+
+On Wed, Mar 25, 2015 at 11:25 AM, SNL <snl20465 at gmail.com> wrote:
+
+> Does your use case allow you to wrap the allocator and keep a side table
+> which supports iteration, or can you trace allocation activity and
+> post-process it?
+>
+> => This is what I have implemented currently but this does not scale for
+> multithreaded programs due to locking issues. I was pondering over idea of
+> not doing any book keeping myself and use jemalloc data structures ( and
+> efficient low level locking ) for my purpose.
+>
+> Is this not possible even when all my metadata objects ( which hold user
+> allocation base and extent ) are fixed sized and allocated from a separate
+> arena ? I was under the impression that I should be able to mask and find
+> out offsets within chunk->region->pages and find out objects. As my objects
+> are all fixed size, they would be contiguous in memory. Is this valid
+> understanding ?
+>
+>
+> On Tue, Mar 24, 2015 at 11:16 PM, Jason Evans <jasone at canonware.com>
+> wrote:
+>
+>> On Mar 24, 2015, at 6:53 AM, SNL <snl20465 at gmail.com> wrote:
+>>
+>> If this is not possible ( I see an old post which says jemalloc does not
+>> have this infra but that was back in 2012 ). Is it possible to iterate over
+>> just an arena and dump all allocations in it  ? Basically, I have memory
+>> pool implemented on top of jemalloc which holds metadata about all other
+>> allocations jemalloc does, if I can iterate over this arena and get hold of
+>> metadata, I can get hold of each allocation as well.
+>>
+>> Any thoughts would be appreciated.
+>>
+>> On Tue, Mar 24, 2015 at 5:28 PM, SNL <snl20465 at gmail.com> wrote:
+>>
+>>>
+>>> My use case is to walk through all live allocations ( the ones which are
+>>> not freed yet) of all sizes the program ever made and dump it as the end of
+>>> the program or on demand. I have looked at stats but I want something with
+>>> even more details. Basically, the function should be able to iterate
+>>> through all arenas and print details on following lines:
+>>>
+>>> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+>>>
+>>> Is there any api in jemalloc which already does subset of this  ? Any
+>>> pointers will be helpful.
+>>>
+>>
+>> jemalloc doesn't support iteration over live allocations, and it's
+>> unlikely to ever directly support iteration, because the feature imposes
+>> nontrivial additional complexity for limited benefit.  The closest thing
+>> under consideration is https://github.com/jemalloc/jemalloc/issues/203,
+>> but I don't plan to work on that until at least next year.
+>>
+>> Does your use case allow you to wrap the allocator and keep a side table
+>> which supports iteration, or can you trace allocation activity and
+>> post-process it?
+>>
+>> Jason
+>>
+>
+>
+>
+> --
+>
+> Cheers,
+> Sunny.
+>
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150325/95492d09/attachment.html>
+
+From ldalessa at indiana.edu  Wed Mar 25 11:48:34 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 25 Mar 2015 18:48:34 +0000
+Subject: realloc stack use under O0 for x86_64
+Message-ID: <6C816D38-028E-4AEC-9814-E8391307C49D@indiana.edu>
+
+Hi everyone,
+
+We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+
+When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+
+```asm
+0000000000070e48 <realloc>:
+   70e48:       55                      push   %rbp
+   70e49:       48 89 e5                mov    %rsp,%rbp
+   70e4c:       53                      push   %rbx
+   70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+```
+
+Compiling with just O1 results in a much more reasonable:
+
+```asm
+0000000000006ade <realloc>:
+    6ade:       41 57                   push   %r15
+    6ae0:       41 56                   push   %r14
+    6ae2:       41 55                   push   %r13
+    6ae4:       41 54                   push   %r12
+    6ae6:       55                      push   %rbp
+    6ae7:       53                      push   %rbx
+    6ae8:       48 81 ec 88 00 00 00    sub    $0x88,%rsp
+    6aef:       48 89 fb                mov    %rdi,%rbx
+    6af2:       49 89 f4                mov    %rsi,%r12
+    6af5:       48 85 f6                test   %rsi,%rsi
+```
+
+I?ve tried to look through the source code for realloc, but I got a little lost. Can someone point me to what?s getting stack allocated that could possible need so much space? Is this a bug?
+
+I can probably force our internal jemalloc to build in at least O1, but that means a bunch of configure.ac spaghetti mess that I?d prefer to avoid...
+
+Thanks,
+Luke
+
+From jasone at canonware.com  Wed Mar 25 17:34:55 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 25 Mar 2015 17:34:55 -0700
+Subject: realloc stack use under O0 for x86_64
+In-Reply-To: <6C816D38-028E-4AEC-9814-E8391307C49D@indiana.edu>
+References: <6C816D38-028E-4AEC-9814-E8391307C49D@indiana.edu>
+Message-ID: <4434BECB-00B2-4C40-8B66-4F88E86D2DFE@canonware.com>
+
+On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+> 
+> When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+> 
+> ```asm
+> 0000000000070e48 <realloc>:
+>   70e48:       55                      push   %rbp
+>   70e49:       48 89 e5                mov    %rsp,%rbp
+>   70e4c:       53                      push   %rbx
+>   70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+> ```
+
+Wow, that's far more stack space than I can imagine an explanation for.  What version of jemalloc is this happening with, which OS, compiler, etc.?
+
+> [...]
+> 
+> I?ve tried to look through the source code for realloc, but I got a little lost. Can someone point me to what?s getting stack allocated that could possible need so much space? Is this a bug?
+
+realloc() is actually je_realloc() in src/jemalloc.c.  In at least some release versions of jemalloc (not the current dev version), the fast path for realloc(NULL, size) is inlined, and that means a lot of functions could be involved.  Even so, none of them allocates huge on-stack data structures, and there's minimal recursive code, specifically in order to avoid the problems you're somehow hitting.
+
+I can think of a couple possible techniques for narrowing down the problem.  One is to selectively force functions to not be inlined, and the other is to selectively disable compiler optimizations.  Neither is guaranteed to point directly at the problem though.
+
+Thanks,
+Jason
+
+From mhall at mhcomputing.net  Wed Mar 25 17:47:48 2015
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Wed, 25 Mar 2015 17:47:48 -0700
+Subject: realloc stack use under O0 for x86_64
+In-Reply-To: <4434BECB-00B2-4C40-8B66-4F88E86D2DFE@canonware.com>
+References: <6C816D38-028E-4AEC-9814-E8391307C49D@indiana.edu>
+	<4434BECB-00B2-4C40-8B66-4F88E86D2DFE@canonware.com>
+Message-ID: <20150326004748.GD12210@mhcomputing.net>
+
+On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> When we compile jemalloc for debugging purposes, we see realloc using a 
+> large amount of stack space:
+> 
+> ```asm
+> 0000000000070e48 <realloc>:
+>   70e48:       55                      push   %rbp
+>   70e49:       48 89 e5                mov    %rsp,%rbp
+>   70e4c:       53                      push   %rbx
+>   70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+> ```
+
+I think perhaps we can do a little better on narrowing this down especially 
+given you said that it occurs in -O0 mode.
+
+If you dump this code using objdump -C -d -l, it will try to find the file 
+name and line number from the debug symbols, and annotate the assembly with 
+these.
+
+Can you give it a try and search for the 0x6268 and scroll up from there to 
+find the nearest lines of code to the issue?
+
+Apologies if you already tried this and it didn't work. It helped me in the 
+past.
+
+Matthew.
+
+From ldalessa at indiana.edu  Wed Mar 25 17:57:28 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 26 Mar 2015 00:57:28 +0000
+Subject: realloc stack use under O0 for x86_64
+In-Reply-To: <4434BECB-00B2-4C40-8B66-4F88E86D2DFE@canonware.com>
+References: <6C816D38-028E-4AEC-9814-E8391307C49D@indiana.edu>
+	<4434BECB-00B2-4C40-8B66-4F88E86D2DFE@canonware.com>
+Message-ID: <B25377EB-9CEC-48D4-BA59-94ABCEB4D204@indiana.edu>
+
+
+> On Mar 25, 2015, at 8:34 PM, Jason Evans <jasone at canonware.com> wrote:
+> 
+> On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+>> 
+>> When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+>> 
+>> ```asm
+>> 0000000000070e48 <realloc>:
+>>  70e48:       55                      push   %rbp
+>>  70e49:       48 89 e5                mov    %rsp,%rbp
+>>  70e4c:       53                      push   %rbx
+>>  70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+>> ```
+> 
+> Wow, that's far more stack space than I can imagine an explanation for.  What version of jemalloc is this happening with, which OS, compiler, etc.?
+
+Hi Jason,
+
+This was with
+
+jemalloc: 562d266511053a51406e91c78eba640cb46ad9c8
+./configure CFLAGS="-O0 -g?
+
+uname -a
+Linux #### 3.2.0-59-generic #90-Ubuntu SMP Tue Jan 7 22:43:51 UTC 2014 x86_64 x86_64 x86_64 GNU/Linux
+
+* gcc 4.9.2
+
+[original]
+
+* gcc 4.6.4
+
+0000000000070a26 <realloc>:
+   70a26:       55                      push   %rbp
+   70a27:       48 89 e5                mov    %rsp,%rbp
+   70a2a:       53                      push   %rbx
+   70a2b:       48 81 ec 18 5f 00 00    sub    $0x5f18,%rsp
+
+* clang-3.6.0
+
+000000000000aea0 <realloc>:
+    aea0:       55                      push   %rbp
+    aea1:       48 89 e5                mov    %rsp,%rbp
+    aea4:       41 56                   push   %r14
+    aea6:       53                      push   %rbx
+    aea7:       48 81 ec c0 13 00 00    sub    $0x13c0,%rsp
+
+Linux #### 3.0.101-0.31.1_1.0502.8394-cray_ari_s #1 SMP Wed Sep 10 04:03:41 UTC 2014 x86_64 x86_64 x86_64 GNU/Linux:
+
+* icc version 15.0.1 (gcc version 4.3.0 compatibility)
+
+000000000007f2b7 <realloc>:
+   7f2b7:       55                      push   %rbp
+   7f2b8:       48 89 e5                mov    %rsp,%rbp
+   7f2bb:       48 81 ec e0 79 00 00    sub    $0x79e0,%rsp
+
+I?d be surprised if you didn?t see something like this with any gcc/LInux/CFLAGS=?-O0 -g? build.
+
+Luke
+
+From ldalessa at indiana.edu  Wed Mar 25 18:02:45 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 26 Mar 2015 01:02:45 +0000
+Subject: realloc stack use under O0 for x86_64
+In-Reply-To: <20150326004748.GD12210@mhcomputing.net>
+References: <6C816D38-028E-4AEC-9814-E8391307C49D@indiana.edu>
+	<4434BECB-00B2-4C40-8B66-4F88E86D2DFE@canonware.com>
+	<20150326004748.GD12210@mhcomputing.net>
+Message-ID: <5114D99B-9B43-4B29-8549-94C7CFE5BA11@indiana.edu>
+
+
+> On Mar 25, 2015, at 8:47 PM, Matthew Hall <mhall at mhcomputing.net> wrote:
+> 
+> On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> When we compile jemalloc for debugging purposes, we see realloc using a 
+>> large amount of stack space:
+>> 
+>> ```asm
+>> 0000000000070e48 <realloc>:
+>>  70e48:       55                      push   %rbp
+>>  70e49:       48 89 e5                mov    %rsp,%rbp
+>>  70e4c:       53                      push   %rbx
+>>  70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+>> ```
+> 
+> I think perhaps we can do a little better on narrowing this down especially 
+> given you said that it occurs in -O0 mode.
+> 
+> If you dump this code using objdump -C -d -l, it will try to find the file 
+> name and line number from the debug symbols, and annotate the assembly with 
+> these.
+> 
+> Can you give it a try and search for the 0x6268 and scroll up from there to 
+> find the nearest lines of code to the issue?
+
+Sure, hope this is what you?re after:
+
+0000000000070e48 <realloc>:
+realloc():
+/u/ldalessa/jemalloc/src/jemalloc.c:1738
+   70e48:       55                      push   %rbp
+   70e49:       48 89 e5                mov    %rsp,%rbp
+   70e4c:       53                      push   %rbx
+   70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+   70e54:       48 89 bd a8 9d ff ff    mov    %rdi,-0x6258(%rbp)
+   70e5b:       48 89 b5 a0 9d ff ff    mov    %rsi,-0x6260(%rbp)
+/u/ldalessa/jemalloc/src/jemalloc.c:1740
+   70e62:       48 c7 85 60 9e ff ff    movq   $0x0,-0x61a0(%rbp)
+   70e69:       00 00 00 00 
+/u/ldalessa/jemalloc/src/jemalloc.c:1741
+   70e6d:       48 c7 85 58 9e ff ff    movq   $0x0,-0x61a8(%rbp)
+   70e74:       00 00 00 00 
+/u/ldalessa/jemalloc/src/jemalloc.c:1742
+   70e78:       48 c7 45 e0 00 00 00    movq   $0x0,-0x20(%rbp)
+   70e7f:       00 
+/u/ldalessa/jemalloc/src/jemalloc.c:1743
+   70e80:       48 c7 45 d8 00 00 00    movq   $0x0,-0x28(%rbp)
+   70e87:       00 
+/u/ldalessa/jemalloc/src/jemalloc.c:1745
+   70e88:       48 83 bd a0 9d ff ff    cmpq   $0x0,-0x6260(%rbp)
+   70e8f:       00 
+   70e90:       0f 94 c0                sete   %al
+   70e93:       0f b6 c0                movzbl %al,%eax
+   70e96:       48 85 c0                test   %rax,%rax
+   70e99:       0f 84 74 04 00 00       je     71313 <realloc+0x4cb>
+/u/ldalessa/jemalloc/src/jemalloc.c:1746
+   70e9f:       48 83 bd a8 9d ff ff    cmpq   $0x0,-0x6258(%rbp)
+   70ea6:       00 
+   70ea7:       0f 84 5b 04 00 00       je     71308 <realloc+0x4c0>
+je_tsd_get():
+
+> Apologies if you already tried this and it didn't work. It helped me in the 
+> past.
+
+
+No, I?m not an expert objdump user. Normally just -S things or read LLVM IR, but this file is so big that I didn?t want to do that if possible.
+
+Luke
+
+From mh at glandium.org  Wed Mar 25 18:11:06 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Thu, 26 Mar 2015 10:11:06 +0900
+Subject: realloc stack use under O0 for x86_64
+In-Reply-To: <B25377EB-9CEC-48D4-BA59-94ABCEB4D204@indiana.edu>
+References: <6C816D38-028E-4AEC-9814-E8391307C49D@indiana.edu>
+	<4434BECB-00B2-4C40-8B66-4F88E86D2DFE@canonware.com>
+	<B25377EB-9CEC-48D4-BA59-94ABCEB4D204@indiana.edu>
+Message-ID: <20150326011106.GA4577@glandium.org>
+
+On Thu, Mar 26, 2015 at 12:57:28AM +0000, D'Alessandro, Luke K wrote:
+> 
+> > On Mar 25, 2015, at 8:34 PM, Jason Evans <jasone at canonware.com> wrote:
+> > 
+> > On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> >> We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+> >> 
+> >> When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+> >> 
+> >> ```asm
+> >> 0000000000070e48 <realloc>:
+> >>  70e48:       55                      push   %rbp
+> >>  70e49:       48 89 e5                mov    %rsp,%rbp
+> >>  70e4c:       53                      push   %rbx
+> >>  70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+> >> ```
+> > 
+> > Wow, that's far more stack space than I can imagine an explanation for.  What version of jemalloc is this happening with, which OS, compiler, etc.?
+> 
+> Hi Jason,
+> 
+> This was with
+> 
+> jemalloc: 562d266511053a51406e91c78eba640cb46ad9c8
+> ./configure CFLAGS="-O0 -g?
+
+Add "-Dalways_inline=" and you'll avoid all the functions that are
+forced to be inlined. That might help you.
+
+Mike
+
+From ldalessa at indiana.edu  Wed Mar 25 18:29:23 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 26 Mar 2015 01:29:23 +0000
+Subject: realloc stack use under O0 for x86_64
+In-Reply-To: <20150326011106.GA4577@glandium.org>
+References: <6C816D38-028E-4AEC-9814-E8391307C49D@indiana.edu>
+	<4434BECB-00B2-4C40-8B66-4F88E86D2DFE@canonware.com>
+	<B25377EB-9CEC-48D4-BA59-94ABCEB4D204@indiana.edu>
+	<20150326011106.GA4577@glandium.org>
+Message-ID: <C1DB42C4-58CE-4EB7-80BA-886104592F16@indiana.edu>
+
+
+> On Mar 25, 2015, at 9:11 PM, Mike Hommey <mh at glandium.org> wrote:
+> 
+> On Thu, Mar 26, 2015 at 12:57:28AM +0000, D'Alessandro, Luke K wrote:
+>> 
+>>> On Mar 25, 2015, at 8:34 PM, Jason Evans <jasone at canonware.com> wrote:
+>>> 
+>>> On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>>> We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+>>>> 
+>>>> When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+>>>> 
+>>>> ```asm
+>>>> 0000000000070e48 <realloc>:
+>>>> 70e48:       55                      push   %rbp
+>>>> 70e49:       48 89 e5                mov    %rsp,%rbp
+>>>> 70e4c:       53                      push   %rbx
+>>>> 70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+>>>> ```
+>>> 
+>>> Wow, that's far more stack space than I can imagine an explanation for.  What version of jemalloc is this happening with, which OS, compiler, etc.?
+>> 
+>> Hi Jason,
+>> 
+>> This was with
+>> 
+>> jemalloc: 562d266511053a51406e91c78eba640cb46ad9c8
+>> ./configure CFLAGS="-O0 -g?
+> 
+> Add "-Dalways_inline=" and you'll avoid all the functions that are
+> forced to be inlined. That might help you.
+
+Hi Mike,
+
+This completely eliminates the issue, I can run with 8k stacks without any problem. It must be some really weird interaction with inlining and looping? I checked with llvm and it is stack allocating over 500 variables in that from with -O0, with symbol names that look like they come from inlining.
+
+I attached the entry block for -O0 and -O3 if anyone wants to take a look at it.
+
+Luke
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc.llvm.tar.bz2
+Type: application/x-bzip2
+Size: 2769 bytes
+Desc: jemalloc.llvm.tar.bz2
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150326/7acd5496/attachment-0001.bin>
+
+From Paul.Marquess at owmobility.com  Tue Mar 31 05:49:10 2015
+From: Paul.Marquess at owmobility.com (Paul Marquess)
+Date: Tue, 31 Mar 2015 12:49:10 +0000
+Subject: jemalloc coring in je_bitmap_set
+Message-ID: <CY1PR0501MB11782CF052D618F4CFC1002B95F40@CY1PR0501MB1178.namprd05.prod.outlook.com>
+
+Lately I've got reports of one of our server applications coring in je_bitmap_set. 
+
+There is a common pattern with the stack traces from all the cores.  Starting at the call to malloc the stack trace is always the same (shown below). The frames leading up to the call to malloc don't show any common pattern, plus there is nothing immediately obvious in the application code that calls malloc. We are running a standard jemalloc 3.6.0 on a 64-bit Redhat 6.4
+
+This issue cannot be reproduced in our test setup, so I'm looking for ideas on how to root cause the issue from the core file.  
+
+Here are details on my analysis to date
+
+#0? 0x00002b997a4a65df in je_bitmap_set (bit=18446744073709551555, 
+??? binfo=0x2b997a6d1540 <je_arena_bin_info+768>, bitmap=0x2b999e660010)
+??? at include/jemalloc/internal/bitmap.h:101
+#1? je_bitmap_sfu (binfo=0x2b997a6d1540 <je_arena_bin_info+768>, 
+??? bitmap=0x2b999e660010) at include/jemalloc/internal/bitmap.h:140
+#2? arena_run_reg_alloc (bin_info=0x2b997a6d1518 <je_arena_bin_info+728>, 
+??? run=0x2b999e660000) at src/arena.c:291
+#3? je_arena_tcache_fill_small (arena=0x2b997b07f700, tbin=0x2b99a5406108, 
+??? binind=7, prof_accumbytes=<optimized out>) at src/arena.c:1479
+#4? 0x00002b997a4c55af in je_tcache_alloc_small_hard (tcache=<optimized out>, 
+??? tbin=0x2b99a5406108, binind=<optimized out>) at src/tcache.c:72
+#5? 0x00002b997a49a3fd in je_tcache_alloc_small (size=<optimized out>, 
+??? tcache=0x2b99a5406000, zero=false)
+??? at include/jemalloc/internal/tcache.h:303
+#6? je_arena_malloc (try_tcache=true, zero=false, size=<optimized out>, 
+??? arena=0x0) at include/jemalloc/internal/arena.h:957
+#7? je_imalloct (arena=0x0, try_tcache=true, size=<optimized out>)
+??? at include/jemalloc/internal/jemalloc_internal.h:771
+#8? je_imalloc (size=<optimized out>)
+??? at include/jemalloc/internal/jemalloc_internal.h:780
+#9? malloc (size=<optimized out>) at src/jemalloc.c:929
+
+The core is triggered at line 101 of bitmap_set below
+
+88        JEMALLOC_INLINE void
+89        bitmap_set(bitmap_t *bitmap, const bitmap_info_t *binfo, size_t bit)
+90        {
+91                size_t goff;
+92                bitmap_t *gp;
+93                bitmap_t g;
+94        
+95                assert(bit < binfo->nbits);
+96                assert(bitmap_get(bitmap, binfo, bit) == false);
+97                goff = bit >> LG_BITMAP_GROUP_NBITS;
+98                gp = &bitmap[goff];
+99                g = *gp;
+100              assert(g & (1LU << (bit & BITMAP_GROUP_NBITS_MASK)));
+101              g ^= 1LU << (bit & BITMAP_GROUP_NBITS_MASK);
+       
+In all the cores the value of "bit" is 0xffffffffffff. That then results in "g" being an invalid pointer. For example, this is what I see in one of the cores
+
+    (gdb) p bitmap
+    $15 = (bitmap_t *) 0x2b999e660010
+    (gdb) p gp
+    $16 = (bitmap_t *) 0x20002b999e660008
+    (gdb) p g
+    Cannot access memory at address 0x20002b999e660008
+
+Here is an analysis of how "bit" got set to 0xffffffffffff in bitmap_sfu from the same core file
+
+121	/* sfu: set first unset. */
+122	JEMALLOC_INLINE size_t
+123	bitmap_sfu(bitmap_t *bitmap, const bitmap_info_t *binfo)
+124	{
+125		size_t bit;
+126		bitmap_t g;
+127		unsigned i;
+128	
+129		assert(bitmap_full(bitmap, binfo) == false);
+130	
+131		i = binfo->nlevels - 1;
+132		g = bitmap[binfo->levels[i].group_offset];
+133		bit = ffsl(g) - 1;
+134		while (i > 0) {
+135			i--;
+136			g = bitmap[binfo->levels[i].group_offset + bit];
+137			bit = (bit << LG_BITMAP_GROUP_NBITS) + (ffsl(g) - 1);
+138		}
+139	
+140		bitmap_set(bitmap, binfo, bit);
+141		return (bit);
+142	}
+
+
+(gdb) p binfo->nlevels
+$3 = 2
+(gdb) p binfo->levels[1].group_offset
+$4 = 2
+(gdb) p bitmap[2]
+$5 = 1
+
+(gdb) hexdump memory bitmap bitmap+16
+00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000010  01 00 00 00 00 00 00 00  50 79 eb 08 74 2b 00 00  |........Py..t+..|
+00000020  b0 79 eb 08 74 2b 00 00  00 00 00 00 01 00 00 00  |.y..t+..........|
+00000030  02 00 00 00 01 00 00 00  01 00 00 00 01 00 00 00  |................|
+00000040  b0 02 ea 08 74 2b 00 00  40 18 ea 08 74 2b 00 00  |....t+.. at ...t+..|
+00000050  b0 12 ea 08 74 2b 00 00  00 00 00 00 00 00 00 00  |....t+..........|
+00000060  00 00 00 00 09 00 00 00  e5 ff ff ff 12 00 00 00  |................|
+00000070  02 00 00 00 01 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+Above means that "i" will be 1 at line 131, "g" will be 1 at line 132 and "bit" will be 0 at line 133.
+
+The while loop will run once (because "I" is 1), so "g" is set to 1 at line 136, then bit get set to 0xffffffffffff at line 137.
+
+That's as far as I've got.
+
+Until the start of this week I didn't know the jemalloc code at all, so I'm not sure what my analysis infers about the root cause for the core. Any suggestions about what to check next would be most welcome.
+
+cheers
+Paul
+
+

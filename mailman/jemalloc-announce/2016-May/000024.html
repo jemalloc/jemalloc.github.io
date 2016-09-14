@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 4.1.1 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%204.1.1%20released&In-Reply-To=%3C46439D75-8BD8-4CFD-97EC-668ED6A8D7D0%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000025.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 4.1.1 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%204.1.1%20released&In-Reply-To=%3C46439D75-8BD8-4CFD-97EC-668ED6A8D7D0%40canonware.com%3E"
+       TITLE="jemalloc 4.1.1 released">jasone at canonware.com
+       </A><BR>
+    <I>Tue May  3 17:51:59 PDT 2016</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000025.html">jemalloc 4.2.0 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 4.1.1 is now available.  This bugfix release resolves a variety of mostly minor issues, though the bitmap fix is critical for 64-bit Windows.
+
+Bug fixes:
+- Fix the linear scan version of bitmap_sfu() to shift by the proper amount even when sizeof(long) is not the same as sizeof(void *), as on 64-bit Windows. (@jasone)
+- Fix hashing functions to avoid unaligned memory accesses (and resulting crashes). This is relevant at least to some ARM-based platforms. (@rkmisra)
+- Fix fork()-related lock rank ordering reversals. These reversals were unlikely to cause deadlocks in practice except when heap profiling was enabled and active. (@jasone)
+- Fix various chunk leaks in OOM code paths. (@jasone)
+- Fix malloc_stats_print() to print opt.narenas correctly. (@jasone)
+- Fix MSVC-specific build/test issues. (@rustyx, @yuslepukhin)
+- Fix a variety of test failures that were due to test fragility rather than core bugs. (@jasone)
+
+For the complete ChangeLog, see:
+	<A HREF="https://github.com/jemalloc/jemalloc/raw/4.1.1/ChangeLog">https://github.com/jemalloc/jemalloc/raw/4.1.1/ChangeLog</A>
+
+Direct download:
+	<A HREF="https://github.com/jemalloc/jemalloc/releases/download/4.1.1/jemalloc-4.1.1.tar.bz2">https://github.com/jemalloc/jemalloc/releases/download/4.1.1/jemalloc-4.1.1.tar.bz2</A>
+
+Starting point for general information:
+	<A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+
+Browsable revision history:
+	<A HREF="https://github.com/jemalloc/jemalloc/tree/4.1.1">https://github.com/jemalloc/jemalloc/tree/4.1.1</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000025.html">jemalloc 4.2.0 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

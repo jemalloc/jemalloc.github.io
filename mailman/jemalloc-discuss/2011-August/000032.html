@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> I made a jemalloc patch for solaris 5.8
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20I%20made%20a%20jemalloc%20patch%20for%20solaris%205.8&In-Reply-To=%3C4E3985A4.9080808%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000031.html">
+   <LINK REL="Next"  HREF="000033.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>I made a jemalloc patch for solaris 5.8</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20I%20made%20a%20jemalloc%20patch%20for%20solaris%205.8&In-Reply-To=%3C4E3985A4.9080808%40canonware.com%3E"
+       TITLE="I made a jemalloc patch for solaris 5.8">jasone at canonware.com
+       </A><BR>
+    <I>Wed Aug  3 10:30:12 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000031.html">Upstreaming mozilla changes
+</A></li>
+        <LI>Next message: <A HREF="000033.html">why jemalloc expand virtual memory space so quickly
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#32">[ date ]</a>
+              <a href="thread.html#32">[ thread ]</a>
+              <a href="subject.html#32">[ subject ]</a>
+              <a href="author.html#32">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 07/26/2011 01:59 AM, gurugio wrote:
+&gt;<i> I've been making a product for solaris platform and wanting new memory 
+</I>&gt;<i> manager.
+</I>&gt;<i> 
+</I>&gt;<i> So I made a patch. The patch was tested at solaris 5.8 in 32bit mode.
+</I>&gt;<i> 
+</I>&gt;<i> Of course, I have to do many things to support completly for every 
+</I>&gt;<i> version of solaris.
+</I>&gt;<i> 
+</I>&gt;<i> Please give me any feedback to make advance patch.
+</I>
+This patch will cause some regressions on other platforms.  In
+particular, the change from %zu to %d is incorrect.  Solaris 5.8 is
+ancient... no stdint.h?  I doubt the most recent two or three releases
+of Solaris have this issue.  In any case, we may be faced with
+abstracting out the %zu format specifiers for Windows, so we can
+probably make one solution work for both platforms.
+
+The ffsl() implementation is quite inefficient.  It would be better if
+it were based on ffs() instead.
+
+&gt;<i> I hope Stand-alone jemalloc package does support for solaris, AIX and HP 
+</I>&gt;<i> ASAP.
+</I>
+I tend to actively develop jemalloc only on platforms that I actively
+use (Linux, OS X, FreeBSD), but I'm willing to integrate support for
+other platforms, as long as it isn't harmful to the existing platform
+support.
+
+Thanks,
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000031.html">Upstreaming mozilla changes
+</A></li>
+	<LI>Next message: <A HREF="000033.html">why jemalloc expand virtual memory space so quickly
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#32">[ date ]</a>
+              <a href="thread.html#32">[ thread ]</a>
+              <a href="subject.html#32">[ subject ]</a>
+              <a href="author.html#32">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

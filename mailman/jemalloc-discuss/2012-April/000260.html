@@ -1,0 +1,189 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> standalone jemalloc is slower than glibc's malloc (ptmalloc)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20standalone%20jemalloc%20is%20slower%20than%20glibc%27s%20malloc%20%28ptmalloc%29&In-Reply-To=%3CCAFWcpZ5dFLmtwRO%3DL_ZWA_kGM0rKB8PyvrCDtdiqAnxrN73yhQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000259.html">
+   <LINK REL="Next"  HREF="000261.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>standalone jemalloc is slower than glibc's malloc (ptmalloc)</H1>
+    <B>Justin Lebar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20standalone%20jemalloc%20is%20slower%20than%20glibc%27s%20malloc%20%28ptmalloc%29&In-Reply-To=%3CCAFWcpZ5dFLmtwRO%3DL_ZWA_kGM0rKB8PyvrCDtdiqAnxrN73yhQ%40mail.gmail.com%3E"
+       TITLE="standalone jemalloc is slower than glibc's malloc (ptmalloc)">justin.lebar at gmail.com
+       </A><BR>
+    <I>Thu Apr 12 05:43:23 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000259.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+        <LI>Next message: <A HREF="000261.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#260">[ date ]</a>
+              <a href="thread.html#260">[ thread ]</a>
+              <a href="subject.html#260">[ subject ]</a>
+              <a href="author.html#260">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> Here, I build standalone jemalloc-2.2.5 library for MIPS architecture and used.
+</I>
+I don't think anyone (or at least, anyone else) is testing jemalloc on
+MIPS.  So it's not entirely surprising that jemalloc would be slow
+there.
+
+On Thu, Apr 12, 2012 at 8:32 AM, amol pise &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">amolpise15 at gmail.com</A>&gt; wrote:
+&gt;<i> Dear Jasone,
+</I>&gt;<i>
+</I>&gt;<i> With respect to my previous mail, I have performed few benchmark
+</I>&gt;<i> testing mentioned in the
+</I>&gt;<i> <A HREF="http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf">http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf</A> on
+</I>&gt;<i> MIPS target
+</I>&gt;<i>
+</I>&gt;<i> The results are as below:
+</I>&gt;<i>
+</I>&gt;<i> Benchmark Test: &#160; CCA
+</I>&gt;<i> -----------------------------------
+</I>&gt;<i> &#160;With glibc malloc (ptmalloc):
+</I>&gt;<i> {{{
+</I>&gt;<i> &#160;# time ./bin/cca -f sample.c
+</I>&gt;<i> &#160;real &#160; &#160;0m12.668s
+</I>&gt;<i> user &#160; &#160;0m12.172s
+</I>&gt;<i> sys &#160; &#160; 0m0.276s
+</I>&gt;<i> &#160;}}}
+</I>&gt;<i>
+</I>&gt;<i> With jemalloc:
+</I>&gt;<i> {{{
+</I>&gt;<i> # time LD_PRELOAD=/devel/usr/lib/jemalloc.so ./bin/cca -f sample.c
+</I>&gt;<i> real &#160; &#160;0m13.451s
+</I>&gt;<i> user &#160; &#160;0m12.948s
+</I>&gt;<i> sys &#160; &#160; 0m0.252s
+</I>&gt;<i> &#160;}}}
+</I>&gt;<i>
+</I>&gt;<i> Here sample.c is the file of lines 17364.
+</I>&gt;<i>
+</I>&gt;<i> Benchmark Test: &#160;sh6bench
+</I>&gt;<i> -----------------------------------------
+</I>&gt;<i> &#160;With glibc malloc (ptmalloc):
+</I>&gt;<i> {{{
+</I>&gt;<i> #./sh6bench
+</I>&gt;<i> &#160;Total elapsed time: 94.00 (94.6600 CPU)
+</I>&gt;<i> }}}
+</I>&gt;<i>
+</I>&gt;<i> With jemalloc:
+</I>&gt;<i> {{{
+</I>&gt;<i> # LD_PRELOAD=/devel/usr/lib/libjemalloc.so ./sh6bench
+</I>&gt;<i> &#160;Total elapsed time: 119.00 (119.4100 CPU)
+</I>&gt;<i> }}}
+</I>&gt;<i>
+</I>&gt;<i> Here, I build standalone jemalloc-2.2.5 library for MIPS architecture and used.
+</I>&gt;<i>
+</I>&gt;<i> The both the benchmark result shows &quot;jemalloc is slower than glibc's malloc&quot;.
+</I>&gt;<i>
+</I>&gt;<i> I wanted to use jemalloc library but these results disappointed me.
+</I>&gt;<i>
+</I>&gt;<i> Please let me know is there are any way to improve the performace of
+</I>&gt;<i> jemalloc in this regards.
+</I>&gt;<i>
+</I>&gt;<i> Please help me. Waiting for the reply.
+</I>&gt;<i>
+</I>&gt;<i> Thank You,
+</I>&gt;<i> Amol Pise
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On 4/11/12, amol pise &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">amolpise15 at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i> Dear All,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I have check the performance of the jemalloc vs glibc's malloc
+</I>&gt;&gt;<i> (ptmalloc) using complex test in libxml2 package
+</I>&gt;&gt;<i> i.e. &quot;runtest&quot;. This program allocate many memory of different size
+</I>&gt;&gt;<i> and supported multi-thread.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The results are seen as below:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> With glibc's malloc (ptmalloc):
+</I>&gt;&gt;<i> --------------------------------------------
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> # LD_LIBRARY_PATH=.libs time .libs/runtest
+</I>&gt;&gt;<i> {{{
+</I>&gt;&gt;<i> ## XML regression tests
+</I>&gt;&gt;<i> ## XML regression tests on memory
+</I>&gt;&gt;<i> :
+</I>&gt;&gt;<i> &lt;snip&gt;
+</I>&gt;&gt;<i> Total 2820 tests, no errors
+</I>&gt;&gt;<i> 67.68user 54.96system 2:02.89elapsed 99%CPU (0avgtext+0avgdata
+</I>&gt;&gt;<i> 0maxresident)k
+</I>&gt;&gt;<i> }}}
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> With jemalloc:
+</I>&gt;&gt;<i> ------------------
+</I>&gt;&gt;<i> # LD_LIBRARY_PATH=.libs LD_PRELOAD=/devel/usr/lib/libjemalloc.so time
+</I>&gt;&gt;<i> .libs/runtest
+</I>&gt;&gt;<i> {{{
+</I>&gt;&gt;<i> ## XML regression tests
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> ## XML regression tests on memory
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> :
+</I>&gt;&gt;<i> &lt;snip&gt;
+</I>&gt;&gt;<i> Total 2820 tests, no errors
+</I>&gt;&gt;<i> 76.89user 55.70system 2:12.72elapsed 99%CPU (0avgtext+0avgdata
+</I>&gt;&gt;<i> 0maxresident)k
+</I>&gt;&gt;<i> 0inputs+0outputs (0major+0minor)pagefaults 0swaps
+</I>&gt;&gt;<i> }}}
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Here it is observed jemalloc seems slowers than glibc malloc (ptmalloc)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I used jemalloc-2.2.5 from <A HREF="http://www.canonware.com/download/jemalloc/">http://www.canonware.com/download/jemalloc/</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Is it mean jemalloc() is slower than glibc's malloc ?
+</I>&gt;&gt;<i> Is there any way to improve the speed performance of jemalloc in this
+</I>&gt;&gt;<i> regard?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I am waiting for the reply.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thank You,
+</I>&gt;&gt;<i> Amol Pise
+</I>&gt;&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000259.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+	<LI>Next message: <A HREF="000261.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#260">[ date ]</a>
+              <a href="thread.html#260">[ thread ]</a>
+              <a href="subject.html#260">[ subject ]</a>
+              <a href="author.html#260">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

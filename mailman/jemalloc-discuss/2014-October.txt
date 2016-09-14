@@ -1,0 +1,1497 @@
+From ggp at mozilla.com  Wed Oct  1 16:07:07 2014
+From: ggp at mozilla.com (Guilherme Goncalves)
+Date: Wed, 1 Oct 2014 16:07:07 -0700 (PDT)
+Subject: Rounding up huge allocations to page boundaries instead of chunks
+In-Reply-To: <20140929232427.GA13840@glandium.org>
+References: <1192065065.15225023.1408657927262.JavaMail.zimbra@mozilla.com>
+	<9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06@canonware.com>
+	<950785576.18683375.1410270669014.JavaMail.zimbra@mozilla.com>
+	<1D21FF6E-126F-4540-A8FD-58F080BE55AB@canonware.com>
+	<20140929232427.GA13840@glandium.org>
+Message-ID: <1950934989.23784162.1412204827810.JavaMail.zimbra@mozilla.com>
+
+So to summarize, if I understand it correctly:
+
+- There is ongoing work to have all allocations use the same size classes (including,
+in particular, huge allocations, which is what we're concerned with);
+
+- The size classes will be defined as equal-sized intervals dividing each chunk boundary;
+to use your example, with 4 intervals per 4MiB chunk, we'll have [4MiB, 5MiB, 6MiB, 7MiB],
+[8MiB, 10MiB, 12MiB, 14MiB], [16MiB, 20MiB, 24MiB, 28MiB], ...;
+
+- The number of intervals is configurable via the |lg_g| variable in size_classes.sh, which
+allows us to bound the over-reporting to a ~2^-lg_g factor of the allocated size.
+
+If that's correct, then yes, I believe that satisfies our needs. Is there a GitHub issue I
+can follow to track progress on this? Or is there otherwise any expected timeframe for this
+to be completed?
+
+Thanks!
+-- 
+Guilherme
+
+From jasone at canonware.com  Wed Oct  1 16:20:55 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 1 Oct 2014 16:20:55 -0700
+Subject: Rounding up huge allocations to page boundaries instead of chunks
+In-Reply-To: <1950934989.23784162.1412204827810.JavaMail.zimbra@mozilla.com>
+References: <1192065065.15225023.1408657927262.JavaMail.zimbra@mozilla.com>
+	<9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06@canonware.com>
+	<950785576.18683375.1410270669014.JavaMail.zimbra@mozilla.com>
+	<1D21FF6E-126F-4540-A8FD-58F080BE55AB@canonware.com>
+	<20140929232427.GA13840@glandium.org>
+	<1950934989.23784162.1412204827810.JavaMail.zimbra@mozilla.com>
+Message-ID: <81504BBE-E1FC-4B9B-B86A-797C98E5D323@canonware.com>
+
+On Oct 1, 2014, at 4:07 PM, Guilherme Goncalves <ggp at mozilla.com> wrote:
+> So to summarize, if I understand it correctly:
+> 
+> - There is ongoing work to have all allocations use the same size classes (including,
+> in particular, huge allocations, which is what we're concerned with);
+> 
+> - The size classes will be defined as equal-sized intervals dividing each chunk boundary;
+> to use your example, with 4 intervals per 4MiB chunk, we'll have [4MiB, 5MiB, 6MiB, 7MiB],
+> [8MiB, 10MiB, 12MiB, 14MiB], [16MiB, 20MiB, 24MiB, 28MiB], ...;
+> 
+> - The number of intervals is configurable via the |lg_g| variable in size_classes.sh, which
+> allows us to bound the over-reporting to a ~2^-lg_g factor of the allocated size.
+> 
+> If that's correct, then yes, I believe that satisfies our needs. Is there a GitHub issue I
+> can follow to track progress on this? Or is there otherwise any expected timeframe for this
+> to be completed?
+
+Yes, that's all correct.  You can track progress at:
+
+	https://github.com/jemalloc/jemalloc/issues/77
+
+I think the hard parts are all done now, and I'm hoping to finish up this particular task within the next few weeks.  The timeframe for the 4.0.0 release is still a bit uncertain, but I'm currently shooting for the end of 2014.  You can track how that's going here:
+
+	https://github.com/jemalloc/jemalloc/issues?q=is%3Aopen+is%3Aissue+milestone%3A4.0.0
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed Oct  1 16:37:44 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 1 Oct 2014 16:37:44 -0700
+Subject: arenas.extend + thread.arena confusion
+In-Reply-To: <CA09F458-071F-4483-A786-FAA5F5AEBC0B@indiana.edu>
+References: <CA09F458-071F-4483-A786-FAA5F5AEBC0B@indiana.edu>
+Message-ID: <53B0CB1C-1CBC-40D6-9FC7-0BE8A887BA7F@canonware.com>
+
+On Sep 30, 2014, at 11:08 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> I have an application where I want every thread to have two arenas. One is use for default allocations and has access to the cache, and the other is used for private allocations through malllocx().
+> 
+> I do this by doing an arena.extend + thread.arena in each thread. The problem that I have is that jemalloc seems to reuse arena ids in this context. Essentially I get a trace that looks something like:
+> 
+> t1: t2 = pthread_create()
+> t1: new1 = arenas.extend
+> t1: old1 = thread.arena(new1)
+> t2: new2 = arenas.extend
+> t2: old2 = thread.arena(new2)
+> 
+> : old1 == old2 == 0
+> 
+> Is this behavior expected? Shouldn?t jemalloc use a fresh arena for each new thread?
+
+When jemalloc assigns an arena to a thread, it finds the set of default (non-"extend") arenas that have the fewest assigned threads, and assigns the lowest-numbered arena in that set to the thread.  If you were to remove the "thread.arena" assignment from your test program (which is consistent with your stated purpose), you would end up with your threads assigned to arenas 0 and 1, and you would additionally have two arenas that jemalloc uses only if you specify MALLOCX_ARENA() to one of the *allocx() functions.  As it is, the test program is racey; you could end up with the created thread initially assigned to arena 1, if a context switch happened at the right time.
+
+Jason
+
+From ldalessa at indiana.edu  Wed Oct  1 17:45:10 2014
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 2 Oct 2014 00:45:10 +0000
+Subject: arenas.extend + thread.arena confusion
+In-Reply-To: <53B0CB1C-1CBC-40D6-9FC7-0BE8A887BA7F@canonware.com>
+References: <CA09F458-071F-4483-A786-FAA5F5AEBC0B@indiana.edu>
+	<53B0CB1C-1CBC-40D6-9FC7-0BE8A887BA7F@canonware.com>
+Message-ID: <4F34B83B-F940-4635-BAAD-24BE60C614C6@indiana.edu>
+
+
+On Oct 1, 2014, at 7:37 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Sep 30, 2014, at 11:08 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> I have an application where I want every thread to have two arenas. One is use for default allocations and has access to the cache, and the other is used for private allocations through malllocx().
+>> 
+>> I do this by doing an arena.extend + thread.arena in each thread. The problem that I have is that jemalloc seems to reuse arena ids in this context. Essentially I get a trace that looks something like:
+>> 
+>> t1: t2 = pthread_create()
+>> t1: new1 = arenas.extend
+>> t1: old1 = thread.arena(new1)
+>> t2: new2 = arenas.extend
+>> t2: old2 = thread.arena(new2)
+>> 
+>> : old1 == old2 == 0
+>> 
+>> Is this behavior expected? Shouldn?t jemalloc use a fresh arena for each new thread?
+> 
+> When jemalloc assigns an arena to a thread, it finds the set of default (non-"extend") arenas that have the fewest assigned threads, and assigns the lowest-numbered arena in that set to the thread.  If you were to remove the "thread.arena" assignment from your test program (which is consistent with your stated purpose), you would end up with your threads assigned to arenas 0 and 1, and you would additionally have two arenas that jemalloc uses only if you specify MALLOCX_ARENA() to one of the *allocx() functions.  As it is, the test program is racey; you could end up with the created thread initially assigned to arena 1, if a context switch happened at the right time.
+
+I can?t use the default arenas because I?m using a custom chunk allocator and I couldn't figure out a way to get jemalloc to release all of the chunks associated with an arena after setting the chunk allocator?I don?t even know what?s been allocated prior to that so I?m not sure it?s even feasible. I?d have to shift them to a different arena or something, and that seems like a lot of work.
+
+I need fast concurrent access to the arenas managing my network-registered address space, so I?m extending the arena space, binding the chunk allocator, and then swapping to it. I wanted to use the existing arena for slower access to mostly-private, system mmap()ed data, and I don?t want these arenas shared since I?m bypassing the cache when using them.
+
+I am working around my issue by using two extended arenas for each thread, one for the private allocations and one for the shared registered memory regions, and just leaving the ?primordial? arenas to rot, which sees fine since arenas have such low overhead.
+
+As you might imagine, I?m running into an issue where dallocx with MALLOCX_ARENA() set is caching allocations when I don?t want them to be cached. I have to embed and distribute a slightly modified jemalloc where I comment out the optimistic caching in dallocx and rallocx. A different BYPASS_CACHE flag would be useful here, but it?s not an urgent issue.
+
+Thanks for your help. It?s a huge help to us.
+
+Luke
+
+From roel.vandepaar at percona.com  Thu Oct  2 01:40:38 2014
+From: roel.vandepaar at percona.com (Roel Van de Paar)
+Date: Thu, 2 Oct 2014 18:40:38 +1000
+Subject: Bug report: je_arena_dalloc_bin_locked () from
+	/usr/lib64/libjemalloc.so.1
+In-Reply-To: <CAGQTitNdoEfCzgBc6pv2DVrrhEepkTRLjLO4YWpgrO-_tQRdcg@mail.gmail.com>
+References: <CAGQTitNdoEfCzgBc6pv2DVrrhEepkTRLjLO4YWpgrO-_tQRdcg@mail.gmail.com>
+Message-ID: <CAGQTitMYFFLzj=xYSnfb8ynrzwRUUfDspcLDTTyPHs9ZUp+5Ww@mail.gmail.com>
+
+Hi jemalloc list,
+
+On Sep 11 I submitted this bug report, but have not seen any updates on it
+- any progress?
+
+On Thu, Sep 11, 2014 at 8:13 AM, Roel Van de Paar <
+roel.vandepaar at percona.com> wrote:
+
+> Stack (as generated by mysqld):
+>
+> Thread 20 (LWP 698):
+> +bt
+> #0  0x0000000005072771 in pthread_kill () from /lib64/libpthread.so.0
+> #1  0x0000000000ad3e5e in my_write_core (sig=11) at
+> /mnt/workspace/percona-server-5.6-binaries-valgrind-yassl/label_exp/centos6-64/percona-server-5.6.20-68.0/mysys/stacktrace.c:422
+> #2  0x000000000073156f in handle_fatal_signal (sig=11) at
+> /mnt/workspace/percona-server-5.6-binaries-valgrind-yassl/label_exp/centos6-64/percona-server-5.6.20-68.0/sql/signal_handler.cc:236
+> #3  <signal handler called>
+> #4  0x0000000004e3ff98 in je_arena_dalloc_bin_locked () from
+> /usr/lib64/libjemalloc.so.1
+> #5  0x0000000004e58881 in je_tcache_bin_flush_small () from
+> /usr/lib64/libjemalloc.so.1
+> #6  0x0000000004e58fae in je_tcache_destroy () from
+> /usr/lib64/libjemalloc.so.1
+> #7  0x0000000004e59183 in je_tcache_thread_cleanup () from
+> /usr/lib64/libjemalloc.so.1
+> #8  0x000000000506dbf2 in __nptl_deallocate_tsd () from
+> /lib64/libpthread.so.0
+> #9  0x000000000506de01 in start_thread () from /lib64/libpthread.so.0
+> #10 0x00000000063dc3dd in clone () from /lib64/libc.so.6
+>
+> OS: Centos 7
+>
+> jemalloc version: jemalloc.x86_64 0:3.6.0-1.el7 (libjemalloc.so.1 &
+> libpthread.so[.0] attached
+>
+> I have also attached a "bundle" of files which we usually attached to
+> mysqld bug reports.
+> It contains a lot of mysqld-related information, like the core dump, stack
+> traces generated etc.).
+> You never know, it may come in handy when researching this bug.
+>
+> If you are interested in debug stack traces, please do sent me a compiled
+> debug lib that I can use directly and I'll try to get (gdb) bt full stacks
+> if I can repeat the issue.
+>
+> Hope you can fix this. Thanks!
+>
+> --
+>
+> Kind Regards,
+> God Bless,
+> --
+> Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+> Tel: +61 2 8004 1288 (UTC+10)
+> Mob: +61 427 141 635 (UTC+10)
+> Skype: roel.mysql
+> http://www.percona.com/services.html
+>
+> Looking for Replication with Data Consistency?
+> Try Percona XtraDB Cluster
+> <http://www.percona.com/software/percona-xtradb-cluster>!
+>
+
+
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: roel.mysql
+http://www.percona.com/services.html
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+<http://www.percona.com/software/percona-xtradb-cluster>!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141002/cbf96da8/attachment.html>
+
+From jasone at canonware.com  Thu Oct  2 10:01:43 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 2 Oct 2014 10:01:43 -0700
+Subject: Bug report: je_arena_dalloc_bin_locked () from
+	/usr/lib64/libjemalloc.so.1
+In-Reply-To: <CAGQTitMYFFLzj=xYSnfb8ynrzwRUUfDspcLDTTyPHs9ZUp+5Ww@mail.gmail.com>
+References: <CAGQTitNdoEfCzgBc6pv2DVrrhEepkTRLjLO4YWpgrO-_tQRdcg@mail.gmail.com>
+	<CAGQTitMYFFLzj=xYSnfb8ynrzwRUUfDspcLDTTyPHs9ZUp+5Ww@mail.gmail.com>
+Message-ID: <76AED8BD-04B2-491D-BBB4-07517363B579@canonware.com>
+
+On Oct 2, 2014, at 1:40 AM, Roel Van de Paar <roel.vandepaar at percona.com> wrote:
+> Hi jemalloc list,
+> 
+> On Sep 11 I submitted this bug report, but have not seen any updates on it - any progress?
+
+This looks suspiciously like a crash due to the application performing a double free or write after free, but there's not enough information here to know for sure.  You may be able to narrow the problem down by using a debug build, disabling tcache, etc.  Please let us know if you determine that it is in fact a jemalloc bug.
+
+Thanks,
+Jason
+
+> On Thu, Sep 11, 2014 at 8:13 AM, Roel Van de Paar <roel.vandepaar at percona.com> wrote:
+> Stack (as generated by mysqld):
+> 
+> Thread 20 (LWP 698):
+> +bt
+> #0  0x0000000005072771 in pthread_kill () from /lib64/libpthread.so.0
+> #1  0x0000000000ad3e5e in my_write_core (sig=11) at /mnt/workspace/percona-server-5.6-binaries-valgrind-yassl/label_exp/centos6-64/percona-server-5.6.20-68.0/mysys/stacktrace.c:422
+> #2  0x000000000073156f in handle_fatal_signal (sig=11) at /mnt/workspace/percona-server-5.6-binaries-valgrind-yassl/label_exp/centos6-64/percona-server-5.6.20-68.0/sql/signal_handler.cc:236
+> #3  <signal handler called>
+> #4  0x0000000004e3ff98 in je_arena_dalloc_bin_locked () from /usr/lib64/libjemalloc.so.1
+> #5  0x0000000004e58881 in je_tcache_bin_flush_small () from /usr/lib64/libjemalloc.so.1
+> #6  0x0000000004e58fae in je_tcache_destroy () from /usr/lib64/libjemalloc.so.1
+> #7  0x0000000004e59183 in je_tcache_thread_cleanup () from /usr/lib64/libjemalloc.so.1
+> #8  0x000000000506dbf2 in __nptl_deallocate_tsd () from /lib64/libpthread.so.0
+> #9  0x000000000506de01 in start_thread () from /lib64/libpthread.so.0
+> #10 0x00000000063dc3dd in clone () from /lib64/libc.so.6
+> 
+> OS: Centos 7
+> 
+> jemalloc version: jemalloc.x86_64 0:3.6.0-1.el7 (libjemalloc.so.1 & libpthread.so[.0] attached
+> 
+> I have also attached a "bundle" of files which we usually attached to mysqld bug reports. 
+> It contains a lot of mysqld-related information, like the core dump, stack traces generated etc.). 
+> You never know, it may come in handy when researching this bug.
+> 
+> If you are interested in debug stack traces, please do sent me a compiled debug lib that I can use directly and I'll try to get (gdb) bt full stacks if I can repeat the issue.
+> 
+> Hope you can fix this. Thanks!
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141002/390ed890/attachment-0001.html>
+
+From marcin.zalewski at gmail.com  Mon Oct  6 22:59:21 2014
+From: marcin.zalewski at gmail.com (Marcin Zalewski)
+Date: Tue, 7 Oct 2014 01:59:21 -0400
+Subject: Help with a segfault
+Message-ID: <CAB8upqJ0p1k2ptv-65w+qRPX7682p0Car8dEMyw2Amqgeqy-WA@mail.gmail.com>
+
+I am using the jemalloc from 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 on a
+Cray system. We use jemalloc for all allocations, and I get a strange issue
+with Crays hugepages implementation. When I do not use the Cray hugepages
+module, my code runs fine. However, when I load hugepages64M, I get the
+following segmentation fault:
+
+Program received signal SIGSEGV, Segmentation fault.
+je_chunk_alloc_default (size=2048, alignment=0, zero=0x7fffffffa96f,
+    arena_ind=0) at chunk.c:254
+254             return (chunk_alloc_core(size, alignment, false, zero,
+(gdb) bt
+#0  je_chunk_alloc_default (size=2048, alignment=0, zero=0x7fffffffa96f,
+    arena_ind=0) at chunk.c:254
+#1  0x000000002001586f in je_huge_palloc (tsd=0x2aaab02092d0,
+    arena=<optimized out>, size=size at entry=2048, alignment=0,
+    zero=zero at entry=true) at huge.c:50
+#2  0x0000000020015908 in je_huge_malloc (tsd=<optimized out>,
+    arena=<optimized out>, size=size at entry=2048, zero=zero at entry=true)
+    at huge.c:19
+#3  0x0000000020018c90 in je_icalloct (arena=<optimized out>,
+    try_tcache=<optimized out>, size=2048, tsd=<optimized out>)
+    at
+../../../contrib/jemalloc/include/jemalloc/internal/jemalloc_internal.h:662
+#4  imallocx_flags (arena=<optimized out>, try_tcache=<optimized out>,
+    zero=true, alignment=0, usize=2048, tsd=<optimized out>) at
+jemalloc.c:1450
+#5  imallocx_no_prof (usize=<synthetic pointer>, flags=<optimized out>,
+    size=<optimized out>, tsd=<optimized out>) at jemalloc.c:1531
+#6  libxxx_mallocx (size=<optimized out>, flags=<optimized out>)
+    at jemalloc.c:1550
+#7  0x00002aaaaf6b9445 in register_printf_type () from /lib64/libc.so.6
+#8  0x00002aaaabf019c0 in register_printf_flt128 ()
+    at ../../../cray-gcc-4.9.0/libquadmath/printf/quadmath-printf.c:390
+#9  0x00002aaaabf09de6 in __do_global_ctors_aux ()
+   from /opt/gcc/4.9.0/snos/lib64/libquadmath.so.0
+#10 0x00002aaaabee51fb in _init ()
+   from /opt/gcc/4.9.0/snos/lib64/libquadmath.so.0
+#11 0x00007fffffffaaf8 in ?? ()
+#12 0x00002aaaaaab91b8 in call_init () from /lib64/ld-linux-x86-64.so.2
+#13 0x00002aaaaaab92e7 in _dl_init_internal () from
+/lib64/ld-linux-x86-64.so.2
+#14 0x00002aaaaaaabb3a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+#15 0x0000000000000001 in ?? ()
+#16 0x00007fffffffb209 in ?? ()
+#17 0x0000000000000000 in ?? ()
+
+I know that this is not very much info to go on, but I wonder if it rings a
+bell for someone immediately. As far as I can understand, the Cray
+hugepages module silently changes all the pages to hugepages of a chosen
+size:
+
+http://www.nersc.gov/users/computational-systems/hopper/programming/tuning-options/
+
+What could be an obvious reason to cause the segmentation fault on that
+line? The line in question is this:
+
+        return (chunk_alloc_core(size, alignment, false, zero,
+            arenas[arena_ind]->dss_prec));
+
+It seems that "arenas" is not properly initialized, but only with hugepages.
+
+Thank you for any help.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141007/64630975/attachment.html>
+
+From jeff.science at gmail.com  Tue Oct  7 10:36:50 2014
+From: jeff.science at gmail.com (Jeff Hammond)
+Date: Tue, 7 Oct 2014 10:36:50 -0700
+Subject: Help with a segfault
+In-Reply-To: <CAB8upqJ0p1k2ptv-65w+qRPX7682p0Car8dEMyw2Amqgeqy-WA@mail.gmail.com>
+References: <CAB8upqJ0p1k2ptv-65w+qRPX7682p0Car8dEMyw2Amqgeqy-WA@mail.gmail.com>
+Message-ID: <CAGKz=u+swHQfog8AEfNP5mV6+zrCE7NNMRKx=M=uyUSG7C87qw@mail.gmail.com>
+
+You might ask NERSC about this directly, assuming you are using NERSC
+Cray systems.
+
+I know that other memory allocators in software I use on Cray need to
+be explicitly aware of the hugepages feature otherwise they segfault.
+
+Jeff
+
+On Mon, Oct 6, 2014 at 10:59 PM, Marcin Zalewski
+<marcin.zalewski at gmail.com> wrote:
+> I am using the jemalloc from 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 on a
+> Cray system. We use jemalloc for all allocations, and I get a strange issue
+> with Crays hugepages implementation. When I do not use the Cray hugepages
+> module, my code runs fine. However, when I load hugepages64M, I get the
+> following segmentation fault:
+>
+> Program received signal SIGSEGV, Segmentation fault.
+> je_chunk_alloc_default (size=2048, alignment=0, zero=0x7fffffffa96f,
+>     arena_ind=0) at chunk.c:254
+> 254             return (chunk_alloc_core(size, alignment, false, zero,
+> (gdb) bt
+> #0  je_chunk_alloc_default (size=2048, alignment=0, zero=0x7fffffffa96f,
+>     arena_ind=0) at chunk.c:254
+> #1  0x000000002001586f in je_huge_palloc (tsd=0x2aaab02092d0,
+>     arena=<optimized out>, size=size at entry=2048, alignment=0,
+>     zero=zero at entry=true) at huge.c:50
+> #2  0x0000000020015908 in je_huge_malloc (tsd=<optimized out>,
+>     arena=<optimized out>, size=size at entry=2048, zero=zero at entry=true)
+>     at huge.c:19
+> #3  0x0000000020018c90 in je_icalloct (arena=<optimized out>,
+>     try_tcache=<optimized out>, size=2048, tsd=<optimized out>)
+>     at
+> ../../../contrib/jemalloc/include/jemalloc/internal/jemalloc_internal.h:662
+> #4  imallocx_flags (arena=<optimized out>, try_tcache=<optimized out>,
+>     zero=true, alignment=0, usize=2048, tsd=<optimized out>) at
+> jemalloc.c:1450
+> #5  imallocx_no_prof (usize=<synthetic pointer>, flags=<optimized out>,
+>     size=<optimized out>, tsd=<optimized out>) at jemalloc.c:1531
+> #6  libxxx_mallocx (size=<optimized out>, flags=<optimized out>)
+>     at jemalloc.c:1550
+> #7  0x00002aaaaf6b9445 in register_printf_type () from /lib64/libc.so.6
+> #8  0x00002aaaabf019c0 in register_printf_flt128 ()
+>     at ../../../cray-gcc-4.9.0/libquadmath/printf/quadmath-printf.c:390
+> #9  0x00002aaaabf09de6 in __do_global_ctors_aux ()
+>    from /opt/gcc/4.9.0/snos/lib64/libquadmath.so.0
+> #10 0x00002aaaabee51fb in _init ()
+>    from /opt/gcc/4.9.0/snos/lib64/libquadmath.so.0
+> #11 0x00007fffffffaaf8 in ?? ()
+> #12 0x00002aaaaaab91b8 in call_init () from /lib64/ld-linux-x86-64.so.2
+> #13 0x00002aaaaaab92e7 in _dl_init_internal () from
+> /lib64/ld-linux-x86-64.so.2
+> #14 0x00002aaaaaaabb3a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+> #15 0x0000000000000001 in ?? ()
+> #16 0x00007fffffffb209 in ?? ()
+> #17 0x0000000000000000 in ?? ()
+>
+> I know that this is not very much info to go on, but I wonder if it rings a
+> bell for someone immediately. As far as I can understand, the Cray hugepages
+> module silently changes all the pages to hugepages of a chosen size:
+>
+> http://www.nersc.gov/users/computational-systems/hopper/programming/tuning-options/
+>
+> What could be an obvious reason to cause the segmentation fault on that
+> line? The line in question is this:
+>
+>         return (chunk_alloc_core(size, alignment, false, zero,
+>             arenas[arena_ind]->dss_prec));
+>
+> It seems that "arenas" is not properly initialized, but only with hugepages.
+>
+> Thank you for any help.
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+
+
+
+-- 
+Jeff Hammond
+jeff.science at gmail.com
+http://jeffhammond.github.io/
+
+From jasone at canonware.com  Tue Oct  7 10:51:34 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 7 Oct 2014 10:51:34 -0700
+Subject: Help with a segfault
+In-Reply-To: <CAB8upqJ0p1k2ptv-65w+qRPX7682p0Car8dEMyw2Amqgeqy-WA@mail.gmail.com>
+References: <CAB8upqJ0p1k2ptv-65w+qRPX7682p0Car8dEMyw2Amqgeqy-WA@mail.gmail.com>
+Message-ID: <83DB3C00-4CF9-46A3-AEAA-246756E07D25@canonware.com>
+
+On Oct 6, 2014, at 10:59 PM, Marcin Zalewski <marcin.zalewski at gmail.com> wrote:
+> I am using the jemalloc from 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 on a Cray system. We use jemalloc for all allocations, and I get a strange issue with Crays hugepages implementation. When I do not use the Cray hugepages module, my code runs fine. However, when I load hugepages64M, I get the following segmentation fault:
+> 
+> Program received signal SIGSEGV, Segmentation fault.
+> je_chunk_alloc_default (size=2048, alignment=0, zero=0x7fffffffa96f, 
+>     arena_ind=0) at chunk.c:254
+> 254             return (chunk_alloc_core(size, alignment, false, zero,
+> (gdb) bt
+> #0  je_chunk_alloc_default (size=2048, alignment=0, zero=0x7fffffffa96f, 
+>     arena_ind=0) at chunk.c:254
+> #1  0x000000002001586f in je_huge_palloc (tsd=0x2aaab02092d0, 
+>     arena=<optimized out>, size=size at entry=2048, alignment=0, 
+>     zero=zero at entry=true) at huge.c:50
+> #2  0x0000000020015908 in je_huge_malloc (tsd=<optimized out>, 
+>     arena=<optimized out>, size=size at entry=2048, zero=zero at entry=true)
+>     at huge.c:19
+> #3  0x0000000020018c90 in je_icalloct (arena=<optimized out>, 
+>     try_tcache=<optimized out>, size=2048, tsd=<optimized out>)
+>     at ../../../contrib/jemalloc/include/jemalloc/internal/jemalloc_internal.h:662
+> #4  imallocx_flags (arena=<optimized out>, try_tcache=<optimized out>, 
+>     zero=true, alignment=0, usize=2048, tsd=<optimized out>) at jemalloc.c:1450
+> #5  imallocx_no_prof (usize=<synthetic pointer>, flags=<optimized out>, 
+>     size=<optimized out>, tsd=<optimized out>) at jemalloc.c:1531
+> #6  libxxx_mallocx (size=<optimized out>, flags=<optimized out>)
+>     at jemalloc.c:1550
+> #7  0x00002aaaaf6b9445 in register_printf_type () from /lib64/libc.so.6
+> #8  0x00002aaaabf019c0 in register_printf_flt128 ()
+>     at ../../../cray-gcc-4.9.0/libquadmath/printf/quadmath-printf.c:390
+> #9  0x00002aaaabf09de6 in __do_global_ctors_aux ()
+>    from /opt/gcc/4.9.0/snos/lib64/libquadmath.so.0
+> #10 0x00002aaaabee51fb in _init ()
+>    from /opt/gcc/4.9.0/snos/lib64/libquadmath.so.0
+> #11 0x00007fffffffaaf8 in ?? ()
+> #12 0x00002aaaaaab91b8 in call_init () from /lib64/ld-linux-x86-64.so.2
+> #13 0x00002aaaaaab92e7 in _dl_init_internal () from /lib64/ld-linux-x86-64.so.2
+> #14 0x00002aaaaaaabb3a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+> #15 0x0000000000000001 in ?? ()
+> #16 0x00007fffffffb209 in ?? ()
+> #17 0x0000000000000000 in ?? ()
+> 
+> I know that this is not very much info to go on, but I wonder if it rings a bell for someone immediately. As far as I can understand, the Cray hugepages module silently changes all the pages to hugepages of a chosen size:
+> 
+> http://www.nersc.gov/users/computational-systems/hopper/programming/tuning-options/
+> 
+> What could be an obvious reason to cause the segmentation fault on that line? The line in question is this:
+> 
+>         return (chunk_alloc_core(size, alignment, false, zero,
+>             arenas[arena_ind]->dss_prec));
+> 
+> It seems that "arenas" is not properly initialized, but only with hugepages.
+
+I've been staring at this for a while, but can't come up with any conclusive picture of what's going on.  Part of the problem is that there are two frames missing from the backtrace, and the reported function arguments are clearly fictional.  Here's what the first several frames of the backtrace should look like:
+
+	je_chunk_alloc_default(...)
+>>>	je_chunk_alloc_arena(...)
+>>>	je_arena_chunk_alloc_huge(...)
+	je_huge_palloc(...)
+	je_huge_malloc(...)
+	je_icalloct(...)
+
+The calls are being made through function pointers, so I don't think it's possible for inlining to explain the omissions.
+
+The mystery is how arenas[arena_ind] could possibly be NULL, given that arena_chunk_alloc_huge() is reading arena->ind in order to pass the arena index to chunk_alloc_arena().  In fact it's unsafe to read arenas[arena_ind] because the arenas.extend mallctl can write to the arenas pointer, but in order for that to be causing this crash, there would need to be another thread creating a new arena, and it would be a small race window.  (I'll fix the bug though!)
+
+One random observation is that this crash is happening very early during execution, due to a library initializer running before entry into main().  It appears though that jemalloc has successfully bootstrapped itself by the time of the crash; otherwise malloc_init() would have failed in mallocx().
+
+Is register_printf_type() really calling mallocx()?  I'd expect it to call malloc() or calloc(), unless jemalloc is pretty deeply integrated.
+
+Are you able to reproduce this crash with a debug build of jemalloc (hopefully with more accurate backtrace)?  I'm concerned that this could be a bug in jemalloc, but I can't find a code path that could cause this.  In the absence of additional evidence, my first guess is that huge pages are somehow causing a different initialization order that avoids a bug in jemalloc, but it's possible that huge pages are erroneously causing the arenas array to be erroneously zeroed after initialization, perhaps due to treating an madvise() on any sub-range as a request to discard the entire huge page.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141007/fb0841da/attachment.html>
+
+From edsiper at gmail.com  Sat Oct 11 20:35:57 2014
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Sat, 11 Oct 2014 21:35:57 -0600
+Subject: Coverity scan results
+Message-ID: <CAMAQhePcos=WLcK82xT+9dhWR+c_oZMZ5uEA4BRWtW+XQPUUew@mail.gmail.com>
+
+Hi,
+
+In Monkey[0] we use Jemalloc by default and when running a Coverity[1]
+static code analysis, it reported some issues, maybe some of them are
+false positives, but is better you check this:
+
+________________________________________________________________________________________________________
+*** CID 1017561:  Macro compares unsigned to 0  (NO_EFFECT)
+/deps/jemalloc/src/jemalloc.c: 603 in malloc_conf_init()
+597                                 SIZE_T_MAX, false)
+598                             CONF_HANDLE_SSIZE_T(opt_lg_dirty_mult,
+"lg_dirty_mult",
+599                                 -1, (sizeof(size_t) << 3) - 1)
+600                             CONF_HANDLE_BOOL(opt_stats_print, "stats_print")
+601                             if (config_fill) {
+602                                     CONF_HANDLE_BOOL(opt_junk, "junk")
+>>>     CID 1017561:  Macro compares unsigned to 0  (NO_EFFECT)
+>>>     This less-than-zero comparison of an unsigned value is never true. "um < 0UL".
+603
+CONF_HANDLE_SIZE_T(opt_quarantine, "quarantine",
+604                                         0, SIZE_T_MAX, false)
+605                                     CONF_HANDLE_BOOL(opt_redzone, "redzone")
+606                                     CONF_HANDLE_BOOL(opt_zero, "zero")
+607                             }
+608                             if (config_utrace) {
+
+________________________________________________________________________________________________________
+*** CID 1018162:  Unchecked return value  (CHECKED_RETURN)
+/deps/jemalloc/src/jemalloc.c: 1978 in jemalloc_constructor()
+1972      */
+1973     JEMALLOC_ATTR(constructor)
+1974     static void
+1975     jemalloc_constructor(void)
+1976     {
+1977
+>>>     CID 1018162:  Unchecked return value  (CHECKED_RETURN)
+>>>     Calling "malloc_init" without checking return value (as is done elsewhere 10 out of 11 times).
+1978            malloc_init();
+1979     }
+1980
+1981     #ifndef JEMALLOC_MUTEX_INIT_CB
+1982     void
+1983     jemalloc_prefork(void)
+
+________________________________________________________________________________________________________
+*** CID 1019005:  Uninitialized pointer read  (UNINIT)
+/deps/jemalloc/src/ctl.c: 1344 in arena_i_dss_ctl()
+1338            dss_prec_t dss_prec = dss_prec_limit;
+1339
+1340            malloc_mutex_lock(&ctl_mtx);
+1341            WRITE(dss, const char *);
+1342            match = false;
+1343            for (i = 0; i < dss_prec_limit; i++) {
+>>>     CID 1019005:  Uninitialized pointer read  (UNINIT)
+>>>     Using uninitialized value "dss" when calling "strcmp".
+1344                    if (strcmp(dss_prec_names[i], dss) == 0) {
+1345                            dss_prec = i;
+1346                            match = true;
+1347                            break;
+1348                    }
+1349            }
+
+________________________________________________________________________________________________________
+*** CID 1022889:  Missing unlock  (LOCK)
+/deps/jemalloc/src/arena.c: 1848 in arena_dalloc_bin_run()
+1842            arena_run_dalloc(arena, run, true, false);
+1843            malloc_mutex_unlock(&arena->lock);
+1844            /****************************/
+1845            malloc_mutex_lock(&bin->lock);
+1846            if (config_stats)
+1847                    bin->stats.curruns--;
+>>>     CID 1022889:  Missing unlock  (LOCK)
+>>>     Returning without unlocking "bin->lock.lock".
+1848     }
+1849
+1850     static void
+1851     arena_bin_lower_run(arena_t *arena, arena_chunk_t *chunk,
+arena_run_t *run,
+1852         arena_bin_t *bin)
+1853     {
+
+________________________________________________________________________________________________________
+*** CID 1193408:  Free of address-of expression  (BAD_FREE)
+/deps/jemalloc/src/chunk_mmap.c: 110 in pages_trim()
+104             {
+105                     size_t trailsize = alloc_size - leadsize - size;
+106
+107                     if (leadsize != 0)
+108                             pages_unmap(addr, leadsize);
+109                     if (trailsize != 0)
+>>>     CID 1193408:  Free of address-of expression  (BAD_FREE)
+>>>     "pages_unmap" frees address offset from "ret".
+110                             pages_unmap((void *)((uintptr_t)ret +
+size), trailsize);
+111                     return (ret);
+112             }
+113     #endif
+114     }
+115
+
+________________________________________________________________________________________________________
+*** CID 1194963:  Data race condition  (MISSING_LOCK)
+/deps/jemalloc/src/prof.c: 430 in prof_ctx_init()
+424             ctx->bt = bt;
+425             ctx->lock = prof_ctx_mutex_choose();
+426             /*
+427              * Set nlimbo to 1, in order to avoid a race condition with
+428              * prof_ctx_merge()/prof_ctx_destroy().
+429              */
+>>>     CID 1194963:  Data race condition  (MISSING_LOCK)
+>>>     Accessing "ctx->nlimbo" without holding lock "malloc_mutex_s.lock". Elsewhere, "prof_ctx_s.nlimbo" is accessed with "malloc_mutex_s.lock" held 5 out of 7 times (2 of these accesses strongly imply that it is necessary).
+430             ctx->nlimbo = 1;
+431             ql_elm_new(ctx, dump_link);
+432             memset(&ctx->cnt_merged, 0, sizeof(prof_cnt_t));
+433             ql_new(&ctx->cnts_ql);
+434     }
+435
+
+________________________________________________________________________________________________________
+*** CID 1194964:  Illegal address computation  (OVERRUN)
+/deps/jemalloc/src/prof.c: 964 in prof_dump_maps()
+958                                     if (prof_dump_flush(propagate_err) &&
+959                                         propagate_err) {
+960                                             ret = true;
+961                                             goto label_return;
+962                                     }
+963                             }
+>>>     CID 1194964:  Illegal address computation  (OVERRUN)
+>>>     "&prof_dump_buf[prof_dump_buf_end]" evaluates to an address that is at byte offset 65536 of an array of 1 bytes.
+964                             nread = read(mfd,
+&prof_dump_buf[prof_dump_buf_end],
+965                                 PROF_DUMP_BUFSIZE - prof_dump_buf_end);
+966                     } while (nread > 0);
+967             } else {
+968                     ret = true;
+969                     goto label_return;
+
+________________________________________________________________________________________________________
+*** CID 1194965:  Illegal address computation  (OVERRUN)
+/deps/jemalloc/src/prof.c: 751 in prof_dump_write()
+745                             /* Finish writing. */
+746                             n = slen - i;
+747                     } else {
+748                             /* Write as much of s as will fit. */
+749                             n = PROF_DUMP_BUFSIZE - prof_dump_buf_end;
+750                     }
+>>>     CID 1194965:  Illegal address computation  (OVERRUN)
+>>>     "&prof_dump_buf[prof_dump_buf_end]" evaluates to an address that is at byte offset 65536 of an array of 1 bytes.
+751                     memcpy(&prof_dump_buf[prof_dump_buf_end], &s[i], n);
+752                     prof_dump_buf_end += n;
+753                     i += n;
+754             }
+755
+756             return (false);
+
+________________________________________________________________________________________________________
+*** CID 1221142:  Double lock  (LOCK)
+/deps/jemalloc/src/prof.c: 1388 in je_prof_prefork()
+1382            if (opt_prof) {
+1383                    unsigned i;
+1384
+1385                    malloc_mutex_prefork(&bt2ctx_mtx);
+1386                    malloc_mutex_prefork(&prof_dump_seq_mtx);
+1387                    for (i = 0; i < PROF_NCTX_LOCKS; i++)
+>>>     CID 1221142:  Double lock  (LOCK)
+>>>     "je_malloc_mutex_prefork" locks "ctx_locks[i].lock" twice.
+1388                            malloc_mutex_prefork(&ctx_locks[i]);
+1389            }
+1390     }
+1391
+1392     void
+1393     prof_postfork_parent(void)
+
+________________________________________________________________________________________________________
+*** CID 1221154:  Data race condition  (MISSING_LOCK)
+/deps/jemalloc/include/jemalloc/internal/prof.h: 480 in je_prof_malloc()
+474                     prof_ctx_set(ptr, usize, cnt->ctx);
+475
+476                     cnt->epoch++;
+477                     /*********/
+478                     mb_write();
+479                     /*********/
+>>>     CID 1221154:  Data race condition  (MISSING_LOCK)
+>>>     Accessing "cnt->cnts.curobjs" without holding lock "malloc_mutex_s.lock". Elsewhere, "prof_cnt_s.curobjs" is accessed with "malloc_mutex_s.lock" held 5 out of 9 times (3 of these accesses strongly imply that it is necessary).
+480                     cnt->cnts.curobjs++;
+481                     cnt->cnts.curbytes += usize;
+482                     if (opt_prof_accum) {
+483                             cnt->cnts.accumobjs++;
+484                             cnt->cnts.accumbytes += usize;
+485                     }
+
+________________________________________________________________________________________________________
+*** CID 1221155:  Data race condition  (MISSING_LOCK)
+/deps/jemalloc/include/jemalloc/internal/prof.h: 550 in je_prof_realloc()
+544             } else if (ptr != NULL)
+545                     prof_ctx_set(ptr, usize, (prof_ctx_t *)(uintptr_t)1U);
+546             /*********/
+547             mb_write();
+548             /*********/
+549             if ((uintptr_t)told_cnt > (uintptr_t)1U) {
+>>>     CID 1221155:  Data race condition  (MISSING_LOCK)
+>>>     Accessing "told_cnt->cnts.curobjs" without holding lock "malloc_mutex_s.lock". Elsewhere, "prof_cnt_s.curobjs" is accessed with "malloc_mutex_s.lock" held 5 out of 9 times (3 of these accesses strongly imply that it is necessary).
+550                     told_cnt->cnts.curobjs--;
+551                     told_cnt->cnts.curbytes -= old_usize;
+552             }
+553             if ((uintptr_t)cnt > (uintptr_t)1U) {
+554                     cnt->cnts.curobjs++;
+555                     cnt->cnts.curbytes += usize;
+
+________________________________________________________________________________________________________
+*** CID 1221156:  Data race condition  (MISSING_LOCK)
+/deps/jemalloc/include/jemalloc/internal/prof.h: 589 in je_prof_free()
+583
+584                     if (tcnt != NULL) {
+585                             tcnt->epoch++;
+586                             /*********/
+587                             mb_write();
+588                             /*********/
+>>>     CID 1221156:  Data race condition  (MISSING_LOCK)
+>>>     Accessing "tcnt->cnts.curobjs" without holding lock "malloc_mutex_s.lock". Elsewhere, "prof_cnt_s.curobjs" is accessed with "malloc_mutex_s.lock" held 5 out of 9 times (3 of these accesses strongly imply that it is necessary).
+589                             tcnt->cnts.curobjs--;
+590                             tcnt->cnts.curbytes -= size;
+591                             /*********/
+592                             mb_write();
+593                             /*********/
+594                             tcnt->epoch++;
+
+________________________________________________________________________________________________________
+*** CID 1221208:  Wrong sizeof argument  (SIZEOF_MISMATCH)
+/deps/jemalloc/src/stats.c: 410 in je_stats_print()
+404
+405                     malloc_cprintf(write_cb, cbopaque, "CPUs: %u\n", ncpus);
+406
+407                     CTL_GET("arenas.narenas", &uv, unsigned);
+408                     malloc_cprintf(write_cb, cbopaque, "Arenas: %u\n", uv);
+409
+>>>     CID 1221208:  Wrong sizeof argument  (SIZEOF_MISMATCH)
+>>>     Passing argument "cbopaque" of type "void *" and argument "8UL /* sizeof (void *) */" to function "je_malloc_cprintf" is suspicious.
+410                     malloc_cprintf(write_cb, cbopaque, "Pointer
+size: %zu\n",
+411                         sizeof(void *));
+412
+413                     CTL_GET("arenas.quantum", &sv, size_t);
+414                     malloc_cprintf(write_cb, cbopaque, "Quantum
+size: %zu\n", sv);
+415
+
+___________
+
+[0] http://monkey-project.com
+[1] http://scan.coverity.com
+
+best
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+
+From jasone at canonware.com  Sat Oct 11 21:51:50 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 11 Oct 2014 21:51:50 -0700
+Subject: Coverity scan results
+In-Reply-To: <CAMAQhePcos=WLcK82xT+9dhWR+c_oZMZ5uEA4BRWtW+XQPUUew@mail.gmail.com>
+References: <CAMAQhePcos=WLcK82xT+9dhWR+c_oZMZ5uEA4BRWtW+XQPUUew@mail.gmail.com>
+Message-ID: <111179CA-6C7F-42A6-9C1E-67621412E49A@canonware.com>
+
+On Oct 11, 2014, at 8:35 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> In Monkey[0] we use Jemalloc by default and when running a Coverity[1]
+> static code analysis, it reported some issues, maybe some of them are
+> false positives, but is better you check this:
+
+Thanks for running Coverity on jemalloc.  I received a Coverity analysis report from Pat Lynch last year for jemalloc 3.4.0 and fixed several bugs as a result.  This time around, I don't see any bugs that haven't already been fixed in the dev branch, though I'd love to see Coverity results for the dev branch of jemalloc.
+
+> ________________________________________________________________________________________________________
+> *** CID 1017561:  Macro compares unsigned to 0  (NO_EFFECT)
+> /deps/jemalloc/src/jemalloc.c: 603 in malloc_conf_init()
+> 597                                 SIZE_T_MAX, false)
+> 598                             CONF_HANDLE_SSIZE_T(opt_lg_dirty_mult,
+> "lg_dirty_mult",
+> 599                                 -1, (sizeof(size_t) << 3) - 1)
+> 600                             CONF_HANDLE_BOOL(opt_stats_print, "stats_print")
+> 601                             if (config_fill) {
+> 602                                     CONF_HANDLE_BOOL(opt_junk, "junk")
+>>>>    CID 1017561:  Macro compares unsigned to 0  (NO_EFFECT)
+>>>>    This less-than-zero comparison of an unsigned value is never true. "um < 0UL".
+> 603
+> CONF_HANDLE_SIZE_T(opt_quarantine, "quarantine",
+> 604                                         0, SIZE_T_MAX, false)
+> 605                                     CONF_HANDLE_BOOL(opt_redzone, "redzone")
+> 606                                     CONF_HANDLE_BOOL(opt_zero, "zero")
+> 607                             }
+> 608                             if (config_utrace) {
+
+This is protected by a comparison to 0, so there is no actual incorrect behavior, though Coverity continues to warn.
+
+	https://github.com/jemalloc/jemalloc/commit/e2985a23819670866c041ba07964099eeb9e0e07
+
+> ________________________________________________________________________________________________________
+> *** CID 1018162:  Unchecked return value  (CHECKED_RETURN)
+> /deps/jemalloc/src/jemalloc.c: 1978 in jemalloc_constructor()
+> 1972      */
+> 1973     JEMALLOC_ATTR(constructor)
+> 1974     static void
+> 1975     jemalloc_constructor(void)
+> 1976     {
+> 1977
+>>>>    CID 1018162:  Unchecked return value  (CHECKED_RETURN)
+>>>>    Calling "malloc_init" without checking return value (as is done elsewhere 10 out of 11 times).
+> 1978            malloc_init();
+> 1979     }
+> 1980
+> 1981     #ifndef JEMALLOC_MUTEX_INIT_CB
+> 1982     void
+> 1983     jemalloc_prefork(void)
+
+There are no actionable consequences to this call failing.
+
+> ________________________________________________________________________________________________________
+> *** CID 1019005:  Uninitialized pointer read  (UNINIT)
+> /deps/jemalloc/src/ctl.c: 1344 in arena_i_dss_ctl()
+> 1338            dss_prec_t dss_prec = dss_prec_limit;
+> 1339
+> 1340            malloc_mutex_lock(&ctl_mtx);
+> 1341            WRITE(dss, const char *);
+> 1342            match = false;
+> 1343            for (i = 0; i < dss_prec_limit; i++) {
+>>>>    CID 1019005:  Uninitialized pointer read  (UNINIT)
+>>>>    Using uninitialized value "dss" when calling "strcmp".
+> 1344                    if (strcmp(dss_prec_names[i], dss) == 0) {
+> 1345                            dss_prec = i;
+> 1346                            match = true;
+> 1347                            break;
+> 1348                    }
+> 1349            }
+
+Fixed recently:
+
+	https://github.com/jemalloc/jemalloc/commit/586c8ede42d7d0545d36d9cbb0235fb39221ef3e
+
+> ________________________________________________________________________________________________________
+> *** CID 1022889:  Missing unlock  (LOCK)
+> /deps/jemalloc/src/arena.c: 1848 in arena_dalloc_bin_run()
+> 1842            arena_run_dalloc(arena, run, true, false);
+> 1843            malloc_mutex_unlock(&arena->lock);
+> 1844            /****************************/
+> 1845            malloc_mutex_lock(&bin->lock);
+> 1846            if (config_stats)
+> 1847                    bin->stats.curruns--;
+>>>>    CID 1022889:  Missing unlock  (LOCK)
+>>>>    Returning without unlocking "bin->lock.lock".
+> 1848     }
+> 1849
+> 1850     static void
+> 1851     arena_bin_lower_run(arena_t *arena, arena_chunk_t *chunk,
+> arena_run_t *run,
+> 1852         arena_bin_t *bin)
+> 1853     {
+
+This function actually drops bin->lock, does some other work, then reacquires bin->lock, so there is no issue.
+
+> ________________________________________________________________________________________________________
+> *** CID 1193408:  Free of address-of expression  (BAD_FREE)
+> /deps/jemalloc/src/chunk_mmap.c: 110 in pages_trim()
+> 104             {
+> 105                     size_t trailsize = alloc_size - leadsize - size;
+> 106
+> 107                     if (leadsize != 0)
+> 108                             pages_unmap(addr, leadsize);
+> 109                     if (trailsize != 0)
+>>>>    CID 1193408:  Free of address-of expression  (BAD_FREE)
+>>>>    "pages_unmap" frees address offset from "ret".
+> 110                             pages_unmap((void *)((uintptr_t)ret +
+> size), trailsize);
+> 111                     return (ret);
+> 112             }
+> 113     #endif
+> 114     }
+> 115
+
+This is intentional.
+
+> ________________________________________________________________________________________________________
+> *** CID 1194963:  Data race condition  (MISSING_LOCK)
+> /deps/jemalloc/src/prof.c: 430 in prof_ctx_init()
+> 424             ctx->bt = bt;
+> 425             ctx->lock = prof_ctx_mutex_choose();
+> 426             /*
+> 427              * Set nlimbo to 1, in order to avoid a race condition with
+> 428              * prof_ctx_merge()/prof_ctx_destroy().
+> 429              */
+>>>>    CID 1194963:  Data race condition  (MISSING_LOCK)
+>>>>    Accessing "ctx->nlimbo" without holding lock "malloc_mutex_s.lock". Elsewhere, "prof_ctx_s.nlimbo" is accessed with "malloc_mutex_s.lock" held 5 out of 7 times (2 of these accesses strongly imply that it is necessary).
+> 430             ctx->nlimbo = 1;
+> 431             ql_elm_new(ctx, dump_link);
+> 432             memset(&ctx->cnt_merged, 0, sizeof(prof_cnt_t));
+> 433             ql_new(&ctx->cnts_ql);
+> 434     }
+> 435
+
+Lock-free data structures make this okay.  Note that the lock-free data structures are gone in the dev branch, so the false positive list should be much shorter there.
+
+> ________________________________________________________________________________________________________
+> *** CID 1194964:  Illegal address computation  (OVERRUN)
+> /deps/jemalloc/src/prof.c: 964 in prof_dump_maps()
+> 958                                     if (prof_dump_flush(propagate_err) &&
+> 959                                         propagate_err) {
+> 960                                             ret = true;
+> 961                                             goto label_return;
+> 962                                     }
+> 963                             }
+>>>>    CID 1194964:  Illegal address computation  (OVERRUN)
+>>>>    "&prof_dump_buf[prof_dump_buf_end]" evaluates to an address that is at byte offset 65536 of an array of 1 bytes.
+> 964                             nread = read(mfd,
+> &prof_dump_buf[prof_dump_buf_end],
+> 965                                 PROF_DUMP_BUFSIZE - prof_dump_buf_end);
+> 966                     } while (nread > 0);
+> 967             } else {
+> 968                     ret = true;
+> 969                     goto label_return;
+
+This is in unreachable code due to configuration.  If heap profiling were enabled, the buffer would be large enough to be safe.
+
+> ________________________________________________________________________________________________________
+> *** CID 1221142:  Double lock  (LOCK)
+> /deps/jemalloc/src/prof.c: 1388 in je_prof_prefork()
+> 1382            if (opt_prof) {
+> 1383                    unsigned i;
+> 1384
+> 1385                    malloc_mutex_prefork(&bt2ctx_mtx);
+> 1386                    malloc_mutex_prefork(&prof_dump_seq_mtx);
+> 1387                    for (i = 0; i < PROF_NCTX_LOCKS; i++)
+>>>>    CID 1221142:  Double lock  (LOCK)
+>>>>    "je_malloc_mutex_prefork" locks "ctx_locks[i].lock" twice.
+> 1388                            malloc_mutex_prefork(&ctx_locks[i]);
+> 1389            }
+> 1390     }
+> 1391
+> 1392     void
+> 1393     prof_postfork_parent(void)
+
+i increments, so this code doesn't actually double lock the same mutex.  It's interesting that Coverity detects iteration, but doesn't detect that the loop variable discriminates mutexes.
+
+> ________________________________________________________________________________________________________
+> [... numerous warnings due to lock-free data structures ...]
+
+> ________________________________________________________________________________________________________
+> *** CID 1221208:  Wrong sizeof argument  (SIZEOF_MISMATCH)
+> /deps/jemalloc/src/stats.c: 410 in je_stats_print()
+> 404
+> 405                     malloc_cprintf(write_cb, cbopaque, "CPUs: %u\n", ncpus);
+> 406
+> 407                     CTL_GET("arenas.narenas", &uv, unsigned);
+> 408                     malloc_cprintf(write_cb, cbopaque, "Arenas: %u\n", uv);
+> 409
+>>>>    CID 1221208:  Wrong sizeof argument  (SIZEOF_MISMATCH)
+>>>>    Passing argument "cbopaque" of type "void *" and argument "8UL /* sizeof (void *) */" to function "je_malloc_cprintf" is suspicious.
+> 410                     malloc_cprintf(write_cb, cbopaque, "Pointer
+> size: %zu\n",
+> 411                         sizeof(void *));
+> 412
+> 413                     CTL_GET("arenas.quantum", &sv, size_t);
+> 414                     malloc_cprintf(write_cb, cbopaque, "Quantum
+> size: %zu\n", sv);
+> 415
+
+This appears to be  tripping up an inapplicable detector in Coverity.
+
+From mitch-jemalloc-discuss at bodyfour.com  Sat Oct 11 22:03:01 2014
+From: mitch-jemalloc-discuss at bodyfour.com (Mitchell Blank Jr)
+Date: Sat, 11 Oct 2014 22:03:01 -0700
+Subject: Coverity scan results
+In-Reply-To: <111179CA-6C7F-42A6-9C1E-67621412E49A@canonware.com>
+References: <CAMAQhePcos=WLcK82xT+9dhWR+c_oZMZ5uEA4BRWtW+XQPUUew@mail.gmail.com>
+	<111179CA-6C7F-42A6-9C1E-67621412E49A@canonware.com>
+Message-ID: <CAJXinN96hT+=S8dsBnW7PVOQ6OQfj+8RpuBRqsDOSvgWUYP81Q@mail.gmail.com>
+
+> >>>>    Calling "malloc_init" without checking return value (as is done elsewhere 10 out of 11 times).
+> > 1978            malloc_init();
+>
+> There are no actionable consequences to this call failing.
+
+I'm pretty sure if you explicitly ignore the return value of the call
+with a cast-to-void Coverity will be satisfied.  It also nicely
+documents that you're intentionally ignoring it.
+
+-Mitch
+
+From daver at couchbase.com  Tue Oct 14 09:13:05 2014
+From: daver at couchbase.com (David Rigby)
+Date: Tue, 14 Oct 2014 16:13:05 +0000
+Subject: RFC: TCMalloc-style new/delete hooks
+Message-ID: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+
+Hi,
+
+We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+
+One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc?s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application. 
+
+We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread?s current bucket from TLS and increment/decrement the total used as appropriate.
+
+To allow us to work with jemalloc, I?ve implemented[1] equivalent functionality in jemalloc.
+
+I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I?m proposing setting narenas=1 when we deploy).
+
+How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream? 
+
+
+Thanks,
+
+Dave Rigby
+
+
+[1]: https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5
+
+From danielmicay at gmail.com  Tue Oct 14 09:23:36 2014
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Tue, 14 Oct 2014 12:23:36 -0400
+Subject: RFC: TCMalloc-style new/delete hooks
+In-Reply-To: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+References: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+Message-ID: <543D4E08.50903@gmail.com>
+
+On 14/10/14 12:13 PM, David Rigby wrote:
+> Hi,
+> 
+> We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+> 
+> One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc?s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application. 
+> 
+> We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread?s current bucket from TLS and increment/decrement the total used as appropriate.
+> 
+> To allow us to work with jemalloc, I?ve implemented[1] equivalent functionality in jemalloc.
+> 
+> I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I?m proposing setting narenas=1 when we deploy).
+> 
+> How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream? 
+> 
+> 
+> Thanks,
+> 
+> Dave Rigby
+
+It seems like you could accomplish the same thing by setting a jemalloc
+prefix and then making wrappers without the prefix externally.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141014/aea7688c/attachment.sig>
+
+From paul at mad-scientist.net  Tue Oct 14 09:32:30 2014
+From: paul at mad-scientist.net (Paul Smith)
+Date: Tue, 14 Oct 2014 12:32:30 -0400
+Subject: RFC: TCMalloc-style new/delete hooks
+In-Reply-To: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+References: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+Message-ID: <1413304350.16984.2.camel@mad-scientist.net>
+
+On Tue, 2014-10-14 at 16:13 +0000, David Rigby wrote:
+> How would you (Jason?) feel about merging this patch, or something
+> conceptually similar into upstream?
+
+This implementation looks pretty thread-unsafe... FWIW...
+
+
+From daver at couchbase.com  Tue Oct 14 10:18:31 2014
+From: daver at couchbase.com (David Rigby)
+Date: Tue, 14 Oct 2014 17:18:31 +0000
+Subject: RFC: TCMalloc-style new/delete hooks
+In-Reply-To: <543D4E08.50903@gmail.com>
+References: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>,
+	<543D4E08.50903@gmail.com>
+Message-ID: <D21510B3-813E-4230-B388-208981E2FDCB@couchbase.com>
+
+
+
+- Dave
+
+> On 14 Oct 2014, at 17:23, Daniel Micay <danielmicay at gmail.com> wrote:
+> 
+>> On 14/10/14 12:13 PM, David Rigby wrote:
+>> Hi,
+>> 
+>> We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+>> 
+>> One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc?s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application. 
+>> 
+>> We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread?s current bucket from TLS and increment/decrement the total used as appropriate.
+>> 
+>> To allow us to work with jemalloc, I?ve implemented[1] equivalent functionality in jemalloc.
+>> 
+>> I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I?m proposing setting narenas=1 when we deploy).
+>> 
+>> How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream? 
+>> 
+>> 
+>> Thanks,
+>> 
+>> Dave Rigby
+> 
+> It seems like you could accomplish the same thing by setting a jemalloc
+> prefix and then making wrappers without the prefix externally.
+> 
+
+So one added difficulty (which I should have mentioned) is Windows, where it doesn?t appear possible to interpose malloc et al like you can on most *ix systems.
+
+Hence on Windows we will potentially stick to TCMalloc (which does a bunch of funky runtime-patching to interpose malloc), and would like to have a similar interface on with jemalloc (on *ix).
+
+DaveR
+
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+From daver at couchbase.com  Tue Oct 14 10:19:14 2014
+From: daver at couchbase.com (David Rigby)
+Date: Tue, 14 Oct 2014 17:19:14 +0000
+Subject: RFC: TCMalloc-style new/delete hooks
+In-Reply-To: <1413304350.16984.2.camel@mad-scientist.net>
+References: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>,
+	<1413304350.16984.2.camel@mad-scientist.net>
+Message-ID: <40A99521-9102-45B2-9376-7EBE7B1840EE@couchbase.com>
+
+> 
+> On 14 Oct 2014, at 17:33, Paul Smith <paul at mad-scientist.net> wrote:
+> 
+>> On Tue, 2014-10-14 at 16:13 +0000, David Rigby wrote:
+>> How would you (Jason?) feel about merging this patch, or something
+>> conceptually similar into upstream?
+> 
+> This implementation looks pretty thread-unsafe... FWIW...
+> 
+
+Agreed - it?s really a proof-of-concept - in my use-case I just install the new/delete hooks once on startup and basically leave them there until the end of the program.
+
+I wanted to at least see if people would accept the concept before adding appropriate thread-safety.
+
+
+
+DaveR
+
+From jasone at canonware.com  Tue Oct 14 10:55:01 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 14 Oct 2014 10:55:01 -0700
+Subject: RFC: TCMalloc-style new/delete hooks
+In-Reply-To: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+References: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+Message-ID: <C38863F2-75C3-4192-AC55-E322CBD1AF7A@canonware.com>
+
+On Oct 14, 2014, at 9:13 AM, David Rigby <daver at couchbase.com> wrote:
+> We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+> 
+> One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc?s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application. 
+> 
+> We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread?s current bucket from TLS and increment/decrement the total used as appropriate.
+> 
+> To allow us to work with jemalloc, I?ve implemented[1] equivalent functionality in jemalloc.
+> 
+> I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I?m proposing setting narenas=1 when we deploy).
+> 
+> How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream? 
+> 
+> [1]: https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5
+
+I have some concerns about this functionality that have kept me from adding it so far:
+
+- It adds yet another branch to the fast path, whereas if you create your own wrappers and mangle jemalloc's API, it imposes no cost on applications which don't need hooks.
+- It's really tricky (and requires a messy API) to support hooks that get called for all allocations from the beginning of program execution.  I don't know of a way to pull this off short of exposing weak function pointer symbols that can be overridden during static linking or dynamic loading.
+- It can result in really surprising "impossible" behavior if the compiler makes assumptions about globally visible side effects, as does gcc.  In order to make hooks generally safe, the application must be compiled with -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free.  Other compilers potentially have similar issues, possibly without escape hatches.  I worry that hooks add a documentation burden on jemalloc, and that people will repeatedly fail to take note of this requirement, leaving them with the impression that jemalloc is somehow flakey.
+
+Jason
+
+From jasone at canonware.com  Tue Oct 14 15:09:27 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 14 Oct 2014 15:09:27 -0700
+Subject: arenas.extend + thread.arena confusion
+In-Reply-To: <4F34B83B-F940-4635-BAAD-24BE60C614C6@indiana.edu>
+References: <CA09F458-071F-4483-A786-FAA5F5AEBC0B@indiana.edu>
+	<53B0CB1C-1CBC-40D6-9FC7-0BE8A887BA7F@canonware.com>
+	<4F34B83B-F940-4635-BAAD-24BE60C614C6@indiana.edu>
+Message-ID: <0F400DEB-827B-4C18-9772-EBEC6C41A101@canonware.com>
+
+On Oct 1, 2014, at 5:45 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> [...]
+> 
+> As you might imagine, I?m running into an issue where dallocx with MALLOCX_ARENA() set is caching allocations when I don?t want them to be cached. I have to embed and distribute a slightly modified jemalloc where I comment out the optimistic caching in dallocx and rallocx. A different BYPASS_CACHE flag would be useful here, but it?s not an urgent issue.
+
+I created a new issue to track this:
+
+	https://github.com/jemalloc/jemalloc/issues/145
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Oct 14 15:15:55 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 14 Oct 2014 15:15:55 -0700
+Subject: network registered memory and pages_purge()
+In-Reply-To: <23ADB05E-D4CB-405C-BECD-7D61F4F9BEC8@indiana.edu>
+References: <3E99DB95-A42D-4874-B3E6-FAB4A929985D@indiana.edu>
+	<1021CDE6-BFE2-4E7E-8FBD-43FF638FF1B7@canonware.com>
+	<E2655E99-48B1-4C5E-9C75-8AA6BCF17159@indiana.edu>
+	<1F816C01-314A-4FFB-9B07-B43455A35983@canonware.com>
+	<23ADB05E-D4CB-405C-BECD-7D61F4F9BEC8@indiana.edu>
+Message-ID: <16551403-8C60-40AB-AEC4-62489FCDE608@canonware.com>
+
+On Jul 17, 2014, at 1:27 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> On Jul 17, 2014, at 3:52 PM, Jason Evans <jasone at canonware.com> wrote:
+>> On Jul 17, 2014, at 11:13 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>> It would be nice to have allocx() dallocx() take a ?cache? reference instead of an arena reference, with the cache configured with arenas to handle cache misses or something to deal with multithreaded-accesses. Other than that we really like using the library and as long as our network memory doesn?t move between cores frequently, this works well.
+>> 
+>> Are you suggesting a system in which each cache is uniquely identified, or one in which every thread potentially has indexable caches [0, 1, 2, ...]?  I've given some thought to something similar to the latter: each thread invisibly has a cache layered on top of any arena which is explicitly used for allocation.  I'm still in the idea phase on this, so I'm really interested to hear any insights you have.
+> 
+> I haven?t thought it through very hard. :-)
+> 
+> The problem I?m trying to deal with is that we have arenas associated with different memories?call them address spaces for now. I want to be able to allocate and free from address spaces independently (with the extended interface), and have caching work. There may be more than one arena per address space, in fact, I?d guess that each thread would have at least one arena for each address space. Having to bypass the cache right now is bad for us because we start to thrash the allocator with allocx/dallocx from different places, so I?d like to be able to cache based on address space.
+> 
+> I think that corresponds to your indexable cache?
+
+It has taken some time, but I think I understand the pain points and use cases surrounding thread caches well enough now to have a solid plan of action.  Tracking issue:
+
+	https://github.com/jemalloc/jemalloc/issues/145
+
+Thanks,
+Jason
+
+From ldalessa at indiana.edu  Tue Oct 14 17:59:35 2014
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 15 Oct 2014 00:59:35 +0000
+Subject: arenas.extend + thread.arena confusion
+In-Reply-To: <0F400DEB-827B-4C18-9772-EBEC6C41A101@canonware.com>
+References: <CA09F458-071F-4483-A786-FAA5F5AEBC0B@indiana.edu>
+	<53B0CB1C-1CBC-40D6-9FC7-0BE8A887BA7F@canonware.com>
+	<4F34B83B-F940-4635-BAAD-24BE60C614C6@indiana.edu>
+	<0F400DEB-827B-4C18-9772-EBEC6C41A101@canonware.com>
+Message-ID: <3FAB343C-014C-4A80-A2B1-64AB2005304E@indiana.edu>
+
+
+On Oct 14, 2014, at 6:09 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Oct 1, 2014, at 5:45 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> [...]
+>> 
+>> As you might imagine, I?m running into an issue where dallocx with MALLOCX_ARENA() set is caching allocations when I don?t want them to be cached. I have to embed and distribute a slightly modified jemalloc where I comment out the optimistic caching in dallocx and rallocx. A different BYPASS_CACHE flag would be useful here, but it?s not an urgent issue.
+> 
+> I created a new issue to track this:
+> 
+> 	https://github.com/jemalloc/jemalloc/issues/145
+
+Thanks Jason. I?m slightly confused about some of the statements in this issue. I left a comment describing my confusion with the issue itself.
+
+Luke
+
+From ldalessa at indiana.edu  Tue Oct 14 18:02:57 2014
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 15 Oct 2014 01:02:57 +0000
+Subject: network registered memory and pages_purge()
+In-Reply-To: <16551403-8C60-40AB-AEC4-62489FCDE608@canonware.com>
+References: <3E99DB95-A42D-4874-B3E6-FAB4A929985D@indiana.edu>
+	<1021CDE6-BFE2-4E7E-8FBD-43FF638FF1B7@canonware.com>
+	<E2655E99-48B1-4C5E-9C75-8AA6BCF17159@indiana.edu>
+	<1F816C01-314A-4FFB-9B07-B43455A35983@canonware.com>
+	<23ADB05E-D4CB-405C-BECD-7D61F4F9BEC8@indiana.edu>
+	<16551403-8C60-40AB-AEC4-62489FCDE608@canonware.com>
+Message-ID: <E6690F7C-0E7B-4238-BAF8-AAF024547EF2@indiana.edu>
+
+
+On Oct 14, 2014, at 6:15 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jul 17, 2014, at 1:27 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> On Jul 17, 2014, at 3:52 PM, Jason Evans <jasone at canonware.com> wrote:
+>>> On Jul 17, 2014, at 11:13 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>>> It would be nice to have allocx() dallocx() take a ?cache? reference instead of an arena reference, with the cache configured with arenas to handle cache misses or something to deal with multithreaded-accesses. Other than that we really like using the library and as long as our network memory doesn?t move between cores frequently, this works well.
+>>> 
+>>> Are you suggesting a system in which each cache is uniquely identified, or one in which every thread potentially has indexable caches [0, 1, 2, ...]?  I've given some thought to something similar to the latter: each thread invisibly has a cache layered on top of any arena which is explicitly used for allocation.  I'm still in the idea phase on this, so I'm really interested to hear any insights you have.
+>> 
+>> I haven?t thought it through very hard. :-)
+>> 
+>> The problem I?m trying to deal with is that we have arenas associated with different memories?call them address spaces for now. I want to be able to allocate and free from address spaces independently (with the extended interface), and have caching work. There may be more than one arena per address space, in fact, I?d guess that each thread would have at least one arena for each address space. Having to bypass the cache right now is bad for us because we start to thrash the allocator with allocx/dallocx from different places, so I?d like to be able to cache based on address space.
+>> 
+>> I think that corresponds to your indexable cache?
+> 
+> It has taken some time, but I think I understand the pain points and use cases surrounding thread caches well enough now to have a solid plan of action.  Tracking issue:
+> 
+> 	https://github.com/jemalloc/jemalloc/issues/145
+
+Thanks Jason,
+
+This seems to be a good representation of the issue. Creating a thread cache, and explicitly associating an arena with it that has a custom chunk allocator would solve our problem. I would then be able to manage our network address space as an independent entity by providing a network arena and cache to each thread, and then explicitly using it for network allocation without having to sacrifice scalable performance for normal allocations, or vice versa.
+
+This would eliminate lots of hacks that I have going at the moment.
+
+:-)
+
+Luke
+
+
+From antirez at gmail.com  Wed Oct 15 02:14:08 2014
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Wed, 15 Oct 2014 11:14:08 +0200
+Subject: RFC: TCMalloc-style new/delete hooks
+In-Reply-To: <C38863F2-75C3-4192-AC55-E322CBD1AF7A@canonware.com>
+References: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+	<C38863F2-75C3-4192-AC55-E322CBD1AF7A@canonware.com>
+Message-ID: <CA+XzkVdNMeSSzeQH_nkU+o41kW8_pA-+-ypdX09nGXorMszuAg@mail.gmail.com>
+
+My 2 cents are that, at least for Redis, creating application-level
+wrappers was a better strategy.
+For memory tracking tasks, the application-level approach helped to
+abstract away the logic from the allocator itself, so that different
+allocators can be used: when the allocator used has certain low-level
+functionalities they are exploited (for example,
+je_malloc_usable_size). When the task is instead objects cleanup, my
+opinion is that most of the times you also need to implement some way
+to also deal with multiple references, which is, reference counting,
+so an higher layer is also the best fit.
+
+Salvatore
+
+
+
+On Tue, Oct 14, 2014 at 7:55 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Oct 14, 2014, at 9:13 AM, David Rigby <daver at couchbase.com> wrote:
+>> We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+>>
+>> One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc?s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application.
+>>
+>> We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread?s current bucket from TLS and increment/decrement the total used as appropriate.
+>>
+>> To allow us to work with jemalloc, I?ve implemented[1] equivalent functionality in jemalloc.
+>>
+>> I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I?m proposing setting narenas=1 when we deploy).
+>>
+>> How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream?
+>>
+>> [1]: https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5
+>
+> I have some concerns about this functionality that have kept me from adding it so far:
+>
+> - It adds yet another branch to the fast path, whereas if you create your own wrappers and mangle jemalloc's API, it imposes no cost on applications which don't need hooks.
+> - It's really tricky (and requires a messy API) to support hooks that get called for all allocations from the beginning of program execution.  I don't know of a way to pull this off short of exposing weak function pointer symbols that can be overridden during static linking or dynamic loading.
+> - It can result in really surprising "impossible" behavior if the compiler makes assumptions about globally visible side effects, as does gcc.  In order to make hooks generally safe, the application must be compiled with -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free.  Other compilers potentially have similar issues, possibly without escape hatches.  I worry that hooks add a documentation burden on jemalloc, and that people will repeatedly fail to take note of this requirement, leaving them with the impression that jemalloc is somehow flakey.
+>
+> Jason
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - GoPivotal
+http://invece.org
+
+"Fear makes the wolf bigger than he is."
+       ? German proverb
+
+From daver at couchbase.com  Wed Oct 15 02:54:24 2014
+From: daver at couchbase.com (David Rigby)
+Date: Wed, 15 Oct 2014 09:54:24 +0000
+Subject: RFC: TCMalloc-style new/delete hooks
+In-Reply-To: <C38863F2-75C3-4192-AC55-E322CBD1AF7A@canonware.com>
+References: <712D85B8-F3D0-483B-A87F-9ED4976E62C6@couchbase.com>
+	<C38863F2-75C3-4192-AC55-E322CBD1AF7A@canonware.com>
+Message-ID: <9C0A6523-6C0D-4375-B08C-CFADA3F878DB@couchbase.com>
+
+
+On 14 Oct 2014, at 18:55, Jason Evans <jasone at canonware.com> wrote:
+
+> On Oct 14, 2014, at 9:13 AM, David Rigby <daver at couchbase.com> wrote:
+>> We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+>> 
+>> One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc?s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application. 
+>> 
+>> We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread?s current bucket from TLS and increment/decrement the total used as appropriate.
+>> 
+>> To allow us to work with jemalloc, I?ve implemented[1] equivalent functionality in jemalloc.
+>> 
+>> I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I?m proposing setting narenas=1 when we deploy).
+>> 
+>> How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream? 
+>> 
+>> [1]: https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5
+> 
+> I have some concerns about this functionality that have kept me from adding it so far:
+> 
+> - It adds yet another branch to the fast path, whereas if you create your own wrappers and mangle jemalloc's API, it imposes no cost on applications which don't need hooks.
+> - It's really tricky (and requires a messy API) to support hooks that get called for all allocations from the beginning of program execution.  I don't know of a way to pull this off short of exposing weak function pointer symbols that can be overridden during static linking or dynamic loading.
+> - It can result in really surprising "impossible" behavior if the compiler makes assumptions about globally visible side effects, as does gcc.  In order to make hooks generally safe, the application must be compiled with -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free.  Other compilers potentially have similar issues, possibly without escape hatches.  I worry that hooks add a documentation burden on jemalloc, and that people will repeatedly fail to take note of this requirement, leaving them with the impression that jemalloc is somehow flakey.
+> 
+
+Thanks for the detailed comments - I appreciate the concerns from the jemalloc side of things on adding such a feature.
+
+One complication from my side (which admittedly isn?t directly related to jemalloc) is that I need to support OS X, Windows and Linux. With TCMalloc this is straightforward: I simply link it in and take advantage of (a) it?s automatic malloc replacement on every platform (runtime patching, OS X zone replacement or ELF symbol prescience) and (b) callbacks on new/delete.
+
+To deploy jemalloc things get much more complex:
+
+a) No malloc replacement on Windows
+b) No callbacks on new/delete
+
+I?m still investigating the best way to solve (a) - I don?t really fancy porting all the C++ runtime patching code to C/jemalloc but if we want to use jemalloc on Windows this might be the best solution.
+
+For (b) if I don?t add callbacks to jemalloc and instead write my own wrappers, I then need to ensure these are used - trivial on Linux, but on OS X I?ll need to clone a bunch of the zone code from jemalloc to add my own zone with the wrapper functions.
+
+I?ll probably go down the wrapper route, but if nothing else this does highlight some integration pain-points which jemalloc has compared to TCmalloc, particularly if people are migrating from TCmalloc to jemalloc.
+
+
+Thanks,
+
+Dave Rigby
+
+
+From ggp at mozilla.com  Thu Oct 30 15:45:47 2014
+From: ggp at mozilla.com (Guilherme Goncalves)
+Date: Thu, 30 Oct 2014 15:45:47 -0700 (PDT)
+Subject: Supporting 'bookkeeping' and 'bin_unused' memory reporters in Gecko
+In-Reply-To: <1731748031.30019123.1414707600691.JavaMail.zimbra@mozilla.com>
+Message-ID: <326229254.30021473.1414709147485.JavaMail.zimbra@mozilla.com>
+
+Hello,
+
+Our memory reporting tools in Gecko rely on two statistics that don't seem straightforward
+to obtain on latest jemalloc: "bookkeeping" and "bin_unused".
+
+"bookkeeping" is defined as "Committed bytes which the heap allocator uses for internal data
+structures." [1], and is currently calculated in our mozjemalloc as the total memory used by
+all arena and chunk headers. As the comment in [2] suggests, it looks like this could be
+computed by adding up all base allocations in jemalloc3.
+
+"bin_unused" is defined as "Bytes reserved for bins of fixed-size allocations which do not
+correspond to an active allocation." [3], and is computed in mozjemalloc by adding up the product
+of each bin's number of free regions by their size.
+
+I don't see a suitable mallctl call that would give us the information we need to compute these
+metrics. Would it be possible to expose that information as statistics?
+
+The associated Gecko bug for this is https://bugzilla.mozilla.org/show_bug.cgi?id=899126 .
+
+Thanks!
+
+1- http://dxr.mozilla.org/mozilla-central/source/xpcom/base/nsMemoryReporterManager.cpp#798
+2- http://dxr.mozilla.org/mozilla-central/source/memory/build/mozjemalloc_compat.c?from=memory/build/mozjemalloc_compat.c#93
+3- http://dxr.mozilla.org/mozilla-central/source/xpcom/base/nsMemoryReporterManager.cpp#780
+
+-- 
+Guilherme
+

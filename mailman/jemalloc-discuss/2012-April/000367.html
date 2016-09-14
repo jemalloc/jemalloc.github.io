@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Add support for MSVC
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Add%20support%20for%20MSVC&In-Reply-To=%3C20120430104907.GA8419%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000366.html">
+   <LINK REL="Next"  HREF="000359.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Add support for MSVC</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Add%20support%20for%20MSVC&In-Reply-To=%3C20120430104907.GA8419%40glandium.org%3E"
+       TITLE="[PATCH 7/7] Add support for MSVC">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 30 03:49:07 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000366.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+        <LI>Next message: <A HREF="000359.html">[PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#367">[ date ]</a>
+              <a href="thread.html#367">[ thread ]</a>
+              <a href="subject.html#367">[ subject ]</a>
+              <a href="author.html#367">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Apr 30, 2012 at 12:44:48PM +0200, Mike Hommey wrote:
+&gt;<i> On Mon, Apr 30, 2012 at 12:38:31PM +0200, Mike Hommey wrote:
+</I>&gt;<i> &gt; From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; Tested with MSVC 8 32 and 64 bits.
+</I>&gt;<i> 
+</I>&gt;<i> BTW, MSVC gives some interesting warnings, some of which might be worth
+</I>&gt;<i> investigating (especially the C4146 ones).
+</I>&gt;<i> 
+</I>&gt;<i> I'm attaching a log for each of 32 and 64 bits builds.
+</I>
+Erf, I overlooked these logs, some of the warning comes from patch 7/7.
+Please squash the following when applying:
+
+diff --git a/include/jemalloc/internal/atomic.h b/include/jemalloc/internal/atomic.h
+index 4b6f623..286b457 100644
+--- a/include/jemalloc/internal/atomic.h
++++ b/include/jemalloc/internal/atomic.h
+@@ -57,7 +57,7 @@ atomic_add_uint64(uint64_t *p, uint64_t x)
+ JEMALLOC_INLINE uint64_t
+ atomic_sub_uint64(uint64_t *p, uint64_t x)
+ {
+-       return InterlockedExchangeAdd64(p, -x);
++       return InterlockedExchangeAdd64(p, -((int64_t)x));
+ }
+ #elif (defined(JEMALLOC_OSATOMIC))
+ JEMALLOC_INLINE uint64_t
+@@ -167,7 +167,7 @@ atomic_add_uint32(uint32_t *p, uint32_t x)
+ JEMALLOC_INLINE uint32_t
+ atomic_sub_uint32(uint32_t *p, uint32_t x)
+ {
+-       return InterlockedExchangeAdd(p, -x);
++       return InterlockedExchangeAdd(p, -((int32_t)x));
+ }
+ #elif (defined(JEMALLOC_OSATOMIC))
+ JEMALLOC_INLINE uint32_t
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000366.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+	<LI>Next message: <A HREF="000359.html">[PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#367">[ date ]</a>
+              <a href="thread.html#367">[ thread ]</a>
+              <a href="subject.html#367">[ subject ]</a>
+              <a href="author.html#367">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

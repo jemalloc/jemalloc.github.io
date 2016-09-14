@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Enabling profiling causes hang?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3C317645FD-ECD6-498E-9B2B-C14EA3545182%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001029.html">
+   <LINK REL="Next"  HREF="001044.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Enabling profiling causes hang?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3C317645FD-ECD6-498E-9B2B-C14EA3545182%40canonware.com%3E"
+       TITLE="Enabling profiling causes hang?">jasone at canonware.com
+       </A><BR>
+    <I>Mon Feb  9 15:23:44 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001029.html">Enabling profiling causes hang?
+</A></li>
+        <LI>Next message: <A HREF="001044.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1030">[ date ]</a>
+              <a href="thread.html#1030">[ thread ]</a>
+              <a href="subject.html#1030">[ subject ]</a>
+              <a href="author.html#1030">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 9, 2015, at 3:11 PM, Brock Pytlik &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">brock.pytlik at gmail.com</A>&gt; wrote:
+&gt;<i> Well, I thought it would handle what I needed, but I can't seem to get it to produce a dump. Here's what I did:
+</I>&gt;<i> From my experiments on x86, it seems like prof:true needs to be part of MALLOC_CONF for lg_prof_interval to work at all. However, when I set prof:true on arm, ardb hangs in the atexit code. This happens even when I set prof_final to false. To be clear this command hangs (on arm):
+</I>&gt;<i> MALLOC_CONF=prof:true,lg_prof_interval:2,prof_final:false ardb-server ardb.conf
+</I>
+Oh, whoops, I forgot that in the dev branch I refactored the prof bootstrapping code to make the atexit() call conditional, but in 3.6.0 the call always happens if prof:true is set.  I think you will have to hack jemalloc in order to work around this.
+
+&gt;<i> I'm confused about a couple of things:
+</I>&gt;<i> 1) Why it works on x86 and not arm (and whether that means the cross compiling build for arm has some issues).
+</I>
+I haven't dug into this, but I'm assuming that this is an arbitrary implementation difference in the libc being used on ARM, possibly motivated by the desire to reduce the data segment size and only pay for internal atexit() metadata overhead if the functionality is actually used.  I'm not very familiar with ARM-specific development, but I get the impression that there are multiple stripped down libc implementations in use.
+
+&gt;<i> If these are things that are fixed in the gate tip of jemalloc, I'd also be happy to try changing ardb to use that (assuming it's largely a drop in replacement).
+</I>&gt;<i> 
+</I>&gt;<i> Any suggestions on where I go next?
+</I>
+Assuming that your current goal is simply to get heap profiles and diagnose a leak, I'd recommend just trying to use the dev version of jemalloc.  If that doesn't work for some reason, then disabling the atexit() call in jemalloc's src/prof.c and rebuilding will probably be enough to get you what you need.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150209/222bd896/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150209/222bd896/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001029.html">Enabling profiling causes hang?
+</A></li>
+	<LI>Next message: <A HREF="001044.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1030">[ date ]</a>
+              <a href="thread.html#1030">[ thread ]</a>
+              <a href="subject.html#1030">[ subject ]</a>
+              <a href="author.html#1030">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

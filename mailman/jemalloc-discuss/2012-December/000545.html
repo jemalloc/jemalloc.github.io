@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> valgrind 3.8.1 warning in jemalloc 3.2
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C0BF8D98D-3A45-4DC7-9EE3-A5E4474210A6%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000544.html">
+   <LINK REL="Next"  HREF="000546.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>valgrind 3.8.1 warning in jemalloc 3.2</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C0BF8D98D-3A45-4DC7-9EE3-A5E4474210A6%40canonware.com%3E"
+       TITLE="valgrind 3.8.1 warning in jemalloc 3.2">jasone at canonware.com
+       </A><BR>
+    <I>Wed Dec 12 10:07:53 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000544.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+        <LI>Next message: <A HREF="000546.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#545">[ date ]</a>
+              <a href="thread.html#545">[ thread ]</a>
+              <a href="subject.html#545">[ subject ]</a>
+              <a href="author.html#545">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Dec 12, 2012, at 10:01 AM, Daniel Mezzatto Rodrigues &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">danielm at buscape-inc.com</A>&gt; wrote:
+&gt;<i> Configuring jemalloc with --enable-munmap made valgrind error messages vanish! No more error messages as far as I could test.
+</I>&gt;<i> 
+</I>&gt;<i> Are there any disadvantages of using --enable-munmap? I see that it enables virtual memory deallocation via munmap. It seens that it was enabled by default in previous version of jemalloc. Is that correct?
+</I>
+The disadvantage of using --enable-munmap on Linux is that the kernel's heuristics for finding available virtual memory are quite naive, and they routinely result in virtual memory map fragmentation.  That wouldn't be a big deal, except that the kernel also uses linear VM map searches for some common operations, so performance can suffer badly for large-memory applications.
+
+&gt;<i> Will you change this VALGRIND_MAKE_MEM_UNDEFINED() call in chunk_recycle() so that configuring jemalloc with --enable-munmap won't be in future versions?
+</I>
+Yes, I will fix chunk_recycle() and include the fix in the next jemalloc release.  Thank you for your bug report and help in diagnosing the cause.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000544.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+	<LI>Next message: <A HREF="000546.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#545">[ date ]</a>
+              <a href="thread.html#545">[ thread ]</a>
+              <a href="subject.html#545">[ subject ]</a>
+              <a href="author.html#545">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

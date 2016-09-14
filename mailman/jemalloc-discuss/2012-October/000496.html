@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> how to compile using Visual Studio?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20how%20to%20compile%20using%20Visual%20Studio%3F&In-Reply-To=%3C20121031151013.GA5292%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000495.html">
+   <LINK REL="Next"  HREF="000497.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>how to compile using Visual Studio?</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20how%20to%20compile%20using%20Visual%20Studio%3F&In-Reply-To=%3C20121031151013.GA5292%40glandium.org%3E"
+       TITLE="how to compile using Visual Studio?">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Oct 31 08:10:13 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000495.html">how to compile using Visual Studio?
+</A></li>
+        <LI>Next message: <A HREF="000497.html">how to compile using Visual Studio?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#496">[ date ]</a>
+              <a href="thread.html#496">[ thread ]</a>
+              <a href="subject.html#496">[ subject ]</a>
+              <a href="author.html#496">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Oct 31, 2012 at 07:19:43AM -0700, Bob Price wrote:
+&gt;<i> I have been trying unsuccessfully to compile jemalloc with Visual
+</I>&gt;<i> Studio 10.0 and 11.0 with no luck.
+</I>&gt;<i> 
+</I>&gt;<i> The files and website mention mingw and windows separately, and the
+</I>&gt;<i> msvc_compat headers seem targeted for this, so I assume that it is
+</I>&gt;<i> possible.
+</I>&gt;<i> 
+</I>&gt;<i> What I want to do is setup jemalloc with a unique prefix on the public
+</I>&gt;<i> methods and compile it to a static library to be able to use it as the
+</I>&gt;<i> memory allocator for just one part of a larger 64-bit application.
+</I>&gt;<i> 
+</I>&gt;<i> Can anyone give me some guidance here?
+</I>&gt;<i> 
+</I>&gt;<i> What I have tried so far is as follows, using the current 3.1.0
+</I>&gt;<i> download:
+</I>&gt;<i> 
+</I>&gt;<i> Since I couldn't find a way to do this on Windows, I used a 64-bit
+</I>&gt;<i> Linux box and ran ./configure --with-jemalloc-prefix=je_
+</I>&gt;<i> --with-private-namespace=jeint_ to (hopefully) get all the header
+</I>&gt;<i> files in the desired state.&#160; Then I copied everything over to a 64-bit
+</I>&gt;<i> Windows7 with the MS SDK and Visual Studio installed, and I borrowed a
+</I>&gt;<i> makefile I use on another C library and updated the options to include
+</I>&gt;<i> the jemalloc include and include/msvc_compat directories, and to
+</I>&gt;<i> ensure that _WIN32 is defined, and set it up to compile all C code in
+</I>&gt;<i> src. 
+</I>&gt;<i> 
+</I>&gt;<i> When I run this and it tries to compile arena.c I get all kinds of
+</I>&gt;<i> redefinition errors and warnings from msvc_compat\stdint.h and then
+</I>&gt;<i> many syntax errors in include\jemalloc\internal\jemalloc.h.
+</I>&gt;<i> 
+</I>&gt;<i> I suspect that the issue results from the configure on a Linux system,
+</I>&gt;<i> but instead of spending hours trying to understand how to manually do
+</I>&gt;<i> this for Windows VS I hope that someone here can get me going much
+</I>&gt;<i> more quickly.
+</I>
+You need a shell environment on your windows box. I don't think cygwin
+is supported, so you might have to install msys. From a msys shell, just
+run the configure script, making sure cl.exe is in the PATH. IIRC,
+that's about all you need.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000495.html">how to compile using Visual Studio?
+</A></li>
+	<LI>Next message: <A HREF="000497.html">how to compile using Visual Studio?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#496">[ date ]</a>
+              <a href="thread.html#496">[ thread ]</a>
+              <a href="subject.html#496">[ subject ]</a>
+              <a href="author.html#496">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

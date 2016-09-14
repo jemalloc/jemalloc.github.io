@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc coring in je_bitmap_set
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20coring%20in%20je_bitmap_set&In-Reply-To=%3CCY1PR0501MB11782CF052D618F4CFC1002B95F40%40CY1PR0501MB1178.namprd05.prod.outlook.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001083.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc coring in je_bitmap_set</H1>
+    <B>Paul Marquess</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20coring%20in%20je_bitmap_set&In-Reply-To=%3CCY1PR0501MB11782CF052D618F4CFC1002B95F40%40CY1PR0501MB1178.namprd05.prod.outlook.com%3E"
+       TITLE="jemalloc coring in je_bitmap_set">Paul.Marquess at owmobility.com
+       </A><BR>
+    <I>Tue Mar 31 05:49:10 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001083.html">realloc stack use under O0 for x86_64
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1084">[ date ]</a>
+              <a href="thread.html#1084">[ thread ]</a>
+              <a href="subject.html#1084">[ subject ]</a>
+              <a href="author.html#1084">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Lately I've got reports of one of our server applications coring in je_bitmap_set. 
+
+There is a common pattern with the stack traces from all the cores.  Starting at the call to malloc the stack trace is always the same (shown below). The frames leading up to the call to malloc don't show any common pattern, plus there is nothing immediately obvious in the application code that calls malloc. We are running a standard jemalloc 3.6.0 on a 64-bit Redhat 6.4
+
+This issue cannot be reproduced in our test setup, so I'm looking for ideas on how to root cause the issue from the core file.  
+
+Here are details on my analysis to date
+
+#0&#160; 0x00002b997a4a65df in je_bitmap_set (bit=18446744073709551555, 
+&#160;&#160;&#160; binfo=0x2b997a6d1540 &lt;je_arena_bin_info+768&gt;, bitmap=0x2b999e660010)
+&#160;&#160;&#160; at include/jemalloc/internal/bitmap.h:101
+#1&#160; je_bitmap_sfu (binfo=0x2b997a6d1540 &lt;je_arena_bin_info+768&gt;, 
+&#160;&#160;&#160; bitmap=0x2b999e660010) at include/jemalloc/internal/bitmap.h:140
+#2&#160; arena_run_reg_alloc (bin_info=0x2b997a6d1518 &lt;je_arena_bin_info+728&gt;, 
+&#160;&#160;&#160; run=0x2b999e660000) at src/arena.c:291
+#3&#160; je_arena_tcache_fill_small (arena=0x2b997b07f700, tbin=0x2b99a5406108, 
+&#160;&#160;&#160; binind=7, prof_accumbytes=&lt;optimized out&gt;) at src/arena.c:1479
+#4&#160; 0x00002b997a4c55af in je_tcache_alloc_small_hard (tcache=&lt;optimized out&gt;, 
+&#160;&#160;&#160; tbin=0x2b99a5406108, binind=&lt;optimized out&gt;) at src/tcache.c:72
+#5&#160; 0x00002b997a49a3fd in je_tcache_alloc_small (size=&lt;optimized out&gt;, 
+&#160;&#160;&#160; tcache=0x2b99a5406000, zero=false)
+&#160;&#160;&#160; at include/jemalloc/internal/tcache.h:303
+#6&#160; je_arena_malloc (try_tcache=true, zero=false, size=&lt;optimized out&gt;, 
+&#160;&#160;&#160; arena=0x0) at include/jemalloc/internal/arena.h:957
+#7&#160; je_imalloct (arena=0x0, try_tcache=true, size=&lt;optimized out&gt;)
+&#160;&#160;&#160; at include/jemalloc/internal/jemalloc_internal.h:771
+#8&#160; je_imalloc (size=&lt;optimized out&gt;)
+&#160;&#160;&#160; at include/jemalloc/internal/jemalloc_internal.h:780
+#9&#160; malloc (size=&lt;optimized out&gt;) at src/jemalloc.c:929
+
+The core is triggered at line 101 of bitmap_set below
+
+88        JEMALLOC_INLINE void
+89        bitmap_set(bitmap_t *bitmap, const bitmap_info_t *binfo, size_t bit)
+90        {
+91                size_t goff;
+92                bitmap_t *gp;
+93                bitmap_t g;
+94        
+95                assert(bit &lt; binfo-&gt;nbits);
+96                assert(bitmap_get(bitmap, binfo, bit) == false);
+97                goff = bit &gt;&gt; LG_BITMAP_GROUP_NBITS;
+98                gp = &amp;bitmap[goff];
+99                g = *gp;
+100              assert(g &amp; (1LU &lt;&lt; (bit &amp; BITMAP_GROUP_NBITS_MASK)));
+101              g ^= 1LU &lt;&lt; (bit &amp; BITMAP_GROUP_NBITS_MASK);
+       
+In all the cores the value of &quot;bit&quot; is 0xffffffffffff. That then results in &quot;g&quot; being an invalid pointer. For example, this is what I see in one of the cores
+
+    (gdb) p bitmap
+    $15 = (bitmap_t *) 0x2b999e660010
+    (gdb) p gp
+    $16 = (bitmap_t *) 0x20002b999e660008
+    (gdb) p g
+    Cannot access memory at address 0x20002b999e660008
+
+Here is an analysis of how &quot;bit&quot; got set to 0xffffffffffff in bitmap_sfu from the same core file
+
+121	/* sfu: set first unset. */
+122	JEMALLOC_INLINE size_t
+123	bitmap_sfu(bitmap_t *bitmap, const bitmap_info_t *binfo)
+124	{
+125		size_t bit;
+126		bitmap_t g;
+127		unsigned i;
+128	
+129		assert(bitmap_full(bitmap, binfo) == false);
+130	
+131		i = binfo-&gt;nlevels - 1;
+132		g = bitmap[binfo-&gt;levels[i].group_offset];
+133		bit = ffsl(g) - 1;
+134		while (i &gt; 0) {
+135			i--;
+136			g = bitmap[binfo-&gt;levels[i].group_offset + bit];
+137			bit = (bit &lt;&lt; LG_BITMAP_GROUP_NBITS) + (ffsl(g) - 1);
+138		}
+139	
+140		bitmap_set(bitmap, binfo, bit);
+141		return (bit);
+142	}
+
+
+(gdb) p binfo-&gt;nlevels
+$3 = 2
+(gdb) p binfo-&gt;levels[1].group_offset
+$4 = 2
+(gdb) p bitmap[2]
+$5 = 1
+
+(gdb) hexdump memory bitmap bitmap+16
+00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000010  01 00 00 00 00 00 00 00  50 79 eb 08 74 2b 00 00  |........Py..t+..|
+00000020  b0 79 eb 08 74 2b 00 00  00 00 00 00 01 00 00 00  |.y..t+..........|
+00000030  02 00 00 00 01 00 00 00  01 00 00 00 01 00 00 00  |................|
+00000040  b0 02 ea 08 74 2b 00 00  40 18 ea 08 74 2b 00 00  |<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">....t+.. at ...t+..</A>|
+00000050  b0 12 ea 08 74 2b 00 00  00 00 00 00 00 00 00 00  |....t+..........|
+00000060  00 00 00 00 09 00 00 00  e5 ff ff ff 12 00 00 00  |................|
+00000070  02 00 00 00 01 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+Above means that &quot;i&quot; will be 1 at line 131, &quot;g&quot; will be 1 at line 132 and &quot;bit&quot; will be 0 at line 133.
+
+The while loop will run once (because &quot;I&quot; is 1), so &quot;g&quot; is set to 1 at line 136, then bit get set to 0xffffffffffff at line 137.
+
+That's as far as I've got.
+
+Until the start of this week I didn't know the jemalloc code at all, so I'm not sure what my analysis infers about the root cause for the core. Any suggestions about what to check next would be most welcome.
+
+cheers
+Paul
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001083.html">realloc stack use under O0 for x86_64
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1084">[ date ]</a>
+              <a href="thread.html#1084">[ thread ]</a>
+              <a href="subject.html#1084">[ subject ]</a>
+              <a href="author.html#1084">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

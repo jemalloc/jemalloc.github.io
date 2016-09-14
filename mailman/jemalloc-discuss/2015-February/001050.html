@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Transparent huge pages patch
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Transparent%20huge%20pages%20patch&In-Reply-To=%3C54DC776B.7060608%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001049.html">
+   <LINK REL="Next"  HREF="001051.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Transparent huge pages patch</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Transparent%20huge%20pages%20patch&In-Reply-To=%3C54DC776B.7060608%40gmail.com%3E"
+       TITLE="Transparent huge pages patch">danielmicay at gmail.com
+       </A><BR>
+    <I>Thu Feb 12 01:50:35 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001049.html">Transparent huge pages patch
+</A></li>
+        <LI>Next message: <A HREF="001051.html">Transparent huge pages patch
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1050">[ date ]</a>
+              <a href="thread.html#1050">[ thread ]</a>
+              <a href="subject.html#1050">[ subject ]</a>
+              <a href="author.html#1050">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 12/02/15 04:22 AM, Bottiger wrote:
+&gt;<i> Hello I am wondering if the patch here ever got merged. I could not
+</I>&gt;<i> find anything about it in the changelogs or on Github.
+</I>&gt;<i> 
+</I>&gt;<i> <A HREF="http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb">http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb</A>
+</I>&gt;<i> 
+</I>&gt;<i> We experienced RSS leakage using jemalloc 3.4.1 on Linux
+</I>&gt;<i> 3.13.0-39-generic. It disappeared when we did echo never &gt;
+</I>&gt;<i> /sys/kernel/mm/transparent_hugepage/enabled
+</I>&gt;<i> 
+</I>&gt;<i> We would prefer not to have to change a global setting.
+</I>
+Transparent huge pages are a significant performance win (10%+) memory
+intensive workloads so disabling them across the board isn't a great
+solution. AFAIK, MADV_DONTNEED will split huge pages and the kernel will
+only assign new huge pages if the memory is densely packed.
+
+I think the reason that jemalloc ends up with so many of them is the
+fact that it aligns chunks to &gt;=2MiB boundaries, so it ends up
+triggering the optimistic huge page allocation for 2M aligned page
+faults. I think it could just pre-fault a page per 2M at an unaligned
+boundary in order to work around this, but I haven't looked into it yet.
+
+If it's not working well even with a workaround for the 2M fault issue,
+then there are bugs to report upstream.
+
+It's actually quite good that huge allocations are huge page aligned,
+because you almost always want huge pages for those (unless it's used
+for a sparse data structure).
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150212/e60c28d8/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150212/e60c28d8/attachment.sig</A>&gt;
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001049.html">Transparent huge pages patch
+</A></li>
+	<LI>Next message: <A HREF="001051.html">Transparent huge pages patch
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1050">[ date ]</a>
+              <a href="thread.html#1050">[ thread ]</a>
+              <a href="subject.html#1050">[ subject ]</a>
+              <a href="author.html#1050">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

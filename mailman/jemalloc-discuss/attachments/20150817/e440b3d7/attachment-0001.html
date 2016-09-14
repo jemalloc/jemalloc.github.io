@@ -1,0 +1,34 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Sorry,&nbsp;I&nbsp;meant&nbsp;to&nbsp;follow&nbsp;up&nbsp;before&nbsp;the&nbsp;release,&nbsp;but&nbsp;I&nbsp;didn&#39;t&nbsp;get&nbsp;a&nbsp;chance.&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Yes,&nbsp;it&nbsp;only&nbsp;repros&nbsp;on&nbsp;4.0.0&nbsp;since&nbsp;I&nbsp;think&nbsp;this&nbsp;is&nbsp;the&nbsp;first&nbsp;time&nbsp;you&#39;ve&nbsp;used&nbsp;the&nbsp;arenas_cache.&nbsp;It&#39;s&nbsp;a&nbsp;bit&nbsp;tricky&nbsp;to&nbsp;trigger,&nbsp;since&nbsp;you&nbsp;need&nbsp;to&nbsp;allocate&nbsp;memory&nbsp;from&nbsp;a&nbsp;pthread_key_destroy&nbsp;function.&nbsp;I&nbsp;don&#39;t&nbsp;have&nbsp;a&nbsp;good&nbsp;test&nbsp;case&nbsp;since&nbsp;I&nbsp;wasn&#39;t&nbsp;sure&nbsp;exactly&nbsp;what&nbsp;triggered&nbsp;the&nbsp;path&nbsp;to&nbsp;create&nbsp;the&nbsp;arenas_cache&nbsp;again.&nbsp;It&#39;s&nbsp;also&nbsp;tricky&nbsp;since&nbsp;the&nbsp;memory&nbsp;that&nbsp;gets&nbsp;corrupted&nbsp;is&nbsp;something&nbsp;in&nbsp;a&nbsp;small&nbsp;bin&nbsp;in&nbsp;my&nbsp;configuration&nbsp;(2&nbsp;arenas,&nbsp;I&nbsp;also&nbsp;artificially&nbsp;constrained&nbsp;the&nbsp;number&nbsp;of&nbsp;tcache&nbsp;entries).&nbsp;So&nbsp;it&#39;s&nbsp;likely&nbsp;that&nbsp;most&nbsp;code&nbsp;would&nbsp;never&nbsp;trigger&nbsp;this&nbsp;exact&nbsp;problem.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Christopher&lt;/div&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Mon,&nbsp;Aug&nbsp;17,&nbsp;2015&nbsp;at&nbsp;3:20&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;span&nbsp;class=&quot;&quot;&gt;On&nbsp;Jul&nbsp;8,&nbsp;2015,&nbsp;at&nbsp;3:42&nbsp;PM,&nbsp;Christopher&nbsp;Ferris&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:cferris@google.com&quot;&gt;cferris@google.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;Using&nbsp;the&nbsp;current&nbsp;version&nbsp;of&nbsp;the&nbsp;dev&nbsp;jemalloc,&nbsp;I&nbsp;found&nbsp;a&nbsp;case&nbsp;where&nbsp;jemalloc&nbsp;reuses&nbsp;a&nbsp;previously&nbsp;freed&nbsp;pointer.&nbsp;Specifically,&nbsp;the&nbsp;arena&nbsp;cache&nbsp;pointer&nbsp;can&nbsp;get&nbsp;freed,&nbsp;but&nbsp;reused.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;This&nbsp;can&nbsp;happen&nbsp;when&nbsp;a&nbsp;thread&nbsp;is&nbsp;ending&nbsp;and&nbsp;the&nbsp;key&nbsp;destroy&nbsp;functions&nbsp;are&nbsp;being&nbsp;called.&nbsp;If&nbsp;the&nbsp;jemalloc&nbsp;key&nbsp;destroy&nbsp;function&nbsp;is&nbsp;called,&nbsp;the&nbsp;arena&nbsp;cache&nbsp;is&nbsp;destroyed.&nbsp;But&nbsp;if&nbsp;another&nbsp;key&nbsp;destroy&nbsp;function&nbsp;is&nbsp;called&nbsp;which&nbsp;allocates&nbsp;memory,&nbsp;the&nbsp;old&nbsp;arena&nbsp;cache&nbsp;pointer&nbsp;can&nbsp;be&nbsp;reused,&nbsp;and&nbsp;have&nbsp;the&nbsp;arena&nbsp;pointers&nbsp;written&nbsp;to&nbsp;it.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;I&nbsp;think&nbsp;the&nbsp;fix&nbsp;is&nbsp;to&nbsp;change&nbsp;the&nbsp;arenas_cache_cleanup&nbsp;function&nbsp;to:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;void&lt;br&gt;<br>
+&gt;&nbsp;arenas_cache_cleanup(tsd_t&nbsp;*tsd)&lt;br&gt;<br>
+&gt;&nbsp;{&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; arena_t&nbsp;**arenas_cache;&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; arenas_cache&nbsp;=&nbsp;tsd_arenas_cache_get(tsd);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; if&nbsp;(arenas_cache&nbsp;!=&nbsp;NULL)&nbsp;{&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; bool&nbsp;*arenas_cache_bypassp&nbsp;=&nbsp;tsd_arenas_cache_bypassp_get(tsd);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; *arenas_cache_bypassp&nbsp;=&nbsp;true;&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; tsd_arenas_cache_set(tsd,&nbsp;NULL);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; a0dalloc(arenas_cache);&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; &nbsp; &nbsp; }&lt;br&gt;<br>
+&gt;&nbsp;}&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;I&nbsp;believe&nbsp;the&nbsp;bypass&nbsp;has&nbsp;to&nbsp;be&nbsp;set&nbsp;so&nbsp;that&nbsp;another&nbsp;arena&nbsp;cache&nbsp;is&nbsp;not&nbsp;allocated&nbsp;since&nbsp;that&nbsp;memory&nbsp;would&nbsp;be&nbsp;leaked&nbsp;since&nbsp;there&nbsp;is&nbsp;not&nbsp;going&nbsp;to&nbsp;be&nbsp;another&nbsp;call&nbsp;to&nbsp;the&nbsp;arenas_cache_cleanup&nbsp;function.&nbsp;I&nbsp;think&nbsp;this&nbsp;is&nbsp;the&nbsp;only&nbsp;possible&nbsp;way&nbsp;something&nbsp;could&nbsp;be&nbsp;reused&nbsp;when&nbsp;an&nbsp;allocation&nbsp;is&nbsp;made&nbsp;after&nbsp;the&nbsp;jemalloc&nbsp;key&nbsp;destroy&nbsp;function&nbsp;is&nbsp;called,&nbsp;but&nbsp;I&nbsp;might&nbsp;have&nbsp;missed&nbsp;something.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;This&nbsp;might&nbsp;be&nbsp;particular&nbsp;to&nbsp;the&nbsp;fact&nbsp;that&nbsp;my&nbsp;config&nbsp;uses&nbsp;pthread_key_create&nbsp;for&nbsp;the&nbsp;tsd&nbsp;data,&nbsp;but&nbsp;it&nbsp;might&nbsp;apply&nbsp;to&nbsp;other&nbsp;configs.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Does&nbsp;this&nbsp;solution&nbsp;seem&nbsp;reasonable?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/span&gt;Unfortunately&nbsp;I&nbsp;didn&#39;t&nbsp;see&nbsp;this&nbsp;email&nbsp;until&nbsp;after&nbsp;the&nbsp;4.0.0&nbsp;release,&nbsp;because&nbsp;the&nbsp;mailing&nbsp;lists&nbsp;haven&#39;t&nbsp;been&nbsp;delivering&nbsp;email&nbsp;for&nbsp;the&nbsp;past&nbsp;two&nbsp;months&nbsp;(ouch). &nbsp;Does&nbsp;this&nbsp;problem&nbsp;still&nbsp;exist&nbsp;with&nbsp;4.0.0?&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thanks,&lt;br&gt;<br>
+Jason&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

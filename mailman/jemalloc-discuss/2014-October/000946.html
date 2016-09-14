@@ -1,0 +1,321 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Coverity scan results
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Coverity%20scan%20results&In-Reply-To=%3CCAMAQhePcos%3DWLcK82xT%2B9dhWR%2Bc_oZMZ5uEA4BRWtW%2BXQPUUew%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000945.html">
+   <LINK REL="Next"  HREF="000947.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Coverity scan results</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Coverity%20scan%20results&In-Reply-To=%3CCAMAQhePcos%3DWLcK82xT%2B9dhWR%2Bc_oZMZ5uEA4BRWtW%2BXQPUUew%40mail.gmail.com%3E"
+       TITLE="Coverity scan results">edsiper at gmail.com
+       </A><BR>
+    <I>Sat Oct 11 20:35:57 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000945.html">Help with a segfault
+</A></li>
+        <LI>Next message: <A HREF="000947.html">Coverity scan results
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#946">[ date ]</a>
+              <a href="thread.html#946">[ thread ]</a>
+              <a href="subject.html#946">[ subject ]</a>
+              <a href="author.html#946">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+In Monkey[0] we use Jemalloc by default and when running a Coverity[1]
+static code analysis, it reported some issues, maybe some of them are
+false positives, but is better you check this:
+
+________________________________________________________________________________________________________
+*** CID 1017561:  Macro compares unsigned to 0  (NO_EFFECT)
+/deps/jemalloc/src/jemalloc.c: 603 in malloc_conf_init()
+597                                 SIZE_T_MAX, false)
+598                             CONF_HANDLE_SSIZE_T(opt_lg_dirty_mult,
+&quot;lg_dirty_mult&quot;,
+599                                 -1, (sizeof(size_t) &lt;&lt; 3) - 1)
+600                             CONF_HANDLE_BOOL(opt_stats_print, &quot;stats_print&quot;)
+601                             if (config_fill) {
+602                                     CONF_HANDLE_BOOL(opt_junk, &quot;junk&quot;)
+&gt;&gt;&gt;<i>     CID 1017561:  Macro compares unsigned to 0  (NO_EFFECT)
+</I>&gt;&gt;&gt;<i>     This less-than-zero comparison of an unsigned value is never true. &quot;um &lt; 0UL&quot;.
+</I>603
+CONF_HANDLE_SIZE_T(opt_quarantine, &quot;quarantine&quot;,
+604                                         0, SIZE_T_MAX, false)
+605                                     CONF_HANDLE_BOOL(opt_redzone, &quot;redzone&quot;)
+606                                     CONF_HANDLE_BOOL(opt_zero, &quot;zero&quot;)
+607                             }
+608                             if (config_utrace) {
+
+________________________________________________________________________________________________________
+*** CID 1018162:  Unchecked return value  (CHECKED_RETURN)
+/deps/jemalloc/src/jemalloc.c: 1978 in jemalloc_constructor()
+1972      */
+1973     JEMALLOC_ATTR(constructor)
+1974     static void
+1975     jemalloc_constructor(void)
+1976     {
+1977
+&gt;&gt;&gt;<i>     CID 1018162:  Unchecked return value  (CHECKED_RETURN)
+</I>&gt;&gt;&gt;<i>     Calling &quot;malloc_init&quot; without checking return value (as is done elsewhere 10 out of 11 times).
+</I>1978            malloc_init();
+1979     }
+1980
+1981     #ifndef JEMALLOC_MUTEX_INIT_CB
+1982     void
+1983     jemalloc_prefork(void)
+
+________________________________________________________________________________________________________
+*** CID 1019005:  Uninitialized pointer read  (UNINIT)
+/deps/jemalloc/src/ctl.c: 1344 in arena_i_dss_ctl()
+1338            dss_prec_t dss_prec = dss_prec_limit;
+1339
+1340            malloc_mutex_lock(&amp;ctl_mtx);
+1341            WRITE(dss, const char *);
+1342            match = false;
+1343            for (i = 0; i &lt; dss_prec_limit; i++) {
+&gt;&gt;&gt;<i>     CID 1019005:  Uninitialized pointer read  (UNINIT)
+</I>&gt;&gt;&gt;<i>     Using uninitialized value &quot;dss&quot; when calling &quot;strcmp&quot;.
+</I>1344                    if (strcmp(dss_prec_names[i], dss) == 0) {
+1345                            dss_prec = i;
+1346                            match = true;
+1347                            break;
+1348                    }
+1349            }
+
+________________________________________________________________________________________________________
+*** CID 1022889:  Missing unlock  (LOCK)
+/deps/jemalloc/src/arena.c: 1848 in arena_dalloc_bin_run()
+1842            arena_run_dalloc(arena, run, true, false);
+1843            malloc_mutex_unlock(&amp;arena-&gt;lock);
+1844            /****************************/
+1845            malloc_mutex_lock(&amp;bin-&gt;lock);
+1846            if (config_stats)
+1847                    bin-&gt;stats.curruns--;
+&gt;&gt;&gt;<i>     CID 1022889:  Missing unlock  (LOCK)
+</I>&gt;&gt;&gt;<i>     Returning without unlocking &quot;bin-&gt;lock.lock&quot;.
+</I>1848     }
+1849
+1850     static void
+1851     arena_bin_lower_run(arena_t *arena, arena_chunk_t *chunk,
+arena_run_t *run,
+1852         arena_bin_t *bin)
+1853     {
+
+________________________________________________________________________________________________________
+*** CID 1193408:  Free of address-of expression  (BAD_FREE)
+/deps/jemalloc/src/chunk_mmap.c: 110 in pages_trim()
+104             {
+105                     size_t trailsize = alloc_size - leadsize - size;
+106
+107                     if (leadsize != 0)
+108                             pages_unmap(addr, leadsize);
+109                     if (trailsize != 0)
+&gt;&gt;&gt;<i>     CID 1193408:  Free of address-of expression  (BAD_FREE)
+</I>&gt;&gt;&gt;<i>     &quot;pages_unmap&quot; frees address offset from &quot;ret&quot;.
+</I>110                             pages_unmap((void *)((uintptr_t)ret +
+size), trailsize);
+111                     return (ret);
+112             }
+113     #endif
+114     }
+115
+
+________________________________________________________________________________________________________
+*** CID 1194963:  Data race condition  (MISSING_LOCK)
+/deps/jemalloc/src/prof.c: 430 in prof_ctx_init()
+424             ctx-&gt;bt = bt;
+425             ctx-&gt;lock = prof_ctx_mutex_choose();
+426             /*
+427              * Set nlimbo to 1, in order to avoid a race condition with
+428              * prof_ctx_merge()/prof_ctx_destroy().
+429              */
+&gt;&gt;&gt;<i>     CID 1194963:  Data race condition  (MISSING_LOCK)
+</I>&gt;&gt;&gt;<i>     Accessing &quot;ctx-&gt;nlimbo&quot; without holding lock &quot;malloc_mutex_s.lock&quot;. Elsewhere, &quot;prof_ctx_s.nlimbo&quot; is accessed with &quot;malloc_mutex_s.lock&quot; held 5 out of 7 times (2 of these accesses strongly imply that it is necessary).
+</I>430             ctx-&gt;nlimbo = 1;
+431             ql_elm_new(ctx, dump_link);
+432             memset(&amp;ctx-&gt;cnt_merged, 0, sizeof(prof_cnt_t));
+433             ql_new(&amp;ctx-&gt;cnts_ql);
+434     }
+435
+
+________________________________________________________________________________________________________
+*** CID 1194964:  Illegal address computation  (OVERRUN)
+/deps/jemalloc/src/prof.c: 964 in prof_dump_maps()
+958                                     if (prof_dump_flush(propagate_err) &amp;&amp;
+959                                         propagate_err) {
+960                                             ret = true;
+961                                             goto label_return;
+962                                     }
+963                             }
+&gt;&gt;&gt;<i>     CID 1194964:  Illegal address computation  (OVERRUN)
+</I>&gt;&gt;&gt;<i>     &quot;&amp;prof_dump_buf[prof_dump_buf_end]&quot; evaluates to an address that is at byte offset 65536 of an array of 1 bytes.
+</I>964                             nread = read(mfd,
+&amp;prof_dump_buf[prof_dump_buf_end],
+965                                 PROF_DUMP_BUFSIZE - prof_dump_buf_end);
+966                     } while (nread &gt; 0);
+967             } else {
+968                     ret = true;
+969                     goto label_return;
+
+________________________________________________________________________________________________________
+*** CID 1194965:  Illegal address computation  (OVERRUN)
+/deps/jemalloc/src/prof.c: 751 in prof_dump_write()
+745                             /* Finish writing. */
+746                             n = slen - i;
+747                     } else {
+748                             /* Write as much of s as will fit. */
+749                             n = PROF_DUMP_BUFSIZE - prof_dump_buf_end;
+750                     }
+&gt;&gt;&gt;<i>     CID 1194965:  Illegal address computation  (OVERRUN)
+</I>&gt;&gt;&gt;<i>     &quot;&amp;prof_dump_buf[prof_dump_buf_end]&quot; evaluates to an address that is at byte offset 65536 of an array of 1 bytes.
+</I>751                     memcpy(&amp;prof_dump_buf[prof_dump_buf_end], &amp;s[i], n);
+752                     prof_dump_buf_end += n;
+753                     i += n;
+754             }
+755
+756             return (false);
+
+________________________________________________________________________________________________________
+*** CID 1221142:  Double lock  (LOCK)
+/deps/jemalloc/src/prof.c: 1388 in je_prof_prefork()
+1382            if (opt_prof) {
+1383                    unsigned i;
+1384
+1385                    malloc_mutex_prefork(&amp;bt2ctx_mtx);
+1386                    malloc_mutex_prefork(&amp;prof_dump_seq_mtx);
+1387                    for (i = 0; i &lt; PROF_NCTX_LOCKS; i++)
+&gt;&gt;&gt;<i>     CID 1221142:  Double lock  (LOCK)
+</I>&gt;&gt;&gt;<i>     &quot;je_malloc_mutex_prefork&quot; locks &quot;ctx_locks[i].lock&quot; twice.
+</I>1388                            malloc_mutex_prefork(&amp;ctx_locks[i]);
+1389            }
+1390     }
+1391
+1392     void
+1393     prof_postfork_parent(void)
+
+________________________________________________________________________________________________________
+*** CID 1221154:  Data race condition  (MISSING_LOCK)
+/deps/jemalloc/include/jemalloc/internal/prof.h: 480 in je_prof_malloc()
+474                     prof_ctx_set(ptr, usize, cnt-&gt;ctx);
+475
+476                     cnt-&gt;epoch++;
+477                     /*********/
+478                     mb_write();
+479                     /*********/
+&gt;&gt;&gt;<i>     CID 1221154:  Data race condition  (MISSING_LOCK)
+</I>&gt;&gt;&gt;<i>     Accessing &quot;cnt-&gt;cnts.curobjs&quot; without holding lock &quot;malloc_mutex_s.lock&quot;. Elsewhere, &quot;prof_cnt_s.curobjs&quot; is accessed with &quot;malloc_mutex_s.lock&quot; held 5 out of 9 times (3 of these accesses strongly imply that it is necessary).
+</I>480                     cnt-&gt;cnts.curobjs++;
+481                     cnt-&gt;cnts.curbytes += usize;
+482                     if (opt_prof_accum) {
+483                             cnt-&gt;cnts.accumobjs++;
+484                             cnt-&gt;cnts.accumbytes += usize;
+485                     }
+
+________________________________________________________________________________________________________
+*** CID 1221155:  Data race condition  (MISSING_LOCK)
+/deps/jemalloc/include/jemalloc/internal/prof.h: 550 in je_prof_realloc()
+544             } else if (ptr != NULL)
+545                     prof_ctx_set(ptr, usize, (prof_ctx_t *)(uintptr_t)1U);
+546             /*********/
+547             mb_write();
+548             /*********/
+549             if ((uintptr_t)told_cnt &gt; (uintptr_t)1U) {
+&gt;&gt;&gt;<i>     CID 1221155:  Data race condition  (MISSING_LOCK)
+</I>&gt;&gt;&gt;<i>     Accessing &quot;told_cnt-&gt;cnts.curobjs&quot; without holding lock &quot;malloc_mutex_s.lock&quot;. Elsewhere, &quot;prof_cnt_s.curobjs&quot; is accessed with &quot;malloc_mutex_s.lock&quot; held 5 out of 9 times (3 of these accesses strongly imply that it is necessary).
+</I>550                     told_cnt-&gt;cnts.curobjs--;
+551                     told_cnt-&gt;cnts.curbytes -= old_usize;
+552             }
+553             if ((uintptr_t)cnt &gt; (uintptr_t)1U) {
+554                     cnt-&gt;cnts.curobjs++;
+555                     cnt-&gt;cnts.curbytes += usize;
+
+________________________________________________________________________________________________________
+*** CID 1221156:  Data race condition  (MISSING_LOCK)
+/deps/jemalloc/include/jemalloc/internal/prof.h: 589 in je_prof_free()
+583
+584                     if (tcnt != NULL) {
+585                             tcnt-&gt;epoch++;
+586                             /*********/
+587                             mb_write();
+588                             /*********/
+&gt;&gt;&gt;<i>     CID 1221156:  Data race condition  (MISSING_LOCK)
+</I>&gt;&gt;&gt;<i>     Accessing &quot;tcnt-&gt;cnts.curobjs&quot; without holding lock &quot;malloc_mutex_s.lock&quot;. Elsewhere, &quot;prof_cnt_s.curobjs&quot; is accessed with &quot;malloc_mutex_s.lock&quot; held 5 out of 9 times (3 of these accesses strongly imply that it is necessary).
+</I>589                             tcnt-&gt;cnts.curobjs--;
+590                             tcnt-&gt;cnts.curbytes -= size;
+591                             /*********/
+592                             mb_write();
+593                             /*********/
+594                             tcnt-&gt;epoch++;
+
+________________________________________________________________________________________________________
+*** CID 1221208:  Wrong sizeof argument  (SIZEOF_MISMATCH)
+/deps/jemalloc/src/stats.c: 410 in je_stats_print()
+404
+405                     malloc_cprintf(write_cb, cbopaque, &quot;CPUs: %u\n&quot;, ncpus);
+406
+407                     CTL_GET(&quot;arenas.narenas&quot;, &amp;uv, unsigned);
+408                     malloc_cprintf(write_cb, cbopaque, &quot;Arenas: %u\n&quot;, uv);
+409
+&gt;&gt;&gt;<i>     CID 1221208:  Wrong sizeof argument  (SIZEOF_MISMATCH)
+</I>&gt;&gt;&gt;<i>     Passing argument &quot;cbopaque&quot; of type &quot;void *&quot; and argument &quot;8UL /* sizeof (void *) */&quot; to function &quot;je_malloc_cprintf&quot; is suspicious.
+</I>410                     malloc_cprintf(write_cb, cbopaque, &quot;Pointer
+size: %zu\n&quot;,
+411                         sizeof(void *));
+412
+413                     CTL_GET(&quot;arenas.quantum&quot;, &amp;sv, size_t);
+414                     malloc_cprintf(write_cb, cbopaque, &quot;Quantum
+size: %zu\n&quot;, sv);
+415
+
+___________
+
+[0] <A HREF="http://monkey-project.com">http://monkey-project.com</A>
+[1] <A HREF="http://scan.coverity.com">http://scan.coverity.com</A>
+
+best
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000945.html">Help with a segfault
+</A></li>
+	<LI>Next message: <A HREF="000947.html">Coverity scan results
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#946">[ date ]</a>
+              <a href="thread.html#946">[ thread ]</a>
+              <a href="subject.html#946">[ subject ]</a>
+              <a href="author.html#946">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

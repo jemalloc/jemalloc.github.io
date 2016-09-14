@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Call base_boot before chunk_boot0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Call%20base_boot%20before%20chunk_boot0&In-Reply-To=%3C1334236535-5009-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000257.html">
+   <LINK REL="Next"  HREF="000272.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Call base_boot before chunk_boot0</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Call%20base_boot%20before%20chunk_boot0&In-Reply-To=%3C1334236535-5009-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Call base_boot before chunk_boot0">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 12 06:15:35 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000257.html">Making sense of TSD
+</A></li>
+        <LI>Next message: <A HREF="000272.html">[PATCH] Call base_boot before chunk_boot0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#262">[ date ]</a>
+              <a href="thread.html#262">[ thread ]</a>
+              <a href="subject.html#262">[ subject ]</a>
+              <a href="author.html#262">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+Chunk_boot0 calls rtree_new, which calls base_alloc, which locks the
+base_mtx mutex. That mutex is initialized in base_boot.
+---
+ src/jemalloc.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 8e10c55..1622937 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -626,12 +626,12 @@ malloc_init_hard(void)
+ 		}
+ 	}
+ 
+-	if (chunk_boot0()) {
++	if (base_boot()) {
+ 		malloc_mutex_unlock(&amp;init_lock);
+ 		return (true);
+ 	}
+ 
+-	if (base_boot()) {
++	if (chunk_boot0()) {
+ 		malloc_mutex_unlock(&amp;init_lock);
+ 		return (true);
+ 	}
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000257.html">Making sense of TSD
+</A></li>
+	<LI>Next message: <A HREF="000272.html">[PATCH] Call base_boot before chunk_boot0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#262">[ date ]</a>
+              <a href="thread.html#262">[ thread ]</a>
+              <a href="subject.html#262">[ subject ]</a>
+              <a href="author.html#262">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

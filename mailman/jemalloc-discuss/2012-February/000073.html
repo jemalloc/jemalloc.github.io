@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc win32 port
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20win32%20port&In-Reply-To=%3C20120216151435.GA15925%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000072.html">
+   <LINK REL="Next"  HREF="000074.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc win32 port</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20win32%20port&In-Reply-To=%3C20120216151435.GA15925%40glandium.org%3E"
+       TITLE="jemalloc win32 port">mh at glandium.org
+       </A><BR>
+    <I>Thu Feb 16 07:14:35 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000072.html">jemalloc win32 port
+</A></li>
+        <LI>Next message: <A HREF="000074.html">jemalloc win32 port
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#73">[ date ]</a>
+              <a href="thread.html#73">[ thread ]</a>
+              <a href="subject.html#73">[ subject ]</a>
+              <a href="author.html#73">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Feb 14, 2012 at 07:10:35PM +0200, Yoni Londner wrote:
+&gt;<i> Hi again,
+</I>&gt;<i> 
+</I>&gt;<i> Well, I did not get any response, so I had to complete the work alone.
+</I>&gt;<i> I am attaching a patch for a fully working version of jemalloc for msvc.
+</I>&gt;<i> We are using this version for about a week, and it looks pretty good so far.
+</I>&gt;<i> As I mentioned in my last email, I really hope that this patch will be 
+</I>&gt;<i> committed to git.
+</I>&gt;<i> Comments/suggestions are more than welcome
+</I>
+Just a few comments after a quick glance. (Please note that I'm not a
+jemalloc developer)
+
+- I don't see anything using your pseudo random generator, so you
+  probably can just skip prn.h altogether.
+- It's confusing to mix porting changes and unrelated changes, like
+  abort-&gt;xabort.
+
+For what it's worth, Mozilla has been patching jemalloc to work on win32
+for quite some time now, and I'm going to refresh the copy used in
+Firefox to use a much more recent jemalloc. In the process of doing so,
+I'll obviously have to forward-port our win32 code, and/or borrow yours.
+I guess I'll come back when I have something ready.
+
+Cheers,
+
+Mike
+
+&gt;<i> On 31/1/2012 12:25, Yoni Londner wrote:
+</I>&gt;<i> &gt; Hi,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I am working with Firefox version of jemalloc (x86 and x64), And it is 
+</I>&gt;<i> &gt; working as expected.
+</I>&gt;<i> &gt; But, I wanted to use the original version of jemalloc, mainly because 
+</I>&gt;<i> &gt; there are profiling features missing
+</I>&gt;<i> &gt; in Firefox's version, and because I wanted to be able to get bug fixes 
+</I>&gt;<i> &gt; and new features from TRUNK.
+</I>&gt;<i> &gt; So, I Ported jemalloc to win32 (using msvc10 on win7 x86)
+</I>&gt;<i> &gt; I did not completed all the work (yet), but i have a working version.
+</I>&gt;<i> &gt; These are the changes I made (patch attached):
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;  * prn.h - apparently it is not possible to create a file named prn.xxx
+</I>&gt;<i> &gt;    on windows. I changed the name of the file to _prn.h
+</I>&gt;<i> &gt;  * atomic.h - added win32 intrinsic implementation
+</I>&gt;<i> &gt;  * compat_win32.h - all sort of definitions needed for win32 (most of
+</I>&gt;<i> &gt;    them from Firefox version + pthread handling - not completed yet)
+</I>&gt;<i> &gt;  * compat_win32.c - need to complete here win32_setspecific and
+</I>&gt;<i> &gt;    win32_setspecific by using &quot;.CRT$XXX&quot;
+</I>&gt;<i> &gt;  * arena.c, ctl.h, ctl.c, ckh.c - C99 compatibility
+</I>&gt;<i> &gt;  * hunk_mmap.c
+</I>&gt;<i> &gt;  * jemalloc_defs.h, jemalloc.h, jemalloc_internal.h - I don't have
+</I>&gt;<i> &gt;    configure, so I copied jemalloc_internal.h.in and hand edited it.
+</I>&gt;<i> &gt;  * mutex.h - win32 mutex (from Firefox version)
+</I>&gt;<i> &gt;  * chunk_mmap.c -pages_map/pages_unmap from Firefox version
+</I>&gt;<i> &gt;  * jemalloc.c - system settings (ncpus etc) + added _crtheap
+</I>&gt;<i> &gt;  * jemalloc.c - win32 crt specific functions (msize, calloc_impl,
+</I>&gt;<i> &gt;    _recalloc, get_heap_handle...)
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; since jemalloc does not patch malloc and friends, I need to use a 
+</I>&gt;<i> &gt; striped version of msvcrt (removed malloc/free etc).
+</I>&gt;<i> &gt; I have a scripts to do this.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I hope that after the work is done, you can commit this patch to the git.
+</I>&gt;<i> &gt; Any comments/suggestions/help are welcome
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Yoni.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> -------------- next part --------------
+</I>&gt;<i> An embedded and charset-unspecified text was scrubbed...
+</I>&gt;<i> Name: jemallooc_win32.patch
+</I>&gt;<i> URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120214/d0275685/attachment-0001.ksh">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120214/d0275685/attachment-0001.ksh</A>&gt;
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000072.html">jemalloc win32 port
+</A></li>
+	<LI>Next message: <A HREF="000074.html">jemalloc win32 port
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#73">[ date ]</a>
+              <a href="thread.html#73">[ thread ]</a>
+              <a href="subject.html#73">[ subject ]</a>
+              <a href="author.html#73">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

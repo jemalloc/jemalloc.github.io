@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/2] Move zone registration to zone.c
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Move%20zone%20registration%20to%20zone.c&In-Reply-To=%3C20120327124614.GA1833%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000189.html">
+   <LINK REL="Next"  HREF="000207.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/2] Move zone registration to zone.c</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Move%20zone%20registration%20to%20zone.c&In-Reply-To=%3C20120327124614.GA1833%40glandium.org%3E"
+       TITLE="[PATCH 1/2] Move zone registration to zone.c">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Mar 27 05:46:14 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000189.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+        <LI>Next message: <A HREF="000207.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#190">[ date ]</a>
+              <a href="thread.html#190">[ thread ]</a>
+              <a href="subject.html#190">[ subject ]</a>
+              <a href="author.html#190">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Mar 27, 2012 at 02:20:12PM +0200, Mike Hommey wrote:
+&gt;<i> @@ -743,8 +723,8 @@ void
+</I>&gt;<i>  jemalloc_darwin_init(void)
+</I>&gt;<i>  {
+</I>&gt;<i>  
+</I>&gt;<i> -	if (malloc_init_hard())
+</I>&gt;<i> -		abort();
+</I>&gt;<i> +	if (!malloc_init_hard())
+</I>&gt;<i> +		register_zone();
+</I>&gt;<i>  }
+</I>&gt;<i>  #endif
+</I>
+Please note that I first attempted to move this function too, and do
+lazy initialization of jemalloc, but that ends up in a dead lock because
+pthread_atfork calls malloc.
+
+A possible solution is to force malloc_init_hard before registration,
+which means making the function non-static.
+
+Another is to call one of the allocation functions and free the
+allocated memory. That seemed wasteful.
+
+Another is to call one of the allocation functions and make sure it's
+doing nothing besides initialization. For example, calling
+je_calloc(0x1000, 0x1000) on 32-bits platform would trigger
+initialization but would allocate nothing (because 0x1000 * 0x1000 ==
+0). That seemed too hackish.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000189.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+	<LI>Next message: <A HREF="000207.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#190">[ date ]</a>
+              <a href="thread.html#190">[ thread ]</a>
+              <a href="subject.html#190">[ subject ]</a>
+              <a href="author.html#190">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

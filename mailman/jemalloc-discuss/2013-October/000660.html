@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Q] Strange hang in jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20hang%20in%20jemalloc&In-Reply-To=%3CCAH_X2fdfiaoa-GoK9G8aCwV1RE-GPC38%2BaQ29JiKeigu9cR1_Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000656.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Q] Strange hang in jemalloc</H1>
+    <B>Taehwan Weon</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20hang%20in%20jemalloc&In-Reply-To=%3CCAH_X2fdfiaoa-GoK9G8aCwV1RE-GPC38%2BaQ29JiKeigu9cR1_Q%40mail.gmail.com%3E"
+       TITLE="[Q] Strange hang in jemalloc">taehwan.weon at gmail.com
+       </A><BR>
+    <I>Thu Oct 24 20:45:26 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000656.html">[Q] Strange hang in jemalloc
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#660">[ date ]</a>
+              <a href="thread.html#660">[ thread ]</a>
+              <a href="subject.html#660">[ subject ]</a>
+              <a href="author.html#660">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks for much.
+
+I need some other wheel.
+But, I hope jemalloc handle properly later. :-)
+Anyway, thanks again!
+
+-----
+weon
+
+
+
+2013/10/24 Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;
+
+&gt;<i> On Oct 23, 2013, at 8:11 PM, Taehwan Weon &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">taehwan.weon at gmail.com</A>&gt; wrote:
+</I>&gt;<i> &gt; I am using jemalloc-3.4.0 on Centos 6.3
+</I>&gt;<i> &gt; When my SEGV signal handler tried to dump call stacks, hang occurred as
+</I>&gt;<i> following.
+</I>&gt;<i> &gt; I don't know why libc's fork called jemalloc_prefork even if I didn't
+</I>&gt;<i> set LD_PRELOAD.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; #0  0x000000351d60d654 in __lll_lock_wait () from /lib64/libpthread.so.0
+</I>&gt;<i> &gt; #1  0x000000351d608f4a in _L_lock_1034 () from /lib64/libpthread.so.0
+</I>&gt;<i> &gt; #2  0x000000351d608e0c in pthread_mutex_lock () from
+</I>&gt;<i> /lib64/libpthread.so.0
+</I>&gt;<i> &gt; #3  0x00002b59a8055d6d in malloc_mutex_lock (mutex=0x2b59a84a4320) at
+</I>&gt;<i> include/jemalloc/internal/mutex.h:77
+</I>&gt;<i> &gt; #4  malloc_mutex_prefork (mutex=0x2b59a84a4320) at src/mutex.c:109
+</I>&gt;<i> &gt; #5  0x00002b59a8044c32 in arena_prefork (arena=0x2b59a84a3d40) at
+</I>&gt;<i> src/arena.c:2344
+</I>&gt;<i> &gt; #6  0x00002b59a803f555 in jemalloc_prefork () at src/jemalloc.c:1760
+</I>&gt;<i> &gt; #7  0x000000351ca9a2a6 in fork () from /lib64/libc.so.6
+</I>&gt;<i> &gt; #8  0x000000351ca6200d in _IO_proc_open@@GLIBC_2.2.5 () from
+</I>&gt;<i> /lib64/libc.so.6
+</I>&gt;<i> &gt; #9  0x000000351ca62269 in popen@@GLIBC_2.2.5 () from /lib64/libc.so.6
+</I>&gt;<i> &gt; #10 0x00002b59a71bc1f9 in backtrace_lineinfo (number=1, address=&lt;value
+</I>&gt;<i> optimized out&gt;, symbol=0x2b61f4000918 &quot;/usr/lib64/libnc.so.2
+</I>&gt;<i> [0x2b59a71bc3b1]&quot;) at cfs_apix.c:363
+</I>&gt;<i> &gt; #11 0x00002b59a71bc3ff in nc_dump_stack (sig=&lt;value optimized out&gt;) at
+</I>&gt;<i> cfs_apix.c:423
+</I>&gt;<i> &gt; #12 &lt;signal handler called&gt;
+</I>&gt;<i> &gt; #13 0x00002b59a8047332 in arena_dalloc_bin_locked (arena=0x2b59a84a3d40,
+</I>&gt;<i> chunk=0x2b61ef000000, ptr=&lt;value optimized out&gt;, mapelm=&lt;value optimized
+</I>&gt;<i> out&gt;) at src/arena.c:1717
+</I>&gt;<i> &gt; #14 0x00002b59a805fba4 in tcache_bin_flush_small (tbin=0x2b61ef107128,
+</I>&gt;<i> binind=8, rem=9, tcache=0x2b61ef107000) at src/tcache.c:127
+</I>&gt;<i> &gt; #15 0x00002b59a805fcd4 in tcache_event_hard (tcache=0x80) at
+</I>&gt;<i> src/tcache.c:39
+</I>&gt;<i> &gt; #16 0x00002b59a80428d9 in tcache_event (ptr=0x2b61efd26dc0) at
+</I>&gt;<i> include/jemalloc/internal/tcache.h:271
+</I>&gt;<i> &gt; #17 tcache_dalloc_small (ptr=0x2b61efd26dc0) at
+</I>&gt;<i> include/jemalloc/internal/tcache.h:408
+</I>&gt;<i> &gt; #18 arena_dalloc (ptr=0x2b61efd26dc0) at
+</I>&gt;<i> include/jemalloc/internal/arena.h:1003
+</I>&gt;<i> &gt; #19 idallocx (ptr=0x2b61efd26dc0) at
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h:913
+</I>&gt;<i> &gt; #20 iqallocx (ptr=0x2b61efd26dc0) at
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h:932
+</I>&gt;<i> &gt; #21 iqalloc (ptr=0x2b61efd26dc0) at
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h:939
+</I>&gt;<i> &gt; #22 jefree (ptr=0x2b61efd26dc0) at src/jemalloc.c:1272
+</I>&gt;<i> &gt; #23 0x00002b59a71c958b in __nc_free (p=0x2b61efd26dd0, file=&lt;value
+</I>&gt;<i> optimized out&gt;, lno=&lt;value optimized out&gt;) at util.c:1916
+</I>&gt;<i> &gt; #24 0x00002b59a71cb975 in tlcq_dequeue (q=0x2b59a9ee3210, msec=&lt;value
+</I>&gt;<i> optimized out&gt;) at tlc_queue.c:215
+</I>&gt;<i> &gt; #25 0x00002b59a71c154b in tp_worker (d=&lt;value optimized out&gt;) at
+</I>&gt;<i> threadpool.c:116
+</I>&gt;<i> &gt; #26 0x000000351d60683d in start_thread () from /lib64/libpthread.so.0
+</I>&gt;<i> &gt; #27 0x000000351cad503d in clone () from /lib64/libc.so.6
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Any hint will be highly appreciated.
+</I>&gt;<i>
+</I>&gt;<i> jemalloc calls pthread_atfork(3) in order to install functions that get
+</I>&gt;<i> called just before and after fork(2).  In this case your application is
+</I>&gt;<i> causing a signal while deep inside jemalloc (very likely due to memory
+</I>&gt;<i> corruption), with locks already acquired.  Deadlock obviously results.  To
+</I>&gt;<i> my surprise, fork() is actually listed in the signal(7) manual page as an
+</I>&gt;<i> async-signal-safe function, though popen(3) isn't, and it would probably
+</I>&gt;<i> allocate memory if it got past the hang during fork().  If you were to call
+</I>&gt;<i> fork() directly, then you'd be hitting a peculiar failure condition and we
+</I>&gt;<i> could make a case for jemalloc's behavior being questionable, but as your
+</I>&gt;<i> signal handler is written, it is simply unreliable due to calling something
+</I>&gt;<i> outside the list of async-signal-safe functions.
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>&gt;<i>
+</I>
+
+-- 
+
+*&#50896; &#53468;&#54872;*&#12643; &#48512;&#49324;&#51109;/COO
+
+** **
+
+(&#51452;)&#49556;&#48149;&#49828; ****
+
+&#49436;&#50872;&#49884; &#44053;&#45224;&#44396; &#50669;&#49340;&#46041; 747-2 &#54644;&#49457;&#48716;&#46377; 7&#52789;****
+
+*T* 02-2182-3600     *F* 02-2058-2651 ****
+
+*M* 010-3335-8258  *E* <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">weon at solbox.com</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131025/1fb4770b/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131025/1fb4770b/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000656.html">[Q] Strange hang in jemalloc
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#660">[ date ]</a>
+              <a href="thread.html#660">[ thread ]</a>
+              <a href="subject.html#660">[ subject ]</a>
+              <a href="author.html#660">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,410 @@
+Index: test/allocm.c
+===================================================================
+--- test/allocm.c	(리비전 279)
++++ test/allocm.c	(작업 사본)
+@@ -1,10 +1,13 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <stdint.h>
+ 
+ #define	JEMALLOC_MANGLE
+ #include "jemalloc_test.h"
+ 
++#ifndef NO_STDINT
++#include <stdint.h>
++#endif
++
+ #define CHUNK 0x400000
+ /* #define MAXALIGN ((size_t)0x80000000000LLU) */
+ #define MAXALIGN ((size_t)0x2000000LLU)
+@@ -58,7 +61,7 @@
+ 	r = JEMALLOC_P(allocm)(&p, NULL, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+ 		fprintf(stderr,
+-		    "Expected error for allocm(&p, %zu, 0x%x)\n",
++		    "Expected error for allocm(&p, %d, 0x%x)\n",
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 
+@@ -72,7 +75,7 @@
+ 	r = JEMALLOC_P(allocm)(&p, NULL, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+ 		fprintf(stderr,
+-		    "Expected error for allocm(&p, %zu, 0x%x)\n",
++		    "Expected error for allocm(&p, %d, 0x%x)\n",
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 
+@@ -85,7 +88,7 @@
+ 	r = JEMALLOC_P(allocm)(&p, NULL, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+ 		fprintf(stderr,
+-		    "Expected error for allocm(&p, %zu, 0x%x)\n",
++		    "Expected error for allocm(&p, %d, 0x%x)\n",
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 
+@@ -96,7 +99,7 @@
+ 	    alignment <= MAXALIGN;
+ 	    alignment <<= 1) {
+ 		total = 0;
+-		fprintf(stderr, "Alignment: %zu\n", alignment);
++		fprintf(stderr, "Alignment: %d\n", alignment);
+ 		for (sz = 1;
+ 		    sz < 3 * alignment && sz < (1U << 31);
+ 		    sz += (alignment >> (LG_SIZEOF_PTR-1)) - 1) {
+@@ -105,14 +108,14 @@
+ 				    ALLOCM_ALIGN(alignment) | ALLOCM_ZERO);
+ 				if (r != ALLOCM_SUCCESS) {
+ 					fprintf(stderr,
+-					    "Error for size %zu (0x%zx): %d\n",
++					    "Error for size %d (0x%zx): %d\n",
+ 					    sz, sz, r);
+ 					exit(1);
+ 				}
+ 				if ((uintptr_t)p & (alignment-1)) {
+ 					fprintf(stderr,
+ 					    "%p inadequately aligned for"
+-					    " alignment: %zu\n", p, alignment);
++					    " alignment: %d\n", p, alignment);
+ 				}
+ 				JEMALLOC_P(sallocm)(ps[i], &tsz, 0);
+ 				total += tsz;
+Index: test/allocated.c
+===================================================================
+--- test/allocated.c	(리비전 279)
++++ test/allocated.c	(작업 사본)
+@@ -1,6 +1,5 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <stdint.h>
+ #include <stdbool.h>
+ #include <pthread.h>
+ #include <assert.h>
+@@ -10,6 +9,10 @@
+ #define	JEMALLOC_MANGLE
+ #include "jemalloc_test.h"
+ 
++#ifndef NO_STDINT
++#include <stdint.h>
++#endif
++
+ void *
+ thread_start(void *arg)
+ {
+Index: test/posix_memalign.c
+===================================================================
+--- test/posix_memalign.c	(리비전 279)
++++ test/posix_memalign.c	(작업 사본)
+@@ -27,7 +27,7 @@
+ 		err = JEMALLOC_P(posix_memalign)(&p, alignment, 1);
+ 		if (err != EINVAL) {
+ 			fprintf(stderr,
+-			    "Expected error for invalid alignment %zu\n",
++			    "Expected error for invalid alignment %d\n",
+ 			    alignment);
+ 		}
+ 	}
+@@ -37,7 +37,7 @@
+ 		err = JEMALLOC_P(posix_memalign)(&p, alignment + 1, 1);
+ 		if (err == 0) {
+ 			fprintf(stderr,
+-			    "Expected error for invalid alignment %zu\n",
++			    "Expected error for invalid alignment %d\n",
+ 			    alignment + 1);
+ 		}
+ 	}
+@@ -52,7 +52,7 @@
+ 	err = JEMALLOC_P(posix_memalign)(&p, alignment, size);
+ 	if (err == 0) {
+ 		fprintf(stderr,
+-		    "Expected error for posix_memalign(&p, %zu, %zu)\n",
++		    "Expected error for posix_memalign(&p, %d, %d)\n",
+ 		    alignment, size);
+ 	}
+ 
+@@ -66,7 +66,7 @@
+ 	err = JEMALLOC_P(posix_memalign)(&p, alignment, size);
+ 	if (err == 0) {
+ 		fprintf(stderr,
+-		    "Expected error for posix_memalign(&p, %zu, %zu)\n",
++		    "Expected error for posix_memalign(&p, %d, %d)\n",
+ 		    alignment, size);
+ 	}
+ 
+@@ -79,7 +79,7 @@
+ 	err = JEMALLOC_P(posix_memalign)(&p, alignment, size);
+ 	if (err == 0) {
+ 		fprintf(stderr,
+-		    "Expected error for posix_memalign(&p, %zu, %zu)\n",
++		    "Expected error for posix_memalign(&p, %d, %d)\n",
+ 		    alignment, size);
+ 	}
+ 
+@@ -90,7 +90,7 @@
+ 	    alignment <= MAXALIGN;
+ 	    alignment <<= 1) {
+ 		total = 0;
+-		fprintf(stderr, "Alignment: %zu\n", alignment);
++		fprintf(stderr, "Alignment: %d\n", alignment);
+ 		for (size = 1;
+ 		    size < 3 * alignment && size < (1U << 31);
+ 		    size += (alignment >> (LG_SIZEOF_PTR-1)) - 1) {
+@@ -99,7 +99,7 @@
+ 				    alignment, size);
+ 				if (err) {
+ 					fprintf(stderr,
+-					    "Error for size %zu (0x%zx): %s\n",
++					    "Error for size %d (0x%zx): %s\n",
+ 					    size, size, strerror(err));
+ 					exit(1);
+ 				}
+Index: configure (deleted)
+===================================================================
+Index: Makefile.in
+===================================================================
+--- Makefile.in	(리비전 279)
++++ Makefile.in	(작업 사본)
+@@ -27,12 +27,11 @@
+ LDFLAGS := @LDFLAGS@
+ LIBS := @LIBS@
+ RPATH_EXTRA := @RPATH_EXTRA@
++WL_SONAME := @WL_SONAME@
+ ifeq (macho, @abi@)
+ SO := dylib
+-WL_SONAME := dylib_install_name
+ else
+ SO := so
+-WL_SONAME := soname
+ endif
+ REV := 1
+ ifeq (macho, @abi@)
+Index: include/jemalloc/jemalloc_defs.h.in
+===================================================================
+--- include/jemalloc/jemalloc_defs.h.in	(리비전 279)
++++ include/jemalloc/jemalloc_defs.h.in	(작업 사본)
+@@ -111,6 +111,15 @@
+ /* TLS is used to map arenas and magazine caches to threads. */
+ #undef NO_TLS
+ 
++/* */
++#undef NO_FFSL
++
++/* */
++#undef NO_STDINT
++
++/* */
++#undef NO_STRERROR_R
++
+ /*
+  * JEMALLOC_IVSALLOC enables ivsalloc(), which verifies that pointers reside
+  * within jemalloc-owned chunks before dereferencing them.
+Index: include/jemalloc/internal/bitmap.h
+===================================================================
+--- include/jemalloc/internal/bitmap.h	(리비전 279)
++++ include/jemalloc/internal/bitmap.h	(작업 사본)
+@@ -118,6 +118,20 @@
+ 	}
+ }
+ 
++#ifdef NO_FFSL
++JEMALLOC_INLINE int
++ffsl(long mask)
++{
++    int bit;
++ 
++    if (mask == 0)
++        return (0);
++    for (bit = 1; !(mask & 1); bit++)
++        mask = (unsigned long)mask >> 1;
++    return (bit);
++}
++#endif
++
+ /* sfu: set first unset. */
+ JEMALLOC_INLINE size_t
+ bitmap_sfu(bitmap_t *bitmap, const bitmap_info_t *binfo)
+Index: include/jemalloc/internal/atomic.h
+===================================================================
+--- include/jemalloc/internal/atomic.h	(리비전 279)
++++ include/jemalloc/internal/atomic.h	(작업 사본)
+@@ -160,6 +160,22 @@
+ 
+ 	return (x);
+ }
++#elif defined(__sparc__)
++#include <sys/atomic.h>
++JEMALLOC_INLINE uint32_t
++atomic_add_uint32(uint32_t *p, uint32_t x)
++{
++    atomic_add_32(p, x);
++    return *p;
++}
++
++JEMALLOC_INLINE uint32_t
++atomic_sub_uint32(uint32_t *p, uint32_t x)
++{
++    x = (uint32_t)(-(int32_t)x);
++	atomic_add_32(p, x);
++    return *p;
++}
+ #else
+ #  error "Missing implementation for 32-bit atomic operations"
+ #endif
+Index: include/jemalloc/internal/jemalloc_internal.h.in
+===================================================================
+--- include/jemalloc/internal/jemalloc_internal.h.in	(리비전 279)
++++ include/jemalloc/internal/jemalloc_internal.h.in	(작업 사본)
+@@ -2,7 +2,6 @@
+ #include <sys/param.h>
+ #include <sys/time.h>
+ #include <sys/types.h>
+-#include <sys/sysctl.h>
+ #include <sys/uio.h>
+ 
+ #include <errno.h>
+@@ -16,7 +15,11 @@
+ #include <stdbool.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <stdint.h>
++
++#ifdef NO_STDINT
++#  include <stdint.h>
++#endif
++
+ #include <stddef.h>
+ #ifndef offsetof
+ #  define offsetof(type, member)	((size_t)&(((type *)NULL)->member))
+@@ -135,6 +138,9 @@
+ #ifdef __sparc64__
+ #  define LG_QUANTUM		4
+ #endif
++#ifdef __sparc__
++#  define LG_QUANTUM		4
++#endif
+ #if (defined(__amd64__) || defined(__x86_64__))
+ #  define LG_QUANTUM		4
+ #endif
+Index: src/jemalloc.c
+===================================================================
+--- src/jemalloc.c	(리비전 279)
++++ src/jemalloc.c	(작업 사본)
+@@ -220,7 +220,14 @@
+ 	}
+ 	return (0);
+ #else
++# ifdef NO_STRERROR_R
++    char *b = strerror(errno);
++    strncpy(buf, b, buflen);
++    buf[buflen-1] = '\0';
++	return (0);
++# else
+ 	return (strerror_r(errno, buf, buflen));
++# endif
+ #endif
+ }
+ 
+Index: configure.ac
+===================================================================
+--- configure.ac	(리비전 279)
++++ configure.ac	(작업 사본)
+@@ -180,12 +180,14 @@
+ 	abi="macho"
+ 	AC_DEFINE([JEMALLOC_PURGE_MADVISE_FREE])
+ 	RPATH=""
++    WL_SONAME="dylib_install_name"
+ 	;;
+   *-*-freebsd*)
+ 	CFLAGS="$CFLAGS"
+ 	abi="elf"
+ 	AC_DEFINE([JEMALLOC_PURGE_MADVISE_FREE])
+ 	RPATH="-Wl,-rpath,"
++    WL_SONAME="soname"
+ 	;;
+   *-*-linux*)
+ 	CFLAGS="$CFLAGS"
+@@ -193,7 +195,8 @@
+ 	abi="elf"
+ 	AC_DEFINE([JEMALLOC_PURGE_MADVISE_DONTNEED])
+ 	RPATH="-Wl,-rpath,"
+-	;;
++    WL_SONAME="soname"
++    ;;
+   *-*-netbsd*)
+ 	AC_MSG_CHECKING([ABI])
+         AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+@@ -208,14 +211,17 @@
+ 	AC_MSG_RESULT([$abi])
+ 	AC_DEFINE([JEMALLOC_PURGE_MADVISE_FREE])
+ 	RPATH="-Wl,-rpath,"
++    WL_SONAME="soname"
+ 	;;
+   *-*-solaris2*)
++    WL_SONAME="h"
+ 	CFLAGS="$CFLAGS"
+ 	abi="elf"
+ 	RPATH="-Wl,-R,"
+ 	dnl Solaris needs this for sigwait().
+ 	CPPFLAGS="$CPPFLAGS -D_POSIX_PTHREAD_SEMANTICS"
+ 	LIBS="$LIBS -lposix4 -lsocket -lnsl"
++  	AC_DEFINE([JEMALLOC_PURGE_MADVISE_FREE])
+ 	;;
+   *)
+ 	AC_MSG_RESULT([Unsupported operating system: ${host}])
+@@ -225,6 +231,7 @@
+ esac
+ AC_SUBST([abi])
+ AC_SUBST([RPATH])
++AC_SUBST([WL_SONAME])
+ 
+ JE_COMPILABLE([__attribute__ syntax],
+               [static __attribute__((unused)) void foo(void){}],
+@@ -762,14 +769,34 @@
+   AC_DEFINE_UNQUOTED([NO_TLS], [ ])
+ fi
+ 
+-dnl ============================================================================
+-dnl Check for ffsl(3), and fail if not found.  This function exists on all
+-dnl platforms that jemalloc currently has a chance of functioning on without
+-dnl modification.
++AC_ARG_ENABLE([ffsl],
++              [AC_HELP_STRING([--enable-ffsl], [Use ffsl function])],
++if test "x$enable_ffsl" = "xyes" ; then
++  enable_ffsl="1"
++else
++  enable_ffsl="0"
++fi
++,
++enable_ffsl="0"
++)
+ 
+-AC_CHECK_FUNC([ffsl], [],
+-	      [AC_MSG_ERROR([Cannot build without ffsl(3)])])
++if test "x${enable_ffsl}" = "x1" ; then
++  AC_CHECK_FUNC([ffsl], ,
++                [AC_MSG_ERROR([Cannot build without ffsl(3)])])
++else
++  AC_CHECK_FUNC([ffsl],
++                enable_ffsl="1",
++                AC_DEFINE_UNQUOTED([NO_FFSL], [ ]))
++fi
+ 
++AC_CHECK_HEADERS([stdint.h], , [enable_internal_stdint="1"])
++if test "x${enable_internal_stdint}" = "x1" ; then
++  AC_DEFINE_UNQUOTED([NO_STDINT], [ ])
++fi
++
++AC_CHECK_FUNC([strerror_r], ,
++        [AC_DEFINE_UNQUOTED([NO_STRERROR_R], [])])
++
+ dnl ============================================================================
+ dnl Check for atomic(3) operations as provided on Darwin.
+ 
+@@ -924,4 +951,6 @@
+ AC_MSG_RESULT([dynamic_page_shift : ${enable_dynamic_page_shift}])
+ AC_MSG_RESULT([lazy_lock          : ${enable_lazy_lock}])
+ AC_MSG_RESULT([tls                : ${enable_tls}])
++AC_MSG_RESULT([ffsl               : ${enable_ffsl}])
++AC_MSG_RESULT([WL_SONAME          : ${WL_SONAME}])
+ AC_MSG_RESULT([===============================================================================])

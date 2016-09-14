@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20on%20el5%20and%20el6%3A%20undefined%20reference%20to%0A%09%60clock_gettime%27&In-Reply-To=%3C55D5838D.7080305%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001148.html">
+   <LINK REL="Next"  HREF="001151.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20on%20el5%20and%20el6%3A%20undefined%20reference%20to%0A%09%60clock_gettime%27&In-Reply-To=%3C55D5838D.7080305%40gmail.com%3E"
+       TITLE="jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'">danielmicay at gmail.com
+       </A><BR>
+    <I>Thu Aug 20 00:36:45 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001148.html">jemalloc-4.0.0 on el5 and el6: undefined reference to `clock_gettime'
+</A></li>
+        <LI>Next message: <A HREF="001151.html">jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1149">[ date ]</a>
+              <a href="thread.html#1149">[ thread ]</a>
+              <a href="subject.html#1149">[ subject ]</a>
+              <a href="author.html#1149">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 20/08/15 03:34 AM, Ingvar Hagelund wrote:
+&gt;<i> When compiling jemalloc-4.0.0 on rhel5 or rhel6, the linker stops with
+</I>&gt;<i> &quot;undefined reference to `clock_gettime'&quot;
+</I>&gt;<i> 
+</I>&gt;<i> Adding &quot;-lrt&quot; to LDFLAGS gets around this, but perhaps it could have
+</I>&gt;<i> been picked up automatically?
+</I>&gt;<i> 
+</I>&gt;<i> Regards,
+</I>&gt;<i> Ingvar
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> el6$ gcc -o test/unit/atomic test/unit/atomic.o src/jemalloc.jet.o
+</I>&gt;<i> src/arena.jet.o src/atomic.jet.o src/base.jet.o src/bitmap.jet.o
+</I>&gt;<i> src/chunk.jet.o src/chunk_dss.jet.o src/chunk_mmap.jet.o src/ckh.jet.o
+</I>&gt;<i> src/ctl.jet.o src/extent.jet.o src/hash.jet.o src/huge.jet.o
+</I>&gt;<i> src/mb.jet.o src/mutex.jet.o src/pages.jet.o src/prof.jet.o
+</I>&gt;<i> src/quarantine.jet.o src/rtree.jet.o src/stats.jet.o src/tcache.jet.o
+</I>&gt;<i> src/util.jet.o src/tsd.jet.o src/valgrind.jet.o test/src/btalloc.unit.o
+</I>&gt;<i> test/src/btalloc_0.unit.o test/src/btalloc_1.unit.o test/src/math.unit.o
+</I>&gt;<i> test/src/mtx.unit.o test/src/mq.unit.o test/src/SFMT.unit.o
+</I>&gt;<i> test/src/test.unit.o test/src/thd.unit.o test/src/timer.unit.o
+</I>&gt;<i> -Wl,-rpath,lib  -lpthread -lm
+</I>&gt;<i> test/src/timer.unit.o: In function `timer_stop':
+</I>&gt;<i> /builddir/build/BUILD/jemalloc-4.0.0/test/src/timer.c:27: undefined
+</I>&gt;<i> reference to `clock_gettime'
+</I>&gt;<i> test/src/timer.unit.o: In function `timer_start':
+</I>&gt;<i> /builddir/build/BUILD/jemalloc-4.0.0/test/src/timer.c:14: undefined
+</I>&gt;<i> reference to `clock_gettime'
+</I>&gt;<i> /builddir/build/BUILD/jemalloc-4.0.0/test/src/timer.c:14: undefined
+</I>&gt;<i> reference to `clock_gettime'
+</I>&gt;<i> collect2: ld returned 1 exit status
+</I>&gt;<i> make: *** [test/unit/atomic] Error 1
+</I>
+Yeah, the issue would be that clock_gettime was moved to libc in newer
+versions of libc so -lrt wasn't added for the tests.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150820/1eb1893a/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150820/1eb1893a/attachment.sig</A>&gt;
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001148.html">jemalloc-4.0.0 on el5 and el6: undefined reference to `clock_gettime'
+</A></li>
+	<LI>Next message: <A HREF="001151.html">jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1149">[ date ]</a>
+              <a href="thread.html#1149">[ thread ]</a>
+              <a href="subject.html#1149">[ subject ]</a>
+              <a href="author.html#1149">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

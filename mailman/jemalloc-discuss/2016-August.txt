@@ -1,0 +1,254 @@
+From ingvar at redpill-linpro.com  Mon Aug  8 05:35:35 2016
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Mon, 8 Aug 2016 14:35:35 +0200
+Subject: 4.2.1 test/integration/mallocx still fails on older 32 bit (Was:
+	jemalloc 4.2.1 released)
+In-Reply-To: <12851233-3688-4937-A1D9-F5651E740733@canonware.com>
+References: <12851233-3688-4937-A1D9-F5651E740733@canonware.com>
+Message-ID: <2402583e-13fd-afc0-61d8-59afe181c5b2@redpill-linpro.com>
+
+Den 09. juni 2016 09:14, skrev Jason Evans:
+> jemalloc 4.2.1 is now available.
+> (...)
+
+I try again, as I didn't get any response on my last post.
+
+test/integration/mallocx still fails on older 32 bit in 4.2.1, as it did
+in 4.1.1.
+
+Target systems failing are rhel5 and rhel6 on i686 and ppc.
+
+Typical test output:
+=== test/integration/mallocx ===
+test_overflow: pass
+test_oom: pass
+test_basic: pass
+test_alignment_and_size:test/integration/mallocx.c:175: Failed
+assertion: (ps[i]) != (NULL) --> 0x0 == 0x0: mallocx() error for
+alignment=33554432, size=67108861 (0x3fffffd)
+test/test.sh: line 22:  1969 Segmentation fault      (core dumped) ${t}
+/builddir/build/BUILD/jemalloc-4.2.1/ /builddir/build/BUILD/jemalloc-4.2.1/
+Test harness error
+make: *** [check_integration] Error 1
+
+Full build logs:
+
+el5/ppc:
+https://kojipkgs.fedoraproject.org//work/tasks/4856/15114856/build.log
+
+el5/i386:
+https://kojipkgs.fedoraproject.org//work/tasks/5786/15115786/build.log
+
+el5/i686:
+https://kojipkgs.fedoraproject.org//work/tasks/5839/15115839/build.log
+
+el6/i686:
+https://kojipkgs.fedoraproject.org//work/tasks/5730/15115730/build.log
+
+
+Best regards,
+Ingvar Hagelund
+
+
+From ramesh.sivaraman at percona.com  Thu Aug 25 02:19:26 2016
+From: ramesh.sivaraman at percona.com (Ramesh Sivaraman)
+Date: Thu, 25 Aug 2016 14:49:26 +0530
+Subject: Jemalloc library is hitting Segmentation fault on CentOS-7
+Message-ID: <CAECJSJ7nFxHQ=rM1paoS9VYAFFaznYrs=vOTAD8vwD42gePZsg@mail.gmail.com>
+
+Hi Team,
+
+Jemalloc library is hitting  Segmentation fault on CentOS-7
+
+With debug library Segmentation fault issue triggering with simple `ls`
+command.
+
+$ export LD_PRELOAD=/usr/lib/debug/usr/lib64/libjemalloc.so.1.debug
+$ ls
+Segmentation fault (core dumped)
+$
+
+Also seeing a segmentation fault issue (same issue?) with non-debug jemalloc
+
+$ export LD_PRELOAD=/usr/lib64/libjemalloc.so.1
+$ ./bin/mysqld --version
+Segmentation fault (core dumped)
+$ gdb ./bin/mysqld core.11345.mysqld.11
+[..]
+(gdb) bt
++bt
+#0  0x00007f1c21fa5964 in get_nprocs () from /lib64/libc.so.6
+#1  0x00007f1c21f70b0c in sysconf () from /lib64/libc.so.6
+#2  0x00007f1c26efebd0 in malloc_ncpus () at src/jemalloc.c:256
+#3  malloc_init_hard () at src/jemalloc.c:776
+#4  0x00007f1c26f01705 in malloc_init () at src/jemalloc.c:292
+#5  calloc (num=1, size=32) at src/jemalloc.c:1123
+#6  0x00007f1c22eb1690 in _dlerror_run () from /lib64/libdl.so.2
+#7  0x00007f1c22eb1198 in dlsym () from /lib64/libdl.so.2
+#8  0x00007f1c23f88fec in ?? () from /lib64/libasan.so.0
+#9  0x00007f1c23f7b2c9 in ?? () from /lib64/libasan.so.0
+#10 0x00007f1c23f7d91b in __asan_init_v1 () from /lib64/libasan.so.0
+#11 0x00007f1c271426c3 in _dl_init_internal () from
+/lib64/ld-linux-x86-64.so.2
+#12 0x00007f1c2713445a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+#13 0x0000000000000002 in ?? ()
+#14 0x00007fff9d552740 in ?? ()
+#15 0x00007fff9d55274d in ?? ()
+#16 0x0000000000000000 in ?? ()
+(gdb)
+
+-- 
+Best Regards,
+
+*Ramesh*
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160825/1c969dbe/attachment.html>
+
+From ramesh.sivaraman at percona.com  Thu Aug 25 02:27:07 2016
+From: ramesh.sivaraman at percona.com (Ramesh Sivaraman)
+Date: Thu, 25 Aug 2016 14:57:07 +0530
+Subject: Jemalloc library is hitting Segmentation fault on CentOS-7
+In-Reply-To: <CAECJSJ7nFxHQ=rM1paoS9VYAFFaznYrs=vOTAD8vwD42gePZsg@mail.gmail.com>
+References: <CAECJSJ7nFxHQ=rM1paoS9VYAFFaznYrs=vOTAD8vwD42gePZsg@mail.gmail.com>
+Message-ID: <CAECJSJ4WMOdD_DNhqXXYjhYoFpCkrj+1+b1otX73d-=EOp3_gg@mail.gmail.com>
+
+Hi Team,
+
+Forgot to mention version details
+
+jemalloc.x86_64  : 3.6.0-3.el7
+
+On Thu, Aug 25, 2016 at 2:49 PM, Ramesh Sivaraman <
+ramesh.sivaraman at percona.com> wrote:
+
+> Hi Team,
+>
+> Jemalloc library is hitting  Segmentation fault on CentOS-7
+>
+> With debug library Segmentation fault issue triggering with simple `ls`
+> command.
+>
+> $ export LD_PRELOAD=/usr/lib/debug/usr/lib64/libjemalloc.so.1.debug
+> $ ls
+> Segmentation fault (core dumped)
+> $
+>
+> Also seeing a segmentation fault issue (same issue?) with non-debug
+> jemalloc
+>
+> $ export LD_PRELOAD=/usr/lib64/libjemalloc.so.1
+> $ ./bin/mysqld --version
+> Segmentation fault (core dumped)
+> $ gdb ./bin/mysqld core.11345.mysqld.11
+> [..]
+> (gdb) bt
+> +bt
+> #0  0x00007f1c21fa5964 in get_nprocs () from /lib64/libc.so.6
+> #1  0x00007f1c21f70b0c in sysconf () from /lib64/libc.so.6
+> #2  0x00007f1c26efebd0 in malloc_ncpus () at src/jemalloc.c:256
+> #3  malloc_init_hard () at src/jemalloc.c:776
+> #4  0x00007f1c26f01705 in malloc_init () at src/jemalloc.c:292
+> #5  calloc (num=1, size=32) at src/jemalloc.c:1123
+> #6  0x00007f1c22eb1690 in _dlerror_run () from /lib64/libdl.so.2
+> #7  0x00007f1c22eb1198 in dlsym () from /lib64/libdl.so.2
+> #8  0x00007f1c23f88fec in ?? () from /lib64/libasan.so.0
+> #9  0x00007f1c23f7b2c9 in ?? () from /lib64/libasan.so.0
+> #10 0x00007f1c23f7d91b in __asan_init_v1 () from /lib64/libasan.so.0
+> #11 0x00007f1c271426c3 in _dl_init_internal () from
+> /lib64/ld-linux-x86-64.so.2
+> #12 0x00007f1c2713445a in _dl_start_user () from
+> /lib64/ld-linux-x86-64.so.2
+> #13 0x0000000000000002 in ?? ()
+> #14 0x00007fff9d552740 in ?? ()
+> #15 0x00007fff9d55274d in ?? ()
+> #16 0x0000000000000000 in ?? ()
+> (gdb)
+>
+> --
+> Best Regards,
+>
+> *Ramesh*
+>
+>
+>
+
+
+-- 
+Best Regards,
+
+*Ramesh Sivaraman*
+*QA Engineer, Percona*
+http://www.percona.com/ <http://percona.com/>
+Phone : +91 8606432991
+Skype : rameshvs02
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160825/7031bbc5/attachment.html>
+
+From paul at mad-scientist.net  Tue Aug 30 14:43:26 2016
+From: paul at mad-scientist.net (Paul Smith)
+Date: Tue, 30 Aug 2016 17:43:26 -0400
+Subject: jemalloc initialization in a shared library
+Message-ID: <1472593406.8549.120.camel@mad-scientist.net>
+
+Hi all. ?I wonder if anyone has any thoughts for me about a situation I
+have.
+
+I'm working on GNU/Linux.
+
+I'm compiling jemalloc as a static library (with -fPIC) then I link it
+into my own shared library (.so). ?I use -fvisibility=hidden so that
+the jemalloc symbols are not visible outside the shared library (e.g.,
+when I use "nm" on my .so, all the jemalloc symbols are marked "t" not
+"T").
+
+It works all the time for my testing and most of the time for my users.
+However, in some situations I've had users report that their process is
+hanging and when I get a stacktrace, the hang is happening inside
+pthread_mutex_unlock called from within jemalloc tls stuff. ?Note that
+my library is not being linked directly, it's being dlopen()'d, so the
+process is running for a bit before my library is loaded. ?To be
+precise, it's being loaded inside an openjdk 1.8 JVM and invoked from
+Java using JNI.
+
+Here's a sample stacktrace:
+
+#0??0x0000003793a0a8a9 in pthread_mutex_unlock () from ./lib64/libpthread.so.0
+#1??0x00000037932110d2 in tls_get_addr_tail () from ./lib64/ld-linux-x86-64.so.2
+#2??0x0000003793211500 in __tls_get_addr () from ./lib64/ld-linux-x86-64.so.2
+#3??0x00007f0181a7ab7f in tcache_enabled_get () at jemalloc/include/jemalloc/internal/tcache.h:172
+#4??tcache_get (create=true) at jemalloc/include/jemalloc/internal/tcache.h:238
+#5??arena_malloc (arena=0x0, zero=false, try_tcache=true, size=96) at jemalloc/include/jemalloc/internal/arena.h:873
+#6??imallocx (try_tcache=true, arena=0x0, size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:767
+#7??imalloc (size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:776
+#8??prof_tdata_init () at jemalloc/src/prof.c:1244
+#9??0x00007f0181a5f7dd in prof_tdata_get () at jemalloc/include/jemalloc/internal/prof.h:317
+#10 malloc (size=<optimized out>) at jemalloc/src/jemalloc.c:850
+#11 0x00007f018185fbb1 in operator new [] (size=19) at core/Allocator.h:86
+#12 String::allocate (this=this at entry=0x7f0189c93e40, length=length at entry=6) at core/StringClass.cpp:158
+? ...
+
+(I should come clean and mention this is an older version of jemalloc:
+3.1 I believe--if that's likely to be the issue I can look into
+updating).
+
+The hang seems to happen very close to when this library starts, and
+it's clearly in a fundamental area.
+
+What I was wondering was whether it might be possible that some static
+memory inside jemalloc was not getting initialized in the right order
+when the shared library is loaded. ?Perhaps there's some other static
+variable with a constructor which allocates memory, and if they are
+invoked in the wrong order then jemalloc's structures are not set up
+properly or something.
+
+Does this seem like it might be plausible? ?If so is there anything
+that can be done (other than sweeping all my code to remove any
+allocation done during a static constructor)? ?It's OK if this is a
+GCC-only solution, such as using __attribute__((init_priority())) or
+something...
+
+It would be much simpler if I could reproduce the problem myself, then
+I could just experiment, but so far no luck.
+

@@ -1,0 +1,254 @@
+From pbiggar at mozilla.com  Mon Aug  1 12:04:44 2011
+From: pbiggar at mozilla.com (Paul Biggar)
+Date: Mon, 1 Aug 2011 12:04:44 -0700
+Subject: Upstreaming mozilla changes
+Message-ID: <CACEyc8Lqd9WBmggJG1BR0Q7zNrt3as_2UVvGUuxM3i0TWa_UXw@mail.gmail.com>
+
+Hi,
+
+We're in the process of updating the Mozilla codebase to use the
+latest version of jemalloc. Unfortunately, there are a number of
+features in the Mozilla version which we never upstreamed:
+
+  - windows support
+  - decommit support (for windows)
+  - recent OSX changes
+
+We want to upstream these changes. Would you have a problem accepting
+patches for these features? Some of the more odious changes we forsee
+remove the use of the advanced C99 features (not available in Visual
+Studio), and some light build system hacking.
+
+Finally, how do you take code? Do we send patches to this list, or do
+you have a way to review pull requests a-la-github?
+
+Thanks,
+Paul
+
+
+-- 
+Paul Biggar
+Compiler Geek
+pbiggar at mozilla.com
+@paulbiggar
+
+
+From jasone at canonware.com  Wed Aug  3 10:16:19 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 03 Aug 2011 10:16:19 -0700
+Subject: Upstreaming mozilla changes
+In-Reply-To: <CACEyc8Lqd9WBmggJG1BR0Q7zNrt3as_2UVvGUuxM3i0TWa_UXw@mail.gmail.com>
+References: <CACEyc8Lqd9WBmggJG1BR0Q7zNrt3as_2UVvGUuxM3i0TWa_UXw@mail.gmail.com>
+Message-ID: <4E398263.8010308@canonware.com>
+
+On 08/01/2011 12:04 PM, Paul Biggar wrote:
+> We're in the process of updating the Mozilla codebase to use the
+> latest version of jemalloc. Unfortunately, there are a number of
+> features in the Mozilla version which we never upstreamed:
+>
+>    - windows support
+>    - decommit support (for windows)
+>    - recent OSX changes
+>
+> We want to upstream these changes. Would you have a problem accepting
+> patches for these features? Some of the more odious changes we forsee
+> remove the use of the advanced C99 features (not available in Visual
+> Studio), and some light build system hacking.
+
+Yes, I'm definitely willing to take patches for those features!  I want 
+the stand-alone jemalloc to work on all the major platforms so that 
+there's only one version of jemalloc to maintain, but I don't use 
+Windows myself, so haven't had the time or motive to get it done.
+
+> Finally, how do you take code? Do we send patches to this list, or do
+> you have a way to review pull requests a-la-github?
+
+'git format-patch' seems to work pretty well for sending patches via 
+email.  Alternatively, I can pull from a git repo that you make public. 
+  The latter may work better if you expect there may be non-trivial 
+changes necessary after review feedback.
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Wed Aug  3 10:30:12 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 03 Aug 2011 10:30:12 -0700
+Subject: I made a jemalloc patch for solaris 5.8
+In-Reply-To: <20110726175903.HM.e0000000006sxi9@gurugio.wwl1003.hanmail.net>
+References: <20110726175903.HM.e0000000006sxi9@gurugio.wwl1003.hanmail.net>
+Message-ID: <4E3985A4.9080808@canonware.com>
+
+On 07/26/2011 01:59 AM, gurugio wrote:
+> I've been making a product for solaris platform and wanting new memory 
+> manager.
+> 
+> So I made a patch. The patch was tested at solaris 5.8 in 32bit mode.
+> 
+> Of course, I have to do many things to support completly for every 
+> version of solaris.
+> 
+> Please give me any feedback to make advance patch.
+
+This patch will cause some regressions on other platforms.  In
+particular, the change from %zu to %d is incorrect.  Solaris 5.8 is
+ancient... no stdint.h?  I doubt the most recent two or three releases
+of Solaris have this issue.  In any case, we may be faced with
+abstracting out the %zu format specifiers for Windows, so we can
+probably make one solution work for both platforms.
+
+The ffsl() implementation is quite inefficient.  It would be better if
+it were based on ffs() instead.
+
+> I hope Stand-alone jemalloc package does support for solaris, AIX and HP 
+> ASAP.
+
+I tend to actively develop jemalloc only on platforms that I actively
+use (Linux, OS X, FreeBSD), but I'm willing to integrate support for
+other platforms, as long as it isn't harmful to the existing platform
+support.
+
+Thanks,
+Jason
+
+
+From bma at websense.com  Wed Aug  3 23:52:41 2011
+From: bma at websense.com (Ma, Bo)
+Date: Thu, 4 Aug 2011 06:52:41 +0000
+Subject: why jemalloc expand virtual memory space so quickly
+Message-ID: <676A609C6AC1B24494C4AFCEC0707579092D1200@ssdexch1a>
+
+Hi Guys,
+    It seems that gemalloc costs more virtual memory than glibc_malloc.
+We are estimating the possibility that replace glibc_malloc by jemalloc.We have seen that jemalloc is really
+faster than glibc_malloc and costs less physical memory.But the amount  of virtual memory increase  quickly.
+Though we ends our test,it still occupies many virtual memory.
+Because we have more physical memory than 4G but we are still using 32bit Linux,virtual memory is also badly needed.
+Is there any way to reduce the virtual memory cost of jemalloc?
+
+Thanks
+Kevin
+
+
+ Physical Memory:
+[cid:image003.png at 01CC52B3.4E733B20]
+
+Virtual Memory:
+[cid:image004.png at 01CC52B3.4E733B20]
+
+
+ Protected by Websense Hosted Email Security -- www.websense.com 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: image003.png
+Type: image/png
+Size: 33324 bytes
+Desc: image003.png
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment.png>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: image004.png
+Type: image/png
+Size: 35863 bytes
+Desc: image004.png
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110804/e830c956/attachment-0001.png>
+
+From jasone at canonware.com  Thu Aug  4 00:18:23 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 04 Aug 2011 00:18:23 -0700
+Subject: why jemalloc expand virtual memory space so quickly
+In-Reply-To: <676A609C6AC1B24494C4AFCEC0707579092D1200@ssdexch1a>
+References: <676A609C6AC1B24494C4AFCEC0707579092D1200@ssdexch1a>
+Message-ID: <4E3A47BF.3010107@canonware.com>
+
+On 08/03/2011 11:52 PM, Ma, Bo wrote:
+> It seems that gemalloc costs more virtual memory than glibc_malloc.
+>
+> We are estimating the possibility that replace glibc_malloc by
+> jemalloc.We have seen that jemalloc is really
+>
+> faster than glibc_malloc and costs less physical memory.But the amount
+> of virtual memory increase quickly.
+>
+> Though we ends our test,it still occupies many virtual memory.
+>
+> Because we have more physical memory than 4G but we are still using
+> 32bit Linux,virtual memory is also badly needed.
+>
+> Is there any way to reduce the virtual memory cost of jemalloc?
+
+Virtual memory is not of major concern on 64-bit systems, and even on 
+32-bit systems, jemalloc typically works fine for applications that 
+malloc less than 2 GiB of memory.  In any case, here are some things you 
+can do to reduce virtual memory usage:
+
+* Reduce the number of arenas.  If your application is multi-threaded, 
+then multiple arenas are utilized.  This can dramatically increase 
+virtual memory consumption.
+
+* Reduce the chunk size.  This will increase the odds that chunks can be 
+completely unmapped after memory usage decreases.  In practice, whether 
+this helps is rather dependent on application allocation patterns, and 
+small chunk sizes can degrade throughput.
+
+See the jemalloc man page for details on how to control these and other 
+options.
+
+Jason
+
+
+From bma at websense.com  Thu Aug  4 00:26:23 2011
+From: bma at websense.com (Ma, Bo)
+Date: Thu, 4 Aug 2011 07:26:23 +0000
+Subject: why jemalloc expand virtual memory space so quickly
+In-Reply-To: <4E3A47BF.3010107@canonware.com>
+References: <676A609C6AC1B24494C4AFCEC0707579092D1200@ssdexch1a>
+	<4E3A47BF.3010107@canonware.com>
+Message-ID: <676A609C6AC1B24494C4AFCEC0707579092D122C@ssdexch1a>
+
+Thanks Jason,I will have a try.
+
+-----Original Message-----
+From: Jason Evans [mailto:jasone at canonware.com] 
+Sent: Thursday, August 04, 2011 3:18 PM
+To: Ma, Bo
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: why jemalloc expand virtual memory space so quickly
+
+On 08/03/2011 11:52 PM, Ma, Bo wrote:
+> It seems that gemalloc costs more virtual memory than glibc_malloc.
+>
+> We are estimating the possibility that replace glibc_malloc by 
+> jemalloc.We have seen that jemalloc is really
+>
+> faster than glibc_malloc and costs less physical memory.But the amount 
+> of virtual memory increase quickly.
+>
+> Though we ends our test,it still occupies many virtual memory.
+>
+> Because we have more physical memory than 4G but we are still using 
+> 32bit Linux,virtual memory is also badly needed.
+>
+> Is there any way to reduce the virtual memory cost of jemalloc?
+
+Virtual memory is not of major concern on 64-bit systems, and even on 32-bit systems, jemalloc typically works fine for applications that malloc less than 2 GiB of memory.  In any case, here are some things you can do to reduce virtual memory usage:
+
+* Reduce the number of arenas.  If your application is multi-threaded, then multiple arenas are utilized.  This can dramatically increase virtual memory consumption.
+
+* Reduce the chunk size.  This will increase the odds that chunks can be completely unmapped after memory usage decreases.  In practice, whether this helps is rather dependent on application allocation patterns, and small chunk sizes can degrade throughput.
+
+See the jemalloc man page for details on how to control these and other options.
+
+Jason
+
+
+ To report this as spam, please forward to spam at websense.com.  Thank you.
+
+
+ Protected by Websense Hosted Email Security -- www.websense.com 
+
+

@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> memalign() bug found &amp; fixed
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memalign%28%29%20bug%20found%20%26%20fixed&In-Reply-To=%3C20150117014443.GD2497%40asml.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000982.html">
+   <LINK REL="Next"  HREF="000984.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>memalign() bug found &amp; fixed</H1>
+    <B>Kurt Wampler</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memalign%28%29%20bug%20found%20%26%20fixed&In-Reply-To=%3C20150117014443.GD2497%40asml.com%3E"
+       TITLE="memalign() bug found &amp; fixed">Kurt.Wampler at asml.com
+       </A><BR>
+    <I>Fri Jan 16 17:44:43 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000982.html">ctl_refresh() is never called,	je_mallctl(&quot;stats.allocated&quot;) doesn't work
+</A></li>
+        <LI>Next message: <A HREF="000984.html">memalign() bug found &amp; fixed
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#983">[ date ]</a>
+              <a href="thread.html#983">[ thread ]</a>
+              <a href="subject.html#983">[ subject ]</a>
+              <a href="author.html#983">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Greetings,
+
+I'm new to this list, so will expect guidance if I violate any conventions.
+
+I'd like to report a bug which we found and fixed in jemalloc-3.6.0.
+
+In the imemalign() function, when the allocation fails, there are
+&quot;goto&quot; statements that end up reaching &quot;label_return:&quot; without ever
+dereferencing memptr (the first argument).  However, je_memalign() is
+written in a way that ignores imemalign()'s function return value, and
+depends instead on imemalign() to communicate the results using memptr.
+
+Our local fix for this problem was to move one line in imemalign() below
+&quot;label_return:&quot;.
+
+
+Original code:
+-------------
+
+        *memptr = result;
+        ret = 0;
+label_return:
+
+
+Revised code:
+------------
+
+        ret = 0;
+label_return:
+        *memptr = result;
+
+
+The above seemed like the simplest fix, but maybe it would be clearer
+to change je_memalign() to follow the same convention as je_posix_memalign()?
+
+Regards,
+
+Kurt Wampler  (<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Kurt.Wampler at asml.com</A>)  408-200-3722
+
+-- The information contained in this communication and any attachments is confidential and may be privileged, and is for the sole use of the intended recipient(s). Any unauthorized review, use, disclosure or distribution is prohibited. Unless explicitly stated otherwise in the body of this communication or the attachment thereto (if any), the information is provided on an AS-IS basis without any express or implied warranties or liabilities. To the extent you are relying on this information, you are doing so at your own risk. If you are not the intended recipient, please notify the sender immediately by replying to this message and destroy all copies of this message and any attachments. The sender nor the company/group of companies he or she represents shall be liable for the proper and complete transmission of the information contained in this communication, or for any delay in its receipt.
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000982.html">ctl_refresh() is never called,	je_mallctl(&quot;stats.allocated&quot;) doesn't work
+</A></li>
+	<LI>Next message: <A HREF="000984.html">memalign() bug found &amp; fixed
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#983">[ date ]</a>
+              <a href="thread.html#983">[ thread ]</a>
+              <a href="subject.html#983">[ subject ]</a>
+              <a href="author.html#983">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

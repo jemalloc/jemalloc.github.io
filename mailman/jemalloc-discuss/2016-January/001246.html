@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Need Help in porting Jemalloc.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20Help%20in%20porting%20Jemalloc.&In-Reply-To=%3CCA%2BbEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001245.html">
+   <LINK REL="Next"  HREF="001247.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Need Help in porting Jemalloc.</H1>
+    <B>RajaKishore Sahu</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20Help%20in%20porting%20Jemalloc.&In-Reply-To=%3CCA%2BbEgOEV4Nc6ouzrn_mNZ-zwCSKX5bFgH9fDa8Bn6wfouc26_g%40mail.gmail.com%3E"
+       TITLE="Need Help in porting Jemalloc.">raju.sahu at gmail.com
+       </A><BR>
+    <I>Mon Jan 18 20:35:15 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001245.html">Need Help in porting Jemalloc.
+</A></li>
+        <LI>Next message: <A HREF="001247.html">Need Help in porting Jemalloc.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1246">[ date ]</a>
+              <a href="thread.html#1246">[ thread ]</a>
+              <a href="subject.html#1246">[ subject ]</a>
+              <a href="author.html#1246">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Luke,
+
+Thanks for your reply.
+
+I am trying to port Jemalloc to a embedded environment where we have only
+40 MB of memory for a subsystem.
+
+While porting I found that in start up it is consuming almost 38 MB of
+memory with arena size of 1MB. We spawn around 70 threads in the start up.
+So we are only 2 MB left for that subsystem. While the system is in run
+definitely it will ask for more memory, in that case how we are going to
+satisfy the memory needed by Jemalloc?
+
+Current allocator consumes around 20 - 22 MB of memory and remaining is
+used for the system to run.
+
+Or Jemalloc is not suited for embedded environment?
+
+Thanks
+Rajakishore
+
+
+On Tue, Jan 19, 2016 at 9:02 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt;
+wrote:
+
+&gt;<i>
+</I>&gt;<i> &gt; On Jan 17, 2016, at 9:53 PM, RajaKishore Sahu &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">raju.sahu at gmail.com</A>&gt;
+</I>&gt;<i> wrote:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Hi,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I have a follow up question.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; We have only 40 MB of memory for our sub system.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I start up Jemalloc is keep asking for new chunks and by the time the
+</I>&gt;<i> system becomes ready it almost consumes 38 MB of memory.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; How we can tell Jemalloc to uses already allocated memory chuck when we
+</I>&gt;<i> run out of our 40 MB of memory?
+</I>&gt;<i>
+</I>&gt;<i> I&#8217;m not sure this has anything to do with jemalloc. It just allocates
+</I>&gt;<i> chunks in response to application demand when it can&#8217;t satisfy new
+</I>&gt;<i> allocations given its existing chunks. That being said, I don&#8217;t know much
+</I>&gt;<i> about using jemalloc in constrained environments&#8212;we&#8217;re using it in 128GB
+</I>&gt;<i> settings.
+</I>&gt;<i>
+</I>&gt;<i> Are you suffering from terrible fragmentation? Is this consistent across
+</I>&gt;<i> different allocations? I supposed it&#8217;s easily possible that jemalloc needs
+</I>&gt;<i> a bunch of memory for its own infrastructure for trees and such.
+</I>&gt;<i>
+</I>&gt;<i> Luke
+</I>&gt;<i>
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Thanks
+</I>&gt;<i> &gt; Rajakishore
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; On Tue, Oct 13, 2015 at 8:21 AM, RajaKishore Sahu &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">raju.sahu at gmail.com</A>&gt;
+</I>&gt;<i> wrote:
+</I>&gt;<i> &gt; Hi Luke,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Thanks for sharing the details. I will go through the code and come back
+</I>&gt;<i> if I need some more help.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Thanks
+</I>&gt;<i> &gt; Rajakishore Sahu
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; On Mon, Oct 12, 2015 at 5:09 PM, D'Alessandro, Luke K &lt;
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; &gt; On Oct 12, 2015, at 1:12 AM, RajaKishore Sahu &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">raju.sahu at gmail.com</A>&gt;
+</I>&gt;<i> wrote:
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i> &gt; &gt; Hi,
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i> &gt; &gt; I am trying to port Jemalloc. We are going to use it for our
+</I>&gt;<i> sub-system not for the whole system.
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i> &gt; &gt; Main system has its own memory manager. While initializing the
+</I>&gt;<i> sub-system (in boot up) we will allocate memory from main system (Ex:- 10
+</I>&gt;<i> MB) which will be contiguous memory then we want to give the start address
+</I>&gt;<i> and size to Jemalloc to manage it. Please let us know where to provide the
+</I>&gt;<i> start address to jemalloc?
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Hi. This dlmalloc-mspace-like interface isn&#8217;t really supported by
+</I>&gt;<i> jemalloc, which wants to be able to request &#8220;chunks&#8221; of memory from the
+</I>&gt;<i> system using a chunk allocator (typically mmap()).
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; To do what you want you need to write a chunk provider based on [the
+</I>&gt;<i> chunk hooks class](
+</I>&gt;<i> <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html</A>),
+</I>&gt;<i> and then install it for all of the threads in your code. Your chunk
+</I>&gt;<i> provider will have to give jemalloc chunks from your contiguous region.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; We do this in HPX-5 to manage a network-registered global heap. The
+</I>&gt;<i> callback chunks are [here](
+</I>&gt;<i> <A HREF="https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c">https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c</A>)
+</I>&gt;<i> and the &#8220;heap&#8221; is implemented (here)[
+</I>&gt;<i> <A HREF="https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c">https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c</A>].
+</I>&gt;<i> This code is slightly complex but it&#8217;s basically just using a bitmap to
+</I>&gt;<i> allocate chunks from a large contiguous heap, and can serve as an example
+</I>&gt;<i> for you.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; &gt; Main system will provide thread, Mutex/Semaphore and the memory for
+</I>&gt;<i> this will not be allocated from the sub-system. In this scenario how can we
+</I>&gt;<i> enable thread caching? We do have a rapper to create threads, which means
+</I>&gt;<i> we know which are the the threads created by sub-system. Will it help in
+</I>&gt;<i> enabling the thread caching?
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Thread caching will likely be on by default for the threads. In more
+</I>&gt;<i> complex code where you might want to manage more than one memory space, you
+</I>&gt;<i> may need to explicitly allocate new caches.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Luke
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i> &gt; &gt; Any help will greatly appreciated!
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i> &gt; &gt;
+</I>&gt;<i> &gt; &gt; --
+</I>&gt;<i> &gt; &gt; Thanx
+</I>&gt;<i> &gt; &gt; Rajakishore Sahu
+</I>&gt;<i> &gt; &gt; Mail:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-raju.sahu at gmail.com</A>
+</I>&gt;<i> &gt; &gt; _______________________________________________
+</I>&gt;<i> &gt; &gt; jemalloc-discuss mailing list
+</I>&gt;<i> &gt; &gt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> &gt; &gt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; --
+</I>&gt;<i> &gt; Thanx
+</I>&gt;<i> &gt; Rajakishore Sahu
+</I>&gt;<i> &gt; Mail:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-raju.sahu at gmail.com</A>
+</I>&gt;<i> &gt; Mobile:-+91 9886719841
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; --
+</I>&gt;<i> &gt; Thanx
+</I>&gt;<i> &gt; Rajakishore Sahu
+</I>&gt;<i> &gt; Mail:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-raju.sahu at gmail.com</A>
+</I>&gt;<i> &gt; Mobile:-+91 9886719841
+</I>&gt;<i>
+</I>&gt;<i>
+</I>
+
+-- 
+Thanx
+Rajakishore Sahu
+Mail:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-raju.sahu at gmail.com</A>
+Mobile:-+91 9886719841
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160119/e4165337/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160119/e4165337/attachment-0001.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001245.html">Need Help in porting Jemalloc.
+</A></li>
+	<LI>Next message: <A HREF="001247.html">Need Help in porting Jemalloc.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1246">[ date ]</a>
+              <a href="thread.html#1246">[ thread ]</a>
+              <a href="subject.html#1246">[ subject ]</a>
+              <a href="author.html#1246">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

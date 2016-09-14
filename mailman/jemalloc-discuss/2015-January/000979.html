@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Assertion fail question
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Assertion%20fail%20question&In-Reply-To=%3CCAB8upqJatufBXumRSxz%3Dhi6y9AE%2B_63cXCY1CS8FdZBw%2BNh8pg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000978.html">
+   <LINK REL="Next"  HREF="000980.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Assertion fail question</H1>
+    <B>Marcin Zalewski</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Assertion%20fail%20question&In-Reply-To=%3CCAB8upqJatufBXumRSxz%3Dhi6y9AE%2B_63cXCY1CS8FdZBw%2BNh8pg%40mail.gmail.com%3E"
+       TITLE="Assertion fail question">marcin.zalewski at gmail.com
+       </A><BR>
+    <I>Thu Jan  1 10:47:25 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000978.html">Assertion fail question
+</A></li>
+        <LI>Next message: <A HREF="000980.html">Assertion fail question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#979">[ date ]</a>
+              <a href="thread.html#979">[ thread ]</a>
+              <a href="subject.html#979">[ subject ]</a>
+              <a href="author.html#979">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I just got a stack trace on this assertion fail (below), and it seem that
+second assertion is triggered in error processing.
+
+#0  0x00007fffbf9ff3f8 in pthread_once () from
+/lib/x86_64-linux-gnu/libpthread.so.0
+#1  0x00007fffbf73e074 in backtrace () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007fff7a99b0f0 in ipath_sighdlr (sig=&lt;optimized out&gt;, p1=&lt;optimized
+out&gt;, ucv=0x7fff78558380) at ipath_debug.c:116
+#3  &lt;signal handler called&gt;
+#4  0x00007fffbf6690d5 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#5  0x00007fffbf66c83b in abort () from /lib/x86_64-linux-gnu/libc.so.6
+#6  0x00007fffbfc4d9ec in je_tcache_event (tcache=0x7fffbe81a000) at
+include/jemalloc/internal/tcache.h:212
+#7  0x00007fffbfc4dd03 in je_tcache_alloc_small (tcache=0x7fffbe81a000,
+size=36, zero=false) at include/jemalloc/internal/tcache.h:273
+#8  0x00007fffbfc1c7ad in je_arena_malloc (tsd=0x7fffc17e5708, arena=0x0,
+size=36, zero=false, try_tcache=true) at
+include/jemalloc/internal/arena.h:931
+#9  0x00007fffbfc1378c in je_imalloct (tsd=0x7fffc17e5708, size=36,
+try_tcache=true, arena=0x0) at
+include/jemalloc/internal/jemalloc_internal.h:816
+#10 0x00007fffbfc137da in je_imalloc (tsd=0x7fffc17e5708, size=36) at
+include/jemalloc/internal/jemalloc_internal.h:825
+#11 0x00007fffbfc172a8 in imalloc_body (size=36, tsd=0x7fff78558bc0,
+usize=0x7fff78558bb8) at src/jemalloc.c:1331
+#12 0x00007fffbfc172e4 in malloc (size=36) at src/jemalloc.c:1344
+#13 0x00007fffc15e294e in ?? () from /lib64/ld-linux-x86-64.so.2
+#14 0x00007fffc15ed84b in ?? () from /lib64/ld-linux-x86-64.so.2
+#15 0x00007fffc15e9176 in ?? () from /lib64/ld-linux-x86-64.so.2
+#16 0x00007fffc15ed31a in ?? () from /lib64/ld-linux-x86-64.so.2
+#17 0x00007fffbf763c62 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#18 0x00007fffc15e9176 in ?? () from /lib64/ld-linux-x86-64.so.2
+#19 0x00007fffbf763d24 in __libc_dlopen_mode () from
+/lib/x86_64-linux-gnu/libc.so.6
+#20 0x00007fffbf73df55 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#21 0x00007fffbf9ff400 in pthread_once () from
+/lib/x86_64-linux-gnu/libpthread.so.0
+#22 0x00007fffbf73e074 in backtrace () from /lib/x86_64-linux-gnu/libc.so.6
+#23 0x00007fff7a99b0f0 in ipath_sighdlr (sig=&lt;optimized out&gt;, p1=&lt;optimized
+out&gt;, ucv=0x7fff785594c0) at ipath_debug.c:116
+#24 &lt;signal handler called&gt;
+#25 0x00007fffbf6690d5 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#26 0x00007fffbf66c83b in abort () from /lib/x86_64-linux-gnu/libc.so.6
+#27 0x00007fffbfc21acf in arena_run_reg_dalloc (run=0x7fffbe8039e8,
+ptr=0x7fffbe8644d0) at src/arena.c:182
+#28 0x00007fffbfc2711f in arena_dalloc_bin_locked_impl
+(arena=0x7fffbf010140, chunk=0x7fffbe800000, ptr=0x7fffbe8644d0,
+bitselm=0x7fffbe800258, junked=true) at src/arena.c:1854
+#29 0x00007fffbfc27209 in je_arena_dalloc_bin_junked_locked
+(arena=0x7fffbf010140, chunk=0x7fffbe800000, ptr=0x7fffbe8644d0,
+bitselm=0x7fffbe800258) at src/arena.c:1872
+#30 0x00007fffbfc4e842 in je_tcache_bin_flush_small (tbin=0x7fffbe81a0c8,
+binind=5, rem=0, tcache=0x7fffbe81a000) at src/tcache.c:120
+#31 0x00007fffbfc4e40c in je_tcache_event_hard (tcache=0x7fffbe81a000) at
+src/tcache.c:36
+#32 0x00007fffbfc4da0f in je_tcache_event (tcache=0x7fffbe81a000) at
+include/jemalloc/internal/tcache.h:214
+#33 0x00007fffbfc4dd03 in je_tcache_alloc_small (tcache=0x7fffbe81a000,
+size=24, zero=false) at include/jemalloc/internal/tcache.h:273
+#34 0x00007fffbfc1c7ad in je_arena_malloc (tsd=0x7fffc17e5708, arena=0x0,
+size=24, zero=false, try_tcache=true) at
+include/jemalloc/internal/arena.h:931
+#35 0x00007fffbfc1378c in je_imalloct (tsd=0x7fffc17e5708, size=24,
+try_tcache=true, arena=0x0) at
+include/jemalloc/internal/jemalloc_internal.h:816
+#36 0x00007fffbfc137da in je_imalloc (tsd=0x7fffc17e5708, size=24) at
+include/jemalloc/internal/jemalloc_internal.h:825
+#37 0x00007fffbfc172a8 in imalloc_body (size=24, tsd=0x7fff78559ef0,
+usize=0x7fff78559ee8) at src/jemalloc.c:1331
+#38 0x00007fffbfc172e4 in malloc (size=24) at src/jemalloc.c:1344
+#39 0x00000000004082be in sssp_queue_push (q=0x7fffbe865420,
+v=140729942941792, d=5032) at ./include/libpxgl/unlocked_pqueue_wrapper.h:75
+#40 0x0000000000408511 in _sssp_dc_process_vertex_action
+(distance=0x7ffc848478c0) at src/sssp_dc1.c:74
+#41 0x000000000042d751 in _thread_enter (parcel=0x7ffc84847880) at
+worker.c:95
+#42 0x0000000000000000 in ?? ()
+
+On Thu, Jan 1, 2015 at 1:44 PM, Marcin Zalewski &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">marcin.zalewski at gmail.com</A>&gt;
+wrote:
+
+&gt;<i> I am using the latest jemalloc dev (9c6a8d) compiled only with
+</I>&gt;<i> --enable-debug. I am getting the following two assertions fail in my
+</I>&gt;<i> program (16 threads):
+</I>&gt;<i>
+</I>&gt;<i> src/arena.c:182: Failed assertion: &quot;bitmap_get(run-&gt;bitmap,
+</I>&gt;<i> &amp;bin_info-&gt;bitmap_info, regind)&quot;
+</I>&gt;<i> include/jemalloc/internal/tcache.h:212: Failed assertion: &quot;tcache-&gt;ev_cnt
+</I>&gt;<i> &lt;= TCACHE_GC_INCR&quot;
+</I>&gt;<i>
+</I>&gt;<i> Is there something obvious that I am doing wrong? I would appreciate any
+</I>&gt;<i> help.
+</I>&gt;<i>
+</I>&gt;<i> Thank you,
+</I>&gt;<i> Marcin
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150101/941759d4/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150101/941759d4/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000978.html">Assertion fail question
+</A></li>
+	<LI>Next message: <A HREF="000980.html">Assertion fail question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#979">[ date ]</a>
+              <a href="thread.html#979">[ thread ]</a>
+              <a href="subject.html#979">[ subject ]</a>
+              <a href="author.html#979">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

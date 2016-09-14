@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Custom Arenas ?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Custom%20Arenas%20%3F&In-Reply-To=%3C6C821633-4292-470F-810E-DBDF9A00BEEB%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000693.html">
+   <LINK REL="Next"  HREF="000695.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Custom Arenas ?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Custom%20Arenas%20%3F&In-Reply-To=%3C6C821633-4292-470F-810E-DBDF9A00BEEB%40canonware.com%3E"
+       TITLE="Custom Arenas ?">jasone at canonware.com
+       </A><BR>
+    <I>Tue Dec  3 10:54:36 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000693.html">Custom Arenas ?
+</A></li>
+        <LI>Next message: <A HREF="000695.html">jemalloc tuning help
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#694">[ date ]</a>
+              <a href="thread.html#694">[ thread ]</a>
+              <a href="subject.html#694">[ subject ]</a>
+              <a href="author.html#694">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Dec 3, 2013, at 10:15 AM, Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+&gt;<i> i am wondering if Jemalloc support to have custom arenas, despites the arenas it spawn on startup i would like to know if i can create a specific arena and force it usage on specific modules of my application, on that way i can track and get stats from specific parts of my application. Is that possible ?
+</I>
+Yes, that is possible starting with jemalloc 3.1.0, though there's an important related bugfix in 3.4.1.  You can use the &quot;arenas.extend&quot; mallctl to create an additional arena that is not otherwise used by jemalloc, and then use the *allocm() API with the ALLOCM_ARENA() flag set to refer to your arena.  Two caveats:
+
+- You could use the &quot;thread.arena&quot; mallctl to assign the calling thread to your arena, but I recommend against that for short-term arena selection.  I tentatively plan to change thread&lt;--&gt;arena association logic in 4.0.0 such that arena selection is optionally based on current CPU rather than being a fixed assignment; that functionality may interact poorly with explicit thread&lt;--&gt;arena association.
+- You need to specify ALLOCM_ARENA() to dallocm() in order to bypass thread caching.  If you don't do so, a subsequent malloc() call may end up getting a cached region that came from your arena.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000693.html">Custom Arenas ?
+</A></li>
+	<LI>Next message: <A HREF="000695.html">jemalloc tuning help
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#694">[ date ]</a>
+              <a href="thread.html#694">[ thread ]</a>
+              <a href="subject.html#694">[ subject ]</a>
+              <a href="author.html#694">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150204222709.GA19210%40mhcomputing.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001021.html">
+   <LINK REL="Next"  HREF="001056.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Matthew Hall</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150204222709.GA19210%40mhcomputing.net%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">mhall at mhcomputing.net
+       </A><BR>
+    <I>Wed Feb  4 14:27:09 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001021.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001056.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1023">[ date ]</a>
+              <a href="thread.html#1023">[ thread ]</a>
+              <a href="subject.html#1023">[ subject ]</a>
+              <a href="author.html#1023">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Feb 04, 2015 at 06:51:53PM +0900, Mike Hommey wrote:
+&gt;<i> The problem here is that very low-level things are involved, and taking
+</I>&gt;<i> a test-case out of context changes the very conditions of those low-level
+</I>&gt;<i> things. As I wrote in the start of this thread, I did see things out of
+</I>&gt;<i> context that may or may not matter, and it turns out issue #192 is the
+</I>&gt;<i> one thing that made the most difference because of its impact on page
+</I>&gt;<i> faults. All the other things I did, like tweaking the config (enabling
+</I>&gt;<i> tcache, adjusting lg_dirty_mult, ...), returning to 3.6 instead of dev,
+</I>&gt;<i> etc. didn't do much.
+</I>
+It makes me wonder if a simpler setup of ARM Linux running the test cases on 
+an embedded board like an RPIV2 w/ quad-core, BeagleBoard, etc. would be able 
+to repro the issue or not. Then you wouldn't have to worry about all the 
+Android hacks getting in the way of the test.
+
+Matthew.
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001021.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001056.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1023">[ date ]</a>
+              <a href="thread.html#1023">[ thread ]</a>
+              <a href="subject.html#1023">[ subject ]</a>
+              <a href="author.html#1023">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

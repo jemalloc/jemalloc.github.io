@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory corruptions near 32 bit limits
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20corruptions%20near%2032%20bit%20limits&In-Reply-To=%3CCA%2BXzkVfHrqpX25CQ-N%3D2ejFiVP%2BYHWiPtSM7AYZAB05W4EbGoQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001161.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory corruptions near 32 bit limits</H1>
+    <B>Salvatore Sanfilippo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20corruptions%20near%2032%20bit%20limits&In-Reply-To=%3CCA%2BXzkVfHrqpX25CQ-N%3D2ejFiVP%2BYHWiPtSM7AYZAB05W4EbGoQ%40mail.gmail.com%3E"
+       TITLE="Memory corruptions near 32 bit limits">antirez at gmail.com
+       </A><BR>
+    <I>Wed Sep  2 10:29:29 PDT 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001161.html">Can't get profile
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1160">[ date ]</a>
+              <a href="thread.html#1160">[ thread ]</a>
+              <a href="subject.html#1160">[ subject ]</a>
+              <a href="author.html#1160">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Follow up which is only useful for people reading the archives of this
+mailing list searching for &quot;out of memory&quot; &quot;jemalloc&quot; &quot;redis&quot; &quot;crash&quot;
+or alike: apparently in Jemalloc 4.0 a bug that may lead to what we
+observed with Redis was fixed, so it is possible that it was the
+cause.
+
+On Wed, Nov 7, 2012 at 9:40 AM, Salvatore Sanfilippo &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">antirez at gmail.com</A>&gt; wrote:
+&gt;<i> On Tue, Nov 6, 2012 at 6:19 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> This is the first I've heard of such an issue.  If you are able to narrow down the failure mode, please let me know so that we can get this fixed ASAP.
+</I>&gt;<i>
+</I>&gt;<i> Thank you Jason,
+</I>&gt;<i>
+</I>&gt;<i> given that this is a new issue I'll investigate further to understand
+</I>&gt;<i> if it could be an issue with Redis itself (I think every single
+</I>&gt;<i> allocation is wrapped in order to abort Redis on out of memory, but
+</I>&gt;<i> I'll double check this). If it still seems a jemalloc issue I'll see
+</I>&gt;<i> if I can reproduce it, so far the only way to reproduce the issue is
+</I>&gt;<i> loading a large database file on a 32 bit Linux system N times: most
+</I>&gt;<i> of the times it crashes for out-of-memory, a few times it crashes with
+</I>&gt;<i> an unexpected signal 11 or failed assertion.
+</I>&gt;<i>
+</I>&gt;<i> Cheers,
+</I>&gt;<i> Salvatore
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> Salvatore 'antirez' Sanfilippo
+</I>&gt;<i> open source developer - VMware
+</I>&gt;<i> <A HREF="http://invece.org">http://invece.org</A>
+</I>&gt;<i>
+</I>&gt;<i> Beauty is more important in computing than anywhere else in technology
+</I>&gt;<i> because software is so complicated. Beauty is the ultimate defence
+</I>&gt;<i> against complexity.
+</I>&gt;<i>        &#8212; David Gelernter
+</I>
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - Redis Labs <A HREF="https://redislabs.com">https://redislabs.com</A>
+
+&quot;If a system is to have conceptual integrity, someone must control the
+concepts.&quot;
+       &#8212; Fred Brooks, &quot;The Mythical Man-Month&quot;, 1975.
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001161.html">Can't get profile
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1160">[ date ]</a>
+              <a href="thread.html#1160">[ thread ]</a>
+              <a href="subject.html#1160">[ subject ]</a>
+              <a href="author.html#1160">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

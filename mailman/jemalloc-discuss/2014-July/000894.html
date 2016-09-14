@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segmentation%20fault%20when%20a%20custom%20chunk%20allocator%20returns%20a%20memory%0A%09block%20larger%20than%20the%20chunk%20size&In-Reply-To=%3CCABmGYHh%3Dyfw4QFffAXAx-B%3D55YfzxPT7NKExw8UykrfdPD9S1g%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000893.html">
+   <LINK REL="Next"  HREF="000895.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size</H1>
+    <B>meng</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segmentation%20fault%20when%20a%20custom%20chunk%20allocator%20returns%20a%20memory%0A%09block%20larger%20than%20the%20chunk%20size&In-Reply-To=%3CCABmGYHh%3Dyfw4QFffAXAx-B%3D55YfzxPT7NKExw8UykrfdPD9S1g%40mail.gmail.com%3E"
+       TITLE="Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size">xqmeng at gmail.com
+       </A><BR>
+    <I>Mon Jul 28 16:04:35 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000893.html">Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+</A></li>
+        <LI>Next message: <A HREF="000895.html">Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#894">[ date ]</a>
+              <a href="thread.html#894">[ thread ]</a>
+              <a href="subject.html#894">[ subject ]</a>
+              <a href="author.html#894">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Yes, the address returned from the custom chunk_alloc() is got from
+mmap(0,2^31,...). Because 2^31 is a multiple of 2^22 (the default chunk
+size), it must be aligned with the chunk size.
+
+Below is a simplified version of my test program:
+
+void *space = NULL;
+static  unsigned              _arena;
+static  chunk_alloc_t        *_alloc;
+static  chunk_dalloc_t      *_dalloc;
+
+static void *_chunk_alloc(size_t, size_t, bool *, unsigned);
+static bool _chunk_dalloc(void *, size_t, unsigned);
+
+void * _chunk_alloc(size_t size, size_t alignment, bool *zero, unsigned
+arena_ind)
+{
+  return space;
+}
+
+bool _chunk_dalloc(void *chunk, size_t size, unsigned arena_ind)
+{
+  return true;
+}
+
+int main(void)
+{
+  space = mmap (NULL, 2^31, PROT_READ | PROT_WRITE, MAP_SHARED |
+MAP_ANONYMOUS, -1, 0);
+  assert (space != (void *) -1);
+
+  size_t sz = sizeof(_arena);
+  int ret = mallctl(&quot;arenas.extend&quot;, &amp;_arena, &amp;sz, NULL, 0);
+  assert (ret == 0);
+
+  sz = sizeof(_alloc);
+  char path[128];
+  snprintf(path, sizeof(path), &quot;arena.%u.chunk.alloc&quot;, _arena);
+  chunk_alloc_t *alloc = _chunk_alloc;
+  ret = mallctl(path, (void*)&amp;_alloc, &amp;sz, (void*)&amp;alloc, sizeof(alloc));
+  assert (ret == 0);
+
+  snprintf(path, sizeof(path), &quot;arena.%u.chunk.dalloc&quot;, _arena);
+  chunk_dalloc_t *dalloc = _chunk_dalloc;
+  ret = mallctl(path, (void*)&amp;_dalloc, &amp;sz, (void*)&amp;dalloc, sizeof(dalloc));
+  assert (ret == 0);
+
+  void *p = mallocx(1024, MALLOCX_ARENA(_arena));
+  assert (p != 0);
+  dallocx(p, MALLOCX_ARENA(_arena));
+
+  //unmap space
+  return 1;
+}
+
+The seg. fault occurs in mallocx, and here is the stack frame in GDB:
+#0  0x00007ffff7d6b7a2 in je_arena_mapbitsp_write (mapbits=4,
+mapbitsp=0x7ffff7cb0008) at include/jemalloc/internal/arena.h:774
+#1  je_arena_mapbits_unzeroed_set (unzeroed=4, pageind=345,
+chunk=0x7ffff7cae000) at include/jemalloc/internal/arena.h:852
+#2  arena_chunk_init_hard (arena=0x7ffff7822140) at src/arena.c:662
+#3  0x00007ffff7d6bea8 in arena_chunk_alloc (arena=0x7ffff7822140) at
+src/arena.c:689
+#4  0x00007ffff7d6ce9b in arena_run_alloc_small (arena=0x7ffff7822140,
+size=65536, binind=20) at src/arena.c:854
+#5  0x00007ffff7d74852 in arena_bin_nonfull_run_get (arena=0x7ffff7822140,
+bin=0x7ffff7822e70) at src/arena.c:1470
+#6  0x00007ffff7d749aa in arena_bin_malloc_hard (arena=0x7ffff7822140,
+bin=0x7ffff7822e70) at src/arena.c:1516
+#7  0x00007ffff7d7558a in je_arena_malloc_small (arena=0x7ffff7822140,
+size=1024, zero=false) at src/arena.c:1713
+#8  0x00007ffff7d17121 in je_arena_malloc (try_tcache=false, zero=false,
+size=1024, arena=0x7ffff7822140) at include/jemalloc/internal/arena.h:1076
+#9  je_imalloct (arena=0x7ffff7822140, try_tcache=false, size=1024) at
+include/jemalloc/internal/jemalloc_internal.h:647
+#10 imallocx (arena=0x7ffff7822140, try_tcache=false, zero=false,
+alignment=0, usize=1024) at src/jemalloc.c:1377
+#11 mallocx (size=1024, flags=512) at src/jemalloc.c:1456
+#12 0x0000000000400c06 in main () at test_jemalloc.c:102
+
+
+
+
+
+On Mon, Jul 28, 2014 at 5:52 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Jul 28, 2014, at 2:17 PM, meng &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">xqmeng at gmail.com</A>&gt; wrote:
+</I>&gt;<i> &gt; I used the new chunk allocator feature to allocate memory from a fixed
+</I>&gt;<i> 2G memory region. Nevertheless, I got a seg. fault.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; The flow of my code is as following:  I first use &quot;arenas.extend&quot;
+</I>&gt;<i> mallctl to create a custom arena. Then I defined custom chunk_alloc() and
+</I>&gt;<i> chunk_dalloc() on this arena. In the initialization phase of my code, I use
+</I>&gt;<i> mmap() to reserve a memory region of size 2^32. In the custom
+</I>&gt;<i> chunk_alloc(), I return the pointer of the 2^32B memory region. Because
+</I>&gt;<i> lg_chunk is 2^22, I thought this should be fine. But the program ran into
+</I>&gt;<i> seg. fault within  arena_mapbits_unzeroed_set() called by
+</I>&gt;<i> arena_chunk_init_hard().  On the other hand, if the mmap() reserved a
+</I>&gt;<i> memory region of size 2^22, everything works fine.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; My question is: why does the custom chunk_alloc() always expect a memory
+</I>&gt;<i> block returned from mmap()/malloc() with the requested size equal to
+</I>&gt;<i> lg_chunk? I can't figure out what wrong it could be if the returned block
+</I>&gt;<i> is a multiple of lg_chunk
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; B.T.W. My code only uses mallocx() for a single 1024B buffer from the
+</I>&gt;<i> custom. Memory alignment problem shouldn't exist.
+</I>&gt;<i>
+</I>&gt;<i> Is the address you're returning from the custom chunk_alloc() aligned at a
+</I>&gt;<i> multiple of the chunk size?
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>
+
+
+
+-- 
+Best
+-Xiaoqiao
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140728/e0d8b699/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140728/e0d8b699/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000893.html">Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+</A></li>
+	<LI>Next message: <A HREF="000895.html">Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#894">[ date ]</a>
+              <a href="thread.html#894">[ thread ]</a>
+              <a href="subject.html#894">[ subject ]</a>
+              <a href="author.html#894">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

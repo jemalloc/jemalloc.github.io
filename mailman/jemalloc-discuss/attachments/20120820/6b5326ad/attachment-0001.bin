@@ -1,0 +1,85 @@
+>From c50e8dd2ecab8639c5e9dc78a41b0a959d4aaefd Mon Sep 17 00:00:00 2001
+From: Alessandro Pignotti <a.pignotti@sssup.it>
+Date: Sun, 19 Aug 2012 17:52:55 +0200
+Subject: [PATCH 2/4] Keep track of all allocated chunks
+
+---
+ include/jemalloc/internal/arena.h |   10 ++++++++++
+ src/arena.c                       |   12 ++++++++++++
+ 2 files changed, 22 insertions(+)
+
+diff --git a/include/jemalloc/internal/arena.h b/include/jemalloc/internal/arena.h
+index 0b0f640..1f67e27 100644
+--- a/include/jemalloc/internal/arena.h
++++ b/include/jemalloc/internal/arena.h
+@@ -167,6 +167,11 @@ struct arena_chunk_s {
+ 	/* Linkage for the arena's chunks_dirty list. */
+ 	ql_elm(arena_chunk_t) link_dirty;
+ 
++#  ifdef JEMALLOC_ITERATE_REGIONS
++	/* Linkage for the arena's chuks list. */
++	ql_elm(arena_chunk_t)  link_chunks;
++#  endif
++
+ 	/*
+ 	 * True if the chunk is currently in the chunks_dirty list, due to
+ 	 * having at some point contained one or more dirty pages.  Removal
+@@ -334,6 +339,11 @@ struct arena_s {
+ 	/* List of dirty-page-containing chunks this arena manages. */
+ 	ql_head(arena_chunk_t)	chunks_dirty;
+ 
++#  ifdef JEMALLOC_ITERATE_REGIONS
++	/* List of all chunks this arena manages. */
++	ql_head(arena_chunk_t)  chunks;
++#  endif
++
+ 	/*
+ 	 * In order to avoid rapid chunk allocation/deallocation when an arena
+ 	 * oscillates right on the cusp of needing a new chunk, cache the most
+diff --git a/src/arena.c b/src/arena.c
+index 2a6150f..9e7e2c4 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -381,6 +381,7 @@ arena_chunk_alloc(arena_t *arena)
+ 
+ 		chunk->arena = arena;
+ 		ql_elm_new(chunk, link_dirty);
++		ql_elm_new(chunk, link_chunks);
+ 		chunk->dirtied = false;
+ 
+ 		/*
+@@ -418,6 +419,10 @@ arena_chunk_alloc(arena_t *arena)
+ 		    arena_mapp_get(chunk, map_bias));
+ 	}
+ 
++#ifdef JEMALLOC_ITERATE_REGIONS
++	ql_tail_insert(&arena->chunks, chunk, link_chunks);
++#endif
++
+ 	return (chunk);
+ }
+ 
+@@ -445,6 +450,10 @@ arena_chunk_dealloc(arena_t *arena, arena_chunk_t *chunk)
+ 		runs_avail = &arena->runs_avail_dirty;
+ 	arena_avail_tree_remove(runs_avail, arena_mapp_get(chunk, map_bias));
+ 
++#ifdef JEMALLOC_ITERATE_REGIONS
++	ql_remove(&arena->chunks, chunk, link_chunks);
++#endif
++
+ 	if (arena->spare != NULL) {
+ 		arena_chunk_t *spare = arena->spare;
+ 
+@@ -1970,6 +1979,9 @@ arena_new(arena_t *arena, unsigned ind)
+ 
+ 	/* Initialize chunks. */
+ 	ql_new(&arena->chunks_dirty);
++#ifdef JEMALLOC_ITERATE_REGIONS
++	ql_new(&arena->chunks);
++#endif
+ 	arena->spare = NULL;
+ 
+ 	arena->nactive = 0;
+-- 
+1.7.9.5
+

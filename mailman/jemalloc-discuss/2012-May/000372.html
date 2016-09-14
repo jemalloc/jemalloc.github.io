@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Add support for MSVC
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Add%20support%20for%20MSVC&In-Reply-To=%3C20120502072125.GA2105%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000373.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Add support for MSVC</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Add%20support%20for%20MSVC&In-Reply-To=%3C20120502072125.GA2105%40glandium.org%3E"
+       TITLE="[PATCH 7/7] Add support for MSVC">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May  2 00:21:25 PDT 2012</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000373.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#372">[ date ]</a>
+              <a href="thread.html#372">[ thread ]</a>
+              <a href="subject.html#372">[ subject ]</a>
+              <a href="author.html#372">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+Thanks for applying the MSVC patches. When applying this one, you left
+out the following hunk:
+
+&gt;<i> @@ -296,7 +309,7 @@ static const bool config_ivsalloc =
+</I>&gt;<i>   * In addition, this controls the spacing of cacheline-spaced size classes.
+</I>&gt;<i>   */
+</I>&gt;<i>  #define	LG_CACHELINE		6
+</I>&gt;<i> -#define	CACHELINE		((size_t)(1U &lt;&lt; LG_CACHELINE))
+</I>&gt;<i> +#define	CACHELINE		64
+</I>&gt;<i>  #define	CACHELINE_MASK		(CACHELINE - 1)
+</I>&gt;<i>  
+</I>&gt;<i>  /* Return the smallest cacheline multiple that is &gt;= s. */
+</I>
+This wasn't a mistake that slipped in there. It is meant to be changed,
+and there's unfortunately no other way: __declspec(align()) only takes
+constants. Not calculated constants.
+
+You can add a static assertion if you want to ensure CACHELINE matches
+LG_CACHELINE (like static const int foo[CACHELINE == 1 &lt;&lt; LG_CACHELINE
+? 1 : -1]);
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000373.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#372">[ date ]</a>
+              <a href="thread.html#372">[ thread ]</a>
+              <a href="subject.html#372">[ subject ]</a>
+              <a href="author.html#372">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

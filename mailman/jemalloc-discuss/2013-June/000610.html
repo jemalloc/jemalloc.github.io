@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> High amount of private clean data in smaps
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3CDE71443A-2202-4B1D-956D-C5AED15F6F79%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000609.html">
+   <LINK REL="Next"  HREF="000611.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>High amount of private clean data in smaps</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3CDE71443A-2202-4B1D-956D-C5AED15F6F79%40canonware.com%3E"
+       TITLE="High amount of private clean data in smaps">jasone at canonware.com
+       </A><BR>
+    <I>Tue Jun 25 09:26:02 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000609.html">High amount of private clean data in smaps
+</A></li>
+        <LI>Next message: <A HREF="000611.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#610">[ date ]</a>
+              <a href="thread.html#610">[ thread ]</a>
+              <a href="subject.html#610">[ subject ]</a>
+              <a href="author.html#610">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 25, 2013, at 6:13 AM, Thomas R Gissel wrote:
+&gt;<i> With help from our local Linux kernel experts we've tracked down the inexplicable Private_Clean emergence in our processes' smaps file to a kernel bug, <A HREF="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/fs/proc/task_mmu.c?id=1c2499ae87f828eabddf6483b0dfc11da1100c07,">https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/fs/proc/task_mmu.c?id=1c2499ae87f828eabddf6483b0dfc11da1100c07,</A> which, according to GIT, was first committed in v2.6.36-rc6~63.  When we manually applied the aforementioned patched to our kernel there were no memory segments in smaps showing large Private_Clean regions during our test.  Unfortunately the fix seems to have been merely an accounting change.  Everything previously reported as Private_Clean is now correctly showing up as Private_Dirty, so we are still digging to find out why our RSS, specifically Private_Dirty, continues to grow while jemalloc's active reports much lower numbers.
+</I>&gt;<i> 
+</I>Does the stressTest.c program reproduce the problem after the kernel fix?
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130625/5a5831ca/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130625/5a5831ca/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000609.html">High amount of private clean data in smaps
+</A></li>
+	<LI>Next message: <A HREF="000611.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#610">[ date ]</a>
+              <a href="thread.html#610">[ thread ]</a>
+              <a href="subject.html#610">[ subject ]</a>
+              <a href="author.html#610">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

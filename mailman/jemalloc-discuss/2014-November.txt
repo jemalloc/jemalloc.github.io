@@ -1,0 +1,233 @@
+From jasone at canonware.com  Mon Nov  3 16:41:07 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 3 Nov 2014 16:41:07 -0800
+Subject: Supporting 'bookkeeping' and 'bin_unused' memory reporters in
+	Gecko
+In-Reply-To: <326229254.30021473.1414709147485.JavaMail.zimbra@mozilla.com>
+References: <326229254.30021473.1414709147485.JavaMail.zimbra@mozilla.com>
+Message-ID: <11FD6307-979E-40E4-AB17-0AB97F47F805@canonware.com>
+
+On Oct 30, 2014, at 3:45 PM, Guilherme Goncalves <ggp at mozilla.com> wrote:
+> Our memory reporting tools in Gecko rely on two statistics that don't seem straightforward
+> to obtain on latest jemalloc: "bookkeeping" and "bin_unused".
+> 
+> "bookkeeping" is defined as "Committed bytes which the heap allocator uses for internal data
+> structures." [1], and is currently calculated in our mozjemalloc as the total memory used by
+> all arena and chunk headers. As the comment in [2] suggests, it looks like this could be
+> computed by adding up all base allocations in jemalloc3.
+
+An accurate bookkeeping statistic is a bit tricky to maintain.  Heap profiling, quarantine, and tcache all perform internal allocation that would need to be tracked, in addition to base allocation and arena chunk header overhead.  I can see this being useful though, especially since I've been surprised on multiple occasions when trying to figure out why the stats seemed to disagree with heap profile data.
+
+If you create an issue to track this on Github, that will make sure I don't forget about it.  If you're motivated to implement it yourself, let's chat a bit about some design details before you dive in.
+
+> "bin_unused" is defined as "Bytes reserved for bins of fixed-size allocations which do not
+> correspond to an active allocation." [3], and is computed in mozjemalloc by adding up the product
+> of each bin's number of free regions by their size.
+
+Isn't bin_unused equivalent to (curruns*nregs - curregs)*size ?  Relevant mallctl interfaces:
+
+	stats.arenas.<i>.bins.<j>.curruns
+	arenas.bin.<i>.nregs
+	stats.arenas.<i>.bins.<j>.curregs
+	arenas.bin.<i>.size
+
+Thanks,
+Jason
+
+From antirez at gmail.com  Tue Nov  4 00:55:23 2014
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Tue, 4 Nov 2014 09:55:23 +0100
+Subject: Allocation latency during fork
+In-Reply-To: <CA+XzkVczWbQrqhxB4uNpWSOOP3mm57jTfZg4sjfdC-84Nn9iHA@mail.gmail.com>
+References: <CA+XzkVczWbQrqhxB4uNpWSOOP3mm57jTfZg4sjfdC-84Nn9iHA@mail.gmail.com>
+Message-ID: <CA+XzkVfZV36k-d6mw9xEBgSQQhmfMKwts79wrwMB+3PYydzeCg@mail.gmail.com>
+
+Hello, finally I discovered the cause of the issue, so I want to follow up.
+
+For some reason I did not investigated, libc malloc allocates memory
+in a way does not allow transparent huge pages to work for that
+region.
+Jemalloc allocated memory instead is targeted by transparent huge
+pages, so when the feature is enabled, after fork, we have processes
+sharing the same huge pages.
+
+Once one of the processes starts writing to many pages in a very fast
+way, multiple page faults occur, triggering the copy-on-write of
+almost all the process space (It takes a few thousands writes to COW a
+2GB process, for example). Since huge pages copying is slow, thousands
+of copy operations sum up to hundreds of milliseconds.
+
+Disabling transparent huge pages makes the problem go away.
+
+>From the point of view of jemalloc, would be cool to have some option
+in order to mmap memory so that it is not targeted by THP regardless
+of the kernel global settings.
+
+Thanks,
+Salvatore
+
+On Fri, Jul 4, 2014 at 11:02 AM, Salvatore Sanfilippo <antirez at gmail.com> wrote:
+> Hello,
+>
+> while trying to profile my application for sources of latency, I
+> noticed that after the fork() call, if there are an high number of
+> allocations ongoing, one of the next allocations (the first maybe?)
+> after fork()  shows very high latency (~400 milliseconds) in a process
+> using 2GB of memory.
+>
+> The problem exists both in jemalloc 3.2.0 and 3.6.0 so it does not
+> look like a regression.
+> I tried with the glibc standard allocator and I can't reproduce the
+> issue, so looks like allocator-specific.
+>
+> There is some way I can mitigate ore remove this issue?
+>
+> Thanks,
+> Salvatore
+>
+> --
+> Salvatore 'antirez' Sanfilippo
+> open source developer - GoPivotal
+> http://invece.org
+>
+> "One would never undertake such a thing if one were not driven on by
+> some demon whom one can neither resist nor understand."
+>        ? George Orwell
+
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - GoPivotal
+http://invece.org
+
+"Fear makes the wolf bigger than he is."
+       ? German proverb
+
+From danielmicay at gmail.com  Tue Nov  4 11:05:07 2014
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Tue, 04 Nov 2014 14:05:07 -0500
+Subject: Allocation latency during fork
+In-Reply-To: <CA+XzkVfZV36k-d6mw9xEBgSQQhmfMKwts79wrwMB+3PYydzeCg@mail.gmail.com>
+References: <CA+XzkVczWbQrqhxB4uNpWSOOP3mm57jTfZg4sjfdC-84Nn9iHA@mail.gmail.com>
+	<CA+XzkVfZV36k-d6mw9xEBgSQQhmfMKwts79wrwMB+3PYydzeCg@mail.gmail.com>
+Message-ID: <54592363.2060902@gmail.com>
+
+On 04/11/14 03:55 AM, Salvatore Sanfilippo wrote:
+> Hello, finally I discovered the cause of the issue, so I want to follow up.
+> 
+> For some reason I did not investigated, libc malloc allocates memory
+> in a way does not allow transparent huge pages to work for that
+> region.
+> Jemalloc allocated memory instead is targeted by transparent huge
+> pages, so when the feature is enabled, after fork, we have processes
+> sharing the same huge pages.
+> 
+> Once one of the processes starts writing to many pages in a very fast
+> way, multiple page faults occur, triggering the copy-on-write of
+> almost all the process space (It takes a few thousands writes to COW a
+> 2GB process, for example). Since huge pages copying is slow, thousands
+> of copy operations sum up to hundreds of milliseconds.
+> 
+> Disabling transparent huge pages makes the problem go away.
+> 
+> From the point of view of jemalloc, would be cool to have some option
+> in order to mmap memory so that it is not targeted by THP regardless
+> of the kernel global settings.
+> 
+> Thanks,
+> Salvatore
+
+I have an issue filed about adding tunables for transparent huge page
+hints with the default chunk allocator:
+
+https://github.com/jemalloc/jemalloc/issues/140
+
+AFAIK huge pages are quicker to copy than the equivalent number of small
+pages, but there's the overhead of compaction / defragmentation.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141104/ea399e95/attachment.sig>
+
+From ggp at mozilla.com  Wed Nov  5 10:03:57 2014
+From: ggp at mozilla.com (Guilherme Goncalves)
+Date: Wed, 5 Nov 2014 10:03:57 -0800 (PST)
+Subject: Supporting 'bookkeeping' and 'bin_unused' memory reporters in
+	Gecko
+In-Reply-To: <11FD6307-979E-40E4-AB17-0AB97F47F805@canonware.com>
+References: <326229254.30021473.1414709147485.JavaMail.zimbra@mozilla.com>
+	<11FD6307-979E-40E4-AB17-0AB97F47F805@canonware.com>
+Message-ID: <515826516.31302925.1415210637231.JavaMail.zimbra@mozilla.com>
+
+----- Original Message -----
+| From: "Jason Evans" <jasone at canonware.com>
+| To: "Guilherme Goncalves" <ggp at mozilla.com>
+| Cc: jemalloc-discuss at canonware.com
+| Sent: Monday, November 3, 2014 10:41:07 PM
+| Subject: Re: Supporting 'bookkeeping' and 'bin_unused' memory reporters in Gecko
+| 
+| If you create an issue to track this on Github, that will make sure I don't
+| forget about it.  If you're motivated to implement it yourself, let's chat a
+| bit about some design details before you dive in.
+
+
+Filed https://github.com/jemalloc/jemalloc/issues/163 . I believe I can give it a shot
+next week if you haven't started on it by then. I suppose we can track the design details
+in the issue itself, unless you have another preference.
+
+| 
+| Isn't bin_unused equivalent to (curruns*nregs - curregs)*size ?  
+
+Looks like it is, thank you!
+
+-- 
+Guilherme
+
+From yumkam at gmail.com  Thu Nov 13 15:51:19 2014
+From: yumkam at gmail.com (Yuriy Kaminskiy)
+Date: Fri, 14 Nov 2014 02:51:19 +0300
+Subject: [PATCH] Fix test breakage on 32-bit systems
+Message-ID: <546543F7.6050307@gmail.com>
+
+A non-text attachment was scrubbed...
+Name: 0001-Fix-test-breakage-on-32-bit-systems.patch
+Type: text/x-diff
+Size: 1101 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141114/a7139af9/attachment.patch>
+
+From ken at ezchip.com  Tue Nov 25 09:51:40 2014
+From: ken at ezchip.com (Kenneth Steele)
+Date: Tue, 25 Nov 2014 17:51:40 +0000
+Subject: Huge page support would be useful in JEMalloc
+Message-ID: <AM3PR02MB0568D48ABCECBBC9946A4516D8730@AM3PR02MB0568.eurprd02.prod.outlook.com>
+
+I would like to be able to use Linux Huge pages in JEMalloc. It could have significant benefit for some programs performance.
+
+The case I tested is running Suricata (http://suricata-ids.org/) on the Tile-Gx architecture (http://www.tilera.com/products/processors/TILE-Gx_Family), but it should be similar on other architectures. The glibc allocator on Linux allows using Huge pages with malloc() by running the program with "hugectl -heap". I have measured performance for two test cases under three conditions:
+
+
+1)      Glibc 2.12, no huge pages (baseline)
+
+2)      Glibc2 2.12, with 16MB huge pages
+
+3)      JEMalloc, no huge pages
+
+JEMalloc  gives a 4.7% increase for one test case and 5.6% increase for the other over baseline.
+Hugepages gives a 27.2% and 25.3% increase over baseline for the same two test cases.
+
+So, JEMalloc is better than glibc malloc, but much worse than glibc malloc with hugepages.
+
+Ideally, JEMalloc with Huge pages would be the best.
+
+Thanks,
+-Ken
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141125/eafc2004/attachment.html>
+

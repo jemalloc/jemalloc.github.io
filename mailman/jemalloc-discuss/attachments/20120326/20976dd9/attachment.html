@@ -1,0 +1,12 @@
+<tt>
+&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&nbsp;style=&quot;word-wrap:&nbsp;break-word;&nbsp;-webkit-nbsp-mode:&nbsp;space;&nbsp;-webkit-line-break:&nbsp;after-white-space;&nbsp;&quot;&gt;&lt;div&gt;&lt;div&gt;On&nbsp;Mar&nbsp;26,&nbsp;2012,&nbsp;at&nbsp;9:51&nbsp;AM,&nbsp;Vijay&nbsp;Parthasarathy&nbsp;wrote:&lt;/div&gt;&lt;blockquote&nbsp;type=&quot;cite&quot;&gt;&lt;div&nbsp;style=&quot;word-wrap:&nbsp;break-word;&nbsp;-webkit-nbsp-mode:&nbsp;space;&nbsp;-webkit-line-break:&nbsp;after-white-space;&nbsp;&quot;&gt;<br>
+&lt;div&gt;looks&nbsp;like&nbsp;it&nbsp;is&nbsp;problematic&nbsp;to&nbsp;use&nbsp;LD_PRELOAD&nbsp;i&nbsp;had&nbsp;various&nbsp;crashes.&nbsp;I&nbsp;understand&nbsp;it&nbsp;is&nbsp;too&nbsp;much&nbsp;to&nbsp;ask,&nbsp;any&nbsp;configuration&nbsp;to&nbsp;look&nbsp;out&nbsp;for?&nbsp;&lt;/div&gt;<br>
+&lt;div&gt;I&nbsp;think&nbsp;most&nbsp;probably&nbsp;i&nbsp;will&nbsp;use&nbsp;JNI&nbsp;to&nbsp;load&nbsp;jemalloc&nbsp;(&lt;span&nbsp;class=&quot;Apple-style-span&quot;&nbsp;style=&quot;font-family:&nbsp;monospace;&nbsp;font-size:&nbsp;12px;&nbsp;white-space:&nbsp;pre;&nbsp;&quot;&gt;LD_LIBRARY_PATH&lt;/span&gt;),&nbsp;looks&nbsp;like&nbsp;that&nbsp;works&nbsp;fine&nbsp;so&nbsp;far.&lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;<br>
+&lt;/div&gt;<br>
+&lt;div&gt;<br>
+&lt;div&gt;hs_err_pid1622.log:#&nbsp;Problematic&nbsp;frame:&lt;/div&gt;<br>
+&lt;div&gt;hs_err_pid1622.log-#&nbsp;C&nbsp;&nbsp;[libjemalloc.so+0x57f4]&nbsp;&nbsp;free+0x54&lt;/div&gt;<br>
+&lt;div&gt;hs_err_pid1622.log-#&lt;/div&gt;<br>
+&lt;/div&gt;&lt;/div&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;div&gt;The&nbsp;crash&nbsp;in&nbsp;free()&nbsp;is&nbsp;the&nbsp;only&nbsp;one&nbsp;that&nbsp;tells&nbsp;me&nbsp;anything&nbsp;at&nbsp;all,&nbsp;and&nbsp;my&nbsp;only&nbsp;guesses&nbsp;are&nbsp;1)&nbsp;mixed&nbsp;allocator&nbsp;usage&nbsp;or&nbsp;2)&nbsp;application&nbsp;error,&nbsp;e.g.&nbsp;double&nbsp;free().&nbsp;&nbsp;I&nbsp;really&nbsp;don't&nbsp;know&nbsp;anything&nbsp;about&nbsp;how&nbsp;the&nbsp;JVM&nbsp;is&nbsp;structured&nbsp;internally&nbsp;,&nbsp;how&nbsp;it&nbsp;interacts&nbsp;with&nbsp;malloc,&nbsp;how&nbsp;it&nbsp;uses/abuses&nbsp;dlopen(),&nbsp;etc.,&nbsp;so&nbsp;I'm&nbsp;not&nbsp;going&nbsp;to&nbsp;be&nbsp;of&nbsp;much&nbsp;help&nbsp;without&nbsp;a&nbsp;lot&nbsp;more&nbsp;background&nbsp;information.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Thanks,&lt;/div&gt;&lt;div&gt;Jason&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;
+</tt>

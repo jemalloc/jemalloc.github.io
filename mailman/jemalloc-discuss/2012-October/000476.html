@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Don't register jemalloc's zone allocator if something	else already replaced the system default zone
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Don%27t%20register%20jemalloc%27s%20zone%20allocator%20if%20something%0A%09else%20already%20replaced%20the%20system%20default%20zone&In-Reply-To=%3C20121023064713.GA20263%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000475.html">
+   <LINK REL="Next"  HREF="000477.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Don't register jemalloc's zone allocator if something	else already replaced the system default zone</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Don%27t%20register%20jemalloc%27s%20zone%20allocator%20if%20something%0A%09else%20already%20replaced%20the%20system%20default%20zone&In-Reply-To=%3C20121023064713.GA20263%40glandium.org%3E"
+       TITLE="[PATCH] Don't register jemalloc's zone allocator if something	else already replaced the system default zone">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Oct 22 23:47:13 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000475.html">[PATCH] Don't register jemalloc's zone allocator if something else	already replaced the system default zone
+</A></li>
+        <LI>Next message: <A HREF="000477.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#476">[ date ]</a>
+              <a href="thread.html#476">[ thread ]</a>
+              <a href="subject.html#476">[ subject ]</a>
+              <a href="author.html#476">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Oct 23, 2012 at 08:42:48AM +0200, Mike Hommey wrote:
+&gt;<i> +	/*
+</I>&gt;<i> +	 * If something else replaced the system default zone allocator, don't
+</I>&gt;<i> +	 * register jemalloc's.
+</I>&gt;<i> +	 */
+</I>&gt;<i> +	malloc_zone_t *default_zone = malloc_default_zone();
+</I>&gt;<i> +	if (!default_zone-&gt;zone_name ||
+</I>&gt;<i> +	    strcmp(default_zone-&gt;zone_name, &quot;DefaultMallocZone&quot;) != 0) {
+</I>&gt;<i> +		return;
+</I>&gt;<i> +	}
+</I>
+We're interested in hooking in between callers and jemalloc for Firefox
+debug builds, which, on mac, means registering the hooks as a zone
+allocator, but we can't allow jemalloc to hijack us (esp. when we're
+trying to hijack it).
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000475.html">[PATCH] Don't register jemalloc's zone allocator if something else	already replaced the system default zone
+</A></li>
+	<LI>Next message: <A HREF="000477.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#476">[ date ]</a>
+              <a href="thread.html#476">[ thread ]</a>
+              <a href="subject.html#476">[ subject ]</a>
+              <a href="author.html#476">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

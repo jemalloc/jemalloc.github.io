@@ -1,0 +1,786 @@
+From daver at couchbase.com  Fri Sep  2 03:13:18 2016
+From: daver at couchbase.com (David Rigby)
+Date: Fri, 2 Sep 2016 10:13:18 +0000
+Subject: jemalloc initialization in a shared library
+In-Reply-To: <1472593406.8549.120.camel@mad-scientist.net>
+References: <1472593406.8549.120.camel@mad-scientist.net>
+Message-ID: <46FAA717-CCDC-40D6-8423-C6898929A8C4@couchbase.com>
+
+
+On 30 Aug 2016, at 22:43, Paul Smith <paul at mad-scientist.net<mailto:paul at mad-scientist.net>> wrote:
+
+Hi all.  I wonder if anyone has any thoughts for me about a situation I
+have.
+
+I'm working on GNU/Linux.
+
+I'm compiling jemalloc as a static library (with -fPIC) then I link it
+into my own shared library (.so).  I use -fvisibility=hidden so that
+the jemalloc symbols are not visible outside the shared library (e.g.,
+when I use "nm" on my .so, all the jemalloc symbols are marked "t" not
+"T").
+
+It works all the time for my testing and most of the time for my users.
+However, in some situations I've had users report that their process is
+hanging and when I get a stacktrace, the hang is happening inside
+pthread_mutex_unlock called from within jemalloc tls stuff.  Note that
+my library is not being linked directly, it's being dlopen()'d, so the
+process is running for a bit before my library is loaded.  To be
+precise, it's being loaded inside an openjdk 1.8 JVM and invoked from
+Java using JNI.
+
+Here's a sample stacktrace:
+
+#0  0x0000003793a0a8a9 in pthread_mutex_unlock () from ./lib64/libpthread.so.0
+#1  0x00000037932110d2 in tls_get_addr_tail () from ./lib64/ld-linux-x86-64.so.2
+#2  0x0000003793211500 in __tls_get_addr () from ./lib64/ld-linux-x86-64.so.2
+#3  0x00007f0181a7ab7f in tcache_enabled_get () at jemalloc/include/jemalloc/internal/tcache.h:172
+#4  tcache_get (create=true) at jemalloc/include/jemalloc/internal/tcache.h:238
+#5  arena_malloc (arena=0x0, zero=false, try_tcache=true, size=96) at jemalloc/include/jemalloc/internal/arena.h:873
+#6  imallocx (try_tcache=true, arena=0x0, size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:767
+#7  imalloc (size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:776
+#8  prof_tdata_init () at jemalloc/src/prof.c:1244
+#9  0x00007f0181a5f7dd in prof_tdata_get () at jemalloc/include/jemalloc/internal/prof.h:317
+#10 malloc (size=<optimized out>) at jemalloc/src/jemalloc.c:850
+#11 0x00007f018185fbb1 in operator new [] (size=19) at core/Allocator.h:86
+#12 String::allocate (this=this at entry=0x7f0189c93e40, length=length at entry=6) at core/StringClass.cpp:158
+  ...
+
+(I should come clean and mention this is an older version of jemalloc:
+3.1 I believe--if that's likely to be the issue I can look into
+updating).
+
+3.1 is pretty old now.  A quick scan through the ChangeLog does suggest there?s been a few changes related to TLS initialisation / bootstrap. I?d be tempted to at least upgrade to the most recent 3.x, and maybe even 4.1.x and see if the problem goes away.
+
+
+The hang seems to happen very close to when this library starts, and
+it's clearly in a fundamental area.
+
+What I was wondering was whether it might be possible that some static
+memory inside jemalloc was not getting initialized in the right order
+when the shared library is loaded.  Perhaps there's some other static
+variable with a constructor which allocates memory, and if they are
+invoked in the wrong order then jemalloc's structures are not set up
+properly or something.
+
+Does this seem like it might be plausible?  If so is there anything
+that can be done (other than sweeping all my code to remove any
+allocation done during a static constructor)?  It's OK if this is a
+GCC-only solution, such as using __attribute__((init_priority())) or
+something...
+
+It would be much simpler if I could reproduce the problem myself, then
+I could just experiment, but so far no luck.
+_______________________________________________
+jemalloc-discuss mailing list
+jemalloc-discuss at canonware.com<mailto:jemalloc-discuss at canonware.com>
+http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160902/567de94b/attachment.html>
+
+From jasone at canonware.com  Thu Sep  8 09:28:48 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 8 Sep 2016 09:28:48 -0700
+Subject: jemalloc initialization in a shared library
+In-Reply-To: <1472593406.8549.120.camel@mad-scientist.net>
+References: <1472593406.8549.120.camel@mad-scientist.net>
+Message-ID: <EB268B6A-8B73-49EC-914A-0D023AA4B485@canonware.com>
+
+On Aug 30, 2016, at 2:43 PM, Paul Smith <paul at mad-scientist.net> wrote:
+> [...]
+> 
+> I'm compiling jemalloc as a static library (with -fPIC) then I link it
+> into my own shared library (.so).  I use -fvisibility=hidden so that
+> the jemalloc symbols are not visible outside the shared library (e.g.,
+> when I use "nm" on my .so, all the jemalloc symbols are marked "t" not
+> "T").
+> 
+> It works all the time for my testing and most of the time for my users.
+> However, in some situations I've had users report that their process is
+> hanging and when I get a stacktrace, the hang is happening inside
+> pthread_mutex_unlock called from within jemalloc tls stuff.  Note that
+> my library is not being linked directly, it's being dlopen()'d, so the
+> process is running for a bit before my library is loaded.  To be
+> precise, it's being loaded inside an openjdk 1.8 JVM and invoked from
+> Java using JNI.
+
+This may a separate issue from the TLS initialization issue you're hitting, but linking a malloc implementation into a dlopen()ed library is exceedingly difficult to make work correctly, because it's very difficult to avoid mixed allocator use, e.g. calling malloc() of one implementation and erroneously calling free() of the other.  You can work around this by using mangled names for one implementation, and being very careful to match calls correctly.
+
+> Here's a sample stacktrace:
+> 
+> #0  0x0000003793a0a8a9 in pthread_mutex_unlock () from ./lib64/libpthread.so.0
+> #1  0x00000037932110d2 in tls_get_addr_tail () from ./lib64/ld-linux-x86-64.so.2
+> #2  0x0000003793211500 in __tls_get_addr () from ./lib64/ld-linux-x86-64.so.2
+> #3  0x00007f0181a7ab7f in tcache_enabled_get () at jemalloc/include/jemalloc/internal/tcache.h:172
+> #4  tcache_get (create=true) at jemalloc/include/jemalloc/internal/tcache.h:238
+> #5  arena_malloc (arena=0x0, zero=false, try_tcache=true, size=96) at jemalloc/include/jemalloc/internal/arena.h:873
+> #6  imallocx (try_tcache=true, arena=0x0, size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:767
+> #7  imalloc (size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:776
+> #8  prof_tdata_init () at jemalloc/src/prof.c:1244
+> #9  0x00007f0181a5f7dd in prof_tdata_get () at jemalloc/include/jemalloc/internal/prof.h:317
+> #10 malloc (size=<optimized out>) at jemalloc/src/jemalloc.c:850
+> #11 0x00007f018185fbb1 in operator new [] (size=19) at core/Allocator.h:86
+> #12 String::allocate (this=this at entry=0x7f0189c93e40, length=length at entry=6) at core/StringClass.cpp:158
+>   ...
+
+This is probably related to attempts at reentrant allocation inside the glibc TLS machinery.  For the most part we avoid this by bootstrapping prior to accessing TLS, but perhaps that's not happening early enough as some side effect of dlopen().
+
+> (I should come clean and mention this is an older version of jemalloc:
+> 3.1 I believe--if that's likely to be the issue I can look into
+> updating).
+
+I huge amount has changed in the TLS-related code since 3.1, so it's hard for me to recall the exact quirks relative to the current release.  Trying a newer version is certainly worthwhile.
+
+> [...]
+> 
+> Does this seem like it might be plausible?  If so is there anything
+> that can be done (other than sweeping all my code to remove any
+> allocation done during a static constructor)?  It's OK if this is a
+> GCC-only solution, such as using __attribute__((init_priority())) or
+> something...
+
+The init_priority attribute could help, but note that there's no simple way to guarantee that some other linked code isn't also using the maximum priority, thus resulting in arbitrary initialization order.
+
+> It would be much simpler if I could reproduce the problem myself, then
+> I could just experiment, but so far no luck.
+
+You may be able to work around this by making jemalloc_constructor() visible and calling it directly, i.e. look it up via dlsym() and call it immediately after dlopen().  However, your comments make it sound as though this is happening before dlopen() returns.
+
+Jason
+
+From jasone at canonware.com  Thu Sep  8 09:46:39 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 8 Sep 2016 09:46:39 -0700
+Subject: Jemalloc library is hitting Segmentation fault on CentOS-7
+In-Reply-To: <CAECJSJ4WMOdD_DNhqXXYjhYoFpCkrj+1+b1otX73d-=EOp3_gg@mail.gmail.com>
+References: <CAECJSJ7nFxHQ=rM1paoS9VYAFFaznYrs=vOTAD8vwD42gePZsg@mail.gmail.com>
+	<CAECJSJ4WMOdD_DNhqXXYjhYoFpCkrj+1+b1otX73d-=EOp3_gg@mail.gmail.com>
+Message-ID: <0A9E08DA-0BDA-4A4C-A97A-939BB97B8EF8@canonware.com>
+
+Hi Ramesh,
+
+This crash is happening inside glibc, perhaps due to recursive allocation failing despite a temporary bootstrap allocation environment having been set up inside jemalloc.  Are you able to determine whether something is going wrong during a malloc() (or similar) call inside get_nprocs()?
+
+I'm in the process of setting up a CentOS 7 system right now, but it will take some time before I can reproduce this.
+
+Thanks,
+Jason
+
+> On Aug 25, 2016, at 2:27 AM, Ramesh Sivaraman <ramesh.sivaraman at percona.com> wrote:
+> 
+> Hi Team,
+> 
+> Forgot to mention version details
+> 
+> jemalloc.x86_64  : 3.6.0-3.el7 
+> 
+> On Thu, Aug 25, 2016 at 2:49 PM, Ramesh Sivaraman <ramesh.sivaraman at percona.com> wrote:
+> Hi Team,
+> 
+> Jemalloc library is hitting  Segmentation fault on CentOS-7
+> 
+> With debug library Segmentation fault issue triggering with simple `ls` command.
+> 
+> $ export LD_PRELOAD=/usr/lib/debug/usr/lib64/libjemalloc.so.1.debug
+> $ ls
+> Segmentation fault (core dumped)
+> $
+> 
+> Also seeing a segmentation fault issue (same issue?) with non-debug jemalloc
+> 
+> $ export LD_PRELOAD=/usr/lib64/libjemalloc.so.1 
+> $ ./bin/mysqld --version
+> Segmentation fault (core dumped)
+> $ gdb ./bin/mysqld core.11345.mysqld.11 
+> [..]
+> (gdb) bt
+> +bt
+> #0  0x00007f1c21fa5964 in get_nprocs () from /lib64/libc.so.6
+> #1  0x00007f1c21f70b0c in sysconf () from /lib64/libc.so.6
+> #2  0x00007f1c26efebd0 in malloc_ncpus () at src/jemalloc.c:256
+> #3  malloc_init_hard () at src/jemalloc.c:776
+> #4  0x00007f1c26f01705 in malloc_init () at src/jemalloc.c:292
+> #5  calloc (num=1, size=32) at src/jemalloc.c:1123
+> #6  0x00007f1c22eb1690 in _dlerror_run () from /lib64/libdl.so.2
+> #7  0x00007f1c22eb1198 in dlsym () from /lib64/libdl.so.2
+> #8  0x00007f1c23f88fec in ?? () from /lib64/libasan.so.0
+> #9  0x00007f1c23f7b2c9 in ?? () from /lib64/libasan.so.0
+> #10 0x00007f1c23f7d91b in __asan_init_v1 () from /lib64/libasan.so.0
+> #11 0x00007f1c271426c3 in _dl_init_internal () from /lib64/ld-linux-x86-64.so.2
+> #12 0x00007f1c2713445a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+> #13 0x0000000000000002 in ?? ()
+> #14 0x00007fff9d552740 in ?? ()
+> #15 0x00007fff9d55274d in ?? ()
+> #16 0x0000000000000000 in ?? ()
+> (gdb) 
+> 
+> -- 
+> Best Regards,
+> 
+> Ramesh
+> 
+> 
+> 
+> 
+> 
+> -- 
+> Best Regards,
+> 
+> Ramesh Sivaraman
+> QA Engineer, Percona
+> http://www.percona.com/
+> Phone : +91 8606432991
+> Skype : rameshvs02
+> 
+> 
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From jasone at canonware.com  Thu Sep  8 09:48:08 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 8 Sep 2016 09:48:08 -0700
+Subject: 4.2.1 test/integration/mallocx still fails on older 32 bit (Was:
+	jemalloc 4.2.1 released)
+In-Reply-To: <2402583e-13fd-afc0-61d8-59afe181c5b2@redpill-linpro.com>
+References: <12851233-3688-4937-A1D9-F5651E740733@canonware.com>
+	<2402583e-13fd-afc0-61d8-59afe181c5b2@redpill-linpro.com>
+Message-ID: <98E204E6-34B9-4910-AF58-7F4011741A12@canonware.com>
+
+On Aug 8, 2016, at 5:35 AM, Ingvar Hagelund <ingvar at redpill-linpro.com> wrote:
+> Den 09. juni 2016 09:14, skrev Jason Evans:
+>> jemalloc 4.2.1 is now available.
+>> (...)
+> 
+> I try again, as I didn't get any response on my last post.
+> 
+> test/integration/mallocx still fails on older 32 bit in 4.2.1, as it did
+> in 4.1.1.
+> 
+> [...]
+
+Tracking at:
+
+	https://github.com/jemalloc/jemalloc/issues/448
+
+Thanks,
+Jason
+
+From paul at mad-scientist.net  Thu Sep  8 09:59:41 2016
+From: paul at mad-scientist.net (Paul Smith)
+Date: Thu, 08 Sep 2016 12:59:41 -0400
+Subject: jemalloc initialization in a shared library
+In-Reply-To: <EB268B6A-8B73-49EC-914A-0D023AA4B485@canonware.com>
+References: <1472593406.8549.120.camel@mad-scientist.net>
+	<EB268B6A-8B73-49EC-914A-0D023AA4B485@canonware.com>
+Message-ID: <1473353981.7265.61.camel@mad-scientist.net>
+
+On Thu, 2016-09-08 at 09:28 -0700, Jason Evans wrote:
+> On Aug 30, 2016, at 2:43 PM, Paul Smith <paul at mad-scientist.net>
+> wrote:
+> > 
+> > [...]
+> > 
+> > I'm compiling jemalloc as a static library (with -fPIC) then I link it
+> > into my own shared library (.so).??I use -fvisibility=hidden so that
+> > the jemalloc symbols are not visible outside the shared library (e.g.,
+> > when I use "nm" on my .so, all the jemalloc symbols are marked "t" not
+> > "T").
+> > 
+> > It works all the time for my testing and most of the time for my users.
+> > However, in some situations I've had users report that their process is
+> > hanging and when I get a stacktrace, the hang is happening inside
+> > pthread_mutex_unlock called from within jemalloc tls stuff.??Note that
+> > my library is not being linked directly, it's being dlopen()'d, so the
+> > process is running for a bit before my library is loaded.??To be
+> > precise, it's being loaded inside an openjdk 1.8 JVM and invoked from
+> > Java using JNI.
+> 
+> This may a separate issue from the TLS initialization issue you're
+> hitting, but linking a malloc implementation into a dlopen()ed
+> library is exceedingly difficult to make work correctly, because it's
+> very difficult to avoid mixed allocator use, e.g. calling malloc() of
+> one implementation and erroneously calling free() of the other.??You
+> can work around this by using mangled names for one implementation,
+> and being very careful to match calls correctly.
+
+Yes; however we also run on Windows where there are similar issues
+crossing DLL boundaries even using the default allocator: our code is
+careful to never free memory given to us by other libraries and no one
+else will free our memory.
+
+We have also compiled jemalloc with -fvisibility=hidden so I don't
+think that any other code besides ours will be able to invoke our
+jemalloc functions.
+
+I get that this is a fraught area and I'm not 100% sure that our
+safeguards are sufficient. ?However in all our internal testing things
+seem to work OK...
+
+> I huge amount has changed in the TLS-related code since 3.1, so it's
+> hard for me to recall the exact quirks relative to the current
+> release.??Trying a newer version is certainly worthwhile.
+
+I will work on this. ?It's not trivial because we've made some changes:
+particularly an enhancement to allow us to dump profile stats to a
+memory buffer rather than a file, so that we can send them back over
+the network to a central admin service.
+
+We have meant to contribute this back although I suspect you would not
+be happy with the implementation as it is. ?As part of this port I'll
+try to clean it up at least a bit and send along a patch, just for
+informational purposes if nothing else.
+
+> > Does this seem like it might be plausible???If so is there anything
+> > that can be done (other than sweeping all my code to remove any
+> > allocation done during a static constructor)???It's OK if this is a
+> > GCC-only solution, such as using __attribute__((init_priority()))
+> > or something...
+> 
+> The init_priority attribute could help, but note that there's no
+> simple way to guarantee that some other linked code isn't also using
+> the maximum priority, thus resulting in arbitrary initialization
+> order.
+
+Yes, I understand. ?However looking through all the code for static
+content that allocates memory is daunting (as is ensuring more such
+content doesn't crop up on the future) so I don't prefer this option,
+if it can be avoided.
+
+> > It would be much simpler if I could reproduce the problem myself,
+> > then I could just experiment, but so far no luck.
+> 
+> You may be able to work around this by making jemalloc_constructor()
+> visible and calling it directly, i.e. look it up via dlsym() and call
+> it immediately after dlopen().??However, your comments make it sound
+> as though this is happening before dlopen() returns.
+
+Well, the hang definitely happens later, not during dlopen(): it's one
+of the earliest operations but it's part of user code after the library
+has been loaded. ?Of course, if the problem really is initialization of
+memory then it could be that the corruption etc. happens during the
+dlopen() call and the hang is just a symptom.
+
+From paul at mad-scientist.net  Mon Sep 12 08:31:29 2016
+From: paul at mad-scientist.net (Paul Smith)
+Date: Mon, 12 Sep 2016 11:31:29 -0400
+Subject: jemalloc initialization in a shared library
+In-Reply-To: <EB268B6A-8B73-49EC-914A-0D023AA4B485@canonware.com>
+References: <1472593406.8549.120.camel@mad-scientist.net>
+	<EB268B6A-8B73-49EC-914A-0D023AA4B485@canonware.com>
+Message-ID: <1473694289.6425.23.camel@mad-scientist.net>
+
+On Thu, 2016-09-08 at 09:28 -0700, Jason Evans wrote:
+> This may a separate issue from the TLS initialization issue you're
+> hitting, but linking a malloc implementation into a dlopen()ed
+> library is exceedingly difficult to make work correctly, because it's
+> very difficult to avoid mixed allocator use, e.g. calling malloc() of
+> one implementation and erroneously calling free() of the other.
+
+As a followup, I spent a few days working with the user including
+providing them with a version of the library built with no
+optimization. ?When the hang happens with that version the stacktrace
+is very different and appears to be happening trying to obtain the C++
+STL's TLS variable that manages exceptions etc. (__cxa_get_global etc.)
+and jemalloc is not implicated any longer.
+
+The mutex that is deadlocked appears to be the one taken by the runtime
+linker code that loads shared objects. ?It's really not clear to me at
+all why this code is even being invoked at this point, since we're
+definitely not loading objects.
+
+However, armed with this information I suggested to the user that they
+force our library to be loaded at startup time of the JVM by using
+LD_PRELOAD, and that seems to have solved their problem.
+
+Until I get some way to reproduce the problem myself I don't think it
+will be productive for me to work on this further. ?However, during
+this time I did manage to update our version of jemalloc to 4.2.1,
+although it still needs more testing before deploying, so it wasn't all
+for nothing! :).
+
+Thanks for the thoughtful suggestions, I do appreciate it.
+
+From ajopensrc at gmail.com  Tue Sep 13 22:41:25 2016
+From: ajopensrc at gmail.com (Asmita Jagtap)
+Date: Wed, 14 Sep 2016 11:11:25 +0530
+Subject: Need help with jemalloc cores
+Message-ID: <CAP3En4P6UO6nnhUWXn6y0=6=DxuxVWO0pLRnOsjpZ9LnL_6d-Q@mail.gmail.com>
+
+Hi,
+
+We are using jemalloc library (compiled with --enable-fill and
+--enable-debug options) in a multi-threaded daemon and seeing multiple
+cores during malloc/realloc with jemalloc library. The core files are
+approximately 61GB and 79GB in size, so this is typically seen under heavy
+memory usage situation.
+
+Are these issues in jemalloc code or the application code that is using
+jemalloc?
+
+Can someone please clarify what these stacks / aborts mean and how to deal
+with them?
+
+stack for corefile1 -
+
+(gdb) bt
+#0  0x00007fdc399155f7 in raise () from /lib64/libc.so.6
+#1  0x00007fdc39916ce8 in abort () from /lib64/libc.so.6
+#2  0x00007fdc3a317fe4 in je_extent_heap_remove (ph=0x7fd44530de90,
+phn=0x7fd0c022e0c0) at src/extent.c:191
+#3  0x00007fdc3a3180e3 in extent_heaps_remove (extent_heaps=0x7fd44530dda0,
+extent=0x7fd0c022e0c0) at src/extent.c:206
+#4  0x00007fdc3a318c3f in extent_recycle (tsdn=0x7fdc329a6580,
+arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+extent_heaps=0x7fd44530dda0,
+    cache=false, new_addr=0x7fd0bfd0b740, usize=16384, pad=0, alignment=64,
+zero=0x7fdc329a5447, commit=0x7fdc329a5437, slab=false) at src/extent.c:424
+#5  0x00007fdc3a3197f3 in extent_alloc_retained (tsdn=0x7fdc329a6580,
+arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+new_addr=0x7fd0bfd0b740,
+    usize=16384, pad=0, alignment=64, zero=0x7fdc329a5447,
+commit=0x7fdc329a5437, slab=false) at src/extent.c:608
+#6  0x00007fdc3a319a91 in je_extent_alloc_wrapper (tsdn=0x7fdc329a6580,
+arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+new_addr=0x7fd0bfd0b740,
+    usize=16384, pad=0, alignment=64, zero=0x7fdc329a5447,
+commit=0x7fdc329a5437, slab=false) at src/extent.c:664
+#7  0x00007fdc3a31d2c2 in large_ralloc_no_move_expand (tsdn=0x7fdc329a6580,
+extent=0x7fd3412ba6c0, usize=32768, zero=false) at src/large.c:149
+#8  0x00007fdc3a31d651 in je_large_ralloc_no_move (tsdn=0x7fdc329a6580,
+extent=0x7fd3412ba6c0, usize_min=32768, usize_max=32768, zero=false)
+    at src/large.c:205
+#9  0x00007fdc3a31d92f in je_large_ralloc (tsdn=0x7fdc329a6580, arena=0x0,
+extent=0x7fd3412ba6c0, usize=32768, alignment=0, zero=false,
+    tcache=0x7fd538d85780) at src/large.c:264
+#10 0x00007fdc3a305b10 in je_arena_ralloc (tsdn=0x7fdc329a6580, arena=0x0,
+extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+    alignment=0, zero=false, tcache=0x7fd538d85780) at src/arena.c:1567
+#11 0x00007fdc3a2f9124 in je_iralloct (tsdn=0x7fdc329a6580,
+extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+alignment=0,
+    zero=false, tcache=0x7fd538d85780, arena=0x0) at
+include/jemalloc/internal/jemalloc_internal.h:1163
+#12 0x00007fdc3a2f91ad in je_iralloc (tsd=0x7fdc329a6580,
+extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+alignment=0, zero=false)
+    at include/jemalloc/internal/jemalloc_internal.h:1172
+#13 0x00007fdc3a2fd883 in realloc (ptr=0x7fd0bfd06740, size=32768) at
+src/jemalloc.c:1796
+
+stack for corefile2 -
+#0  0x00007f9170d7f5f7 in raise () from /lib64/libc.so.6
+#1  0x00007f9170d80ce8 in abort () from /lib64/libc.so.6
+#2  0x00007f917176b616 in je_arena_extent_cache_maybe_remove
+(arena=0x7f8a0d652180, extent=0x7f874860e180, dirty=true) at src/arena.c:119
+#3  0x00007f9171782c5c in extent_recycle (tsdn=0x7f916be14580,
+arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388,
+    extent_heaps=0x7f8a0d654268, cache=true, new_addr=0x0, usize=4096,
+pad=0, alignment=4096, zero=0x7f916be13387, commit=0x7f916be13297,
+    slab=true) at src/extent.c:425
+#4  0x00007f91717834df in je_extent_alloc_cache (tsdn=0x7f916be14580,
+arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388, new_addr=0x0,
+    usize=4096, pad=0, alignment=4096, zero=0x7f916be13387, slab=true) at
+src/extent.c:554
+#5  0x00007f917176b3b6 in arena_extent_cache_alloc_locked
+(tsdn=0x7f916be14580, arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388,
+    new_addr=0x0, usize=4096, pad=0, alignment=4096, zero=0x7f916be13387,
+slab=true) at src/arena.c:63
+#6  0x00007f917176dfd3 in arena_slab_alloc (tsdn=0x7f916be14580,
+arena=0x7f8a0d652180, binind=1,
+    bin_info=0x7f91717a2e48 <je_arena_bin_info+40>) at src/arena.c:1024
+#7  0x00007f917176e196 in arena_bin_nonfull_slab_get (tsdn=0x7f916be14580,
+arena=0x7f8a0d652180, bin=0x7f8a0d6550e0, binind=1)
+    at src/arena.c:1067
+#8  0x00007f917176e2be in arena_bin_malloc_hard (tsdn=0x7f916be14580,
+arena=0x7f8a0d652180, bin=0x7f8a0d6550e0, binind=1)
+    at src/arena.c:1105
+#9  0x00007f917176e5a5 in je_arena_tcache_fill_small (tsdn=0x7f916be14580,
+arena=0x7f8a0d652180, tbin=0x7f8a6e0d5008, binind=1,
+    prof_accumbytes=0) at src/arena.c:1171
+#10 0x00007f917179b014 in je_tcache_alloc_small_hard (tsdn=0x7f916be14580,
+arena=0x7f8a0d652180, tcache=0x7f8a6e0d4fc0,
+    tbin=0x7f8a6e0d5008, binind=1, tcache_success=0x7f916be13576) at
+src/tcache.c:79
+#11 0x00007f917179a425 in je_tcache_alloc_small (tsd=0x7f916be14580,
+arena=0x7f8a0d652180, tcache=0x7f8a6e0d4fc0, size=16, binind=1,
+    zero=false, slow_path=true) at include/jemalloc/internal/tcache.h:297
+#12 0x00007f917176acd0 in je_arena_malloc (tsdn=0x7f916be14580, arena=0x0,
+size=16, ind=1, zero=false, tcache=0x7f8a6e0d4fc0,
+    slow_path=true) at include/jemalloc/internal/arena.h:538
+#13 0x00007f9171762612 in je_iallocztm (tsdn=0x7f916be14580, size=16,
+ind=1, zero=false, tcache=0x7f8a6e0d4fc0, is_metadata=false,
+    arena=0x0, slow_path=true) at
+include/jemalloc/internal/jemalloc_internal.h:1005
+#14 0x00007f9171762706 in je_ialloc (tsd=0x7f916be14580, size=16, ind=1,
+zero=false, slow_path=true)
+    at include/jemalloc/internal/jemalloc_internal.h:1017
+#15 0x00007f917176655e in ialloc_body (size=16, zero=false,
+tsdn=0x7f916be13770, usize=0x7f916be13768, slow_path=true)
+    at src/jemalloc.c:1434
+---Type <return> to continue, or q <return> to quit---
+#16 0x00007f91717667b8 in malloc (size=16) at src/jemalloc.c:1476
+
+
+Regards,
+Asmita
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160914/81c85dba/attachment.html>
+
+From ajopensrc at gmail.com  Tue Sep 13 22:57:14 2016
+From: ajopensrc at gmail.com (Asmita Jagtap)
+Date: Wed, 14 Sep 2016 11:27:14 +0530
+Subject: Need help with jemalloc cores
+In-Reply-To: <CAP3En4P6UO6nnhUWXn6y0=6=DxuxVWO0pLRnOsjpZ9LnL_6d-Q@mail.gmail.com>
+References: <CAP3En4P6UO6nnhUWXn6y0=6=DxuxVWO0pLRnOsjpZ9LnL_6d-Q@mail.gmail.com>
+Message-ID: <CAP3En4PK9mRq6W9t8=qsDggOFxVuthzd--QbxeKXX2zDSSKpQA@mail.gmail.com>
+
+Forgot to mention the version, it is jemalloc 4.2.1
+
+On Wed, Sep 14, 2016 at 11:11 AM, Asmita Jagtap <ajopensrc at gmail.com> wrote:
+
+> Hi,
+>
+> We are using jemalloc library (compiled with --enable-fill and
+> --enable-debug options) in a multi-threaded daemon and seeing multiple
+> cores during malloc/realloc with jemalloc library. The core files are
+> approximately 61GB and 79GB in size, so this is typically seen under heavy
+> memory usage situation.
+>
+> Are these issues in jemalloc code or the application code that is using
+> jemalloc?
+>
+> Can someone please clarify what these stacks / aborts mean and how to deal
+> with them?
+>
+> stack for corefile1 -
+>
+> (gdb) bt
+> #0  0x00007fdc399155f7 in raise () from /lib64/libc.so.6
+> #1  0x00007fdc39916ce8 in abort () from /lib64/libc.so.6
+> #2  0x00007fdc3a317fe4 in je_extent_heap_remove (ph=0x7fd44530de90,
+> phn=0x7fd0c022e0c0) at src/extent.c:191
+> #3  0x00007fdc3a3180e3 in extent_heaps_remove
+> (extent_heaps=0x7fd44530dda0, extent=0x7fd0c022e0c0) at src/extent.c:206
+> #4  0x00007fdc3a318c3f in extent_recycle (tsdn=0x7fdc329a6580,
+> arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+> extent_heaps=0x7fd44530dda0,
+>     cache=false, new_addr=0x7fd0bfd0b740, usize=16384, pad=0,
+> alignment=64, zero=0x7fdc329a5447, commit=0x7fdc329a5437, slab=false) at
+> src/extent.c:424
+> #5  0x00007fdc3a3197f3 in extent_alloc_retained (tsdn=0x7fdc329a6580,
+> arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+> new_addr=0x7fd0bfd0b740,
+>     usize=16384, pad=0, alignment=64, zero=0x7fdc329a5447,
+> commit=0x7fdc329a5437, slab=false) at src/extent.c:608
+> #6  0x00007fdc3a319a91 in je_extent_alloc_wrapper (tsdn=0x7fdc329a6580,
+> arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+> new_addr=0x7fd0bfd0b740,
+>     usize=16384, pad=0, alignment=64, zero=0x7fdc329a5447,
+> commit=0x7fdc329a5437, slab=false) at src/extent.c:664
+> #7  0x00007fdc3a31d2c2 in large_ralloc_no_move_expand
+> (tsdn=0x7fdc329a6580, extent=0x7fd3412ba6c0, usize=32768, zero=false) at
+> src/large.c:149
+> #8  0x00007fdc3a31d651 in je_large_ralloc_no_move (tsdn=0x7fdc329a6580,
+> extent=0x7fd3412ba6c0, usize_min=32768, usize_max=32768, zero=false)
+>     at src/large.c:205
+> #9  0x00007fdc3a31d92f in je_large_ralloc (tsdn=0x7fdc329a6580, arena=0x0,
+> extent=0x7fd3412ba6c0, usize=32768, alignment=0, zero=false,
+>     tcache=0x7fd538d85780) at src/large.c:264
+> #10 0x00007fdc3a305b10 in je_arena_ralloc (tsdn=0x7fdc329a6580, arena=0x0,
+> extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+>     alignment=0, zero=false, tcache=0x7fd538d85780) at src/arena.c:1567
+> #11 0x00007fdc3a2f9124 in je_iralloct (tsdn=0x7fdc329a6580,
+> extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+> alignment=0,
+>     zero=false, tcache=0x7fd538d85780, arena=0x0) at
+> include/jemalloc/internal/jemalloc_internal.h:1163
+> #12 0x00007fdc3a2f91ad in je_iralloc (tsd=0x7fdc329a6580,
+> extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+> alignment=0, zero=false)
+>     at include/jemalloc/internal/jemalloc_internal.h:1172
+> #13 0x00007fdc3a2fd883 in realloc (ptr=0x7fd0bfd06740, size=32768) at
+> src/jemalloc.c:1796
+>
+> stack for corefile2 -
+> #0  0x00007f9170d7f5f7 in raise () from /lib64/libc.so.6
+> #1  0x00007f9170d80ce8 in abort () from /lib64/libc.so.6
+> #2  0x00007f917176b616 in je_arena_extent_cache_maybe_remove
+> (arena=0x7f8a0d652180, extent=0x7f874860e180, dirty=true) at src/arena.c:119
+> #3  0x00007f9171782c5c in extent_recycle (tsdn=0x7f916be14580,
+> arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388,
+>     extent_heaps=0x7f8a0d654268, cache=true, new_addr=0x0, usize=4096,
+> pad=0, alignment=4096, zero=0x7f916be13387, commit=0x7f916be13297,
+>     slab=true) at src/extent.c:425
+> #4  0x00007f91717834df in je_extent_alloc_cache (tsdn=0x7f916be14580,
+> arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388, new_addr=0x0,
+>     usize=4096, pad=0, alignment=4096, zero=0x7f916be13387, slab=true) at
+> src/extent.c:554
+> #5  0x00007f917176b3b6 in arena_extent_cache_alloc_locked
+> (tsdn=0x7f916be14580, arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388,
+>     new_addr=0x0, usize=4096, pad=0, alignment=4096, zero=0x7f916be13387,
+> slab=true) at src/arena.c:63
+> #6  0x00007f917176dfd3 in arena_slab_alloc (tsdn=0x7f916be14580,
+> arena=0x7f8a0d652180, binind=1,
+>     bin_info=0x7f91717a2e48 <je_arena_bin_info+40>) at src/arena.c:1024
+> #7  0x00007f917176e196 in arena_bin_nonfull_slab_get (tsdn=0x7f916be14580,
+> arena=0x7f8a0d652180, bin=0x7f8a0d6550e0, binind=1)
+>     at src/arena.c:1067
+> #8  0x00007f917176e2be in arena_bin_malloc_hard (tsdn=0x7f916be14580,
+> arena=0x7f8a0d652180, bin=0x7f8a0d6550e0, binind=1)
+>     at src/arena.c:1105
+> #9  0x00007f917176e5a5 in je_arena_tcache_fill_small (tsdn=0x7f916be14580,
+> arena=0x7f8a0d652180, tbin=0x7f8a6e0d5008, binind=1,
+>     prof_accumbytes=0) at src/arena.c:1171
+> #10 0x00007f917179b014 in je_tcache_alloc_small_hard (tsdn=0x7f916be14580,
+> arena=0x7f8a0d652180, tcache=0x7f8a6e0d4fc0,
+>     tbin=0x7f8a6e0d5008, binind=1, tcache_success=0x7f916be13576) at
+> src/tcache.c:79
+> #11 0x00007f917179a425 in je_tcache_alloc_small (tsd=0x7f916be14580,
+> arena=0x7f8a0d652180, tcache=0x7f8a6e0d4fc0, size=16, binind=1,
+>     zero=false, slow_path=true) at include/jemalloc/internal/tcache.h:297
+> #12 0x00007f917176acd0 in je_arena_malloc (tsdn=0x7f916be14580, arena=0x0,
+> size=16, ind=1, zero=false, tcache=0x7f8a6e0d4fc0,
+>     slow_path=true) at include/jemalloc/internal/arena.h:538
+> #13 0x00007f9171762612 in je_iallocztm (tsdn=0x7f916be14580, size=16,
+> ind=1, zero=false, tcache=0x7f8a6e0d4fc0, is_metadata=false,
+>     arena=0x0, slow_path=true) at include/jemalloc/internal/
+> jemalloc_internal.h:1005
+> #14 0x00007f9171762706 in je_ialloc (tsd=0x7f916be14580, size=16, ind=1,
+> zero=false, slow_path=true)
+>     at include/jemalloc/internal/jemalloc_internal.h:1017
+> #15 0x00007f917176655e in ialloc_body (size=16, zero=false,
+> tsdn=0x7f916be13770, usize=0x7f916be13768, slow_path=true)
+>     at src/jemalloc.c:1434
+> ---Type <return> to continue, or q <return> to quit---
+> #16 0x00007f91717667b8 in malloc (size=16) at src/jemalloc.c:1476
+>
+>
+> Regards,
+> Asmita
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160914/abc79643/attachment-0001.html>
+
+From roel.vandepaar at percona.com  Wed Sep 14 00:03:07 2016
+From: roel.vandepaar at percona.com (Roel Van de Paar)
+Date: Wed, 14 Sep 2016 17:03:07 +1000
+Subject: Jemalloc library is hitting Segmentation fault on CentOS-7
+In-Reply-To: <0A9E08DA-0BDA-4A4C-A97A-939BB97B8EF8@canonware.com>
+References: <CAECJSJ7nFxHQ=rM1paoS9VYAFFaznYrs=vOTAD8vwD42gePZsg@mail.gmail.com>
+	<CAECJSJ4WMOdD_DNhqXXYjhYoFpCkrj+1+b1otX73d-=EOp3_gg@mail.gmail.com>
+	<0A9E08DA-0BDA-4A4C-A97A-939BB97B8EF8@canonware.com>
+Message-ID: <CAGQTitMbC+zC6m7ii1tcREg1K+7nqrLgW87hSS=R6d2JZGePTg@mail.gmail.com>
+
+Hi Jason,
+
+Please let us know how you went. Thanks
+
+On Fri, Sep 9, 2016 at 2:46 AM, Jason Evans <jasone at canonware.com> wrote:
+
+> Hi Ramesh,
+>
+> This crash is happening inside glibc, perhaps due to recursive allocation
+> failing despite a temporary bootstrap allocation environment having been
+> set up inside jemalloc.  Are you able to determine whether something is
+> going wrong during a malloc() (or similar) call inside get_nprocs()?
+>
+> I'm in the process of setting up a CentOS 7 system right now, but it will
+> take some time before I can reproduce this.
+>
+> Thanks,
+> Jason
+>
+> > On Aug 25, 2016, at 2:27 AM, Ramesh Sivaraman <
+> ramesh.sivaraman at percona.com> wrote:
+> >
+> > Hi Team,
+> >
+> > Forgot to mention version details
+> >
+> > jemalloc.x86_64  : 3.6.0-3.el7
+> >
+> > On Thu, Aug 25, 2016 at 2:49 PM, Ramesh Sivaraman <
+> ramesh.sivaraman at percona.com> wrote:
+> > Hi Team,
+> >
+> > Jemalloc library is hitting  Segmentation fault on CentOS-7
+> >
+> > With debug library Segmentation fault issue triggering with simple `ls`
+> command.
+> >
+> > $ export LD_PRELOAD=/usr/lib/debug/usr/lib64/libjemalloc.so.1.debug
+> > $ ls
+> > Segmentation fault (core dumped)
+> > $
+> >
+> > Also seeing a segmentation fault issue (same issue?) with non-debug
+> jemalloc
+> >
+> > $ export LD_PRELOAD=/usr/lib64/libjemalloc.so.1
+> > $ ./bin/mysqld --version
+> > Segmentation fault (core dumped)
+> > $ gdb ./bin/mysqld core.11345.mysqld.11
+> > [..]
+> > (gdb) bt
+> > +bt
+> > #0  0x00007f1c21fa5964 in get_nprocs () from /lib64/libc.so.6
+> > #1  0x00007f1c21f70b0c in sysconf () from /lib64/libc.so.6
+> > #2  0x00007f1c26efebd0 in malloc_ncpus () at src/jemalloc.c:256
+> > #3  malloc_init_hard () at src/jemalloc.c:776
+> > #4  0x00007f1c26f01705 in malloc_init () at src/jemalloc.c:292
+> > #5  calloc (num=1, size=32) at src/jemalloc.c:1123
+> > #6  0x00007f1c22eb1690 in _dlerror_run () from /lib64/libdl.so.2
+> > #7  0x00007f1c22eb1198 in dlsym () from /lib64/libdl.so.2
+> > #8  0x00007f1c23f88fec in ?? () from /lib64/libasan.so.0
+> > #9  0x00007f1c23f7b2c9 in ?? () from /lib64/libasan.so.0
+> > #10 0x00007f1c23f7d91b in __asan_init_v1 () from /lib64/libasan.so.0
+> > #11 0x00007f1c271426c3 in _dl_init_internal () from
+> /lib64/ld-linux-x86-64.so.2
+> > #12 0x00007f1c2713445a in _dl_start_user () from
+> /lib64/ld-linux-x86-64.so.2
+> > #13 0x0000000000000002 in ?? ()
+> > #14 0x00007fff9d552740 in ?? ()
+> > #15 0x00007fff9d55274d in ?? ()
+> > #16 0x0000000000000000 in ?? ()
+> > (gdb)
+> >
+> > --
+> > Best Regards,
+> >
+> > Ramesh
+> >
+> >
+> >
+> >
+> >
+> > --
+> > Best Regards,
+> >
+> > Ramesh Sivaraman
+> > QA Engineer, Percona
+> > http://www.percona.com/
+> > Phone : +91 8606432991
+> > Skype : rameshvs02
+> >
+> >
+> > _______________________________________________
+> > jemalloc-discuss mailing list
+> > jemalloc-discuss at canonware.com
+> > http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160914/fb67b878/attachment.html>
+

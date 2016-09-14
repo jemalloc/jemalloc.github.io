@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Bug in chunk allocation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bug%20in%20chunk%20allocation&In-Reply-To=%3C55760F8F.2070003%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001115.html">
+   <LINK REL="Next"  HREF="001117.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Bug in chunk allocation</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bug%20in%20chunk%20allocation&In-Reply-To=%3C55760F8F.2070003%40gmail.com%3E"
+       TITLE="Bug in chunk allocation">danielmicay at gmail.com
+       </A><BR>
+    <I>Mon Jun  8 14:56:31 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001115.html">Bug in chunk allocation
+</A></li>
+        <LI>Next message: <A HREF="001117.html">Bug in chunk allocation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1116">[ date ]</a>
+              <a href="thread.html#1116">[ thread ]</a>
+              <a href="subject.html#1116">[ subject ]</a>
+              <a href="author.html#1116">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 08/06/15 05:15 PM, Christopher Ferris wrote:
+&gt;<i> Recently, it appears that there was a bug introduced in chunk
+</I>&gt;<i> allocation. The bug is exposed by this small snippet of code:
+</I>&gt;<i> 
+</I>&gt;<i>   void* mem = malloc(128*1024*1024);
+</I>&gt;<i>   printf(&quot;mem address %p\n&quot;, mem);
+</I>&gt;<i>   free(mem);
+</I>&gt;<i>   void* large_alloc = malloc(0x80000081UL);
+</I>&gt;<i>   printf(&quot;large mem %p\n&quot;, large_alloc);
+</I>&gt;<i>   free(large_alloc);
+</I>&gt;<i> 
+</I>&gt;<i> It looks like the bug is in the chunk_recycle code, in this piece of code:
+</I>&gt;<i> 
+</I>&gt;<i>         if (new_addr != NULL) {
+</I>&gt;<i>                 extent_node_t key;
+</I>&gt;<i>                 extent_node_init(&amp;key, arena, new_addr, alloc_size, false);
+</I>&gt;<i>                 node = extent_tree_ad_search(chunks_ad, &amp;key);
+</I>&gt;<i>         } else {
+</I>&gt;<i>                 node = chunk_first_fit(arena, chunks_szad, chunks_ad,
+</I>&gt;<i>                     alloc_size);
+</I>&gt;<i>         }
+</I>&gt;<i>         if (node == NULL || (new_addr != NULL &amp;&amp;
+</I>&gt;<i> extent_node_size_get(node) &lt;
+</I>&gt;<i>             size)) {
+</I>&gt;<i>                 malloc_mutex_unlock(&amp;arena-&gt;chunks_mtx);
+</I>&gt;<i>                 return (NULL);
+</I>&gt;<i>         }
+</I>&gt;<i> 
+</I>&gt;<i> The problem is that new_addr == NULL, so the size check is not
+</I>&gt;<i> performed. In my testing, removing the new_addr != NULL check fixes the
+</I>&gt;<i> problem, but I don't know if that's the correct change.
+</I>&gt;<i> 
+</I>&gt;<i> The first allocation after the free shows the problem, if you try and
+</I>&gt;<i> use the whole memory allocation it might segfault, or let you scribble
+</I>&gt;<i> all over someone else's memory.
+</I>
+It only checks when new_addr isn't NULL because it does an address-based
+map lookup without taking into account the size. The real bug in this
+case would be inside chunk_first_fit(...) because it should only be
+returning nodes with a size greater than or equal to the requested size
+(or NULL).
+
+In the past, it also only did that size check for new_addr != NULL but
+it used first-best-fit instead of first-fit so it only had to do a
+single map lookup ordered by (size, addr) instead of calling that more
+complex new chunk_first_fit code.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150608/eb26bbef/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150608/eb26bbef/attachment.sig</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001115.html">Bug in chunk allocation
+</A></li>
+	<LI>Next message: <A HREF="001117.html">Bug in chunk allocation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1116">[ date ]</a>
+              <a href="thread.html#1116">[ thread ]</a>
+              <a href="subject.html#1116">[ subject ]</a>
+              <a href="author.html#1116">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

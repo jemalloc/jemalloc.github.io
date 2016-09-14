@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Transparent Huge Pages
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Transparent%20Huge%20Pages&In-Reply-To=%3C4F427C23.2050009%40cern.ch%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000078.html">
+   <LINK REL="Next"  HREF="000080.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Transparent Huge Pages</H1>
+    <B>Jakob Blomer</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Transparent%20Huge%20Pages&In-Reply-To=%3C4F427C23.2050009%40cern.ch%3E"
+       TITLE="Transparent Huge Pages">jakob.blomer at cern.ch
+       </A><BR>
+    <I>Mon Feb 20 09:00:19 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000078.html">Transparent Huge Pages
+</A></li>
+        <LI>Next message: <A HREF="000080.html">Transparent Huge Pages
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#79">[ date ]</a>
+              <a href="thread.html#79">[ thread ]</a>
+              <a href="subject.html#79">[ subject ]</a>
+              <a href="author.html#79">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> If you mmap a huge page (say, 1MB), then MADV_DONTNEED a few 4-KB
+</I>&gt;<i> chunks inside, transparent huge pages should break up the huge page so
+</I>&gt;<i> it can decommit the parts I asked it to decommit.  If it doesn't, that
+</I>&gt;<i> sounds like a kernel bug to me!
+</I>&gt;<i>
+</I>&gt;<i> Similarly, if I mmap 1MB, get a huge page, and then touch only a few
+</I>&gt;<i> bytes in the middle, the kernel shouldn't commit a huge page.
+</I>&gt;<i>
+</I>&gt;<i> If huge pages is behaving how I expect, I don't see why it would cause
+</I>&gt;<i> your application to use more memory.
+</I>&gt;<i>
+</I>&gt;<i> Just to check, you're measuring RSS, not vsize, right?
+</I>It is VmRSS from /proc/$pid/status.  And I find the difference between 
+loaded and not loaded in AnonHugePages from /proc/meminfo.
+
+Hm... it's not a vanilla kernel but Scientific Linux 6.2 / Fedora 16.  I 
+can check again using a vanilla kernel.
+
+Cheers,
+Jakob
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000078.html">Transparent Huge Pages
+</A></li>
+	<LI>Next message: <A HREF="000080.html">Transparent Huge Pages
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#79">[ date ]</a>
+              <a href="thread.html#79">[ thread ]</a>
+              <a href="subject.html#79">[ subject ]</a>
+              <a href="author.html#79">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

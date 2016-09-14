@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 0/3] jemalloc(3) on FreeBSD fixes
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%200/3%5D%20jemalloc%283%29%20on%20FreeBSD%20fixes&In-Reply-To=%3Calpine.BSF.2.00.1212021754420.40258%40toaster.local%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000550.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 0/3] jemalloc(3) on FreeBSD fixes</H1>
+    <B>Garrett Cooper</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%200/3%5D%20jemalloc%283%29%20on%20FreeBSD%20fixes&In-Reply-To=%3Calpine.BSF.2.00.1212021754420.40258%40toaster.local%3E"
+       TITLE="[PATCH 0/3] jemalloc(3) on FreeBSD fixes">yanegomi at gmail.com
+       </A><BR>
+    <I>Sun Dec  2 17:55:26 PST 2012</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000550.html">[PATCH 0/3] jemalloc(3) on FreeBSD fixes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#529">[ date ]</a>
+              <a href="thread.html#529">[ thread ]</a>
+              <a href="subject.html#529">[ subject ]</a>
+              <a href="author.html#529">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>The attached patches make jemalloc(3) function [better] on FreeBSD.
+
+Garrett Cooper (3):
+   Don't mangle errno with free(3) if utrace(2) fails
+   Improve configure tests for ffsl
+   Fix build break on *BSD
+
+  configure.ac                                     | 7 +++++--
+  include/jemalloc/internal/jemalloc_internal.h.in | 6 +++++-
+  include/jemalloc/jemalloc_defs.h.in              | 5 +++++
+  src/jemalloc.c                                   | 2 ++
+  4 files changed, 17 insertions(+), 3 deletions(-)
+
+-- 
+1.8.0
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000550.html">[PATCH 0/3] jemalloc(3) on FreeBSD fixes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#529">[ date ]</a>
+              <a href="thread.html#529">[ thread ]</a>
+              <a href="subject.html#529">[ subject ]</a>
+              <a href="author.html#529">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

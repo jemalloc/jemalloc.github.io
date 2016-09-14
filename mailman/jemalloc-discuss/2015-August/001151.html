@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20on%20el5%20and%20el6%3A%20undefined%20reference%20to%0A%09%60clock_gettime%27&In-Reply-To=%3C8928A812-8A2E-4E89-A93B-C5BC49D87538%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001149.html">
+   <LINK REL="Next"  HREF="001153.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20on%20el5%20and%20el6%3A%20undefined%20reference%20to%0A%09%60clock_gettime%27&In-Reply-To=%3C8928A812-8A2E-4E89-A93B-C5BC49D87538%40canonware.com%3E"
+       TITLE="jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'">jasone at canonware.com
+       </A><BR>
+    <I>Fri Aug 21 09:39:11 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001149.html">jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'
+</A></li>
+        <LI>Next message: <A HREF="001153.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1151">[ date ]</a>
+              <a href="thread.html#1151">[ thread ]</a>
+              <a href="subject.html#1151">[ subject ]</a>
+              <a href="author.html#1151">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Aug 20, 2015, at 12:36 AM, Daniel Micay &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">danielmicay at gmail.com</A>&gt; wrote:
+&gt;<i> On 20/08/15 03:34 AM, Ingvar Hagelund wrote:
+</I>&gt;&gt;<i> When compiling jemalloc-4.0.0 on rhel5 or rhel6, the linker stops with
+</I>&gt;&gt;<i> &quot;undefined reference to `clock_gettime'&quot;
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Adding &quot;-lrt&quot; to LDFLAGS gets around this, but perhaps it could have
+</I>&gt;&gt;<i> been picked up automatically?
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> [...]
+</I>&gt;<i> 
+</I>&gt;<i> Yeah, the issue would be that clock_gettime was moved to libc in newer
+</I>&gt;<i> versions of libc so -lrt wasn't added for the tests.
+</I>
+This issue is now being tracked at:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues/257">https://github.com/jemalloc/jemalloc/issues/257</A>
+
+Thanks,
+Jason
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001149.html">jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'
+</A></li>
+	<LI>Next message: <A HREF="001153.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1151">[ date ]</a>
+              <a href="thread.html#1151">[ thread ]</a>
+              <a href="subject.html#1151">[ subject ]</a>
+              <a href="author.html#1151">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

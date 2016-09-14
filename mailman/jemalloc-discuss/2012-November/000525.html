@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Serious bug in arenas_extend_ctl
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Serious%20bug%20in%20arenas_extend_ctl&In-Reply-To=%3C20121126111544.GA25901%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000524.html">
+   <LINK REL="Next"  HREF="000526.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Serious bug in arenas_extend_ctl</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Serious%20bug%20in%20arenas_extend_ctl&In-Reply-To=%3C20121126111544.GA25901%40glandium.org%3E"
+       TITLE="Serious bug in arenas_extend_ctl">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Nov 26 03:15:44 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000524.html">Serious bug in arenas_extend_ctl
+</A></li>
+        <LI>Next message: <A HREF="000526.html">Serious bug in arenas_extend_ctl
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#525">[ date ]</a>
+              <a href="thread.html#525">[ thread ]</a>
+              <a href="subject.html#525">[ subject ]</a>
+              <a href="author.html#525">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Nov 26, 2012 at 12:09:01PM +0100, Mike Hommey wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> Version 3.2 fails to build on windows, which thankfully made me spot
+</I>&gt;<i> this horrible bug in ctl.c:
+</I>&gt;<i> 
+</I>&gt;<i> 1502         READ(ctl_stats.narenas - 1, unsigned);
+</I>&gt;<i> 
+</I>&gt;<i> This expands to:
+</I>&gt;<i> (...) memcpy(oldp, (void *)&amp;ctl_stats.narenas - 1, copylen); (...)
+</I>&gt;<i> 
+</I>&gt;<i> Which obviously doesn't do the right thing on other platforms.
+</I>
+This small patch would avoid such mistakes to go unnoticed:
+--- a/src/ctl.c
++++ b/src/ctl.c
+@@ -960,7 +960,7 @@ ctl_postfork_child(void)
+                if (*oldlenp != sizeof(t)) {                            \
+                        size_t  copylen = (sizeof(t) &lt;= *oldlenp)       \
+                            ? sizeof(t) : *oldlenp;                     \
+-                       memcpy(oldp, (void *)&amp;v, copylen);              \
++                       memcpy(oldp, (void *)&amp;(v), copylen);            \
+                        ret = EINVAL;                                   \
+                        goto label_return;                              \
+                } else                                                  \
+
+
+And this should fix the issue itself:
+
+--- a/src/ctl.c
++++ b/src/ctl.c
+@@ -1499,7 +1499,8 @@ arenas_extend_ctl(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
+                ret = EAGAIN;
+                goto label_return;
+        }
+-       READ(ctl_stats.narenas - 1, unsigned);
++       unsigned n = ctl_stats.narenas - 1;
++       READ(n, unsigned);
+ 
+        ret = 0;
+ label_return:
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000524.html">Serious bug in arenas_extend_ctl
+</A></li>
+	<LI>Next message: <A HREF="000526.html">Serious bug in arenas_extend_ctl
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#525">[ date ]</a>
+              <a href="thread.html#525">[ thread ]</a>
+              <a href="subject.html#525">[ subject ]</a>
+              <a href="author.html#525">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc library is hitting Segmentation fault on CentOS-7
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20library%20is%20hitting%20Segmentation%20fault%20on%20CentOS-7&In-Reply-To=%3CCAECJSJ7nFxHQ%3DrM1paoS9VYAFFaznYrs%3DvOTAD8vwD42gePZsg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001315.html">
+   <LINK REL="Next"  HREF="001317.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc library is hitting Segmentation fault on CentOS-7</H1>
+    <B>Ramesh Sivaraman</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20library%20is%20hitting%20Segmentation%20fault%20on%20CentOS-7&In-Reply-To=%3CCAECJSJ7nFxHQ%3DrM1paoS9VYAFFaznYrs%3DvOTAD8vwD42gePZsg%40mail.gmail.com%3E"
+       TITLE="Jemalloc library is hitting Segmentation fault on CentOS-7">ramesh.sivaraman at percona.com
+       </A><BR>
+    <I>Thu Aug 25 02:19:26 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001315.html">4.2.1 test/integration/mallocx still fails on older 32 bit (Was:	jemalloc 4.2.1 released)
+</A></li>
+        <LI>Next message: <A HREF="001317.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1316">[ date ]</a>
+              <a href="thread.html#1316">[ thread ]</a>
+              <a href="subject.html#1316">[ subject ]</a>
+              <a href="author.html#1316">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Team,
+
+Jemalloc library is hitting  Segmentation fault on CentOS-7
+
+With debug library Segmentation fault issue triggering with simple `ls`
+command.
+
+$ export LD_PRELOAD=/usr/lib/debug/usr/lib64/libjemalloc.so.1.debug
+$ ls
+Segmentation fault (core dumped)
+$
+
+Also seeing a segmentation fault issue (same issue?) with non-debug jemalloc
+
+$ export LD_PRELOAD=/usr/lib64/libjemalloc.so.1
+$ ./bin/mysqld --version
+Segmentation fault (core dumped)
+$ gdb ./bin/mysqld core.11345.mysqld.11
+[..]
+(gdb) bt
++bt
+#0  0x00007f1c21fa5964 in get_nprocs () from /lib64/libc.so.6
+#1  0x00007f1c21f70b0c in sysconf () from /lib64/libc.so.6
+#2  0x00007f1c26efebd0 in malloc_ncpus () at src/jemalloc.c:256
+#3  malloc_init_hard () at src/jemalloc.c:776
+#4  0x00007f1c26f01705 in malloc_init () at src/jemalloc.c:292
+#5  calloc (num=1, size=32) at src/jemalloc.c:1123
+#6  0x00007f1c22eb1690 in _dlerror_run () from /lib64/libdl.so.2
+#7  0x00007f1c22eb1198 in dlsym () from /lib64/libdl.so.2
+#8  0x00007f1c23f88fec in ?? () from /lib64/libasan.so.0
+#9  0x00007f1c23f7b2c9 in ?? () from /lib64/libasan.so.0
+#10 0x00007f1c23f7d91b in __asan_init_v1 () from /lib64/libasan.so.0
+#11 0x00007f1c271426c3 in _dl_init_internal () from
+/lib64/ld-linux-x86-64.so.2
+#12 0x00007f1c2713445a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+#13 0x0000000000000002 in ?? ()
+#14 0x00007fff9d552740 in ?? ()
+#15 0x00007fff9d55274d in ?? ()
+#16 0x0000000000000000 in ?? ()
+(gdb)
+
+-- 
+Best Regards,
+
+*Ramesh*
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160825/1c969dbe/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160825/1c969dbe/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001315.html">4.2.1 test/integration/mallocx still fails on older 32 bit (Was:	jemalloc 4.2.1 released)
+</A></li>
+	<LI>Next message: <A HREF="001317.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1316">[ date ]</a>
+              <a href="thread.html#1316">[ thread ]</a>
+              <a href="subject.html#1316">[ subject ]</a>
+              <a href="author.html#1316">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

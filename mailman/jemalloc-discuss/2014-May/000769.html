@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> keeping memory usage at certain limit
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C1DDDD175-C4A4-4323-8D16-FC822464832D%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000768.html">
+   <LINK REL="Next"  HREF="000770.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>keeping memory usage at certain limit</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C1DDDD175-C4A4-4323-8D16-FC822464832D%40canonware.com%3E"
+       TITLE="keeping memory usage at certain limit">jasone at canonware.com
+       </A><BR>
+    <I>Thu May  1 21:37:22 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000768.html">keeping memory usage at certain limit
+</A></li>
+        <LI>Next message: <A HREF="000770.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#769">[ date ]</a>
+              <a href="thread.html#769">[ thread ]</a>
+              <a href="subject.html#769">[ subject ]</a>
+              <a href="author.html#769">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 1, 2014, at 1:36 AM, Antony Dovgal &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">antony.dovgal at gmail.com</A>&gt; wrote:
+&gt;<i> On 05/01/2014 06:43 AM, Jason Evans wrote:
+</I>&gt;&gt;<i> Use &quot;thread.tcache.flush&quot; to flush thread caches; &quot;arena.&lt;i&gt;.purge&quot; merely uses madvise(2)
+</I>&gt;&gt;<i> to inform the kernel that it can recycle dirty pages that contain unused data.
+</I>&gt;<i> 
+</I>&gt;<i> According to the docs &quot;thread.tcache.flush&quot; only flushes the cache of the calling thread and
+</I>&gt;<i> I have a lot of threads running in thread pools, which are created at the start and never destroyed.
+</I>&gt;<i> Or did you mean to call it periodically from every thread?
+</I>
+Your application can benefit from calling the &#8220;thread.tcache.flush&#8221; mallctl from a thread that is about to go &#8220;idle&#8221; (i.e. stops using the allocator for a while), but there&#8217;s little benefit otherwise, because there&#8217;s an incremental flushing mechanism built in that is driven by continued allocation activity.  One straightforward way to implement flushing for idle threads in thread pools is to have idle threads wake up after a few seconds of inactivity and flush before going back to sleep.
+
+&gt;&gt;<i> There are two statistics jemalloc tracks that directly allow you to measure external fragmentation: &quot;stats.allocated&quot; [1] and &quot;stats.active&quot; [2].
+</I>&gt;<i> 
+</I>&gt;<i> Right, I've tried using both of them.
+</I>&gt;<i> Do I understand it correctly that stats.active decreases only when an entire page is freed?
+</I>
+&#8220;stats.active&#8221; decreases when an entire page run is freed.  It precisely tracks what actually matters in terms of physical memory exhaustion.
+
+&gt;<i> So far, using Salvatore's method and code I can see about 3% difference between RSS and allocated memory
+</I>&gt;<i> when using jemalloc and ~9% difference when using Hoard.
+</I>&gt;<i> But I expect these values to change since the processes haven't started removing outdated records yet.
+</I>&gt;<i> 
+</I>&gt;<i> I also have a control process without jemalloc (i.e. using plain libc malloc()) using the same code to compute fragmentation
+</I>&gt;<i> and it shows about 20% difference (and it's growing).
+</I>&gt;<i> 
+</I>&gt;<i> What buffles me most is that stats.allocated keeps returning the same value, but RSS constantly grows.
+</I>
+This is probably because you aren&#8217;t calling the &#8220;epoch&#8221; mallctl to refresh mallctl&#8217;s cached statistics.
+
+&gt;<i> Could it be because of the amount of threads I use?
+</I>
+If your application occasionally recurses deeply, you may be incrementally increasing the total amount of memory dedicated to thread execution stacks.  That could account for several gigabytes of memory usage, but probably isn&#8217;t the only issue.
+
+&gt;<i> Say, I free memory in one thread and try to allocate in another one, but the second thread
+</I>&gt;<i> doesn't have it cached and has to do the actual allocation?
+</I>
+Within limits, this can bloat memory usage.  However, IIRC thread caches average ~2.5 MiB per thread under the worst conditions (all threads are purely deallocating a broad mix of allocation sizes), so the thread caches probably account for less than 1 GiB in your application.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000768.html">keeping memory usage at certain limit
+</A></li>
+	<LI>Next message: <A HREF="000770.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#769">[ date ]</a>
+              <a href="thread.html#769">[ thread ]</a>
+              <a href="subject.html#769">[ subject ]</a>
+              <a href="author.html#769">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

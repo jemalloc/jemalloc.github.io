@@ -1,0 +1,369 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Diagnosing an out-of-memory issue
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Diagnosing%20an%20out-of-memory%20issue&In-Reply-To=%3CCACR1ONBfZq%3DPdgLvJ2sm7RYTK%3DuamKG8irkX3wLLnJBU_QQTZA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001309.html">
+   <LINK REL="Next"  HREF="001307.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Diagnosing an out-of-memory issue</H1>
+    <B>Matthew Fleming</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Diagnosing%20an%20out-of-memory%20issue&In-Reply-To=%3CCACR1ONBfZq%3DPdgLvJ2sm7RYTK%3DuamKG8irkX3wLLnJBU_QQTZA%40mail.gmail.com%3E"
+       TITLE="Diagnosing an out-of-memory issue">mdf at purestorage.com
+       </A><BR>
+    <I>Sun Jun 26 13:00:59 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001309.html">difference between used memory and that in profiled result
+</A></li>
+        <LI>Next message: <A HREF="001307.html">[jemalloc-4.2.1]Can't profile heap on ARM target
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1306">[ date ]</a>
+              <a href="thread.html#1306">[ thread ]</a>
+              <a href="subject.html#1306">[ subject ]</a>
+              <a href="author.html#1306">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I'm not sure which details will be relevant so I may be including too much
+info below.  I'm using jemalloc with custom hooks to manage about 54GB of
+virtual space under Linux on x86_64. The hooks manage the address space in
+2MB chunks so I can use HUGETLB for the mappings. Slightly simplified, the
+hooks do the following (roughly as expected, I think):
+
+    alloc: mmap size bytes, aligned appropriately
+    dalloc: munmap the space (not really, I recycle the memory internally,
+but it's logically the same)
+    commit: return false
+    decommit: return true
+    purge: return true
+    split: return false
+    merge: return false
+
+We're experiencing some out-of-memory issues, mostly due to a known runaway
+allocation site that we're working to fix. However, while debugging this
+I'm seeing some numbers for jemalloc usage that leave me concerned.  At the
+time of the OOM, I can see that we indeed have 54GB of virtual space used
+(we're using rlimit to set a 54GB limit for the process).
+
+However, I also see the following from je_malloc_stats_print at the time we
+cross the 54GB virtual threshold which seems low to me:
+
+Allocated: 38825889776, active: 47743795200, metadata: 1304838720,
+resident: 50520985600, mapped: 56247713792
+Current active ceiling: 47758442496
+
+The &quot;mapped&quot; number is about what I expect, though it's 170MB less than my
+internal tracking for how much memory I've mmap'd on behalf of jemalloc.
+The &quot;allocated&quot; number is about 217MB less than my internal stats for
+allocated memory; this may be mostly explained by the sampled nature of the
+internal tracking.
+
+Where I'm wondering if I'm mis-using jemalloc is in the allocated vs active
+vs mapped numbers. Allocated/active implies 0.813 utilization; is this
+expected? Active/mapped adds further gives a 0.848 utilization; is this
+expected? It seems somewhere between unfortunate and buggy that jemalloc
+calls my alloc hook for more virtual/physical space, when there's only 69%
+of the total mapped space used. This turns my 54GB vmem limit into
+something like a 37GB limit on actual allocations, a loss of 17GB!
+
+One thing I think I did wrong that I am fixing is that I had
+set opt.lg_tcache_max: 21; based on the actual use of the system I don't
+think I need to have a per-thread cache for anything over 16kB. I have no
+visibility (even slightly laggy) to how much memory is held in the tcache,
+though. This would be a nice addition to the available stats, even if the
+number isn't completely accurate.
+
+Given the above and the below output from je_malloc_stats_print, is there
+something I should configure differently to increase the utilization?
+
+Thanks,
+matthew
+
+
+
+___ Begin jemalloc statistics ___
+Version: 4.1.0-0-gdf900dbfaf4835d3efc06d771535f3e781544913
+Assertions disabled
+config.malloc_conf: &quot;&quot;
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 21
+  opt.dss: &quot;secondary&quot;
+  opt.narenas: 21
+  opt.purge: &quot;decay&quot;
+  opt.decay_time: 10 (arenas.decay_time: 10)
+  opt.stats_print: false
+  opt.junk: &quot;false&quot;
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+  opt.tcache: true
+  opt.lg_tcache_max: 21
+CPUs: 12
+Arenas: 48
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Unused dirty page decay time: 10
+Maximum thread-cached size class: 1835008
+Chunk size: 2097152 (2^21)
+Allocated: 38825889776, active: 47743795200, metadata: 1304838720,
+resident: 50520985600, mapped: 56247713792
+Current active ceiling: 47758442496
+
+Merged arenas stats:
+assigned threads: 11
+dss allocation precedence: N/A
+decay time: N/A
+purging: dirty: 359649, sweeps: 18735557, madvises: 64538355, purged:
+915821832
+                            allocated      nmalloc      ndalloc    nrequests
+small:                     1618612208  26450158003  26440185546 148302974020
+large:                    36131438592    441168860    439050125   1180219164
+huge:                      1075838976     54888130     54887967     54888130
+total:                    38825889776  26946214993  26934123638 149538081314
+active:                   47743795200
+mapped:                   56233033728
+metadata: mapped: 1292746752, allocated: 793984
+bins:           size ind    allocated      nmalloc      ndalloc
+ nrequests      curregs      curruns regs pgs  util       nfills
+nflushes      newruns       reruns
+                   8   0         4192       349342       348818
+41984555          524           11  512   1 0.093       347692       347682
+          15            0
+                  16   1      1805168     43122017     43009194
+ 201623700       112823          547  256   1 0.805      8143530
+ 6417247          905     31912645
+                  32   2      3945472   1842947572   1842824276
+ 18921652196       123296         1670  128   1 0.576     40800047
+22703370         4755    134712298
+                  48   3     88656480   2001520582   1999673572
+ 15560123972      1847010         7541  256   3 0.956     61107051
+25005586        14729    446762237
+                  64   4     56346816    936219506    935339087
+5919950953       880419        15190   64   1 0.905    133815037
+21059415       138786    222734703
+                  80   5     86376160   1402859775   1401780073
+6023020031      1079702         4880  256   5 0.864     45967794
+20401097        85696    166631904
+                  96   6    331611264   2042094072   2038639788
+ 10953875367      3454284        27965  128   3 0.965     40994516
+24013014        40509    288532462
+                 112   7    136533600   1253096836   1251877786
+7849997010      1219050         5020  256   7 0.948     23127251
+17518027        10065     56736373
+                 128   8     28319360   2430633468   2430412223
+9470625182       221245         7119   32   1 0.971     87741552
+76841006      1678615    637627316
+                 160   9     21233920   3233662185   3233529473
+ 17894546291       132712         1286  128   5 0.806     52806079
+35356743        20838    368359381
+                 192  10     64915968   1209644070   1209305966
+4695311003       338104         5856   64   3 0.902     40455748
+23101690       118479    137558943
+                 224  11      1229312    272846888    272841400
+7012427279         5488           97  128   7 0.442     59281528
+11699583        42724      6366157
+                 256  12     44845824    540042217    539867038
+4205630140       175179        11070   16   1 0.989     38709263
+34813124      5431286    103861682
+                 320  13      4193280    354635837    354622733
+8541328111        13104          539   64   5 0.379     67427289
+12833951         1946     62194021
+                 384  14     30578688    830982635    830903003
+3808003373        79632         3345   32   3 0.743     41546452
+29267868        79509    271336916
+                 448  15     44839872    528279209    528179120
+2270660939       100089         1639   64   7 0.954     32588339
+14463657       185137     64071098
+                 512  16       445440    209085658    209084788
+2527518820          870          191    8   1 0.569     34641562
+24354278       386421    121284418
+                 640  17      1509120    189654651    189652293
+2529781103         2358          180   32   5 0.409     53300183
+12946814        49319     37855722
+                 768  18       817152    210276500    210275436
+3257956662         1064          102   16   3 0.651     35559459
+18299827       352671     61638834
+                 896  19      5743360   3790511276   3790504866
+7581256328         6410          463   32   7 0.432    128296275
+ 119172450       107917    722034569
+                1024  20      9027584    415024766    415015950
+1368606679         8816         2264    4   1 0.973     54423863
+43598539     14338600    279004617
+                1280  21      3084800    334930678    334928268
+2149980741         2410          278   16   5 0.541     35416539
+24664973        16634    124638965
+                1536  22    107687424     33395873     33325764
+ 143703270        70109         9289    8   3 0.943     14551529
+10066925        22560     30812888
+                1792  23     36802304     84087854     84067317
+ 217549352        20537         1533   16   7 0.837     12925762
+11132031       212546     19066936
+                2048  24      8978432     74733317     74728933
+ 132169103         4384         2269    2   1 0.966     32978464
+12327652     28115125     21184016
+                2560  25     14789120    626371065    626365288
+2296577585         5777         1108    8   5 0.651     70421894
+63681746       260083    501109733
+                3072  26     10238976     87645674     87642341
+ 164219425         3333          907    4   3 0.918     35166344
+13919648     12387988     25106936
+                3584  27     14504448    140711376    140707329
+ 145743368         4047          637    8   7 0.794     57560488
+18782918      7780878     27391074
+                4096  28      1024000      9058231      9057981
+ 8589353          250          250    1   1 1          4689969      4712652
+     9058231            0
+                5120  29     55188480    104117284    104106505
+ 129556193        10779         3174    4   5 0.849     27152021
+16324563      6920719     54731978
+                6144  30     55007232     30050999     30042046
+30253925         8953         4774    2   3 0.937     12228886      7225550
+     9103712     13147192
+                7168  31    127353856     84675496     84657729
+85715811        17767         7999    4   7 0.555     37265985     12369079
+     1683955     43293648
+                8192  32     93347840     91124841     91113446
+89087490        11395        11395    1   2 1         32622573     12729483
+    91124841            0
+               10240  33     45895680     47916142     47911660
+ 469251054         4482         2303    2   5 0.973     22100898
+11166697     13230071     24133515
+               12288  34     30437376     29315410     29312933
+27345931         2477         2477    1   3 1         10001686      6828625
+    29315410            0
+               14336  35     51294208    934534701    934531123
+1577351725         3578         1866    2   7 0.958    125545462
+93872858    167354355    709325811
+large:          size ind    allocated      nmalloc      ndalloc
+ nrequests      curruns
+               16384  36  34473050112    219503281    217399213
+ 853588850      2104068
+               20480  37      1966080      5286476      5286380
+ 8286948           96
+               24576  38       983040      3069401      3069361
+ 3894568           40
+               28672  39      1318912      2215034      2214988
+ 2677460           46
+               32768  40    261586944    115345719    115337736
+ 116374883         7983
+               40960  41     32194560     10100309     10099523
+18344991          786
+               49152  42      3047424      2590612      2590550
+ 3339092           62
+               57344  43     15310848      8760214      8759947
+12070456          267
+               65536  44      3801088      3080967      3080909
+ 3960506           58
+               81920  45      6717440      1998825      1998743
+ 2963024           82
+               98304  46      2555904       872938       872912
+ 1024995           26
+              114688  47    314245120     25977780     25975040
+27400439         2740
+              131072  48      7208960       319016       318961
+333657           55
+              163840  49    207585280     11961322     11960055
+80123089         1267
+              196608  50      5111808       384416       384390
+399129           26
+              229376  51      2752512       315906       315894
+326293           12
+              262144  52      4718592       158872       158854
+164259           18
+              327680  53     44564480       657448       657312
+682735          136
+              393216  54      7864320       300621       300601
+311973           20
+              458752  55      9633792       197798       197777
+208182           21
+              524288  56      5242880       224315       224305
+237273           10
+              655360  57    486277120     27600223     27599481
+43253891          742
+              786432  58      7864320       100402       100392
+101401           10
+              917504  59      8257536         9420         9411
+ 10343            9
+             1048576  60     45088768        18217        18174
+ 18225           43
+             1310720  61     26214400         9154         9134
+ 12066           20
+             1572864  62    135266304       109479       109393
+109741           86
+             1835008  63     11010048          695          689
+ 695            6
+huge:           size ind    allocated      nmalloc      ndalloc
+ nrequests   curhchunks
+             2097152  64     71303168        22983        22949
+ 22983           34
+             2621440  65     99614720     54861945     54861907
+54861945           38
+             3145728  66      6291456          104          102
+ 104            2
+             3670016  67      7340032           34           32
+34            2
+             4194304  68            0           10           10
+10            0
+             5242880  69            0         2904         2904
+2904            0
+             6291456  70      6291456            7            6
+ 7            1
+             7340032  71     44040192           13            7
+13            6
+             8388608  72     50331648            8            2
+ 8            6
+            10485760  73    754974720          111           39
+ 111           72
+            12582912  74            0            2            2
+ 2            0
+            14680064  75     14680064            4            3
+ 4            1
+            16777216  76            0            1            1
+ 1            0
+            20971520  77     20971520            2            1
+ 2            1
+            25165824  78            0            1            1
+ 1            0
+            29360128  79            0            1            1
+ 1            0
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160626/e4f782b8/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160626/e4f782b8/attachment-0001.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001309.html">difference between used memory and that in profiled result
+</A></li>
+	<LI>Next message: <A HREF="001307.html">[jemalloc-4.2.1]Can't profile heap on ARM target
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1306">[ date ]</a>
+              <a href="thread.html#1306">[ thread ]</a>
+              <a href="subject.html#1306">[ subject ]</a>
+              <a href="author.html#1306">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

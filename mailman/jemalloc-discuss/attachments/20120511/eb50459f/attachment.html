@@ -1,0 +1,24 @@
+<tt>
+&lt;p&gt;&lt;br&gt;<br>
+On&nbsp;May&nbsp;11,&nbsp;2012&nbsp;5:16&nbsp;PM,&nbsp;&quot;Jason&nbsp;Evans&quot;&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;On&nbsp;May&nbsp;10,&nbsp;2012,&nbsp;at&nbsp;11:55&nbsp;AM,&nbsp;Justin&nbsp;Lebar&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;&gt;&gt;&gt;&nbsp;In&nbsp;summary,&nbsp;I&nbsp;don&#39;t&nbsp;think&nbsp;there&#39;s&nbsp;a&nbsp;problem&nbsp;here&nbsp;to&nbsp;fix.&nbsp; Am&nbsp;I&nbsp;missing&lt;br&gt;<br>
+&gt;&nbsp;&gt;&gt;&gt;&nbsp;something?&lt;br&gt;<br>
+&gt;&nbsp;&gt;&gt;&lt;br&gt;<br>
+&gt;&nbsp;&gt;&gt;&nbsp;We&nbsp;could&nbsp;use&nbsp;RSS&nbsp;-&nbsp;number&nbsp;of&nbsp;madvised&nbsp;pages,&nbsp;for&nbsp;sure,&nbsp;but&nbsp;that&nbsp;doesn&#39;t&lt;br&gt;<br>
+&gt;&nbsp;&gt;&gt;&nbsp;quite&nbsp;help&nbsp;with&nbsp;people&nbsp;looking&nbsp;at&nbsp;their&nbsp;task&nbsp;manager&nbsp;ans&nbsp;seeing&nbsp;memory&lt;br&gt;<br>
+&gt;&nbsp;&gt;&gt;&nbsp;usage&nbsp;1GB&nbsp;higher&nbsp;than&nbsp;what&nbsp;it&nbsp;actually&nbsp;is.&nbsp;(And&nbsp;it&nbsp;doesn&#39;t&nbsp;help&nbsp;to&nbsp;make&lt;br&gt;<br>
+&gt;&nbsp;&gt;&gt;&nbsp;the&nbsp;numbers&nbsp;Firefox&nbsp;itself&nbsp;reports&nbsp;believable)&lt;br&gt;<br>
+&gt;&nbsp;&gt;&lt;br&gt;<br>
+&gt;&nbsp;&gt;&nbsp;Yeah,&nbsp;the&nbsp;perception&nbsp;problem&nbsp;(&quot;I&nbsp;looked&nbsp;at&nbsp;the&nbsp;task&nbsp;manager&nbsp;and&lt;br&gt;<br>
+&gt;&nbsp;&gt;&nbsp;Firefox&nbsp;sux!&quot;)&nbsp;is&nbsp;a&nbsp;real&nbsp;one&nbsp;that,&nbsp;from&nbsp;MemShrink&#39;s&nbsp;perspective,&nbsp;we&lt;br&gt;<br>
+&gt;&nbsp;&gt;&nbsp;need&nbsp;to&nbsp;solve.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;It&#39;s&nbsp;unfortunate&nbsp;that&nbsp;the&nbsp;operating&nbsp;systems&nbsp;don&#39;t&nbsp;expose&nbsp;statistics&nbsp;that&nbsp;provide&nbsp;clarity&nbsp;here.&nbsp; I&nbsp;don&#39;t&nbsp;want&nbsp;to&nbsp;make&nbsp;aggressive&nbsp;purging&nbsp;default&nbsp;behavior,&lt;/p&gt;<br>
+&lt;p&gt;To&nbsp;be&nbsp;clear,&nbsp;what&nbsp;we&nbsp;do&nbsp;at&nbsp;moment&nbsp;is&nbsp;purge&nbsp;only&nbsp;right&nbsp;before&nbsp;we&nbsp;query&nbsp;the&nbsp;OS&nbsp;for&nbsp;our&nbsp;RSS.&nbsp;In&nbsp;practice,&nbsp;this&nbsp;happens&nbsp;whenever&nbsp;we&nbsp;load&nbsp;about:memory&nbsp;or&nbsp;run&nbsp;a&nbsp;telemetry&nbsp;ping,&nbsp;which&nbsp;happens&nbsp;every&nbsp;few&nbsp;(five?)&nbsp;minutes&nbsp;when&nbsp;the&nbsp;browser&nbsp;is&nbsp;idle.&lt;/p&gt;<br>
+<br>
+&lt;p&gt;Its&nbsp;not&nbsp;ideal&nbsp;from&nbsp;the&nbsp;standpoint&nbsp;of&nbsp;a&nbsp;user&nbsp;looking&nbsp;at&nbsp;the&nbsp;task&nbsp;manager,&nbsp;but&nbsp;at&nbsp;least&nbsp;our&nbsp;stats&nbsp;are&nbsp;correct.&nbsp;&lt;/p&gt;<br>
+&lt;p&gt;I&nbsp;think&nbsp;we&#39;d&nbsp;want&nbsp;the&nbsp;same&nbsp;behavior,&nbsp;purging&nbsp;only&nbsp;upon&nbsp;a&nbsp;malctl,&nbsp;rather&nbsp;than&nbsp;automatically.&lt;/p&gt;<br>
+
+</tt>

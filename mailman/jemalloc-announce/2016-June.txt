@@ -1,0 +1,28 @@
+From jasone at canonware.com  Thu Jun  9 00:14:05 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 9 Jun 2016 00:14:05 -0700
+Subject: jemalloc 4.2.1 released
+Message-ID: <12851233-3688-4937-A1D9-F5651E740733@canonware.com>
+
+jemalloc 4.2.1 is now available.
+
+Bug fixes:
+- Fix bootstrapping issues for configurations that require allocation during tsd initialization (e.g. --disable-tls). (@cferris1000, @jasone)
+- Fix gettimeofday() version of nstime_update(). (@ronawho)
+- Fix Valgrind regressions in calloc() and chunk_alloc_wrapper(). (@ronawho)
+- Fix potential VM map fragmentation regression. (@jasone)
+- Fix opt_zero-triggered in-place huge reallocation zeroing. (@jasone)
+- Fix heap profiling context leaks in reallocation edge cases. (@jasone)
+
+For the complete ChangeLog, see:
+	https://github.com/jemalloc/jemalloc/raw/4.2.1/ChangeLog
+
+Direct download:
+	https://github.com/jemalloc/jemalloc/releases/download/4.2.1/jemalloc-4.2.1.tar.bz2
+
+Starting point for general information:
+	http://www.canonware.com/jemalloc/
+
+Browsable revision history:
+	https://github.com/jemalloc/jemalloc/tree/4.2.1
+

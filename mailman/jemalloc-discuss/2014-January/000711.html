@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> hang in jemalloc()
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20hang%20in%20jemalloc%28%29&In-Reply-To=%3CCABQjj0%3Deav_jk-7yHi%2Big0gjpWEa0NmNR1JcCjz_U0Fd8ctM%2BQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000710.html">
+   <LINK REL="Next"  HREF="000715.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>hang in jemalloc()</H1>
+    <B>John Esmet</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20hang%20in%20jemalloc%28%29&In-Reply-To=%3CCABQjj0%3Deav_jk-7yHi%2Big0gjpWEa0NmNR1JcCjz_U0Fd8ctM%2BQ%40mail.gmail.com%3E"
+       TITLE="hang in jemalloc()">esmet at tokutek.com
+       </A><BR>
+    <I>Wed Jan 22 10:30:42 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000710.html">hang in jemalloc()
+</A></li>
+        <LI>Next message: <A HREF="000715.html">hang in jemalloc()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#711">[ date ]</a>
+              <a href="thread.html#711">[ thread ]</a>
+              <a href="subject.html#711">[ subject ]</a>
+              <a href="author.html#711">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Alexey,
+
+I have run into similar issues (exorbitantly long wait times for the malloc
+mutex). The only way I could reduce the pain was to either reduce the
+number of threads, or reduce the amount of malloc/free() done by the
+application.
+
+If you're using a library (like this xml one) it may be hard to reduce the
+number of malloc/frees() actually done.
+
+Can you try getting a full set of stack traces on the next stall (for all
+threads?). I have a feeling that your particular stack trace may be held up
+behind an arena_flush() but it'd be good to know for sure.
+
+
+On Tue, Jan 21, 2014 at 5:46 AM, Alexey Kuts &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">akuts at yandex-team.ru</A>&gt; wrote:
+
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> sometimes (maybe once per day) we have
+</I>&gt;<i> an annoying hang in jemalloc().
+</I>&gt;<i>
+</I>&gt;<i> jemalloc-version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+</I>&gt;<i> Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> #0  0x00007f6bd681a89c in __lll_lock_wait () from /lib/x86_64-linux-gnu/
+</I>&gt;<i> libpthread.so.0
+</I>&gt;<i> #1  0x00007f6bd6816080 in _L_lock_903 () from /lib/x86_64-linux-gnu/
+</I>&gt;<i> libpthread.so.0
+</I>&gt;<i> #2  0x00007f6bd6815f19 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/
+</I>&gt;<i> libpthread.so.0
+</I>&gt;<i> #3  0x0000000000459127 in malloc_mutex_lock (mutex=0x7f6bd4400a08) at
+</I>&gt;<i> include/jemalloc/internal/mutex.h:77
+</I>&gt;<i> #4  tcache_bin_flush_small (tbin=&lt;optimized out&gt;, binind=15, rem=3,
+</I>&gt;<i> tcache=0x7f6bd4006000) at src/tcache.c:105
+</I>&gt;<i> #5  0x000000000045958d in tcache_event_hard (tcache=0x7f6bd4006000) at
+</I>&gt;<i> src/tcache.c:39
+</I>&gt;<i> #6  0x0000000000437ebe in tcache_event (tcache=0x7f6bd4006000) at
+</I>&gt;<i> include/jemalloc/internal/tcache.h:271
+</I>&gt;<i> #7  tcache_alloc_large (size=&lt;optimized out&gt;, tcache=&lt;optimized out&gt;,
+</I>&gt;<i> zero=&lt;optimized out&gt;) at include/jemalloc/internal/tcache.h:383
+</I>&gt;<i> #8  arena_malloc (zero=false, size=&lt;optimized out&gt;, arena=0x0,
+</I>&gt;<i> try_tcache=true) at include/jemalloc/internal/arena.h:944
+</I>&gt;<i> #9  imallocx (arena=0x0, try_tcache=true, size=&lt;optimized out&gt;) at
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h:798
+</I>&gt;<i> #10 imalloc (size=&lt;optimized out&gt;) at include/jemalloc/internal/
+</I>&gt;<i> jemalloc_internal.h:807
+</I>&gt;<i> #11 jemalloc (size=&lt;optimized out&gt;) at src/jemalloc.c:887
+</I>&gt;<i> #12 0x00007f6bd6d3bad8 in xmlStrndup () from /usr/lib/x86_64-linux-gnu/
+</I>&gt;<i> libxml2.so.2
+</I>&gt;<i> #13 0x00007f6bd6ce3029 in xmlNodeListGetString () from
+</I>&gt;<i> /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;<i> #14 0x00007f6bd6d0038f in xmlValidateElement () from
+</I>&gt;<i> /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;<i> #15 0x00007f6bd6d0034e in xmlValidateElement () from
+</I>&gt;<i> /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;<i> #16 0x00007f6bd6d0034e in xmlValidateElement () from
+</I>&gt;<i> /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;<i> #17 0x00007f6bd6d00528 in xmlValidateDtd () from /usr/lib/x86_64-linux-gnu/
+</I>&gt;<i> libxml2.so.2
+</I>&gt;<i> #18 0x00007f6bd7005355 in xmlpp::DtdValidator::validate(xmlpp::Document
+</I>&gt;<i> const*) () from /usr/lib/libxml++-2.6.so.2
+</I>&gt;<i>
+</I>&gt;<i> Will appreciate any hints or suggestions
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> Kuts Alexey
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140122/0936af7d/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140122/0936af7d/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000710.html">hang in jemalloc()
+</A></li>
+	<LI>Next message: <A HREF="000715.html">hang in jemalloc()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#711">[ date ]</a>
+              <a href="thread.html#711">[ thread ]</a>
+              <a href="subject.html#711">[ subject ]</a>
+              <a href="author.html#711">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

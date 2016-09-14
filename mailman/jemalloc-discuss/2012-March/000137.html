@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] atomic operations for ppc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20atomic%20operations%20for%20ppc&In-Reply-To=%3C5BC259BB-02BF-4CB2-A5D0-B09760772051%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000136.html">
+   <LINK REL="Next"  HREF="000138.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] atomic operations for ppc</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20atomic%20operations%20for%20ppc&In-Reply-To=%3C5BC259BB-02BF-4CB2-A5D0-B09760772051%40canonware.com%3E"
+       TITLE="[PATCH] atomic operations for ppc">jasone at canonware.com
+       </A><BR>
+    <I>Tue Mar 13 15:19:28 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000136.html">[PATCH] atomic operations for ppc
+</A></li>
+        <LI>Next message: <A HREF="000138.html">[PATCH] atomic operations for ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#137">[ date ]</a>
+              <a href="thread.html#137">[ thread ]</a>
+              <a href="subject.html#137">[ subject ]</a>
+              <a href="author.html#137">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 13, 2012, at 2:52 PM, Ingvar Hagelund wrote:
+&gt;<i> This patch should, if it is correct, add the functions atomic_add_uint32 and atomic_sub_uint32 that are missing on some platforms, at least RHEL5/ppc[64]. With this patch, jemalloc may be updated to 2.2.x also in the EPEL5 repositories.
+</I>&gt;<i> 
+</I>&gt;<i> The code was borrowed from the Boost library, see <A HREF="http://www.boost.org/doc/libs/1_49_0/boost/interprocess/detail/atomic.hpp">http://www.boost.org/doc/libs/1_49_0/boost/interprocess/detail/atomic.hpp</A> . The Boost library is under the Boost license, which is quite BSD-like, but the license should probably be checked out for compatibility. See <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A> 
+</I>&gt;<i> 
+</I>&gt;<i> Since I actually know nothing about ppc assembler myself, and have never used the Boost library, I should thank Federico G. Schwindt for valuable input on the patch.
+</I>&gt;<i> 
+</I>&gt;<i> Jason, could you produce a test case that confirms that the patch works?
+</I>
+I think this should be a sufficient sanity check: after running 'make check', run 'MALLOC_CONF=stats_print:true ./test/allocated' and look at the &quot;Current active ceiling&quot; statistic as it relates to the &quot;active&quot; statistic.  Here's the relevant output on my system:
+
+  Allocated: 53728, active: 57344, mapped: 12582912
+  Current active ceiling: 4194304
+
+The active ceiling should be &gt;= active, and certainly less than 10 MiB.
+
+I'm a bit confused about where the code actually originated.  A quick web search finds hits both in APR (Apache license) and Boost.
+
+Thanks,
+Jason
+
+&gt;<i> 
+</I>&gt;<i> Best regards,
+</I>&gt;<i> Ingvar Hagelund
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> --- ../jemalloc-2.2.5.orig/include/jemalloc/internal/atomic.h   2011-11-15 02:18:06.000000000 +0100
+</I>&gt;<i> +++ include/jemalloc/internal/atomic.h  2012-03-09 08:44:45.930652898 +0100
+</I>&gt;<i> @@ -160,6 +160,33 @@
+</I>&gt;<i> 
+</I>&gt;<i>        return (x);
+</I>&gt;<i> }
+</I>&gt;<i> +#elif (defined(__ppc__) || defined(__PPC__))
+</I>&gt;<i> +// Code shamelessly stolen from the boost library
+</I>&gt;<i> +// Please do a license check before distributing
+</I>&gt;<i> +JEMALLOC_INLINE uint32_t
+</I>&gt;<i> +atomic_add_uint32(uint32_t *p, uint32_t x)
+</I>&gt;<i> +{
+</I>&gt;<i> +       uint32_t prev, temp;
+</I>&gt;<i> +
+</I>&gt;<i> +       asm volatile (&quot;0:\n\t&quot;                 // retry local label     
+</I>&gt;<i> +               &quot;lwarx  %0,0,%2\n\t&quot;       // load prev and reserve 
+</I>&gt;<i> +               &quot;add    %1,%0,%3\n\t&quot;      // temp = prev + x 
+</I>&gt;<i> +               &quot;stwcx. %1,0,%2\n\t&quot;       // conditionally store   
+</I>&gt;<i> +               &quot;bne-   0b&quot;                // start over if we lost
+</I>&gt;<i> +                                          // the reservation
+</I>&gt;<i> +               //XXX find a cleaner way to define the temp         
+</I>&gt;<i> +               //it's not an output
+</I>&gt;<i> +               : &quot;=&amp;r&quot; (prev), &quot;=&amp;r&quot; (temp)        // output, temp 
+</I>&gt;<i> +               : &quot;b&quot; (p), &quot;r&quot; (x)                  // inputs       
+</I>&gt;<i> +               : &quot;memory&quot;, &quot;cc&quot;);                  // clobbered    
+</I>&gt;<i> +       return temp;
+</I>&gt;<i> +}
+</I>&gt;<i> +
+</I>&gt;<i> +JEMALLOC_INLINE uint32_t
+</I>&gt;<i> +atomic_sub_uint32(uint32_t *p, uint32_t x)
+</I>&gt;<i> +{
+</I>&gt;<i> +       return atomic_add_uint32(p, -x);
+</I>&gt;<i> +}
+</I>&gt;<i> #else
+</I>&gt;<i> #  error &quot;Missing implementation for 32-bit atomic operations&quot;
+</I>&gt;<i> #endif
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i> 
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000136.html">[PATCH] atomic operations for ppc
+</A></li>
+	<LI>Next message: <A HREF="000138.html">[PATCH] atomic operations for ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#137">[ date ]</a>
+              <a href="thread.html#137">[ thread ]</a>
+              <a href="subject.html#137">[ subject ]</a>
+              <a href="author.html#137">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

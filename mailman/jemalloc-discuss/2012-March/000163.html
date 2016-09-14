@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc stats
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20stats&In-Reply-To=%3C20120322180302.GA1229%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000161.html">
+   <LINK REL="Next"  HREF="000164.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc stats</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20stats&In-Reply-To=%3C20120322180302.GA1229%40glandium.org%3E"
+       TITLE="Jemalloc stats">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Mar 22 11:03:02 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000161.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+        <LI>Next message: <A HREF="000164.html">Jemalloc stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#163">[ date ]</a>
+              <a href="thread.html#163">[ thread ]</a>
+              <a href="subject.html#163">[ subject ]</a>
+              <a href="author.html#163">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+In Firefox, we're tracking some of the stats provided by our fork of
+jemalloc. One of them is:
+- HeapCommitted - Memory mapped by the heap allocator that is committed,
+  i.e. in physical memory or paged to disk.  When heap-committed is
+  larger than heap-allocated, the difference between the two values is
+  likely due to external fragmentation; that is, the allocator allocated
+  a large block of memory and is unable to decommit it because a small
+  part of that block is currently in use.
+
+It would seem like this could match stats.active, but i'm not entirely
+sure it is the case. In particular, we don't count madvised pages in
+that metric, but it would seem stats.active does, although I haven't dug
+deep enough yet.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000161.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+	<LI>Next message: <A HREF="000164.html">Jemalloc stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#163">[ date ]</a>
+              <a href="thread.html#163">[ thread ]</a>
+              <a href="subject.html#163">[ subject ]</a>
+              <a href="author.html#163">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

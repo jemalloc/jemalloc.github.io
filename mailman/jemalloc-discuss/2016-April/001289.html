@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Regression%3A%20jemalloc%20%3E%3D%204.0%20use%20munmap%28%29%20even%20when%20configured%0A%09with%20--disable-munmap&In-Reply-To=%3CCAC5vWnrAe6ROtrF3GoFsjF0iBewfdRkQ9YPfusvQdrZL7sy2-Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001288.html">
+   <LINK REL="Next"  HREF="001290.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap</H1>
+    <B>Daniel Mewes</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Regression%3A%20jemalloc%20%3E%3D%204.0%20use%20munmap%28%29%20even%20when%20configured%0A%09with%20--disable-munmap&In-Reply-To=%3CCAC5vWnrAe6ROtrF3GoFsjF0iBewfdRkQ9YPfusvQdrZL7sy2-Q%40mail.gmail.com%3E"
+       TITLE="Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap">daniel at rethinkdb.com
+       </A><BR>
+    <I>Fri Apr 22 22:56:22 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001288.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap
+</A></li>
+        <LI>Next message: <A HREF="001290.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1289">[ date ]</a>
+              <a href="thread.html#1289">[ thread ]</a>
+              <a href="subject.html#1289">[ subject ]</a>
+              <a href="author.html#1289">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks Jason, that's very helpful. I'll see if changing the `lg_chunk`
+parameter changes anything.
+
+In the meantime I found out that one likely reason for why RethinkDB
+generates so many discontiguous VM mappings is because of our use of
+`mprotect`. We use `mprotect` to install &quot;guard pages&quot; in heap-allocated
+coroutine stacks, of which there can be quite a few under some workloads.
+
+
+I now believe that this isn't really a jemalloc issue per se. At the very
+least there are other factors involved.
+We'll look into this more on our side, but I consider this a false alarm
+for now.
+Thanks for taking your time for explaining things here!
+
+- Daniel
+
+On Fri, Apr 22, 2016 at 10:41 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Apr 22, 2016, at 10:22 PM, Daniel Mewes &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">daniel at rethinkdb.com</A>&gt; wrote:
+</I>&gt;<i> &gt; The reason for the failing `munmap` appears to be that we hit the
+</I>&gt;<i> kernel's `max_map_count` limit.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I can reproduce the issue very quickly by reducing the limit through
+</I>&gt;<i> `echo 16000 &gt; /proc/sys/vm/max_map_count`, and it disappears in our tests
+</I>&gt;<i> when increasing it to something like `echo 131060 &gt;
+</I>&gt;<i> /proc/sys/vm/max_map_count`. The default value is 65530 I believe.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; We used to see this behavior in jemalloc 2.x, but didn't see it in 3.x
+</I>&gt;<i> anymore. It now re-appeared somewhere between 3.6 and 4.1.
+</I>&gt;<i>
+</I>&gt;<i> Version 4 switched to per arena management of huge allocations, and along
+</I>&gt;<i> with that completely independent trees of cached chunks.  For many
+</I>&gt;<i> workloads this means increased virtual memory usage, since cached chunks
+</I>&gt;<i> can't migrate among arenas.  I have plans to reduce the impact somewhat by
+</I>&gt;<i> decreasing the number of arenas by 4X, but the independence of arenas'
+</I>&gt;<i> mappings has numerous advantages that I plan to leverage more over time.
+</I>&gt;<i>
+</I>&gt;<i> &gt; Do you think the allocator should handle reaching the map_count limit
+</I>&gt;<i> and somehow deal with it gracefully (if that's even possible)? Or should we
+</I>&gt;<i> just advise our users to raise the kernel limit, or alternatively try to
+</I>&gt;<i> change RethinkDB's allocation patterns to avoid hitting it?
+</I>&gt;<i>
+</I>&gt;<i> I'm surprised you're hitting this, because the normal mode of operation is
+</I>&gt;<i> for jemalloc's chunk allocation to get almost all contiguous mappings,
+</I>&gt;<i> which means very few distinct kernel VM map entries.  Is it possible that
+</I>&gt;<i> RethinkDB is routinely calling mmap() and interspersing mappings that are
+</I>&gt;<i> not a multiple of the chunk size?  One would hope that the kernel could
+</I>&gt;<i> densely pack such small mappings in the existing gaps between jemalloc's
+</I>&gt;<i> chunks, but unfortunately Linux uses fragile heuristics to find available
+</I>&gt;<i> virtual memory (the exact problem that --disable-munmap works around).
+</I>&gt;<i>
+</I>&gt;<i> To your question about making jemalloc gracefully deal with munmap()
+</I>&gt;<i> failure, it seems likely that mmap() is in imminent danger of failing under
+</I>&gt;<i> these conditions, so there's not much that can be done.  In fact, jemalloc
+</I>&gt;<i> only aborts if the abort option is set to true (the default for debug
+</I>&gt;<i> builds), so the error message jemalloc is printing probably doesn't
+</I>&gt;<i> directly correspond to a crash.
+</I>&gt;<i>
+</I>&gt;<i> As a workaround, you could substantially increase the chunk size (e.g.
+</I>&gt;<i> MALLOC_CONF=lg_chunk:30), but better would be to diagnose and address
+</I>&gt;<i> whatever is causing the terrible VM map fragmentation.
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Jason
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160422/ec01d00f/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160422/ec01d00f/attachment-0001.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001288.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap
+</A></li>
+	<LI>Next message: <A HREF="001290.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1289">[ date ]</a>
+              <a href="thread.html#1289">[ thread ]</a>
+              <a href="subject.html#1289">[ subject ]</a>
+              <a href="author.html#1289">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

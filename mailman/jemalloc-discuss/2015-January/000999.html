@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory layout refinements (was Re: should there be another jemalloc	release)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20layout%20refinements%20%28was%20Re%3A%20should%20there%20be%20another%20jemalloc%0A%09release%29&In-Reply-To=%3C75CAEDFA-D465-4180-86E4-3709898AB855%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000998.html">
+   <LINK REL="Next"  HREF="000995.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory layout refinements (was Re: should there be another jemalloc	release)</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20layout%20refinements%20%28was%20Re%3A%20should%20there%20be%20another%20jemalloc%0A%09release%29&In-Reply-To=%3C75CAEDFA-D465-4180-86E4-3709898AB855%40canonware.com%3E"
+       TITLE="Memory layout refinements (was Re: should there be another jemalloc	release)">jasone at canonware.com
+       </A><BR>
+    <I>Tue Jan 20 22:15:40 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000998.html">should there be another jemalloc release
+</A></li>
+        <LI>Next message: <A HREF="000995.html">should there be another jemalloc release
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#999">[ date ]</a>
+              <a href="thread.html#999">[ thread ]</a>
+              <a href="subject.html#999">[ subject ]</a>
+              <a href="author.html#999">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 20, 2015, at 4:38 PM, Dave Barrett &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">multisample at gmail.com</A>&gt; wrote:
+&gt;<i> &gt;Regarding performance, I'm quite happy with the dev version of jemalloc.  It is significantly faster, and its memory layout refinements tend to decrease fragmentation.
+</I>&gt;<i> 
+</I>&gt;<i>  Please forgive me if this was covered before, I only check in from time to time.   Is there specific commit(s) or a link with a description of the changes for that comment above.  Specifically the memory layout refinements ?
+</I>
+Here are the main changes that affect memory layout.  I'm leaving out commit IDs because these features each required numerous commits.
+
+- Purge unused dirty pages in LRU order instead of address order (contributed by Qinfan Wu).  This tends to decrease run fragmentation, which means fewer arena chunks, and therefore fewer pages dedicated to arena chunk header metadata.
+
+- Normalize size class spacing across the full range of size classes such that for each doubling in size, there are four equidistant size classes.  Prior to this change, one of jemalloc's worst practical weaknesses was that a 4097-byte request was rounded up to 8 KiB, but now it's rounded up to only 5 KiB.  Another benefit is that iterative reallocation has much better worst case performance with regard to copying (many fewer large and huge size classes to traverse), though in practice in-place growing reallocation tended to avoid worst case performance for large size classes.  Also, with fewer run sizes, arena chunks don't tend to fragment as badly.
+
+- Move small run metadata into the arena chunk header.  This allows much smaller runs to achieve low (actually zero) waste; all size classes evenly divide relatively small run sizes.  In addition to reducing the number of run sizes, this reduces the number of small regions per run, which reduces the impact of a single long-lived allocation keeping an entire run alive.
+
+These changes are particularly satisfying because they tend toward generalization/simplification; although they were nontrivial to implement they feel like elegant improvements.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000998.html">should there be another jemalloc release
+</A></li>
+	<LI>Next message: <A HREF="000995.html">should there be another jemalloc release
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#999">[ date ]</a>
+              <a href="thread.html#999">[ thread ]</a>
+              <a href="subject.html#999">[ subject ]</a>
+              <a href="author.html#999">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

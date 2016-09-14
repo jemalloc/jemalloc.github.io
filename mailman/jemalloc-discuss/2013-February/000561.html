@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 2MB (hugetlb) page support on Linux
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%202MB%20%28hugetlb%29%20page%20support%20on%20Linux&In-Reply-To=%3CCAB6p_24i04QRb%2Bc%2B3OduYJ9E8dci9-ct2U9WHZYGag2h0Wo5fQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000562.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>2MB (hugetlb) page support on Linux</H1>
+    <B>Vinay Y S</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%202MB%20%28hugetlb%29%20page%20support%20on%20Linux&In-Reply-To=%3CCAB6p_24i04QRb%2Bc%2B3OduYJ9E8dci9-ct2U9WHZYGag2h0Wo5fQ%40mail.gmail.com%3E"
+       TITLE="2MB (hugetlb) page support on Linux">vinay.ys at gmail.com
+       </A><BR>
+    <I>Fri Feb  1 00:36:07 PST 2013</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000562.html">How to adjust parameters for jemalloc profiling
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#561">[ date ]</a>
+              <a href="thread.html#561">[ thread ]</a>
+              <a href="subject.html#561">[ subject ]</a>
+              <a href="author.html#561">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Fri, Feb 1, 2013 at 1:32 AM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Jan 31, 2013, at 8:54 AM, Vinay Y S wrote:
+</I>&gt;<i>
+</I>&gt;<i> &gt; I also saw the 'medium' size class in the git log as well as on this
+</I>&gt;<i> mailing list discussions. Is there a way to re-introduce that back with,
+</I>&gt;<i> maybe, build-time configurable tradeoffs for memory efficiency vs (?)
+</I>&gt;<i> lock-free purging?
+</I>&gt;<i>
+</I>&gt;<i> As it happens, I've been working on ways to reintroduce medium size
+</I>&gt;<i> classes over the past few days.  The short synopsis is that I think it is
+</I>&gt;<i> possible to reintroduce medium size classes without dirty page purging
+</I>&gt;<i> sacrifices, but it is going to be complicated to maintain high concurrency
+</I>&gt;<i> between allocation/deallocation and dirty page purging.  The current code
+</I>&gt;<i> protects all dirty page tracking with the arena mutex, but dirty page
+</I>&gt;<i> purging for medium size classes will require a different approach, probably
+</I>&gt;<i> based on atomic operations.
+</I>&gt;<i>
+</I>&gt;<i> Awesome. Would love to help out in any way possible. If you can make any
+</I>in-progress versions available, I can help with testing on 72GB servers
+with membase workload and publish results.
+
+Thanks,
+Vinay
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130201/2a3d80a8/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130201/2a3d80a8/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000562.html">How to adjust parameters for jemalloc profiling
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#561">[ date ]</a>
+              <a href="thread.html#561">[ thread ]</a>
+              <a href="subject.html#561">[ subject ]</a>
+              <a href="author.html#561">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

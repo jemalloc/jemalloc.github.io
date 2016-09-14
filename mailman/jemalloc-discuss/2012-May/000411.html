@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> More aggressive page purging
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20More%20aggressive%20page%20purging&In-Reply-To=%3CB4575C08-BF3B-44B4-AA94-A0BFFBE89BAD%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000410.html">
+   <LINK REL="Next"  HREF="000412.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>More aggressive page purging</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20More%20aggressive%20page%20purging&In-Reply-To=%3CB4575C08-BF3B-44B4-AA94-A0BFFBE89BAD%40canonware.com%3E"
+       TITLE="More aggressive page purging">jasone at canonware.com
+       </A><BR>
+    <I>Fri May 11 16:16:16 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000410.html">More aggressive page purging
+</A></li>
+        <LI>Next message: <A HREF="000412.html">More aggressive page purging
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#411">[ date ]</a>
+              <a href="thread.html#411">[ thread ]</a>
+              <a href="subject.html#411">[ subject ]</a>
+              <a href="author.html#411">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 10, 2012, at 11:55 AM, Justin Lebar wrote:
+&gt;&gt;&gt;<i> In summary, I don't think there's a problem here to fix.  Am I missing
+</I>&gt;&gt;&gt;<i> something?
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> We could use RSS - number of madvised pages, for sure, but that doesn't
+</I>&gt;&gt;<i> quite help with people looking at their task manager ans seeing memory
+</I>&gt;&gt;<i> usage 1GB higher than what it actually is. (And it doesn't help to make
+</I>&gt;&gt;<i> the numbers Firefox itself reports believable)
+</I>&gt;<i> 
+</I>&gt;<i> Yeah, the perception problem (&quot;I looked at the task manager and
+</I>&gt;<i> Firefox sux!&quot;) is a real one that, from MemShrink's perspective, we
+</I>&gt;<i> need to solve.
+</I>
+It's unfortunate that the operating systems don't expose statistics that provide clarity here.  I don't want to make aggressive purging default behavior, but I'm open to patches that make this a configuration-time behavior after the 3.0.0 release (probably today or tomorrow).
+
+Re: stealing a bit for 'decommit', overloading the 'large' bit is probably the easiest approach.  The recent arena_mapbits_*() refactoring should make decommit support much easier to add.
+
+&gt;<i> But also, |RSS minus madvised memory| is wrong as soon as any of the
+</I>&gt;<i> madvised memory is kicked out due to memory pressure.  So without
+</I>&gt;<i> double-purge semantics, I don't see how you'd be able to reliably
+</I>&gt;<i> measure &quot;hard&quot; memory usage.
+</I>
+jemalloc maintains 'allocated', 'active', and 'mapped' statistics.  'active' ignores a bit of internally allocated metadata memory, but it is very close to being RSS minus madvise'd memory minus non-malloc memory (libraries, other mapped files, etc.).
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000410.html">More aggressive page purging
+</A></li>
+	<LI>Next message: <A HREF="000412.html">More aggressive page purging
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#411">[ date ]</a>
+              <a href="thread.html#411">[ thread ]</a>
+              <a href="subject.html#411">[ subject ]</a>
+              <a href="author.html#411">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Iterating over DSS
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Iterating%20over%20DSS&In-Reply-To=%3C4EB5E5C6.9080503%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000058.html">
+   <LINK REL="Next"  HREF="000061.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Iterating over DSS</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Iterating%20over%20DSS&In-Reply-To=%3C4EB5E5C6.9080503%40canonware.com%3E"
+       TITLE="Iterating over DSS">jasone at canonware.com
+       </A><BR>
+    <I>Sat Nov  5 18:41:26 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000058.html">Mac OS X Lion support
+</A></li>
+        <LI>Next message: <A HREF="000061.html">huge realloc problem with multiple threads
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#60">[ date ]</a>
+              <a href="thread.html#60">[ thread ]</a>
+              <a href="subject.html#60">[ subject ]</a>
+              <a href="author.html#60">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 10/27/2011 02:15 AM, Dmitry Antipov wrote:
+&gt;<i> is there a method to iterate over DSS heap and find all used/free regions?
+</I>&gt;<i> (I'm trying to see how much my DSS heap is fragmented). I.e. I would
+</I>&gt;<i> like to
+</I>&gt;<i> do something like:
+</I>&gt;<i>
+</I>&gt;<i> void *ptr;
+</I>&gt;<i> size_t size;
+</I>&gt;<i>
+</I>&gt;<i> malloc_mutex_lock(&amp;dss_mtx);
+</I>&gt;<i> ptr = dss_base;
+</I>&gt;<i> fprintf(stderr, &quot;DSS start: %p\n&quot;, ptr);
+</I>&gt;<i>
+</I>&gt;<i> while (ptr &lt; dss_prev) {
+</I>&gt;<i> if (ptr_is_a_pointer_to_allocated_block) { /* How to check this ? */
+</I>&gt;<i> size = ivsalloc(ptr);
+</I>&gt;<i> fprintf(stderr, &quot;used: %p..%p\n&quot;, ptr, ptr + size);
+</I>&gt;<i> } else
+</I>&gt;<i> ptr = (char *)ptr + sizeof (void *);
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> fprintf(stderr, &quot;DSS end: %p\n&quot;, dss_prev);
+</I>&gt;<i> malloc_mutex_unlock(&amp;dss_mtx);
+</I>
+jemalloc doesn't currently maintain the data structures necessary to 
+iterate over all allocated objects.  If all runs within a chunk are 
+completely full, then there is no way to find the chunk header, other 
+than to start with a pointer to one of the allocated objects within the 
+chunk.  Consider that jemalloc needs to be able to find unused space, 
+but it never needs to introspect used space unless it already has some 
+context to work in (freeing an existing object, expanding one, 
+allocating an available region, etc.).  Several years ago jemalloc had 
+the ability to iterate over allocated objects, but in practice it's 
+rarely useful, and supporting it entails extra overhead, so I ripped the 
+code out.
+
+If you want to modify jemalloc to make iteration possible, I suggest 
+enabling the rtree (radix tree) code and adding iterator functionality, 
+so that you can find all the extant chunks.  Then you will need to write 
+code that iterates over each chunk.  arena_chunk_purge() may give you 
+some idea of how to iterate over chunks, though you will have to write 
+custom code to iterate over small runs.
+
+There are alternatives to consider.  The easiest is to use the 
+statistics that jemalloc maintains if --enable-stats is specified at 
+configuration time.  Somewhat more difficult is to create your own 
+malloc wrapper and either log all allocation activity, or build up 
+metadata that allow you to iterate over allocated objects.  I've done 
+both of these things at various times (and even had log-based graphing 
+tools based on jemalloc), but these approaches tend not to scale well 
+for large or long-lived applications, so I stopped maintaining these 
+tools once I had a good feel for the fragmentation characteristics of 
+jemalloc's layout policies.
+
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000058.html">Mac OS X Lion support
+</A></li>
+	<LI>Next message: <A HREF="000061.html">huge realloc problem with multiple threads
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#60">[ date ]</a>
+              <a href="thread.html#60">[ thread ]</a>
+              <a href="subject.html#60">[ subject ]</a>
+              <a href="author.html#60">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

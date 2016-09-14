@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-3.6.0 fails to build on to-be-fedora-21
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-3.6.0%20fails%20to%20build%20on%20to-be-fedora-21&In-Reply-To=%3C53A2A145.3000904%40redpill-linpro.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000870.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-3.6.0 fails to build on to-be-fedora-21</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-3.6.0%20fails%20to%20build%20on%20to-be-fedora-21&In-Reply-To=%3C53A2A145.3000904%40redpill-linpro.com%3E"
+       TITLE="jemalloc-3.6.0 fails to build on to-be-fedora-21">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Thu Jun 19 01:37:25 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000870.html">jemalloc-3.6.0 fails to build on to-be-fedora-21
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#871">[ date ]</a>
+              <a href="thread.html#871">[ thread ]</a>
+              <a href="subject.html#871">[ subject ]</a>
+              <a href="author.html#871">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Den 19. juni 2014 10:01, skrev Ingvar Hagelund:
+&gt;<i> jemalloc-3.6.0 fails to build on to-be-fedora-21
+</I>&gt;<i> 
+</I>&gt;<i> <A HREF="https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log">https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log</A>
+</I>&gt;<i> 
+</I>&gt;<i> Seems like gcc-4.9.0 changed emmintrin.h
+</I>
+... though only when compiling against Fedora's i686 target, that is
+&quot;gcc -m32 -march=i686 -mtune=atom&quot;
+
+x86_64 and the generic i386 target, that is &quot;gcc -march=i386
+-mtune=generic&quot; , works fine (though generic i386 is not a primary
+Fedora target anymore).
+
+Ingvar
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000870.html">jemalloc-3.6.0 fails to build on to-be-fedora-21
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#871">[ date ]</a>
+              <a href="thread.html#871">[ thread ]</a>
+              <a href="subject.html#871">[ subject ]</a>
+              <a href="author.html#871">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

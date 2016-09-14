@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/7] Remove the VOID macro
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/7%5D%20Remove%20the%20VOID%20macro&In-Reply-To=%3C1335782311-8040-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000356.html">
+   <LINK REL="Next"  HREF="000361.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/7] Remove the VOID macro</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/7%5D%20Remove%20the%20VOID%20macro&In-Reply-To=%3C1335782311-8040-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 1/7] Remove the VOID macro">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 30 03:38:25 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000356.html">[6716aa8] Force use of TLS if heap profiling is enabled
+</A></li>
+        <LI>Next message: <A HREF="000361.html">[PATCH 2/7] Use Get/SetLastError on Win32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#360">[ date ]</a>
+              <a href="thread.html#360">[ thread ]</a>
+              <a href="subject.html#360">[ subject ]</a>
+              <a href="author.html#360">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+Windows headers define a VOID macro.
+---
+ src/ctl.c |    8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/src/ctl.c b/src/ctl.c
+index 2734604..dddf3be 100644
+--- a/src/ctl.c
++++ b/src/ctl.c
+@@ -842,11 +842,6 @@ ctl_boot(void)
+ 	}								\
+ } while (0)
+ 
+-#define	VOID()	do {							\
+-	READONLY();							\
+-	WRITEONLY();							\
+-} while (0)
+-
+ #define	READ(v, t)	do {						\
+ 	if (oldp != NULL &amp;&amp; oldlenp != NULL) {				\
+ 		if (*oldlenp != sizeof(t)) {				\
+@@ -1049,7 +1044,8 @@ thread_tcache_flush_ctl(const size_t *mib, size_t miblen, void *oldp,
+ 	if (config_tcache == false)
+ 		return (ENOENT);
+ 
+-	VOID();
++	READONLY();
++	WRITEONLY();
+ 
+ 	tcache_flush();
+ 
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000356.html">[6716aa8] Force use of TLS if heap profiling is enabled
+</A></li>
+	<LI>Next message: <A HREF="000361.html">[PATCH 2/7] Use Get/SetLastError on Win32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#360">[ date ]</a>
+              <a href="thread.html#360">[ thread ]</a>
+              <a href="subject.html#360">[ subject ]</a>
+              <a href="author.html#360">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

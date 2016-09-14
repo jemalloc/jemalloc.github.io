@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory corruptions near 32 bit limits
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20corruptions%20near%2032%20bit%20limits&In-Reply-To=%3CCA%2BXzkVeRQXWKnGsTTG7W6pLCj29XcqzCceY4%3DaqX08WZuEo6Dg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000507.html">
+   <LINK REL="Next"  HREF="000508.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory corruptions near 32 bit limits</H1>
+    <B>Salvatore Sanfilippo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20corruptions%20near%2032%20bit%20limits&In-Reply-To=%3CCA%2BXzkVeRQXWKnGsTTG7W6pLCj29XcqzCceY4%3DaqX08WZuEo6Dg%40mail.gmail.com%3E"
+       TITLE="Memory corruptions near 32 bit limits">antirez at gmail.com
+       </A><BR>
+    <I>Wed Nov  7 00:40:51 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000507.html">Memory corruptions near 32 bit limits
+</A></li>
+        <LI>Next message: <A HREF="000508.html">[PATCH] Don't register jemalloc's zone allocator if something	else already replaced the system default zone
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#510">[ date ]</a>
+              <a href="thread.html#510">[ thread ]</a>
+              <a href="subject.html#510">[ subject ]</a>
+              <a href="author.html#510">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Nov 6, 2012 at 6:19 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> This is the first I've heard of such an issue.  If you are able to narrow down the failure mode, please let me know so that we can get this fixed ASAP.
+</I>
+Thank you Jason,
+
+given that this is a new issue I'll investigate further to understand
+if it could be an issue with Redis itself (I think every single
+allocation is wrapped in order to abort Redis on out of memory, but
+I'll double check this). If it still seems a jemalloc issue I'll see
+if I can reproduce it, so far the only way to reproduce the issue is
+loading a large database file on a 32 bit Linux system N times: most
+of the times it crashes for out-of-memory, a few times it crashes with
+an unexpected signal 11 or failed assertion.
+
+Cheers,
+Salvatore
+
+--
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+<A HREF="http://invece.org">http://invece.org</A>
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       &#8212; David Gelernter
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000507.html">Memory corruptions near 32 bit limits
+</A></li>
+	<LI>Next message: <A HREF="000508.html">[PATCH] Don't register jemalloc's zone allocator if something	else already replaced the system default zone
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#510">[ date ]</a>
+              <a href="thread.html#510">[ thread ]</a>
+              <a href="subject.html#510">[ subject ]</a>
+              <a href="author.html#510">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

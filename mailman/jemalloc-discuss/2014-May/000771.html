@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [question] stats print and prof dump #79
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5Bquestion%5D%20stats%20print%20and%20prof%20dump%20%2379&In-Reply-To=%3CCAFoKaPsDofO8peO88K5-hqT0QzHdG4uYkY4ECCnJvu5kESuGjA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000773.html">
+   <LINK REL="Next"  HREF="000772.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[question] stats print and prof dump #79</H1>
+    <B>Sudurais A</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5Bquestion%5D%20stats%20print%20and%20prof%20dump%20%2379&In-Reply-To=%3CCAFoKaPsDofO8peO88K5-hqT0QzHdG4uYkY4ECCnJvu5kESuGjA%40mail.gmail.com%3E"
+       TITLE="[question] stats print and prof dump #79">sudurais at gmail.com
+       </A><BR>
+    <I>Fri May  2 14:34:33 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000773.html">keeping memory usage at certain limit
+</A></li>
+        <LI>Next message: <A HREF="000772.html">[question] stats print and prof dump #79
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#771">[ date ]</a>
+              <a href="thread.html#771">[ thread ]</a>
+              <a href="subject.html#771">[ subject ]</a>
+              <a href="author.html#771">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jason,
+
+This is follow up question to <A HREF="https://github.com/jemalloc/jemalloc/issues/79">https://github.com/jemalloc/jemalloc/issues/79</A>
+
+We wanted to periodically monitor memory usage with stack-trace of each
+allocation in multi-threaded application. Currently, I could dump memory
+usage (potential leak's) at exit time of the program. Is it possible to
+report memory usage (prof_fdump) called with leak enabled using timer
+thread while others threads are working on ?.
+
+Is there risk of calling 'prof_fdump' with leak directly from program ?.
+ Currently prof_fdump is static function. Thats needed to be changed for
+this purpose. I will make sure only one thread (caller) calls prof_fdump.
+
+Is there any other way to dump memory objects with stack trace currently
+held (more like exit time output using prof_leak) periodically ?.
+
+Thanks,
+Regards,
+Sudurais
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140502/d70a5b5c/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140502/d70a5b5c/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000773.html">keeping memory usage at certain limit
+</A></li>
+	<LI>Next message: <A HREF="000772.html">[question] stats print and prof dump #79
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#771">[ date ]</a>
+              <a href="thread.html#771">[ thread ]</a>
+              <a href="subject.html#771">[ subject ]</a>
+              <a href="author.html#771">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Need help with patch allowing to iterate over all objects
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20help%20with%20patch%20allowing%20to%20iterate%20over%20all%20objects&In-Reply-To=%3CCAJTmd9pQZkQNsgWbX8aKAfSN%3DgOtDOXJQ%3Dfd9f%3D_hNdg91Oi1Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000442.html">
+   <LINK REL="Next"  HREF="000444.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Need help with patch allowing to iterate over all objects</H1>
+    <B>Benoit Jacob</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20help%20with%20patch%20allowing%20to%20iterate%20over%20all%20objects&In-Reply-To=%3CCAJTmd9pQZkQNsgWbX8aKAfSN%3DgOtDOXJQ%3Dfd9f%3D_hNdg91Oi1Q%40mail.gmail.com%3E"
+       TITLE="Need help with patch allowing to iterate over all objects">jacob.benoit.1 at gmail.com
+       </A><BR>
+    <I>Tue Aug 21 12:34:31 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000442.html">Patch set: support for iterating over all objects allocated in a	certain arena
+</A></li>
+        <LI>Next message: <A HREF="000444.html">Need help with patch allowing to iterate over all objects
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#443">[ date ]</a>
+              <a href="thread.html#443">[ thread ]</a>
+              <a href="subject.html#443">[ subject ]</a>
+              <a href="author.html#443">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I am attaching a patch that allows to iterate over all objects.
+
+This is not a request for upstreaming: these patches cause crashes and I
+need help understanding these. And even if it didn't crash, this patch
+causes a severe overhead in memory usage and no attempt has been made to
+mitigate it. The goal of this effort is to allow custom developer builds of
+Firefox to introspect their own allocated blocks.
+
+The patch (attached to this email) works by renaming the public functions
+such as je_malloc() to real_je_malloc() and implementing custom je_malloc()
+to allocate a larger block, and use the extra space to store the data of a
+doubly-linked list element.
+
+In principle, this should be entirely transparent to the user (except for
+the increased memory usage), so I don't understand the crashes.
+
+The crashes aren't immediate: I can run Firefox (this patch if for
+Firefox's copy of jemalloc 3.0) for a while and browse a few pages without
+crashing.
+
+The crashes are assertion failures like this:
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000000000411605 in moz_abort ()
+    at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+116       MOZ_CRASH();
+(gdb) bt
+#0  0x0000000000411605 in moz_abort ()
+    at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+#1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+bin=0x7ffff6c007c8)
+    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+#2  0x000000000041b225 in arena_tcache_fill_small (arena=0x7ffff6c00180,
+    tbin=0x7ffff6b02148, binind=9, prof_accumbytes=0)
+    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1232
+#3  0x000000000043c239 in tcache_alloc_small_hard (tcache=0x7ffff6b02000,
+    tbin=0x7ffff6b02148, binind=9)
+    at /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:72
+#4  0x000000000043b7dc in tcache_alloc_small (tcache=0x7ffff6b02000,
+size=160, zero=false)
+    at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:302
+#5  0x0000000000412c26 in arena_malloc (arena=0x0, size=160, zero=false,
+try_tcache=true)
+    at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:869
+#6  0x000000000042dce8 in imalloc (size=160)
+    at src/include/jemalloc/internal/jemalloc_internal.h:735
+#7  0x000000000043111c in real_je_malloc (size=160)
+    at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:829
+#8  0x0000000000432fa3 in malloc (size=128)
+    at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1425
+#9  0x00007ffff7fe803c in moz_xmalloc (size=128)
+    at /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:57
+#10 0x00007ffff2dcb74d in nsTArrayInfallibleAllocator::Malloc (size=128)
+    at ../../dist/include/nsTArray.h:56
+...
+
+Printing some variables here:
+
+(gdb) up
+#1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+bin=0x7ffff6c007c8)
+    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+1189            assert(bin-&gt;runcur-&gt;nfree &gt; 0);
+(gdb) p bin
+$1 = (arena_bin_t *) 0x7ffff6c007c8
+(gdb) p *bin
+$2 = {lock = {lock = {__data = {__lock = 1, __count = 0, __owner = 6469,
+__nusers = 1,
+        __kind = 0, __spins = 0, __list = {__prev = 0x0, __next = 0x0}},
+      __size = &quot;\001\000\000\000\000\000\000\000E\031\000\000\001&quot;, '\000'
+&lt;repeats 26 times&gt;, __align = 1}}, runcur = 0x7fffc2ced000, runs =
+{rbt_root = 0x7fffca3004d8, rbt_nil = {{
+        u = {rb_link = {rbn_left = 0x7ffff6c00800, rbn_right_red =
+0x7ffff6c00800},
+          ql_link = {qre_next = 0x7ffff6c00800, qre_prev =
+0x7ffff6c00800}},
+        prof_ctx = 0x7ffff6c00800}, bits = 0}}, stats = {allocated =
+8896000,
+    nmalloc = 197757, ndalloc = 142157, nrequests = 300344, nfills = 5545,
+    nflushes = 2848, nruns = 2802, reruns = 5838, curruns = 1143}}
+(gdb) p bin-&gt;runcur
+$3 = (arena_run_t *) 0x7fffc2ced000
+(gdb) p *(bin-&gt;runcur)
+$4 = {bin = 0x7ffff6c007c8, nextind = 4544384, nfree = 0}
+
+Any help would be greatly appreciated.
+
+Thanks,
+Benoit
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120821/79d730e9/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120821/79d730e9/attachment.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc-instrument
+Type: application/octet-stream
+Size: 14337 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120821/79d730e9/attachment.obj">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120821/79d730e9/attachment.obj</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000442.html">Patch set: support for iterating over all objects allocated in a	certain arena
+</A></li>
+	<LI>Next message: <A HREF="000444.html">Need help with patch allowing to iterate over all objects
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#443">[ date ]</a>
+              <a href="thread.html#443">[ thread ]</a>
+              <a href="subject.html#443">[ subject ]</a>
+              <a href="author.html#443">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

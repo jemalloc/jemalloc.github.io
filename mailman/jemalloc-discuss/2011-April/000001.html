@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Cross-compiling and configure.ac macros
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3CBANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000002.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Cross-compiling and configure.ac macros</H1>
+    <B>Andreas Vinsander</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3CBANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A%40mail.gmail.com%3E"
+       TITLE="Cross-compiling and configure.ac macros">andreas+jemalloc at vinsander.se
+       </A><BR>
+    <I>Thu Apr 14 05:16:14 PDT 2011</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000002.html">Cross-compiling and configure.ac macros
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1">[ date ]</a>
+              <a href="thread.html#1">[ thread ]</a>
+              <a href="subject.html#1">[ subject ]</a>
+              <a href="author.html#1">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I am trying to cross-compile jemalloc for evaluation on an embedded
+device running a Linux home brew distro.
+
+I have some problems with the way jemalloc tests for various support
+of the host (target) system.
+
+So far I have modified jemalloc-2.2.1 configure.ac as seen in the
+attached patch, but there still exists a call to AC_RUN_IFELSE.
+
+What is the best way to handle it? To use autoconf cache and supply a
+default value when cross-compiling?
+
+BR,
+/Andreas Vinsander
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: cross_compilation.patch
+Type: text/x-patch
+Size: 1251 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110414/cb527519/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110414/cb527519/attachment.bin</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000002.html">Cross-compiling and configure.ac macros
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1">[ date ]</a>
+              <a href="thread.html#1">[ thread ]</a>
+              <a href="subject.html#1">[ subject ]</a>
+              <a href="author.html#1">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1456 @@
+From monika.tripathi at st.com  Mon Oct  5 04:53:33 2015
+From: monika.tripathi at st.com (Monika TRIPATHI)
+Date: Mon, 5 Oct 2015 19:53:33 +0800
+Subject: jemalloc usage for bare metal cortex A53 : Multicore 
+Message-ID: <CCB8317357699442B304E7B1149BB718033FDB71C6@EAPEX1MAIL2.st.com>
+
+Hello,
+
+This is regarding usage of jemalloc, I want to use jemalloc for bare metal cortex A53 malloc (since bare metal gcc does not support malloc for multicore).
+
+when I use gcc
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6/lto-wrapper
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu/Linaro 4.6.3-1ubuntu5' --with-bugurl=file:///usr/share/doc/gcc-4.6/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.6 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --enable-plugin --enable-objc-gc --disable-werror --with-arch-32=i686 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.6.3 (Ubuntu/Linaro 4.6.3-1ubuntu5) \
+
+Then I can see the make is OK , where as when I use "bare-4.8.2-3/bin//arm-none-eabi-gcc"
+Then I get error
+
+In file included from include/jemalloc/internal/jemalloc_internal.h:5:0,
+                 from src/jemalloc.c:2:
+include/jemalloc/internal/jemalloc_internal_decls.h:11:24: fatal error: sys/mman.h: No such file or directory
+#  include <sys/mman.h>
+                        ^
+compilation terminated.
+make: *** [src/jemalloc.pic.o] Error 1
+
+Now the problem is since I am working in baremetal I have to use ""bare-4.8.2-3/bin//arm-none-eabi-gcc"
+
+
+So please let me know if there is any limitation for jemalloc i.e. if it don't work with bare metal.
+
+Thanks and Regards,
+Monika
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151005/9378ef64/attachment.html>
+
+From sunyucong at gmail.com  Tue Oct  6 11:02:18 2015
+From: sunyucong at gmail.com (Yucong Sun)
+Date: Wed, 7 Oct 2015 02:02:18 +0800
+Subject: Jemalloc on CYGWIN
+Message-ID: <CAJygYd1rG6tZ=-o5mq9ohZg4S3LZMgsNWJR_8Q+DhPt+hCActw@mail.gmail.com>
+
+Hi,
+
+Have anyone tried to use jemalloc under CYGWIN?
+
+I opened  https://github.com/jemalloc/jemalloc/issues/285  , hope some
+one can help me here.
+
+Thanks
+
+From antirez at gmail.com  Wed Oct  7 00:09:54 2015
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Wed, 7 Oct 2015 09:09:54 +0200
+Subject: Jemalloc 4.0.3 configure script breaks building inside a different
+	git repository.
+Message-ID: <CA+XzkVdQ0Cr2ip0LVONYTmNDQ0mMWVPV4Q1NOCtgf6OWKBiO7g@mail.gmail.com>
+
+Hello,
+
+I was trying to upgrade Redis jemalloc version from 3.6 to 4.0. Redis
+uses its own private copy of jemalloc. Our copy is not modified but we
+have all our dependencies inside /dep so that a given version of Redis
+has a very specific behavior and does not change depending on what the
+user happens to have installed in its system.
+
+So this means that jemalloc, in the case of Redis, happens to be
+inside a directory of a different Git repository (the Redis one).
+
+The new Jemalloc 4.0 configure script replaces the VERSION file
+without doing a sane check that previous versions did, that is:
+
+if test -d "${srcroot}.git" ; then ...
+
+So even if the Jemalloc root directory does not include a git
+repository, but jemalloc just happens to be contained into another git
+repository, the new configure script will attempt to generate a
+VERSION file. As a result it will generate a bogus version file
+matching some commit that happens to contain the specified pattern
+[0-9].[0-9].[0-9].
+
+This in turn means that testing for Jemalloc versions features will break.
+
+In the specific case of Redis I'll just modify the configure script,
+but in general would be good if jemalloc was able to build cleanly
+when embedded into a different Git repository.
+
+Thanks for all the work that went into the 4.0 release, we hope Redis
+users will benefit from this ASAP. Btw for us the ability to configure
+size classes from the configure script was a good change.
+
+Cheers,
+Salvatore
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - Redis Labs https://redislabs.com
+
+"If a system is to have conceptual integrity, someone must control the
+concepts."
+       ? Fred Brooks, "The Mythical Man-Month", 1975.
+
+From sunyucong at gmail.com  Wed Oct  7 04:18:39 2015
+From: sunyucong at gmail.com (Yucong Sun)
+Date: Wed, 7 Oct 2015 19:18:39 +0800
+Subject: Jemalloc 4.0.3 configure script breaks building inside a
+	different git repository.
+In-Reply-To: <CA+XzkVdQ0Cr2ip0LVONYTmNDQ0mMWVPV4Q1NOCtgf6OWKBiO7g@mail.gmail.com>
+References: <CA+XzkVdQ0Cr2ip0LVONYTmNDQ0mMWVPV4Q1NOCtgf6OWKBiO7g@mail.gmail.com>
+Message-ID: <CAJygYd2=znO1wZ_oQRm+FjHRCQwCVoFVq=XzKtF0wy_Wnx9MCg@mail.gmail.com>
+
+I am working around this issue by doing
+
+GIT_DIR=./.git && ./configure
+
+On Wed, Oct 7, 2015 at 3:09 PM, Salvatore Sanfilippo <antirez at gmail.com> wrote:
+> Hello,
+>
+> I was trying to upgrade Redis jemalloc version from 3.6 to 4.0. Redis
+> uses its own private copy of jemalloc. Our copy is not modified but we
+> have all our dependencies inside /dep so that a given version of Redis
+> has a very specific behavior and does not change depending on what the
+> user happens to have installed in its system.
+>
+> So this means that jemalloc, in the case of Redis, happens to be
+> inside a directory of a different Git repository (the Redis one).
+>
+> The new Jemalloc 4.0 configure script replaces the VERSION file
+> without doing a sane check that previous versions did, that is:
+>
+> if test -d "${srcroot}.git" ; then ...
+>
+> So even if the Jemalloc root directory does not include a git
+> repository, but jemalloc just happens to be contained into another git
+> repository, the new configure script will attempt to generate a
+> VERSION file. As a result it will generate a bogus version file
+> matching some commit that happens to contain the specified pattern
+> [0-9].[0-9].[0-9].
+>
+> This in turn means that testing for Jemalloc versions features will break.
+>
+> In the specific case of Redis I'll just modify the configure script,
+> but in general would be good if jemalloc was able to build cleanly
+> when embedded into a different Git repository.
+>
+> Thanks for all the work that went into the 4.0 release, we hope Redis
+> users will benefit from this ASAP. Btw for us the ability to configure
+> size classes from the configure script was a good change.
+>
+> Cheers,
+> Salvatore
+>
+> --
+> Salvatore 'antirez' Sanfilippo
+> open source developer - Redis Labs https://redislabs.com
+>
+> "If a system is to have conceptual integrity, someone must control the
+> concepts."
+>        ? Fred Brooks, "The Mythical Man-Month", 1975.
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+From raju.sahu at gmail.com  Sun Oct 11 22:12:28 2015
+From: raju.sahu at gmail.com (RajaKishore Sahu)
+Date: Mon, 12 Oct 2015 10:42:28 +0530
+Subject: Need Help in porting Jemalloc.
+Message-ID: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+
+Hi,
+
+I am trying to port Jemalloc. We are going to use it for our sub-system not
+for the whole system.
+
+Main system has its own memory manager. While initializing the sub-system
+(in boot up) we will allocate memory from main system (Ex:- 10 MB) which
+will be contiguous memory then we want to give the start address and size
+to Jemalloc to manage it. Please let us know where to provide the start
+address to jemalloc?
+
+Main system will provide thread, Mutex/Semaphore and the memory for this
+will not be allocated from the sub-system. In this scenario how can we
+enable thread caching? We do have a rapper to create threads, which means
+we know which are the the threads created by sub-system. Will it help in
+enabling the thread caching?
+
+Any help will greatly appreciated!
+
+
+-- 
+Thanx
+Rajakishore Sahu
+Mail:-raju.sahu at gmail.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151012/da3c7274/attachment.html>
+
+From ldalessa at indiana.edu  Mon Oct 12 04:39:45 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Mon, 12 Oct 2015 11:39:45 +0000
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+Message-ID: <C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+
+
+> On Oct 12, 2015, at 1:12 AM, RajaKishore Sahu <raju.sahu at gmail.com> wrote:
+> 
+> Hi,
+> 
+> I am trying to port Jemalloc. We are going to use it for our sub-system not for the whole system.
+> 
+> Main system has its own memory manager. While initializing the sub-system (in boot up) we will allocate memory from main system (Ex:- 10 MB) which will be contiguous memory then we want to give the start address and size to Jemalloc to manage it. Please let us know where to provide the start address to jemalloc?
+
+Hi. This dlmalloc-mspace-like interface isn?t really supported by jemalloc, which wants to be able to request ?chunks? of memory from the system using a chunk allocator (typically mmap()). 
+
+To do what you want you need to write a chunk provider based on [the chunk hooks class](http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html), and then install it for all of the threads in your code. Your chunk provider will have to give jemalloc chunks from your contiguous region.
+
+We do this in HPX-5 to manage a network-registered global heap. The callback chunks are [here](https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c) and the ?heap? is implemented (here)[https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c]. This code is slightly complex but it?s basically just using a bitmap to allocate chunks from a large contiguous heap, and can serve as an example for you.
+
+> Main system will provide thread, Mutex/Semaphore and the memory for this will not be allocated from the sub-system. In this scenario how can we enable thread caching? We do have a rapper to create threads, which means we know which are the the threads created by sub-system. Will it help in enabling the thread caching?
+
+Thread caching will likely be on by default for the threads. In more complex code where you might want to manage more than one memory space, you may need to explicitly allocate new caches.
+
+Luke
+
+> 
+> Any help will greatly appreciated!
+> 
+> 
+> -- 
+> Thanx
+> Rajakishore Sahu
+> Mail:-raju.sahu at gmail.com
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From raju.sahu at gmail.com  Mon Oct 12 19:51:59 2015
+From: raju.sahu at gmail.com (RajaKishore Sahu)
+Date: Tue, 13 Oct 2015 08:21:59 +0530
+Subject: Need Help in porting Jemalloc.
+In-Reply-To: <C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+References: <CA+bEgOFK19QSZkpGA6V+o1VezaY5rTku9YiKMB8ykG8v=tp1gw@mail.gmail.com>
+	<C3EA54BF-0D86-4E15-900D-24670607AA22@indiana.edu>
+Message-ID: <CA+bEgOE4zu4ArT-cVYnhdVojbhiD=c4JfiXpk76KtvUauv6HAQ@mail.gmail.com>
+
+Hi Luke,
+
+Thanks for sharing the details. I will go through the code and come back if
+I need some more help.
+
+Thanks
+Rajakishore Sahu
+
+On Mon, Oct 12, 2015 at 5:09 PM, D'Alessandro, Luke K <ldalessa at indiana.edu>
+wrote:
+
+>
+> > On Oct 12, 2015, at 1:12 AM, RajaKishore Sahu <raju.sahu at gmail.com>
+> wrote:
+> >
+> > Hi,
+> >
+> > I am trying to port Jemalloc. We are going to use it for our sub-system
+> not for the whole system.
+> >
+> > Main system has its own memory manager. While initializing the
+> sub-system (in boot up) we will allocate memory from main system (Ex:- 10
+> MB) which will be contiguous memory then we want to give the start address
+> and size to Jemalloc to manage it. Please let us know where to provide the
+> start address to jemalloc?
+>
+> Hi. This dlmalloc-mspace-like interface isn?t really supported by
+> jemalloc, which wants to be able to request ?chunks? of memory from the
+> system using a chunk allocator (typically mmap()).
+>
+> To do what you want you need to write a chunk provider based on [the chunk
+> hooks class](
+> http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html),
+> and then install it for all of the threads in your code. Your chunk
+> provider will have to give jemalloc chunks from your contiguous region.
+>
+> We do this in HPX-5 to manage a network-registered global heap. The
+> callback chunks are [here](
+> https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/jemalloc_global.c)
+> and the ?heap? is implemented (here)[
+> https://gitlab.crest.iu.edu/extreme/hpx/blob/develop/libhpx/gas/pgas/heap.c].
+> This code is slightly complex but it?s basically just using a bitmap to
+> allocate chunks from a large contiguous heap, and can serve as an example
+> for you.
+>
+> > Main system will provide thread, Mutex/Semaphore and the memory for this
+> will not be allocated from the sub-system. In this scenario how can we
+> enable thread caching? We do have a rapper to create threads, which means
+> we know which are the the threads created by sub-system. Will it help in
+> enabling the thread caching?
+>
+> Thread caching will likely be on by default for the threads. In more
+> complex code where you might want to manage more than one memory space, you
+> may need to explicitly allocate new caches.
+>
+> Luke
+>
+> >
+> > Any help will greatly appreciated!
+> >
+> >
+> > --
+> > Thanx
+> > Rajakishore Sahu
+> > Mail:-raju.sahu at gmail.com
+> > _______________________________________________
+> > jemalloc-discuss mailing list
+> > jemalloc-discuss at canonware.com
+> > http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+
+
+-- 
+Thanx
+Rajakishore Sahu
+Mail:-raju.sahu at gmail.com
+Mobile:-+91 9886719841
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151013/5844547d/attachment.html>
+
+From shamisp at ornl.gov  Thu Oct 15 08:45:16 2015
+From: shamisp at ornl.gov (Shamis, Pavel)
+Date: Thu, 15 Oct 2015 15:45:16 +0000
+Subject: Memory allocation/release hooks
+Message-ID: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+
+Dear Jemalloc Community,
+
+We are developer of UCX project [1] and as part of the effort
+we are looking for a malloc library that supports hooks for alloc/dealloc chunks and can be used for the following:
+
+(a) Allocation of memory that can be shared transparently between processes on the same node. For this purpose we would like to mmap memory with MAP_SHARED. This is very useful for implementation for Remote Memory Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3] communication libraries. This allow a remote process to map user allocated memory and provide RMA operations through memcpy().
+
+(b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+
+Based on this requirements we would like to understand what is the best approach for integration this functionality within jemalloc.
+
+Regards,
+Pasha & Yossi
+
+[1] OpenUCX: https://github.com/openucx/ucx or www.openucx.org
+[2] MPI SPEC: http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf
+[3] OpenSHMEM SPEC: http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf
+
+
+
+
+
+
+From ldalessa at indiana.edu  Thu Oct 15 09:03:43 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 15 Oct 2015 16:03:43 +0000
+Subject: Memory allocation/release hooks
+In-Reply-To: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+References: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+Message-ID: <041BA83D-CC88-4D21-92B6-A38C2BCF52DE@indiana.edu>
+
+
+> On Oct 15, 2015, at 11:45 AM, Shamis, Pavel <shamisp at ornl.gov> wrote:
+> 
+> Dear Jemalloc Community,
+> 
+> We are developer of UCX project [1] and as part of the effort
+> we are looking for a malloc library that supports hooks for alloc/dealloc chunks and can be used for the following:
+> 
+> (a) Allocation of memory that can be shared transparently between processes on the same node. For this purpose we would like to mmap memory with MAP_SHARED. This is very useful for implementation for Remote Memory Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3] communication libraries. This allow a remote process to map user allocated memory and provide RMA operations through memcpy().
+
+I?m not sure about this, but I expect that you just need to install a set of custom chunk hooks to manage this. You can read about the chunk_hooks_t [here](http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html).
+
+> (b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+
+We have been using jemalloc for some time to manage, among other things, registered memory regions in HPX-5 (https://hpx.crest.iu.edu/) for Verbs and uGNI. If you already have a mechanism which manages keys, then you can simply install a set of chunk hooks that can perform the registration/deregistration as necessary. We have found this to work quite well for our purposes.
+
+[Here are our hooks](https://gitlab.crest.iu.edu/extreme/hpx/blob/v1.3.0/libhpx/network/pwc/jemalloc_registered.c). There is a bit of abstraction in there, but it?s basically straightforward. We only deal with chunk allocation and deallocation since we can?t really do anything interesting on commit/decommit due to the network registration (and we?re normally using hugetlbfs anyway).
+
+In order to actually use the arenas that manage registered memory each pthread will call [this](https://gitlab.crest.iu.edu/extreme/hpx/blob/v1.3.0/libhpx/memory/jemalloc.c#L41) at startup, and registered allocation explicitly uses the caches created there. You need to be careful to ensure that jemalloc correctly keeps memory spaces disjoint by explicitly managing caches.
+
+We also have a global heap that is implemented in a similar fashion, except that we?re implementing mmap() there to get chunk sized bits of a much larger segment of memory that we registered.
+
+Obviously this won?t be exactly what you need, but it should serve as an example of chunk hook replacement for RDMA memory and can almost certainly be used as a basis for what you want to do. You may be able to simply decorate jemalloc?s existing chunk allocator with the registration calls that you need, rather than replacing its implementation entirely like we do (we customize mmap() to get huge pages from hugetlbfs when available, which adds to the complexity here).
+
+Hope it helps.
+
+Luke
+
+> 
+> Based on this requirements we would like to understand what is the best approach for integration this functionality within jemalloc.
+> 
+> Regards,
+> Pasha & Yossi
+> 
+> [1] OpenUCX: https://github.com/openucx/ucx or www.openucx.org
+> [2] MPI SPEC: http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf
+> [3] OpenSHMEM SPEC: http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf
+> 
+> 
+> 
+> 
+> 
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From shamisp at ornl.gov  Thu Oct 15 11:26:39 2015
+From: shamisp at ornl.gov (Shamis, Pavel)
+Date: Thu, 15 Oct 2015 18:26:39 +0000
+Subject: Memory allocation/release hooks
+In-Reply-To: <041BA83D-CC88-4D21-92B6-A38C2BCF52DE@indiana.edu>
+References: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+	<041BA83D-CC88-4D21-92B6-A38C2BCF52DE@indiana.edu>
+Message-ID: <0DD8B8D5-CB45-4B9D-AC16-08BD9225C4DF@ornl.gov>
+
+Hi Luke,
+
+Please see below
+
+>> 
+>> (a) Allocation of memory that can be shared transparently between processes on the same node. For this purpose we would like to mmap memory with MAP_SHARED. This is very useful for implementation for Remote Memory Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3] communication libraries. This allow a remote process to map user allocated memory and provide RMA operations through memcpy().
+> 
+> I?m not sure about this, but I expect that you just need to install a set of custom chunk hooks to manage this. You can read about the chunk_hooks_t [here](http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html).
+
+This should do the trick. Our initial thought was to replace jemalloc pages_map() / pages_unmap() with our own version of mmap but it seems that chunk_hooks provides an elegant way to achieve the same.
+
+> 
+>> (b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+> 
+> We have been using jemalloc for some time to manage, among other things, registered memory regions in HPX-5 (https://hpx.crest.iu.edu/) for Verbs and uGNI. If you already have a mechanism which manages keys, then you can simply install a set of chunk hooks that can perform the registration/deregistration as necessary. We have found this to work quite well for our purposes.
+
+How do you load jemalloc ? Do you do LD_PRELOAD  or the user is expect to allocate the memory explicitly through HPX runtime ?
+
+> 
+> [Here are our hooks](https://gitlab.crest.iu.edu/extreme/hpx/blob/v1.3.0/libhpx/network/pwc/jemalloc_registered.c). There is a bit of abstraction in there, but it?s basically straightforward. We only deal with chunk allocation and deallocation since we can?t really do anything interesting on commit/decommit due to the network registration (and we?re normally using hugetlbfs anyway).
+> 
+> In order to actually use the arenas that manage registered memory each pthread will call [this](https://gitlab.crest.iu.edu/extreme/hpx/blob/v1.3.0/libhpx/memory/jemalloc.c#L41) at startup, and registered allocation explicitly uses the caches created there. You need to be careful to ensure that jemalloc correctly keeps memory spaces disjoint by explicitly managing caches.
+> 
+> We also have a global heap that is implemented in a similar fashion, except that we?re implementing mmap() there to get chunk sized bits of a much larger segment of memory that we registered.
+> 
+> Obviously this won?t be exactly what you need, but it should serve as an example of chunk hook replacement for RDMA memory and can almost certainly be used as a basis for what you want to do. You may be able to simply decorate jemalloc?s existing chunk allocator with the registration calls that you need, rather than replacing its implementation entirely like we do (we customize mmap() to get huge pages from hugetlbfs when available, which adds to the complexity here).
+
+Well, we actually implement a very similar functionality https://github.com/openucx/ucx/blob/master/src/uct/api/uct.h#L707
+We support huge page, verbs allocator, xpmem and pretty much our goal is very similar - enable efficient zero-copy protocols for the user.
+
+Thanks,
+Pasha
+
+From ldalessa at indiana.edu  Thu Oct 15 11:44:19 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 15 Oct 2015 18:44:19 +0000
+Subject: Memory allocation/release hooks
+In-Reply-To: <0DD8B8D5-CB45-4B9D-AC16-08BD9225C4DF@ornl.gov>
+References: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+	<041BA83D-CC88-4D21-92B6-A38C2BCF52DE@indiana.edu>
+	<0DD8B8D5-CB45-4B9D-AC16-08BD9225C4DF@ornl.gov>
+Message-ID: <6CA62DE8-9609-478A-A409-E063C0A27037@indiana.edu>
+
+
+> On Oct 15, 2015, at 2:26 PM, Shamis, Pavel <shamisp at ornl.gov> wrote:
+> 
+> [cut]
+> 
+>>> (b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+>> 
+>> We have been using jemalloc for some time to manage, among other things, registered memory regions in HPX-5 (https://hpx.crest.iu.edu/) for Verbs and uGNI. If you already have a mechanism which manages keys, then you can simply install a set of chunk hooks that can perform the registration/deregistration as necessary. We have found this to work quite well for our purposes.
+> 
+> How do you load jemalloc ? Do you do LD_PRELOAD  or the user is expect to allocate the memory explicitly through HPX runtime ?
+
+We have allocator choice set up as a configuration-time dependency so it?s relatively straightforward. 
+
+When the user has selected jemalloc as the allocator (it?s our default but we have a couple of other options) then a libjemalloc.so that supports the version 4 API is a configure-time requirement. We will just -rpath it into libhpx.so, and/or export it through hpx.pc for libhpx.a.
+
+We have made a decision to distribute all of our default dependencies, so we will actually build a libjemalloc.so from source and install that if we can?t find one at configuration time. We have made the decision to use it without a prefix, which means it will also be used for local allocation, but it mostly performs better than the libc malloc that?s installed on the systems that we use so that doesn?t concern us. A more complicated configuration could support prefixing jemalloc and leaving the local allocation alone.
+
+Luke
+
+PS: As an aside, we have [this outstanding issue](https://github.com/jemalloc/jemalloc/issues/203) which would be useful to us for key management. Since jemalloc already stores chunk metadata we?re hoping that we could get 16-64 bytes of ?user? metadata per chunk so we don?t need to keep track of our own keys. Hopefully this will become available at some point.
+
+From shamisp at ornl.gov  Thu Oct 15 12:02:26 2015
+From: shamisp at ornl.gov (Shamis, Pavel)
+Date: Thu, 15 Oct 2015 19:02:26 +0000
+Subject: Memory allocation/release hooks
+In-Reply-To: <6CA62DE8-9609-478A-A409-E063C0A27037@indiana.edu>
+References: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+	<041BA83D-CC88-4D21-92B6-A38C2BCF52DE@indiana.edu>
+	<0DD8B8D5-CB45-4B9D-AC16-08BD9225C4DF@ornl.gov>
+	<6CA62DE8-9609-478A-A409-E063C0A27037@indiana.edu>
+Message-ID: <D2456EDE.23655%shamisp@ornl.gov>
+
+>>>>
+>>>>(b) Implementation of memory de-allocation hooks for RDMA hardware
+>>>>(Infiniband, ROCE, iWarp etc.). For optimization purpose we implement
+>>>>a lazy memory de-registration (memory unpinning) policy and we use the
+>>>>hook for the  notification of communication library about memory
+>>>>release event. On the event, we cleanup our registration cache and
+>>>>de-register (unpin) the memory on hardware.
+>>> 
+>>> We have been using jemalloc for some time to manage, among other
+>>>things, registered memory regions in HPX-5 (https://hpx.crest.iu.edu/)
+>>>for Verbs and uGNI. If you already have a mechanism which manages keys,
+>>>then you can simply install a set of chunk hooks that can perform the
+>>>registration/deregistration as necessary. We have found this to work
+>>>quite well for our purposes.
+>> 
+>> How do you load jemalloc ? Do you do LD_PRELOAD  or the user is expect
+>>to allocate the memory explicitly through HPX runtime ?
+>
+>We have allocator choice set up as a configuration-time dependency so
+>it?s relatively straightforward.
+>
+>When the user has selected jemalloc as the allocator (it?s our default
+>but we have a couple of other options) then a libjemalloc.so that
+>supports the version 4 API is a configure-time requirement. We will just
+>-rpath it into libhpx.so, and/or export it through hpx.pc for libhpx.a.
+
+Got it !
+
+>
+>PS: As an aside, we have [this outstanding
+>issue](https://github.com/jemalloc/jemalloc/issues/203) which would be
+>useful to us for key management. Since jemalloc already stores chunk
+>metadata we?re hoping that we could get 16-64 bytes of ?user? metadata
+>per chunk so we don?t need to keep track of our own keys. Hopefully this
+>will become available at some point.
+
+It is a very convenient feature to have. Our plan was to implement own
+caching mechanism.
+Side note. By default you don't really want to invoke registration for
+every user memory allocation (this would be too expensive in term of
+memory consumption). Typically, we register the memory on a first RMA
+access. 
+
+Regards,
+Pasha
+
+
+From praj.jagtap at gmail.com  Fri Oct 16 04:01:03 2015
+From: praj.jagtap at gmail.com (Prajakta)
+Date: Fri, 16 Oct 2015 16:31:03 +0530
+Subject: Calculate VM size using jemalloc.
+Message-ID: <CAL2A8_gM36BsVios8O1Asc7COaBzFGznLbkD80aBiWW37VHefw@mail.gmail.com>
+
+Hi,
+
+I want to calculate VM size of process.
+In /proc/pid/status, we get amount of VM size used by the process.
+I want to get same counter with the help of jemalloc.
+
+For that I was making use of stats.allocated.
+
+Do I need to take into consideration any other statistics for getting VM
+Size?
+
+Thanks,
+Prajakta
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151016/6d92fa66/attachment.html>
+
+From annulen at yandex.ru  Fri Oct 16 04:05:08 2015
+From: annulen at yandex.ru (Konstantin Tokarev)
+Date: Fri, 16 Oct 2015 14:05:08 +0300
+Subject: Calculate VM size using jemalloc.
+In-Reply-To: <CAL2A8_gM36BsVios8O1Asc7COaBzFGznLbkD80aBiWW37VHefw@mail.gmail.com>
+References: <CAL2A8_gM36BsVios8O1Asc7COaBzFGznLbkD80aBiWW37VHefw@mail.gmail.com>
+Message-ID: <1276171444993508@web7o.yandex.ru>
+
+
+
+16.10.2015, 14:01, "Prajakta" <praj.jagtap at gmail.com>:
+> Hi,
+>
+> I want to calculate VM size of process.
+> In /proc/pid/status, we get amount of VM size used by the process.
+> I want to get same counter with the help of jemalloc.
+
+You cannot, because jemalloc takes care about heap only.
+
+>
+> For that I was making use of stats.allocated.
+>
+> Do I need to take into consideration any other statistics for getting VM Size?
+>
+> Thanks,
+> Prajakta
+> ,
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+-- 
+Regards,
+Konstantin
+
+From praj.jagtap at gmail.com  Fri Oct 16 04:16:22 2015
+From: praj.jagtap at gmail.com (Prajakta)
+Date: Fri, 16 Oct 2015 16:46:22 +0530
+Subject: Calculate VM size using jemalloc.
+In-Reply-To: <1276171444993508@web7o.yandex.ru>
+References: <CAL2A8_gM36BsVios8O1Asc7COaBzFGznLbkD80aBiWW37VHefw@mail.gmail.com>
+	<1276171444993508@web7o.yandex.ru>
+Message-ID: <CAL2A8_h_9+-costjk5XKZQPW=ZDxygo4yd-j7ZWgOdpbL=x69g@mail.gmail.com>
+
+So, there might be some way by which I will be able to get constant part
+process.(Text + stack).
+In my calculations, for finding out this constant part I was referring to:
+
+VMSize (from /proc/pid/status) - stats.allocated (from jemalloc).
+
+But, after few allocations only I can see that this difference is not
+remaining constant.
+I feel that along with stats.allocated, I need to consider some more stats
+for finding out this constant.
+
+Thanks,
+Prajakta
+
+On Fri, Oct 16, 2015 at 4:35 PM, Konstantin Tokarev <annulen at yandex.ru>
+wrote:
+
+>
+>
+> 16.10.2015, 14:01, "Prajakta" <praj.jagtap at gmail.com>:
+> > Hi,
+> >
+> > I want to calculate VM size of process.
+> > In /proc/pid/status, we get amount of VM size used by the process.
+> > I want to get same counter with the help of jemalloc.
+>
+> You cannot, because jemalloc takes care about heap only.
+>
+> >
+> > For that I was making use of stats.allocated.
+> >
+> > Do I need to take into consideration any other statistics for getting VM
+> Size?
+> >
+> > Thanks,
+> > Prajakta
+> > ,
+> >
+> > _______________________________________________
+> > jemalloc-discuss mailing list
+> > jemalloc-discuss at canonware.com
+> > http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+> --
+> Regards,
+> Konstantin
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151016/90d88956/attachment.html>
+
+From sstigran at hotmail.com  Fri Oct 16 04:16:49 2015
+From: sstigran at hotmail.com (Tigran Sarukhanyan)
+Date: Fri, 16 Oct 2015 15:16:49 +0400
+Subject: Release free memory with jemalloc
+Message-ID: <DUB110-W102D5712D4FA8CCC3C9B806C83D0@phx.gbl>
+
+Hi,I am trying to use jemalloc for our application. The application has such engines that use lots of memory and it is considerable to free memory back to the operating system for reuse. We use Google's MallocExtension::ReleaseFreeMemory implemented in tcmalloc after finishing such engines.
+Is there a way to do this with jemalloc?
+Thanks in advance,Tigran 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151016/cf5c13ce/attachment.html>
+
+From annulen at yandex.ru  Fri Oct 16 04:32:51 2015
+From: annulen at yandex.ru (Konstantin Tokarev)
+Date: Fri, 16 Oct 2015 14:32:51 +0300
+Subject: Calculate VM size using jemalloc.
+In-Reply-To: <CAL2A8_h_9+-costjk5XKZQPW=ZDxygo4yd-j7ZWgOdpbL=x69g@mail.gmail.com>
+References: <CAL2A8_gM36BsVios8O1Asc7COaBzFGznLbkD80aBiWW37VHefw@mail.gmail.com>
+	<1276171444993508@web7o.yandex.ru>
+	<CAL2A8_h_9+-costjk5XKZQPW=ZDxygo4yd-j7ZWgOdpbL=x69g@mail.gmail.com>
+Message-ID: <1331551444995171@web6h.yandex.ru>
+
+
+
+16.10.2015, 14:16, "Prajakta" <praj.jagtap at gmail.com>:
+> So, there might be some way by which I will be able to get constant part process.(Text + stack).
+> In my calculations, for finding out this constant part I was referring to:
+>
+> VMSize (from /proc/pid/status) - stats.allocated (from jemalloc).
+>
+> But, after few allocations only I can see that this difference is not remaining constant.
+> I feel that along with stats.allocated, I need to consider some more stats for finding out this constant.
+
+You can try to use stats.mapped instead.
+
+>
+> Thanks,
+> Prajakta
+>
+> On Fri, Oct 16, 2015 at 4:35 PM, Konstantin Tokarev <annulen at yandex.ru> wrote:
+>> 16.10.2015, 14:01, "Prajakta" <praj.jagtap at gmail.com>:
+>>> Hi,
+>>>
+>>> I want to calculate VM size of process.
+>>> In /proc/pid/status, we get amount of VM size used by the process.
+>>> I want to get same counter with the help of jemalloc.
+>>
+>> You cannot, because jemalloc takes care about heap only.
+>>
+>>>
+>>> For that I was making use of stats.allocated.
+>>>
+>>> Do I need to take into consideration any other statistics for getting VM Size?
+>>>
+>>> Thanks,
+>>> Prajakta
+>>> ,
+>>>
+>>> _______________________________________________
+>>> jemalloc-discuss mailing list
+>>> jemalloc-discuss at canonware.com
+>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>> --
+>> Regards,
+>> Konstantin
+
+
+-- 
+Regards,
+Konstantin
+
+From jasone at canonware.com  Fri Oct 16 06:47:23 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 16 Oct 2015 06:47:23 -0700
+Subject: Release free memory with jemalloc
+In-Reply-To: <DUB110-W102D5712D4FA8CCC3C9B806C83D0@phx.gbl>
+References: <DUB110-W102D5712D4FA8CCC3C9B806C83D0@phx.gbl>
+Message-ID: <7735BBBD-F108-44B2-ABED-8612654976CD@canonware.com>
+
+On Oct 16, 2015, at 4:16 AM, Tigran Sarukhanyan <sstigran at hotmail.com> wrote:
+> I am trying to use jemalloc for our application. The application has such engines that use lots of memory and it is considerable to free memory back to the operating system for reuse. We use Google's MallocExtension::ReleaseFreeMemory implemented in tcmalloc after finishing such engines.
+> 
+> Is there a way to do this with jemalloc?
+
+Yes, you can do a similar thing with jemalloc.  Take a look at the manual page, in particular:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#arena.i.purge
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#thread.tcache.flush
+
+There are numerous other approaches that may be more appropriate for your application, so it's worth skimming the entire manual page for ideas.
+
+Jason
+
+From praj.jagtap at gmail.com  Fri Oct 16 12:18:55 2015
+From: praj.jagtap at gmail.com (Prajakta)
+Date: Sat, 17 Oct 2015 00:48:55 +0530
+Subject: How to check available VMSize with the process using jeMalloc
+Message-ID: <CAL2A8_hkUGhM0ozOsrakA9p0d+tV=Z83v4Y+jL31-vwX-h6YzQ@mail.gmail.com>
+
+In my application I need to keep an eye on how much Virtual memory is
+available for application to use.
+I am able to get VM Upper limit for process by using getrlimit() (Getting
+that limit as 15 GB).
+
+If virtual memory for that process reaches to 14.5 GB (i.e. Now only 500 MB
+VM is free.) we need to stop doing the processing.
+So, I need to understand how much virtual memory is consumed by process at
+any point.
+In glibc, we were able to get that information using mallinfo().
+Similar results I want to get using jemalloc. But, I am not getting exact
+results.
+
+Below is the equation I am using to get free VM available:
+
+1. Get maximum size of process's virtual memory (Getting this maxlimit as
+15 GB)
+2. For getting process's fixed part (Text + stack) : (This calculation will
+be done only once)
+     CodeSize = VMSize (Read of /proc/pid/status) - stats.mapped
+   - I assume above equation will give us fixed part of process.
+3. Check if low memory limit hits?
+ if  (maxlimit - CodeSize - stats.allocated ) < 500 MB notify process is
+running out of memory.
+
+Please correct me if I am missing any counters or doing some wrong
+assumptions in my calculation.
+
+Thanks,
+Prajakta
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151017/395367ee/attachment.html>
+
+From danielmicay at gmail.com  Fri Oct 16 12:28:24 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Fri, 16 Oct 2015 15:28:24 -0400
+Subject: How to check available VMSize with the process using jeMalloc
+In-Reply-To: <CAL2A8_hkUGhM0ozOsrakA9p0d+tV=Z83v4Y+jL31-vwX-h6YzQ@mail.gmail.com>
+References: <CAL2A8_hkUGhM0ozOsrakA9p0d+tV=Z83v4Y+jL31-vwX-h6YzQ@mail.gmail.com>
+Message-ID: <56214FD8.2030301@gmail.com>
+
+Since jemalloc is hungry for virtual memory, it would be best to use a
+real memory limit via a memory control group instead of obtaining that
+very indirectly via a virtual memory limit (assuming you're on Linux).
+
+> 1. Get maximum size of process's virtual memory (Getting this maxlimit
+> as 15 GB)
+> 2. For getting process's fixed part (Text + stack) : (This calculation
+> will be done only once)
+>      CodeSize = VMSize (Read of /proc/pid/status) - stats.mapped
+>    - I assume above equation will give us fixed part of process.
+
+It's probably not going to be fixed because jemalloc isn't the only
+dynamic caller of mmap. Secondary stacks are one example.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151016/9cd63c6b/attachment.sig>
+
+From danielmicay at gmail.com  Fri Oct 16 12:29:17 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Fri, 16 Oct 2015 15:29:17 -0400
+Subject: How to check available VMSize with the process using jeMalloc
+In-Reply-To: <56214FD8.2030301@gmail.com>
+References: <CAL2A8_hkUGhM0ozOsrakA9p0d+tV=Z83v4Y+jL31-vwX-h6YzQ@mail.gmail.com>
+	<56214FD8.2030301@gmail.com>
+Message-ID: <5621500D.4020802@gmail.com>
+
+A virtual memory limit also doesn't account for resources allocated in
+the kernel, so it's not really providing the bound that you'd expect.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151016/e72a8619/attachment.sig>
+
+From fykcee1 at gmail.com  Sun Oct 18 21:28:30 2015
+From: fykcee1 at gmail.com (cee1)
+Date: Mon, 19 Oct 2015 12:28:30 +0800
+Subject: What's the difference between prof_accum on and off?
+Message-ID: <CAGXxSxVXuJNxDvP_H9dZxYqYiox5pZKOsvLjb2_ZjUKeDQ0Mqg@mail.gmail.com>
+
+Hi all,
+
+I'm trying the profiling feature of jemalloc. And the option
+prof_accum[1] makes me confused.
+
+What does this option do? Does it make any difference in stat result if enabled?
+
+
+
+---
+1. http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.prof_accum
+
+- Regards,
+
+- cee1
+
+From praj.jagtap at gmail.com  Mon Oct 19 00:10:03 2015
+From: praj.jagtap at gmail.com (Prajakta)
+Date: Mon, 19 Oct 2015 12:40:03 +0530
+Subject: statistical counters from jemalloc - Similar to mall info()
+Message-ID: <CAL2A8_g6c=H3t_XyFQ-o2-_e-mNpe+XpO3DYtC=jABL=Ucguvw@mail.gmail.com>
+
+Is there a way by which we can get actual number of bytes of data allocated
+by JEMALLOC + number of bytes allocated by mmap / bro system call in
+jemalloc?
+
+I am looking for counters similar to mallinfo counters in jemalloc.
+Using mall info() we get information about memory allocations performed
+using malloc.
+
+I need similar counters from jemalloc:
+- *hblkhd*:      Number of bytes in blocks currently allocated using mmap(2)
+- *uordblks*:  Total number of bytes usd by in-use allocations
+- *fordblks*:   Total number of bytes in free blocks.
+
+
+Out of above 3, I suspect, stats.allocated is similar to uordblks.
+
+
+Thanks,
+Prajakta
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151019/7dc50e1b/attachment.html>
+
+From jasone at canonware.com  Mon Oct 19 11:51:38 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 19 Oct 2015 14:51:38 -0400
+Subject: What's the difference between prof_accum on and off?
+In-Reply-To: <CAGXxSxVXuJNxDvP_H9dZxYqYiox5pZKOsvLjb2_ZjUKeDQ0Mqg@mail.gmail.com>
+References: <CAGXxSxVXuJNxDvP_H9dZxYqYiox5pZKOsvLjb2_ZjUKeDQ0Mqg@mail.gmail.com>
+Message-ID: <BF42C40F-0692-45F1-BE25-35C3A232541B@canonware.com>
+
+On Oct 19, 2015, at 12:28 AM, cee1 <fykcee1 at gmail.com> wrote:
+> I'm trying the profiling feature of jemalloc. And the option
+> prof_accum[1] makes me confused.
+> 
+> What does this option do? Does it make any difference in stat result if enabled?
+
+If prof_accum is enabled, then *cumulative* allocation statistics (number of bytes and objects) are maintained in addition to *current* statistics.  You can pass command line flags to jeprof (ne pprof) to tell it to use the cumulative statistics instead of the current statistics.  This can be useful for finding hot allocation sites that cause throughput issues (distinct from  causing memory bloat).
+
+The reason prof_accum is disabled by default is that otherwise all backtraces associated with sampled allocation events must be preserved, and for applications with high combinatorial complexity in their function call paths, there is no practical bound on how much memory the backtraces will consume.
+
+Jason
+
+From jasone at canonware.com  Mon Oct 19 12:16:26 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 19 Oct 2015 15:16:26 -0400
+Subject: statistical counters from jemalloc - Similar to mall info()
+In-Reply-To: <CAL2A8_g6c=H3t_XyFQ-o2-_e-mNpe+XpO3DYtC=jABL=Ucguvw@mail.gmail.com>
+References: <CAL2A8_g6c=H3t_XyFQ-o2-_e-mNpe+XpO3DYtC=jABL=Ucguvw@mail.gmail.com>
+Message-ID: <1BE1603D-70F7-431F-AA7C-82ACCA15DF80@canonware.com>
+
+On Oct 19, 2015, at 3:10 AM, Prajakta <praj.jagtap at gmail.com> wrote:
+> Is there a way by which we can get actual number of bytes of data allocated by JEMALLOC + number of bytes allocated by mmap / bro system call in jemalloc?
+> 
+> I am looking for counters similar to mallinfo counters in jemalloc.
+> Using mall info() we get information about memory allocations performed using malloc.
+> 
+> I need similar counters from jemalloc:
+> - hblkhd:      Number of bytes in blocks currently allocated using mmap(2)
+> - uordblks:  Total number of bytes usd by in-use allocations 
+> - fordblks:   Total number of bytes in free blocks.
+> 
+> 
+> Out of above 3, I suspect, stats.allocated is similar to uordblks.
+
+Unfortunately, mallinfo()'s API has some implementation detail baked in, and it doesn't map perfectly to jemalloc.  Nonetheless, jemalloc does provide similar, more detailed stats.
+
+hblkhd: Under typical operating conditions, jemalloc allocates *all* memory via mmap(), so this stat isn't generally useful.  That said, http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.arenas.i.large.allocated <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.arenas.i.large.allocated> and http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.arenas.i.huge.allocated <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.arenas.i.huge.allocated> may be of interest depending on your use case.
+uordblks: Precisely the same as http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.allocated <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.allocated> .
+fordblks: Use http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.resident <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.resident> or http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.mapped <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.mapped> and subtract out http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.active <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.active> .
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151019/7a30832f/attachment.html>
+
+From jeff.science at gmail.com  Tue Oct 20 08:31:45 2015
+From: jeff.science at gmail.com (Jeff Hammond)
+Date: Tue, 20 Oct 2015 08:31:45 -0700
+Subject: Memory allocation/release hooks
+In-Reply-To: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+References: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+Message-ID: <CAGKz=uJfCOa2rtrf9teA_muxS7mPON_S12KfP2v_ZSJUoDZCzg@mail.gmail.com>
+
+Hi Pavel,
+
+You may find http://memkind.github.io/memkind/ relevant.  In particular,
+http://memkind.github.io/memkind/memkind_arch_20150318.pdf section 2.2 and
+2.3 discusses exactly the issues you raise.  We also note that memkind is
+intended to support multiple types of memory within a node, such as one
+might encounter in a platform such as Knights Landing.  You are free to
+imagine how it might map to OpenPOWER based upon your superior knowledge of
+that platform :-)
+
+While I recognize that the origins of memkind at Intel may pose a challenge
+for some in the OpenPOWER family, it would be tremendously valuable to the
+community if it was reused for MPI and OpenSHMEM projects, rather than the
+UCX team trying to implement something new.  As you know, the both MPI and
+OpenSHMEM should run on a range of platforms, and it doubles the
+implementation effort in all relevant projects (MPICH, OpenMPI, OpenSHMEM
+reference, etc.) if UCX goes in a different direction.
+
+I would be happy to introduce you to the memkind developers (I am not one
+of them, just someone who helps them understand user/client requirements).
+
+Best,
+
+Jeff
+
+
+On Thu, Oct 15, 2015 at 8:45 AM, Shamis, Pavel <shamisp at ornl.gov> wrote:
+
+> Dear Jemalloc Community,
+>
+> We are developer of UCX project [1] and as part of the effort
+> we are looking for a malloc library that supports hooks for alloc/dealloc
+> chunks and can be used for the following:
+>
+> (a) Allocation of memory that can be shared transparently between
+> processes on the same node. For this purpose we would like to mmap memory
+> with MAP_SHARED. This is very useful for implementation for Remote Memory
+> Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3]
+> communication libraries. This allow a remote process to map user allocated
+> memory and provide RMA operations through memcpy().
+>
+> (b) Implementation of memory de-allocation hooks for RDMA hardware
+> (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a
+> lazy memory de-registration (memory unpinning) policy and we use the hook
+> for the  notification of communication library about memory release event.
+> On the event, we cleanup our registration cache and de-register (unpin) the
+> memory on hardware.
+>
+> Based on this requirements we would like to understand what is the best
+> approach for integration this functionality within jemalloc.
+>
+> Regards,
+> Pasha & Yossi
+>
+> [1] OpenUCX: https://github.com/openucx/ucx or www.openucx.org
+> [2] MPI SPEC: http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf
+> [3] OpenSHMEM SPEC:
+> http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf
+>
+>
+>
+>
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+
+
+
+-- 
+Jeff Hammond
+jeff.science at gmail.com
+http://jeffhammond.github.io/
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151020/904073c4/attachment.html>
+
+From shamisp at ornl.gov  Tue Oct 20 12:18:41 2015
+From: shamisp at ornl.gov (Shamis, Pavel)
+Date: Tue, 20 Oct 2015 19:18:41 +0000
+Subject: Memory allocation/release hooks
+In-Reply-To: <CAGKz=uJfCOa2rtrf9teA_muxS7mPON_S12KfP2v_ZSJUoDZCzg@mail.gmail.com>
+References: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+	<CAGKz=uJfCOa2rtrf9teA_muxS7mPON_S12KfP2v_ZSJUoDZCzg@mail.gmail.com>
+Message-ID: <042D5678-07C0-4677-9F0E-13CF4930257E@ornl.gov>
+
+Hi Jeff,
+
+Thanks for the link, seems like a very useful library.
+
+Our goal is a bit different (and very simple/basic).
+We are looking for a malloc library that we can use for integration with our registration cache.
+Essentially, it redirects application's malloc() calls to (through LD_PRELOAD or rpath) jemalloc that is hooked up with a cache (just like in HPX).
+At this stage we don't play with locality.
+
+Thanks !
+
+Pavel (Pasha) Shamis
+---
+Computer Science Research Group
+Computer Science and Math Division
+Oak Ridge National Laboratory
+
+
+
+
+
+
+On Oct 20, 2015, at 11:31 AM, Jeff Hammond <jeff.science at gmail.com<mailto:jeff.science at gmail.com>> wrote:
+
+Hi Pavel,
+
+You may find http://memkind.github.io/memkind/ relevant.  In particular, http://memkind.github.io/memkind/memkind_arch_20150318.pdf section 2.2 and 2.3 discusses exactly the issues you raise.  We also note that memkind is intended to support multiple types of memory within a node, such as one might encounter in a platform such as Knights Landing.  You are free to imagine how it might map to OpenPOWER based upon your superior knowledge of that platform :-)
+
+While I recognize that the origins of memkind at Intel may pose a challenge for some in the OpenPOWER family, it would be tremendously valuable to the community if it was reused for MPI and OpenSHMEM projects, rather than the UCX team trying to implement something new.  As you know, the both MPI and OpenSHMEM should run on a range of platforms, and it doubles the implementation effort in all relevant projects (MPICH, OpenMPI, OpenSHMEM reference, etc.) if UCX goes in a different direction.
+
+I would be happy to introduce you to the memkind developers (I am not one of them, just someone who helps them understand user/client requirements).
+
+Best,
+
+Jeff
+
+
+On Thu, Oct 15, 2015 at 8:45 AM, Shamis, Pavel <shamisp at ornl.gov<mailto:shamisp at ornl.gov>> wrote:
+Dear Jemalloc Community,
+
+We are developer of UCX project [1] and as part of the effort
+we are looking for a malloc library that supports hooks for alloc/dealloc chunks and can be used for the following:
+
+(a) Allocation of memory that can be shared transparently between processes on the same node. For this purpose we would like to mmap memory with MAP_SHARED. This is very useful for implementation for Remote Memory Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3] communication libraries. This allow a remote process to map user allocated memory and provide RMA operations through memcpy().
+
+(b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+
+Based on this requirements we would like to understand what is the best approach for integration this functionality within jemalloc.
+
+Regards,
+Pasha & Yossi
+
+[1] OpenUCX: https://github.com/openucx/ucx or www.openucx.org<http://www.openucx.org/>
+[2] MPI SPEC: http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf
+[3] OpenSHMEM SPEC: http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf
+
+
+
+
+
+_______________________________________________
+jemalloc-discuss mailing list
+jemalloc-discuss at canonware.com<mailto:jemalloc-discuss at canonware.com>
+http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+
+--
+Jeff Hammond
+jeff.science at gmail.com<mailto:jeff.science at gmail.com>
+http://jeffhammond.github.io/
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151020/123b0db8/attachment.html>
+
+From jeff.science at gmail.com  Tue Oct 20 14:53:52 2015
+From: jeff.science at gmail.com (Jeff Hammond)
+Date: Tue, 20 Oct 2015 14:53:52 -0700
+Subject: Memory allocation/release hooks
+In-Reply-To: <042D5678-07C0-4677-9F0E-13CF4930257E@ornl.gov>
+References: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+	<CAGKz=uJfCOa2rtrf9teA_muxS7mPON_S12KfP2v_ZSJUoDZCzg@mail.gmail.com>
+	<042D5678-07C0-4677-9F0E-13CF4930257E@ornl.gov>
+Message-ID: <CAGKz=u+SJ4J6RJFbUdWSJxvpmaCj=XCgV-0e3u290fekRaDakg@mail.gmail.com>
+
+You don't want to use malloc interception if you care about
+portability/interoperability.  For example, see
+http://mailman.cse.ohio-state.edu/pipermail/mvapich-discuss/2014-December/005276.html
+.
+
+I can't find the archives of madness-developers at googlegroups.com online
+(perhaps I am just stupid) but we recently encountered the same issue with
+JEMalloc and other MPI implementations.
+
+I understand why it is tempting to intercepting malloc/free for MPI
+purposes, but the end result is brittle software that forces users to
+disable all the optimizations you are trying to enable.
+
+And it is worth noting that the abuse of malloc/free interception by MPI
+developers has forced the MADNESS team (or rather me) to completely bypass
+ISO C/C++ language defined heap routines to prevent MPI from hijacking them
+and breaking our code.
+
+Anyways, this is in no way a statement about JEMalloc.  The results with
+MADNESS indicate this it is the best available allocator around (vs GNU,
+TCE and TBB mallocs), but we will have to call it explicitly rather than
+via symbol interception.
+
+Best,
+
+Jeff
+
+On Tue, Oct 20, 2015 at 12:18 PM, Shamis, Pavel <shamisp at ornl.gov> wrote:
+
+> Hi Jeff,
+>
+> Thanks for the link, seems like a very useful library.
+>
+> Our goal is a bit different (and very simple/basic).
+> We are looking for a malloc library that we can use for integration with
+> our registration cache.
+> Essentially, it redirects application's malloc() calls to (through
+> LD_PRELOAD or rpath) jemalloc that is hooked up with a cache (just like in
+> HPX).
+> At this stage we don't play with locality.
+>
+> Thanks !
+>
+> Pavel (Pasha) Shamis
+> ---
+> Computer Science Research Group
+> Computer Science and Math Division
+> Oak Ridge National Laboratory
+>
+>
+>
+>
+>
+>
+> On Oct 20, 2015, at 11:31 AM, Jeff Hammond <jeff.science at gmail.com> wrote:
+>
+> Hi Pavel,
+>
+> You may find http://memkind.github.io/memkind/ relevant.  In particular,
+> http://memkind.github.io/memkind/memkind_arch_20150318.pdf section 2.2
+> and 2.3 discusses exactly the issues you raise.  We also note that memkind
+> is intended to support multiple types of memory within a node, such as one
+> might encounter in a platform such as Knights Landing.  You are free to
+> imagine how it might map to OpenPOWER based upon your superior knowledge of
+> that platform :-)
+>
+> While I recognize that the origins of memkind at Intel may pose a
+> challenge for some in the OpenPOWER family, it would be tremendously
+> valuable to the community if it was reused for MPI and OpenSHMEM projects,
+> rather than the UCX team trying to implement something new.  As you know,
+> the both MPI and OpenSHMEM should run on a range of platforms, and it
+> doubles the implementation effort in all relevant projects (MPICH, OpenMPI,
+> OpenSHMEM reference, etc.) if UCX goes in a different direction.
+>
+> I would be happy to introduce you to the memkind developers (I am not one
+> of them, just someone who helps them understand user/client requirements).
+>
+> Best,
+>
+> Jeff
+>
+>
+> On Thu, Oct 15, 2015 at 8:45 AM, Shamis, Pavel <shamisp at ornl.gov> wrote:
+>
+>> Dear Jemalloc Community,
+>>
+>> We are developer of UCX project [1] and as part of the effort
+>> we are looking for a malloc library that supports hooks for alloc/dealloc
+>> chunks and can be used for the following:
+>>
+>> (a) Allocation of memory that can be shared transparently between
+>> processes on the same node. For this purpose we would like to mmap memory
+>> with MAP_SHARED. This is very useful for implementation for Remote Memory
+>> Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3]
+>> communication libraries. This allow a remote process to map user allocated
+>> memory and provide RMA operations through memcpy().
+>>
+>> (b) Implementation of memory de-allocation hooks for RDMA hardware
+>> (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a
+>> lazy memory de-registration (memory unpinning) policy and we use the hook
+>> for the  notification of communication library about memory release event.
+>> On the event, we cleanup our registration cache and de-register (unpin) the
+>> memory on hardware.
+>>
+>> Based on this requirements we would like to understand what is the best
+>> approach for integration this functionality within jemalloc.
+>>
+>> Regards,
+>> Pasha & Yossi
+>>
+>> [1] OpenUCX: https://github.com/openucx/ucx or www.openucx.org
+>> [2] MPI SPEC: http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf
+>> [3] OpenSHMEM SPEC:
+>> http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf
+>>
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>
+>
+>
+> --
+> Jeff Hammond
+> jeff.science at gmail.com
+> http://jeffhammond.github.io/
+>
+>
+>
+
+
+-- 
+Jeff Hammond
+jeff.science at gmail.com
+http://jeffhammond.github.io/
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151020/44461219/attachment-0001.html>
+
+From piyush at netskope.com  Wed Oct 21 14:02:07 2015
+From: piyush at netskope.com (Piyush Patel)
+Date: Wed, 21 Oct 2015 14:02:07 -0700
+Subject: valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+In-Reply-To: <29F84D80-CEE3-4D2B-84AC-CBAF95EB30C8@canonware.com>
+References: <C18B0E43-B0DB-444A-A486-9CD366E16604@netskope.com>
+	<29F84D80-CEE3-4D2B-84AC-CBAF95EB30C8@canonware.com>
+Message-ID: <A6C807BE-DB1D-4AA6-AFDC-FC0F7417800F@netskope.com>
+
+This is obviously very late response but thanks for fixing it.
+
+Piyush
+
+> On Oct 19, 2013, at 9:46 PM, Jason Evans <jasone at canonware.com> wrote:
+> 
+> On Jul 8, 2013, at 9:23 AM, Piyush Patel <piyush at netskope.com <mailto:piyush at netskope.com>> wrote:
+>> I've ran into similar issue that Daniel Mezzato ran into(email thread around Dec 11, 2012).  I get following warnings:
+>> 
+>> ==28997== Conditional jump or move depends on uninitialised value(s)
+>> ==28997==    at 0x4E438C1: arena_run_split (arena.c:454)
+>> ==28997==    by 0x4E441DF: arena_run_alloc_helper (arena.c:645)
+>> ==28997==    by 0x4E469ED: arena_malloc_large (arena.c:665)
+>> ==28997==    by 0x4E3BA48: calloc (arena.h:930)
+>> ==28997==    by 0x400661: main (jemalloc_test.cpp:8)
+>> ==28997== 
+>> ==28997== Conditional jump or move depends on uninitialised value(s)
+>> ==28997==    at 0x4E438E9: arena_run_split (arena.c:454)
+>> ==28997==    by 0x4E441DF: arena_run_alloc_helper (arena.c:645)
+>> ==28997==    by 0x4E469ED: arena_malloc_large (arena.c:665)
+>> ==28997==    by 0x4E3BA48: calloc (arena.h:930)
+>> ==28997==    by 0x400661: main (jemalloc_test.cpp:8)
+> 
+> A fix is now available in the dev branch:
+> 
+> 	https://github.com/jemalloc/jemalloc/commit/87a02d2bb18dbcb2955541b849bc95862e864803 <https://github.com/jemalloc/jemalloc/commit/87a02d2bb18dbcb2955541b849bc95862e864803>
+> Thanks,
+> Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151021/908caf99/attachment.html>
+
+From shamisp at ornl.gov  Thu Oct 22 18:53:21 2015
+From: shamisp at ornl.gov (Shamis, Pavel)
+Date: Fri, 23 Oct 2015 01:53:21 +0000
+Subject: Memory allocation/release hooks
+In-Reply-To: <CAGKz=u+SJ4J6RJFbUdWSJxvpmaCj=XCgV-0e3u290fekRaDakg@mail.gmail.com>
+References: <EE88DB98-6B72-432B-872A-4426A9FEE378@ornl.gov>
+	<CAGKz=uJfCOa2rtrf9teA_muxS7mPON_S12KfP2v_ZSJUoDZCzg@mail.gmail.com>
+	<042D5678-07C0-4677-9F0E-13CF4930257E@ornl.gov>
+	<CAGKz=u+SJ4J6RJFbUdWSJxvpmaCj=XCgV-0e3u290fekRaDakg@mail.gmail.com>
+Message-ID: <3e6c3a31b5824661bde5c85c9649b748@EXCHCS32.ornl.gov>
+
+Jeff,
+
+Agree, this is a well know problem. It does not work well with some applications.
+We will provide this option to our users and they will have the freedom to enable/disable this.
+
+Best,
+Pasha
+
+From: Jeff Hammond [mailto:jeff.science at gmail.com]
+Sent: Tuesday, October 20, 2015 5:54 PM
+To: Shamis, Pavel
+Cc: jemalloc-discuss at canonware.com; Baker, Matthew B.; Yossi Etigin
+Subject: Re: Memory allocation/release hooks
+
+You don't want to use malloc interception if you care about portability/interoperability.  For example, see http://mailman.cse.ohio-state.edu/pipermail/mvapich-discuss/2014-December/005276.html.
+
+I can't find the archives of madness-developers at googlegroups.com<mailto:madness-developers at googlegroups.com> online (perhaps I am just stupid) but we recently encountered the same issue with JEMalloc and other MPI implementations.
+
+I understand why it is tempting to intercepting malloc/free for MPI purposes, but the end result is brittle software that forces users to disable all the optimizations you are trying to enable.
+
+And it is worth noting that the abuse of malloc/free interception by MPI developers has forced the MADNESS team (or rather me) to completely bypass ISO C/C++ language defined heap routines to prevent MPI from hijacking them and breaking our code.
+
+Anyways, this is in no way a statement about JEMalloc.  The results with MADNESS indicate this it is the best available allocator around (vs GNU, TCE and TBB mallocs), but we will have to call it explicitly rather than via symbol interception.
+
+Best,
+
+Jeff
+
+On Tue, Oct 20, 2015 at 12:18 PM, Shamis, Pavel <shamisp at ornl.gov<mailto:shamisp at ornl.gov>> wrote:
+Hi Jeff,
+
+Thanks for the link, seems like a very useful library.
+
+Our goal is a bit different (and very simple/basic).
+We are looking for a malloc library that we can use for integration with our registration cache.
+Essentially, it redirects application's malloc() calls to (through LD_PRELOAD or rpath) jemalloc that is hooked up with a cache (just like in HPX).
+At this stage we don't play with locality.
+
+Thanks !
+
+Pavel (Pasha) Shamis
+---
+Computer Science Research Group
+Computer Science and Math Division
+Oak Ridge National Laboratory
+
+
+
+
+
+On Oct 20, 2015, at 11:31 AM, Jeff Hammond <jeff.science at gmail.com<mailto:jeff.science at gmail.com>> wrote:
+
+
+Hi Pavel,
+
+You may find http://memkind.github.io/memkind/ relevant.  In particular, http://memkind.github.io/memkind/memkind_arch_20150318.pdf section 2.2 and 2.3 discusses exactly the issues you raise.  We also note that memkind is intended to support multiple types of memory within a node, such as one might encounter in a platform such as Knights Landing.  You are free to imagine how it might map to OpenPOWER based upon your superior knowledge of that platform :-)
+
+While I recognize that the origins of memkind at Intel may pose a challenge for some in the OpenPOWER family, it would be tremendously valuable to the community if it was reused for MPI and OpenSHMEM projects, rather than the UCX team trying to implement something new.  As you know, the both MPI and OpenSHMEM should run on a range of platforms, and it doubles the implementation effort in all relevant projects (MPICH, OpenMPI, OpenSHMEM reference, etc.) if UCX goes in a different direction.
+
+I would be happy to introduce you to the memkind developers (I am not one of them, just someone who helps them understand user/client requirements).
+
+Best,
+
+Jeff
+
+
+On Thu, Oct 15, 2015 at 8:45 AM, Shamis, Pavel <shamisp at ornl.gov<mailto:shamisp at ornl.gov>> wrote:
+Dear Jemalloc Community,
+
+We are developer of UCX project [1] and as part of the effort
+we are looking for a malloc library that supports hooks for alloc/dealloc chunks and can be used for the following:
+
+(a) Allocation of memory that can be shared transparently between processes on the same node. For this purpose we would like to mmap memory with MAP_SHARED. This is very useful for implementation for Remote Memory Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3] communication libraries. This allow a remote process to map user allocated memory and provide RMA operations through memcpy().
+
+(b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+
+Based on this requirements we would like to understand what is the best approach for integration this functionality within jemalloc.
+
+Regards,
+Pasha & Yossi
+
+[1] OpenUCX: https://github.com/openucx/ucx or www.openucx.org<http://www.openucx.org/>
+[2] MPI SPEC: http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf
+[3] OpenSHMEM SPEC: http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf
+
+
+
+
+
+_______________________________________________
+jemalloc-discuss mailing list
+jemalloc-discuss at canonware.com<mailto:jemalloc-discuss at canonware.com>
+http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+
+--
+Jeff Hammond
+jeff.science at gmail.com<mailto:jeff.science at gmail.com>
+http://jeffhammond.github.io/
+
+
+
+
+--
+Jeff Hammond
+jeff.science at gmail.com<mailto:jeff.science at gmail.com>
+http://jeffhammond.github.io/
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151023/4d76cc75/attachment.html>
+

@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20calling%20a%20function%20via%20PLT%20and%20jemalloc%20realloc%20changes%20function%0A%09first%20argument%20%28XMM0%29&In-Reply-To=%3C529492D5.7010103%40redpill-linpro.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000670.html">
+   <LINK REL="Next"  HREF="000685.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20calling%20a%20function%20via%20PLT%20and%20jemalloc%20realloc%20changes%20function%0A%09first%20argument%20%28XMM0%29&In-Reply-To=%3C529492D5.7010103%40redpill-linpro.com%3E"
+       TITLE="calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Tue Nov 26 04:23:49 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000670.html">calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+</A></li>
+        <LI>Next message: <A HREF="000685.html">calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#683">[ date ]</a>
+              <a href="thread.html#683">[ thread ]</a>
+              <a href="subject.html#683">[ subject ]</a>
+              <a href="author.html#683">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>David Abdurachmanov wrote:
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> I am having problems with jemalloc 3.4.1 (currently we use 2.2.2 in 
+</I>&gt;<i> production). I found that with jemalloc 3.4.1 function first argument 
+</I>&gt;<i> will be changed if first argument is passed by XMM0 register. Compiled 
+</I>&gt;<i> with GCC 4.8.1 (tested also with 4.8.2). No problems on Scientific 
+</I>&gt;<i> Linux 6 (RHEL6-based), but it fails on Scientific Linux 5 
+</I>&gt;<i> (RHEL5-based). All of this is because _dl_lookup_symbol_x calls 
+</I>&gt;<i> _realloc_ in Scientific Linux 5.
+</I>&gt;<i>
+</I>&gt;<i> This probably makes jemalloc 3.4.1 and the whole 3.X.Y series not 
+</I>&gt;<i> recommended for RHEL5 and RHEL5-based distributions.
+</I>&gt;<i> (...)
+</I>
+Just a note from the EPEL* maintainer. EPEL6 has jemalloc-3.4.x. EPEL5 
+has stayed on 3.1.x for a while, and unless there are serious bugs that 
+should be fixed, I don't plan to update it.
+
+Ingvar
+
+
+
+
+*) EPEL is the Fedora &quot;Extra packages for Enterprise Linux&quot; project, 
+that is, repackaged Fedora RPMS for Red Hat Enterprise Linux and clones 
+like CentOS and Scientific Linux.
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000670.html">calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+</A></li>
+	<LI>Next message: <A HREF="000685.html">calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#683">[ date ]</a>
+              <a href="thread.html#683">[ thread ]</a>
+              <a href="subject.html#683">[ subject ]</a>
+              <a href="author.html#683">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,322 @@
+From paul at mad-scientist.net  Thu Sep  5 06:25:53 2013
+From: paul at mad-scientist.net (Paul Smith)
+Date: Thu, 05 Sep 2013 09:25:53 -0400
+Subject: jemalloc on Solaris (Joyent SmartOS)
+Message-ID: <1378387553.1332.186.camel@pdsdesk>
+
+Hi all.
+
+I have some software using jemalloc (in a large, heavily multi-threaded
+C++ program) currently running on Linux, MacOSX, and Windows, and we are
+porting it to Joyent's cloud-based SmartOS offering, which is Solaris
+underneath.  This is compiled using GCC 4.7.0 (that's the version
+packaged with this OS).
+
+I'm using jemalloc 3.1.0-0-g3b1f3aca54fede23299cde9034f7b909c3d290d7
+currently; I'm not adverse to upgrading if that's warranted.
+
+When I start my program it dumps core.  Examining the core dump the
+problem is obvious: my program is going into an infinite recursion
+trying to allocate memory.
+
+Based on the stacktrace I rebuilt jemalloc without TLS support
+(--disable-tls), then I don't get this failure but I've not tested far
+enough to know if there might be other issues.
+
+My main question is, I've noted that http://www.canonware.com/jemalloc/
+doesn't list Solaris as supported by the stand-alone jemalloc
+implementation, which is what I'm using.  A subsequent bullet item lists
+Solaris as being supported by the version of jemalloc that's included in
+Mozilla's FireFox allocator.
+
+Is that still the situation today?  I'd really prefer to not try to use
+two different versions of jemalloc on my different platforms.  Is anyone
+familiar with the differences, and can they advise me on my best bet
+going forward?  Should I continue on working with stand-alone jemalloc
+on Solaris, or should I investigate using the version in FireFox?
+
+
+FYI, the recursion looks like this:
+
+Program terminated with signal 11, Segmentation fault.
+#0  0x0000000001c7c4e7 in icalloc ()
+#0  0x0000000001c7c4e7 in icalloc ()
+#1  0x0000000001c8095e in calloc ()
+#2  0x0000000001d099b1 in __emutls_get_address (obj=0x1ff3f40) at ../../../gcc-4.7.0/libgcc/emutls.c:159
+#3  0x0000000001c7a738 in tcache_tsd_get ()
+#4  0x0000000001c7aa4e in tcache_get ()
+#5  0x0000000001c7bbde in arena_malloc ()
+#6  0x0000000001c7c4b5 in icallocx ()
+#7  0x0000000001c7c4ec in icalloc ()
+#8  0x0000000001c8095e in calloc ()
+#9  0x0000000001d099b1 in __emutls_get_address (obj=0x1ff3f40) at ../../../gcc-4.7.0/libgcc/emutls.c:159
+#10 0x0000000001c7a738 in tcache_tsd_get ()
+#11 0x0000000001c7aa4e in tcache_get ()
+#12 0x0000000001c7bbde in arena_malloc ()
+#13 0x0000000001c7c4b5 in icallocx ()
+#14 0x0000000001c7c4ec in icalloc ()
+#15 0x0000000001c8095e in calloc ()
+#16 0x0000000001d099b1 in __emutls_get_address (obj=0x1ff3f40) at ../../../gcc-4.7.0/libgcc/emutls.c:159
+    ....
+#191103 0x0000000001c7a738 in tcache_tsd_get ()
+#191104 0x0000000001c7aa4e in tcache_get ()
+#191105 0x0000000001c7bbde in arena_malloc ()
+#191106 0x0000000001c7c4b5 in icallocx ()
+#191107 0x0000000001c7c4ec in icalloc ()
+#191108 0x0000000001c8095e in calloc ()
+#191109 0x0000000001d099b1 in __emutls_get_address (obj=0x1ff3f40) at ../../../gcc-4.7.0/libgcc/emutls.c:159
+#191110 0x0000000001c7a738 in tcache_tsd_get ()
+#191111 0x0000000001c7aa4e in tcache_get ()
+#191112 0x0000000001c7bbde in arena_malloc ()
+#191113 0x0000000001c7c43c in imallocx ()
+#191114 0x0000000001c7c473 in imalloc ()
+#191115 0x0000000001c80021 in malloc ()
+#191116 0x0000000000934fb2 in Init() ()
+#191117 0x00000000009353f0 in __static_initialization_and_destruction_0 ()
+#191118 0x000000000093540c in _GLOBAL__sub_I_JEMemory.cpp ()
+#191119 0x0000000001d09b66 in __do_global_ctors_aux ()
+#191120 0x0000000001d09b8e in _init ()
+#191121 0x0000000000759103 in _start ()
+
+
+
+
+From jasone at canonware.com  Mon Sep 16 14:34:00 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 16 Sep 2013 14:34:00 -0700
+Subject: 3.4.0 build log using gcc-4.8.1
+In-Reply-To: <20130830092104.29c1e616@darkbook.lan.box>
+References: <20130830092104.29c1e616@darkbook.lan.box>
+Message-ID: <C784CA45-C7B0-4036-807D-3175C4CEE562@canonware.com>
+
+On Aug 30, 2013, at 5:21 AM, Ricardo Nabinger Sanchez <rnsanchez at wait4.org> wrote:
+> I'm posting my build log for jemalloc-3.4.0, using gcc-4.8.1.  I did not look
+> whether these warnings may be false positives, and I do know that gcc-4.8 has
+> been more vocal about some classes of warnings.
+> 
+> [...]
+> 
+> % ./configure --disable-experimental
+> [...]
+> cc-silence         : 0
+> [...]
+
+Many (hopefully all) of the warnings are explicitly silenced if --enable-cc-silence is passed to the configure script.  If you encounter warnings that persist even with --enable-cc-silence, please submit a patch or let me know so I can address them.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Mon Sep 16 15:01:28 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 16 Sep 2013 15:01:28 -0700
+Subject: jemalloc on Solaris (Joyent SmartOS)
+In-Reply-To: <1378387553.1332.186.camel@pdsdesk>
+References: <1378387553.1332.186.camel@pdsdesk>
+Message-ID: <52110095-C6DF-4280-AE4C-7281E53C7C9D@canonware.com>
+
+On Sep 5, 2013, at 6:25 AM, Paul Smith <paul at mad-scientist.net> wrote:
+> I have some software using jemalloc (in a large, heavily multi-threaded
+> C++ program) currently running on Linux, MacOSX, and Windows, and we are
+> porting it to Joyent's cloud-based SmartOS offering, which is Solaris
+> underneath.  This is compiled using GCC 4.7.0 (that's the version
+> packaged with this OS).
+> 
+> I'm using jemalloc 3.1.0-0-g3b1f3aca54fede23299cde9034f7b909c3d290d7
+> currently; I'm not adverse to upgrading if that's warranted.
+> 
+> When I start my program it dumps core.  Examining the core dump the
+> problem is obvious: my program is going into an infinite recursion
+> trying to allocate memory.
+> 
+> Based on the stacktrace I rebuilt jemalloc without TLS support
+> (--disable-tls), then I don't get this failure but I've not tested far
+> enough to know if there might be other issues.
+
+Any recursive call into malloc during early jemalloc bootstrapping will cause catastrophic failure.  This is unfortunately a common theme in jemalloc bootstrapping that requires OS-specific solutions.  OS X also calls malloc during TLS initialization, but TSD is very fast on OS X, so it's a reasonable alternative.  The fact that __emutls_get_address() (part of libgcc) is being called in this case makes me wonder if TLS is really an improvement over TSD.  In any case, the only expected adverse effect of disabling TLS is performance-related, and that is an OS-specific effect.  If you are concerned about a performance hit, you can use --with-jemalloc-prefix to change the allocation function names and write a microbenchmark that compares with/without TLS support built in.
+
+> My main question is, I've noted that http://www.canonware.com/jemalloc/
+> doesn't list Solaris as supported by the stand-alone jemalloc
+> implementation, which is what I'm using.  A subsequent bullet item lists
+> Solaris as being supported by the version of jemalloc that's included in
+> Mozilla's FireFox allocator.
+> 
+> Is that still the situation today?  I'd really prefer to not try to use
+> two different versions of jemalloc on my different platforms.  Is anyone
+> familiar with the differences, and can they advise me on my best bet
+> going forward?  Should I continue on working with stand-alone jemalloc
+> on Solaris, or should I investigate using the version in FireFox?
+
+The stand-alone version of jemalloc is far advanced beyond the version in Mozilla.
+
+If you have general success with jemalloc on Solaris with --disable-tls and you determine that it's the right setting for all Solaris builds, please let me know so that we can force the option, as we do for OS X.  I don't have a Solaris environment set up, so I don't test releases there.  Your email is the first Solaris-related feedback I've received in quite some time, so up to now I've conservatively left it off the list of supported platforms.  There's already Solaris support in the configure script though, and I'm happy to take patches to get/keep jemalloc working on Solaris. 
+ 
+Thanks,
+Jason
+
+
+
+From rnsanchez at wait4.org  Thu Sep 19 19:04:22 2013
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Thu, 19 Sep 2013 23:04:22 -0300
+Subject: 3.4.0 build log using gcc-4.8.1
+In-Reply-To: <C784CA45-C7B0-4036-807D-3175C4CEE562@canonware.com>
+References: <20130830092104.29c1e616@darkbook.lan.box>
+	<C784CA45-C7B0-4036-807D-3175C4CEE562@canonware.com>
+Message-ID: <20130919230422.332b16e2@darkbook.lan.box>
+
+Ol? Jason,
+
+On Mon, 16 Sep 2013 14:34:00 -0700
+Jason Evans <jasone at canonware.com> wrote:
+
+> On Aug 30, 2013, at 5:21 AM, Ricardo Nabinger Sanchez <rnsanchez at wait4.org> wrote:
+> > I'm posting my build log for jemalloc-3.4.0, using gcc-4.8.1.  I did not look
+> > whether these warnings may be false positives, and I do know that gcc-4.8 has
+> > been more vocal about some classes of warnings.
+> > 
+> > [...]
+> > 
+> > % ./configure --disable-experimental
+> > [...]
+> > cc-silence         : 0
+> > [...]  
+> 
+> Many (hopefully all) of the warnings are explicitly silenced if --enable-cc-silence is passed to the configure script.  If you encounter warnings that persist even with --enable-cc-silence, please submit a patch or let me know so I can address them.
+
+With --enable-cc-silence, only these:
+
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.o src/jemalloc.c
+src/jemalloc.c:303:1: warning: always_inline function might not be inlinable [-Wattributes]
+ malloc_init(void)
+ ^
+src/jemalloc.c:286:1: warning: always_inline function might not be inlinable [-Wattributes]
+ malloc_thread_init(void)
+ ^
+
+src/ctl.c: In function 'epoch_ctl':
+src/ctl.c:1112:11: warning: variable 'newval' set but not used [-Wunused-but-set-variable]
+  uint64_t newval;
+           ^
+
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+
+From alex at kaworu.ch  Fri Sep 20 11:47:26 2013
+From: alex at kaworu.ch (Alex)
+Date: Fri, 20 Sep 2013 20:47:26 +0200
+Subject: [PATCH] malloc_conf_init: revert errno value when readlink(2) fail.
+Message-ID: <523C983E.4020104@kaworu.ch>
+
+Hi,
+
+In malloc_conf_init(), readlink(2) is called in order to read 
+"/etc/malloc.conf". When readlink(2) fail (which is a common case, for 
+exemple when "/etc/malloc.conf" does not exists) errno is set. This can 
+lead to unexpected behaviour of malloc(), in my case malloc() set 
+errno=2 (ENOENT) because "/etc/malloc.conf" does not exist (see test.c 
+attached).
+
+I wrote a patch that fixed the issue (against the dev branch). At first 
+I didn't catch the !_WIN32 condition, so review is welcome (I could not 
+test it under Windows). Also I thought it might be better to save & 
+restore errno in malloc_init(), because it could catch other function 
+call modifying errno. Does this make sens ?
+
+Patch attached :)
+
+Regards,
+Alex.
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-malloc_conf_init-revert-errno-value-when-readlink-2-.patch
+Type: text/x-patch
+Size: 1465 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130920/887e7139/attachment.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test.c
+Type: text/x-csrc
+Size: 267 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130920/887e7139/attachment.c>
+
+From bill at cs.uml.edu  Mon Sep 23 09:59:09 2013
+From: bill at cs.uml.edu (bill)
+Date: Mon, 23 Sep 2013 12:59:09 -0400
+Subject: double allocations:
+Message-ID: <67bddff80bf736cece4cb86c3e814f0a@earth.cs.uml.edu>
+
+I've noticed that an allocation request for a large chunk of memory 
+(128GB) results in two calls to pages_map() (in src/chunk_mmap.c), 
+consuming 2x the VM I requested.  In a 64 bit world this is not a big 
+problem, but I've recoded pages_map() to force allocation from an mmap'd 
+ssd (instead of swap anonymous mmap), and it's forcing me to run out of 
+backing store.  The issue I would like to understand is why pages_map() 
+is called twice with separate requests for the single 128GB jemalloc() 
+that I'm doing in my application.  The first allocation is followed by a 
+call to pages_unmap(), but with an unmap size of 0 bytes, leaving it 
+fully mapped, while the second allocation (which is slightly larger than 
+128GB) is trimmed to exactly 128GB by 2 subsequent pages_unmap() calls.  
+This behavior seems very strange to me, and any explanation would be 
+appreciated.
+Bill
+
+
+
+From jasone at canonware.com  Mon Sep 23 18:13:06 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 23 Sep 2013 18:13:06 -0700
+Subject: double allocations:
+In-Reply-To: <67bddff80bf736cece4cb86c3e814f0a@earth.cs.uml.edu>
+References: <67bddff80bf736cece4cb86c3e814f0a@earth.cs.uml.edu>
+Message-ID: <731A6984-DC62-4A07-B574-02AE7E331E8C@canonware.com>
+
+On Sep 23, 2013, at 9:59 AM, bill <bill at cs.uml.edu> wrote:
+> I've noticed that an allocation request for a large chunk of memory (128GB) results in two calls to pages_map() (in src/chunk_mmap.c), consuming 2x the VM I requested.  In a 64 bit world this is not a big problem, but I've recoded pages_map() to force allocation from an mmap'd ssd (instead of swap anonymous mmap), and it's forcing me to run out of backing store.  The issue I would like to understand is why pages_map() is called twice with separate requests for the single 128GB jemalloc() that I'm doing in my application.  The first allocation is followed by a call to pages_unmap(), but with an unmap size of 0 bytes, leaving it fully mapped, while the second allocation (which is slightly larger than 128GB) is trimmed to exactly 128GB by 2 subsequent pages_unmap() calls.  This behavior seems very strange to me, and any explanation would be appreciated.
+
+It sounds like the first time pages_map() is called, it returns a result that isn't adequately aligned.  The second time, extra space is allocated so that the result can be trimmed to alignment boundaries.
+
+You say that the interposed call to pages_unmap() receives a size of 0.  Assuming the call is coming from chunk_alloc_mmap(), I see no way that can happen.  There was a bug in a ~3-year-old version of jemalloc of this nature, but I hope you're using a more modern version.  Also of relevance: the SSD backing feature you added existed in 2.x versions of jemalloc, but I removed it because no one ever claimed to have found it useful.
+
+Jason
+
+From egmkang at gmail.com  Mon Sep 23 23:55:41 2013
+From: egmkang at gmail.com (egmkang wang)
+Date: Tue, 24 Sep 2013 06:55:41 +0000 (UTC)
+Subject: Invitation to connect on LinkedIn
+Message-ID: <232524151.4224390.1380005741640.JavaMail.app@ela4-app0132.prod>
+
+LinkedIn
+------------
+
+
+
+I'd like to add you to my professional network on LinkedIn.
+
+- egmkang
+
+egmkang wang
+MMOG Server Programmer at ShangHai 123U
+China
+
+Confirm that you know egmkang wang:
+https://www.linkedin.com/e/fjd56d-hlyrsd2f-4r/isd/16790941008/H29g7nuu/?hs=false&tok=3seotnc04vZ5U1
+
+--
+You are receiving Invitation to Connect emails. Click to unsubscribe:
+http://www.linkedin.com/e/fjd56d-hlyrsd2f-4r/uOU21Szk_WeXUxWMA2FjM9vz-yJNfbiKRwUiQJzzqP_49l/goo/jemalloc-discuss%40canonware%2Ecom/20061/I5582162039_1/?hs=false&tok=3ELMBZPRUvZ5U1
+
+(c) 2012 LinkedIn Corporation. 2029 Stierlin Ct, Mountain View, CA 94043, USA.
+
+
+  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130924/c6e202b1/attachment.html>
+

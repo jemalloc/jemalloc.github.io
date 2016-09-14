@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 3.4.0 build log using gcc-4.8.1
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%203.4.0%20build%20log%20using%20gcc-4.8.1&In-Reply-To=%3C20130919230422.332b16e2%40darkbook.lan.box%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000629.html">
+   <LINK REL="Next"  HREF="000632.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>3.4.0 build log using gcc-4.8.1</H1>
+    <B>Ricardo Nabinger Sanchez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%203.4.0%20build%20log%20using%20gcc-4.8.1&In-Reply-To=%3C20130919230422.332b16e2%40darkbook.lan.box%3E"
+       TITLE="3.4.0 build log using gcc-4.8.1">rnsanchez at wait4.org
+       </A><BR>
+    <I>Thu Sep 19 19:04:22 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000629.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+        <LI>Next message: <A HREF="000632.html">[PATCH] malloc_conf_init: revert errno value when readlink(2) fail.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#631">[ date ]</a>
+              <a href="thread.html#631">[ thread ]</a>
+              <a href="subject.html#631">[ subject ]</a>
+              <a href="author.html#631">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Ol&#225; Jason,
+
+On Mon, 16 Sep 2013 14:34:00 -0700
+Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Aug 30, 2013, at 5:21 AM, Ricardo Nabinger Sanchez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">rnsanchez at wait4.org</A>&gt; wrote:
+</I>&gt;<i> &gt; I'm posting my build log for jemalloc-3.4.0, using gcc-4.8.1.  I did not look
+</I>&gt;<i> &gt; whether these warnings may be false positives, and I do know that gcc-4.8 has
+</I>&gt;<i> &gt; been more vocal about some classes of warnings.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; [...]
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; % ./configure --disable-experimental
+</I>&gt;<i> &gt; [...]
+</I>&gt;<i> &gt; cc-silence         : 0
+</I>&gt;<i> &gt; [...]  
+</I>&gt;<i> 
+</I>&gt;<i> Many (hopefully all) of the warnings are explicitly silenced if --enable-cc-silence is passed to the configure script.  If you encounter warnings that persist even with --enable-cc-silence, please submit a patch or let me know so I can address them.
+</I>
+With --enable-cc-silence, only these:
+
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.o src/jemalloc.c
+src/jemalloc.c:303:1: warning: always_inline function might not be inlinable [-Wattributes]
+ malloc_init(void)
+ ^
+src/jemalloc.c:286:1: warning: always_inline function might not be inlinable [-Wattributes]
+ malloc_thread_init(void)
+ ^
+
+src/ctl.c: In function 'epoch_ctl':
+src/ctl.c:1112:11: warning: variable 'newval' set but not used [-Wunused-but-set-variable]
+  uint64_t newval;
+           ^
+
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           <A HREF="http://rnsanchez.wait4.org/">http://rnsanchez.wait4.org/</A>
+  &quot;Left to themselves, things tend to go from bad to worse.&quot;
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000629.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+	<LI>Next message: <A HREF="000632.html">[PATCH] malloc_conf_init: revert errno value when readlink(2) fail.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#631">[ date ]</a>
+              <a href="thread.html#631">[ thread ]</a>
+              <a href="subject.html#631">[ subject ]</a>
+              <a href="author.html#631">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

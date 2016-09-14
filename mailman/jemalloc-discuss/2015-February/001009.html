@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc debug mode
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20debug%20mode&In-Reply-To=%3CCAGvmEXi090r22ReKnNop8Eaih7%2B5%3D5uzNJJP8LdPcSXdhKfewg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001010.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc debug mode</H1>
+    <B>SNL</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20debug%20mode&In-Reply-To=%3CCAGvmEXi090r22ReKnNop8Eaih7%2B5%3D5uzNJJP8LdPcSXdhKfewg%40mail.gmail.com%3E"
+       TITLE="Jemalloc debug mode">snl20465 at gmail.com
+       </A><BR>
+    <I>Mon Feb  2 06:24:12 PST 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001010.html">Jemalloc debug mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1009">[ date ]</a>
+              <a href="thread.html#1009">[ thread ]</a>
+              <a href="subject.html#1009">[ subject ]</a>
+              <a href="author.html#1009">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Any inputs will be really helpful.
+
+On Fri, Jan 30, 2015 at 8:48 PM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+
+&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Two questions:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> 1. I am using jemalloc-dev version and configured it as follows
+</I>&gt;<i>
+</I>&gt;<i> ./configure --enable-debug --enable-fill --enable-ivsalloc --disable-tcache
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> I am running following simple test case but double free is not detected,
+</I>&gt;<i> what am I missing ?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> int main()
+</I>&gt;<i> {
+</I>&gt;<i>     char * ptr = malloc(1024);
+</I>&gt;<i>     free(ptr);
+</I>&gt;<i>     free(ptr);
+</I>&gt;<i>     return 0;
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> 2.  Is quarantine basically a per thread free list ? How does it interact
+</I>&gt;<i> with tcache ?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Cheers.
+</I>&gt;<i>
+</I>
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150202/0de4f872/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150202/0de4f872/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001010.html">Jemalloc debug mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1009">[ date ]</a>
+              <a href="thread.html#1009">[ thread ]</a>
+              <a href="subject.html#1009">[ subject ]</a>
+              <a href="author.html#1009">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

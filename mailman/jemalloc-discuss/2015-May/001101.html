@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc Suitable for embedded environments
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20Suitable%20for%20embedded%20environments&In-Reply-To=%3CEDC505415B5EF74C80596BD24619C1032C3A9AE8%40xmb-rcd-x07.cisco.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001099.html">
+   <LINK REL="Next"  HREF="001102.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc Suitable for embedded environments</H1>
+    <B>Mayank Kumar (mayankum)</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20Suitable%20for%20embedded%20environments&In-Reply-To=%3CEDC505415B5EF74C80596BD24619C1032C3A9AE8%40xmb-rcd-x07.cisco.com%3E"
+       TITLE="jemalloc Suitable for embedded environments">mayankum at cisco.com
+       </A><BR>
+    <I>Mon May 11 13:19:39 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001099.html">jemalloc Suitable for embedded environments
+</A></li>
+        <LI>Next message: <A HREF="001102.html">jemalloc Suitable for embedded environments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1101">[ date ]</a>
+              <a href="thread.html#1101">[ thread ]</a>
+              <a href="subject.html#1101">[ subject ]</a>
+              <a href="author.html#1101">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks Jason. I don't think code size should be a  big issue for us or I will disable stats/profiling in production.  I have a few more questions and some of them may be dumb, but I will still risk asking those here:-
+
+-our processes use setrlimit to limit virtual memory usage of processes. Do you think jemalloc in someways could overshoot that limit or it might be doing something funky which is not tracked through setrlimit(like not going through brk/mmap/mremap).  Please excuse my limited understanding here.
+
+-someone pointed this link to me . <A HREF="http://locklessinc.com/benchmarks_allocator.shtml">http://locklessinc.com/benchmarks_allocator.shtml</A>
+It says the following stuff 
+
+&lt;quote&gt;
+Jemalloc allocator
+
+This is a very good allocator when there is a large amount of contention, performing similarly to the Lockless memory allocator as the number of threads grows larger than the number of processors. However, when the number of allocating threads is smaller than the total number of cpus, it isn't quite as fast. The disadvantage of the jemalloc allocator is its memory usage. It uses power-of-two sized bins, which leads to a greatly increased memory footprint compared to other allocators. This can affect real-world performance due to excess cache and TLB misses.
+&lt;/quote&gt;
+
+Do you think it is still true, this might be an old link or just my limited understanding. Off course they are selling here...., but justed wanted your opinion here. For our case, though the allocating threads will be always larger than number of cores.
+
+-has anyone seen issues with using jemalloc on windriver linux or compiling/linking with their toolchain ?
+
+
+I am just trying to research this a little more while I am testing this with different scenarios.  Thanks for your help
+
+-mayank
+
+
+
+-----Original Message-----
+From: Jason Evans [mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>] 
+Sent: Thursday, May 07, 2015 7:08 PM
+To: Mayank Kumar (mayankum)
+Cc: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+Subject: Re: jemalloc Suitable for embedded environments
+
+On May 7, 2015, at 4:01 PM, Mayank Kumar (mayankum) &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mayankum at cisco.com</A>&gt; wrote:
+&gt;<i> --what specifically causes the code size bloat ?
+</I>
+jemalloc implements several features that aren't strictly necessary, which is counter to the nature of highly constrained embedded systems.  Thread caches, extensive statistics collection, heap profiling, etc. all require extra code.  Additionally, the core algorithms are more sophisticated than those of simpler allocators, which also requires extra code.  I just built a dev version of jemalloc on FreeBSD as such:
+
+  $ EXTRA_CFLAGS=&quot;-Os&quot; ./autogen.sh --disable-stats --disable-tcache --disable-fill
+  $ gmake
+  $ strip -g lib/libjemalloc.so.2
+  $ ls -l lib/libjemalloc.so.2
+  -rwxr-xr-x 1 jasone wheel 182856 May  7 19:02 lib/libjemalloc.so.2
+
+179 KiB is by no means svelt for a malloc implementation.
+
+&gt;<i> --it is comforting to hear that the jemalloc is already part of FreeBSD. I would like to know which version of jemalloc is part of FreeBSD releases now ? Also does the FreeBSD distribution of jemalloc includes all the enhancements done for Facebook or is it some stripped down version?
+</I>
+IIRC it's somewhere in the 3.5.1-3.6.0 range for FreeBSD 10.  I plan to commit version 4 to FreeBSD-11 CURRENT within the next month or so.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001099.html">jemalloc Suitable for embedded environments
+</A></li>
+	<LI>Next message: <A HREF="001102.html">jemalloc Suitable for embedded environments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1101">[ date ]</a>
+              <a href="thread.html#1101">[ thread ]</a>
+              <a href="subject.html#1101">[ subject ]</a>
+              <a href="author.html#1101">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

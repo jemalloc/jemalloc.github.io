@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Custom allocator on top of jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Custom%20allocator%20on%20top%20of%20jemalloc&In-Reply-To=%3CCAGvmEXhtY%3D7Q8DUWwg17o64fk%3DvPqqW2XTAhaEy-XjVtbBnVWw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000990.html">
+   <LINK REL="Next"  HREF="000987.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Custom allocator on top of jemalloc</H1>
+    <B>SNL</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Custom%20allocator%20on%20top%20of%20jemalloc&In-Reply-To=%3CCAGvmEXhtY%3D7Q8DUWwg17o64fk%3DvPqqW2XTAhaEy-XjVtbBnVWw%40mail.gmail.com%3E"
+       TITLE="Custom allocator on top of jemalloc">snl20465 at gmail.com
+       </A><BR>
+    <I>Tue Jan 20 10:01:26 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000990.html">Custom allocator on top of jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000987.html">should there be another jemalloc release
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#993">[ date ]</a>
+              <a href="thread.html#993">[ thread ]</a>
+              <a href="subject.html#993">[ subject ]</a>
+              <a href="author.html#993">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I will upgrade to dev version of jemalloc. Thanks for the quick input.
+
+On Tue, Jan 20, 2015 at 10:31 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Jan 20, 2015, at 5:17 AM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+</I>&gt;<i> &gt; Here is what I am doing currently:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; 1. I am trying to carve out 10 MB memory area at the higher end of
+</I>&gt;<i> process address space using mmap (MAP_FIXED..).
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; 2. I created a new arena using arenas.extend mallctl
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; 3. I am using mallocx/dallocx with MALLOCX_ARENA(arena) as documented.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; The issue is how do I connect the arena to mmaped memory chunk ? I see
+</I>&gt;<i> that new arena never gets initialized and all allocations continue to
+</I>&gt;<i> happen from arena 0x0.
+</I>&gt;<i> &gt; I thought thread.arena mallctl will connect the arena to mmapped chunk
+</I>&gt;<i> but it just creates a thread &lt;-&gt; arena mapping.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I looked at the sources to see if there is any other mallctl to create
+</I>&gt;<i> this association but there does not seem to be any, what am I missing here ?
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; And older sample program I found on this mailing list, uses following
+</I>&gt;<i> mallctl which is not supported in jemalloc 3.6.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; snprintf(path, sizeof(path), &quot;arena.%u.chunk.alloc&quot;, _arena);
+</I>&gt;<i> &gt;   ret = __svm_mallctl(path, (void*)&amp;_chunk_alloc, &amp;sz,
+</I>&gt;<i> (void*)&amp;_chunk_alloc, sizeof(void *));
+</I>&gt;<i> &gt;   assert (ret == 0);
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; snprintf(path, sizeof(path), &quot;arena.%u.chunk.dalloc&quot;, _arena);
+</I>&gt;<i> &gt;   ret = __svm_mallctl(path, (void*)&amp;_chunk_dalloc, &amp;sz,
+</I>&gt;<i> (void*)&amp;_chunk_dalloc, sizeof(void *));
+</I>&gt;<i> &gt;   assert (ret == 0);
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; This basically is asking jemalloc to callback user defined functions, is
+</I>&gt;<i> this functionality still available in jemalloc ? Any inputs will be
+</I>&gt;<i> helpful. Thanks.
+</I>&gt;<i>
+</I>&gt;<i> The features you're trying to use only exist in the dev version of
+</I>&gt;<i> jemalloc so far (&quot;arena.&lt;i&gt;.chunk.alloc&quot; and &quot;arena.&lt;i&gt;.chunk.dalloc&quot;
+</I>&gt;<i> mallctl interfaces).  Note that related control over dirty page purging
+</I>&gt;<i> still needs to be implemented (
+</I>&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/issues/93">https://github.com/jemalloc/jemalloc/issues/93</A>).
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150120/ed4207fb/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150120/ed4207fb/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000990.html">Custom allocator on top of jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000987.html">should there be another jemalloc release
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#993">[ date ]</a>
+              <a href="thread.html#993">[ thread ]</a>
+              <a href="subject.html#993">[ subject ]</a>
+              <a href="author.html#993">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

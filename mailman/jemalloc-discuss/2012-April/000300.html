@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Simplify TSD without TLS
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Simplify%20TSD%20without%20TLS&In-Reply-To=%3C20120417100715.GA24797%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000299.html">
+   <LINK REL="Next"  HREF="000301.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Simplify TSD without TLS</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Simplify%20TSD%20without%20TLS&In-Reply-To=%3C20120417100715.GA24797%40glandium.org%3E"
+       TITLE="[PATCH] Simplify TSD without TLS">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr 17 03:07:15 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000299.html">[PATCH] Simplify TSD without TLS
+</A></li>
+        <LI>Next message: <A HREF="000301.html">[PATCH] Simplify TSD without TLS
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#300">[ date ]</a>
+              <a href="thread.html#300">[ thread ]</a>
+              <a href="subject.html#300">[ subject ]</a>
+              <a href="author.html#300">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Apr 17, 2012 at 12:01:04PM +0200, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> ---
+</I>&gt;<i>  include/jemalloc/internal/tsd.h |   85 +++++++++------------------------------
+</I>&gt;<i>  1 file changed, 20 insertions(+), 65 deletions(-)
+</I>
+Just a few notes: this implementation is 95% the same as the one I have
+for mingw. I'm even tempted to make them actually share the code,
+because it would make changes/fixes to one be used in the other.
+
+It doesn't use a static variable when malloc_tsd_malloc
+fails, but unconditionally aborts instead. Using a static variable is
+due to fail with multithreading anyways. The 'initialized' variable is
+not necessary either, as pthread_key's cleanup function won't be called
+unless a non-NULL value has been set with pthread_setspecific.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000299.html">[PATCH] Simplify TSD without TLS
+</A></li>
+	<LI>Next message: <A HREF="000301.html">[PATCH] Simplify TSD without TLS
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#300">[ date ]</a>
+              <a href="thread.html#300">[ thread ]</a>
+              <a href="subject.html#300">[ subject ]</a>
+              <a href="author.html#300">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

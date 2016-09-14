@@ -1,0 +1,897 @@
+From edsiper at gmail.com  Mon Aug  4 21:26:39 2014
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Mon, 4 Aug 2014 22:26:39 -0600
+Subject: SIGSEGV on arenas_cleanup
+Message-ID: <CAMAQheM-E5VAPx5K2wwhh=1nN910t=f9=uSAdh+hYx_v1Ncvew@mail.gmail.com>
+
+Hi,
+
+In my signal handler, everytime I get a SIGTERM i instruct my threads
+to exit, as soon as that happens jemalloc faces a SIGSEGV as decribed
+by valgrind here:
+
+ ==27778== Invalid read of size 4
+ ==27778==    at 0x41A80E: je_arenas_cleanup (jemalloc.c:267)
+ ==27778==    by 0x5042F81: __nptl_deallocate_tsd (pthread_create.c:158)
+ ==27778==    by 0x5043194: start_thread (pthread_create.c:325)
+ ==27778==    by 0x535430C: clone (clone.S:111)
+ ==27778==  Address 0x4 is not stack'd, malloc'd or (recently) free'd
+ ==27778==
+
+what can i do to obtain more details of the issue ?, do i need to take
+care about something before exiting a thread that is using jemalloc ?
+
+regards,
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+
+From edsiper at gmail.com  Mon Aug  4 22:10:17 2014
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Mon, 4 Aug 2014 23:10:17 -0600
+Subject: SIGSEGV on arenas_cleanup
+In-Reply-To: <CAMAQheM-E5VAPx5K2wwhh=1nN910t=f9=uSAdh+hYx_v1Ncvew@mail.gmail.com>
+References: <CAMAQheM-E5VAPx5K2wwhh=1nN910t=f9=uSAdh+hYx_v1Ncvew@mail.gmail.com>
+Message-ID: <CAMAQheMgzp75=jM+16rdYz7VRJGyszq0TnPqRt0bQqmwxGxJag@mail.gmail.com>
+
+I found the root cause:
+
+  I have a pthread key that was not initialized and was just used on
+the threads.
+
+regards,
+
+On Mon, Aug 4, 2014 at 10:26 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> Hi,
+>
+> In my signal handler, everytime I get a SIGTERM i instruct my threads
+> to exit, as soon as that happens jemalloc faces a SIGSEGV as decribed
+> by valgrind here:
+>
+>  ==27778== Invalid read of size 4
+>  ==27778==    at 0x41A80E: je_arenas_cleanup (jemalloc.c:267)
+>  ==27778==    by 0x5042F81: __nptl_deallocate_tsd (pthread_create.c:158)
+>  ==27778==    by 0x5043194: start_thread (pthread_create.c:325)
+>  ==27778==    by 0x535430C: clone (clone.S:111)
+>  ==27778==  Address 0x4 is not stack'd, malloc'd or (recently) free'd
+>  ==27778==
+>
+> what can i do to obtain more details of the issue ?, do i need to take
+> care about something before exiting a thread that is using jemalloc ?
+>
+> regards,
+>
+> --
+> Eduardo Silva
+> http://edsiper.linuxchile.cl
+> http://monkey-project.com
+
+
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+
+From gholley at CeBiTec.Uni-Bielefeld.DE  Tue Aug  5 10:35:22 2014
+From: gholley at CeBiTec.Uni-Bielefeld.DE (gholley at CeBiTec.Uni-Bielefeld.DE)
+Date: Tue, 5 Aug 2014 19:35:22 +0200
+Subject: No subject
+Message-ID: <700edb0cf99cb0e0e0d84d37611d3010.squirrel@webmail.cebitec.uni-bielefeld.de>
+
+Hello,
+
+I?m currently working on a data structure allowing the storage of a
+dynamic set of short DNA sequences plus annotations.
+Here are few details : the data structure is written in C, tests are
+currently run on Ubuntu 14.04 64 bits, everything is single threaded and
+Valgrind indicates that the program which manipulates the data structure
+has no memory leaks.
+
+I?ve started to use Jemalloc in an attempt to reduce the fragmentation of
+the memory (by using one arena, disabling the thread caching system and
+using a high ratio of dirty pages). On small data sets (30 millions
+insertions), results are very good in comparison of Glibc: about 150MB
+less by using tuned Jemalloc.
+
+Now, I?ve started tests with much bigger data sets (3 to 10 billions
+insertions) and I realized that Jemalloc is using more memory than Glibc.
+I have generated a data set of 200 millions entries which I tried to
+insert in the data structure and when the memory used reached 1GB, I
+stopped the program and reported the number of entries inserted.
+When using Jemalloc, doesn?t matter the tuning parameters (1 or 4 arenas,
+tcache activated or not, lg_dirty = 3 or 8 or 16, lg_chunk = 14 or 22 or
+30), the number of entries inserted varies between 120 millions to 172
+millions. Or by using the standard Glibc, I?m able to insert 187 millions
+of entries.
+And on billions of entries, Glibc (I don?t have precise numbers
+unfortunately) uses few Gigabytes less than Jemalloc.
+
+So I would like to know if there is an explanation for this and if I can
+do something to make Jemalloc at least as efficient as Glibc is on my
+tests ? Maybe I?m not using Jemalloc correctly ?
+
+Thank you a lot for your help and your time.
+
+Have a nice day.
+
+Guillaume Holley
+
+
+
+From jasone at canonware.com  Tue Aug  5 16:10:59 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 5 Aug 2014 16:10:59 -0700
+Subject: 
+In-Reply-To: <700edb0cf99cb0e0e0d84d37611d3010.squirrel@webmail.cebitec.uni-bielefeld.de>
+References: <700edb0cf99cb0e0e0d84d37611d3010.squirrel@webmail.cebitec.uni-bielefeld.de>
+Message-ID: <520CBF1D-AF6E-40ED-9890-F707694E42A1@canonware.com>
+
+On Aug 5, 2014, at 10:35 AM, gholley at CeBiTec.Uni-Bielefeld.DE wrote:
+> I?m currently working on a data structure allowing the storage of a
+> dynamic set of short DNA sequences plus annotations.
+> Here are few details : the data structure is written in C, tests are
+> currently run on Ubuntu 14.04 64 bits, everything is single threaded and
+> Valgrind indicates that the program which manipulates the data structure
+> has no memory leaks.
+> 
+> I?ve started to use Jemalloc in an attempt to reduce the fragmentation of
+> the memory (by using one arena, disabling the thread caching system and
+> using a high ratio of dirty pages). On small data sets (30 millions
+> insertions), results are very good in comparison of Glibc: about 150MB
+> less by using tuned Jemalloc.
+> 
+> Now, I?ve started tests with much bigger data sets (3 to 10 billions
+> insertions) and I realized that Jemalloc is using more memory than Glibc.
+> I have generated a data set of 200 millions entries which I tried to
+> insert in the data structure and when the memory used reached 1GB, I
+> stopped the program and reported the number of entries inserted.
+> When using Jemalloc, doesn?t matter the tuning parameters (1 or 4 arenas,
+> tcache activated or not, lg_dirty = 3 or 8 or 16, lg_chunk = 14 or 22 or
+> 30), the number of entries inserted varies between 120 millions to 172
+> millions. Or by using the standard Glibc, I?m able to insert 187 millions
+> of entries.
+> And on billions of entries, Glibc (I don?t have precise numbers
+> unfortunately) uses few Gigabytes less than Jemalloc.
+> 
+> So I would like to know if there is an explanation for this and if I can
+> do something to make Jemalloc at least as efficient as Glibc is on my
+> tests ? Maybe I?m not using Jemalloc correctly ?
+
+There are a few possible issues, mainly related to fragmentation, but I can't make many specific guesses because I don't know what the allocation/deallocation patterns are in your application.  It sounds like your application just does a bunch of allocation, with very little interspersed deallocation, in which case I'm surprised by your results unless you happen to be allocating lots of objects that are barely larger than the nearest size class boundaries (e.g. 17 bytes).  Have you taken a close look at the output of malloc_stats_print()?
+
+Jason
+
+From jasone at canonware.com  Tue Aug  5 16:16:09 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 5 Aug 2014 16:16:09 -0700
+Subject: [PATCH] Remove ${srcroot} from cfghdrs_in,
+	cfgoutputs_in and cfghdrs_tup in configure
+In-Reply-To: <1406711773-11731-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1406711773-11731-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <79DE6763-E40E-4B47-B0B4-A5185F7F35B2@canonware.com>
+
+On Jul 30, 2014, at 2:16 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> On Windows, srcroot may start with "drive:", which confuses autoconf's
+> AC_CONFIG_* macros. The macros works equally well without ${srcroot},
+> provided some adjustment to Makefile.in.
+> ---
+> Makefile.in  |  4 ++--
+> configure.ac | 46 +++++++++++++++++++++++-----------------------
+> 2 files changed, 25 insertions(+), 25 deletions(-)
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/cf6032d0efbc2e3e9f736a8cd69846cf7427640b
+
+Thanks,
+Jason
+
+
+From ingvar at redpill-linpro.com  Wed Aug  6 06:34:50 2014
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Wed, 06 Aug 2014 15:34:50 +0200
+Subject: jemalloc-3.6.0 fails to build on to-be-fedora-21
+In-Reply-To: <53A2A145.3000904@redpill-linpro.com>
+References: <53A298D3.7050105@redpill-linpro.com>
+	<53A2A145.3000904@redpill-linpro.com>
+Message-ID: <53E22EFA.5050002@redpill-linpro.com>
+
+> Ingvar Hagelund wrote
+>> jemalloc-3.6.0 fails to build on to-be-fedora-21
+>>
+>> https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log
+>>
+>> Seems like gcc-4.9.0 changed emmintrin.h
+> 
+> ... though only when compiling against Fedora's i686 target, that is
+> "gcc -m32 -march=i686 -mtune=atom"
+> 
+> x86_64 and the generic i386 target, that is "gcc -march=i386
+> -mtune=generic" , works fine (though generic i386 is not a primary
+> Fedora target anymore).
+
+
+This is because of github commit
+cb657e3170349a27e753cdf6316513f56550205e
+
+See also jemalloc github issue 52:
+
+https://github.com/jemalloc/jemalloc/issues/52
+
+Adding -msse2 to CFLAGS fixes the build on Fedora, but there is an issue
+with this: Fedora supports the i686 arch. i686 predates SSE2. i686 means
+PentiumPro and above, while SSE2 was included around Pentium II, that is
+later. So there is no guaranteed support for SSE2 in Fedora.
+
+Grepping through the code, it looks like SSE2 is only used for test
+cases. Does jemalloc use SSE2 features at runtime? If it does, will it
+work correctly without SSE2 available?
+
+Ingvar
+
+
+From gholley at cebitec.uni-bielefeld.de  Wed Aug  6 08:55:15 2014
+From: gholley at cebitec.uni-bielefeld.de (Guillaume Holley)
+Date: Wed, 06 Aug 2014 17:55:15 +0200
+Subject: 
+In-Reply-To: <520CBF1D-AF6E-40ED-9890-F707694E42A1@canonware.com>
+References: <700edb0cf99cb0e0e0d84d37611d3010.squirrel@webmail.cebitec.uni-bielefeld.de>
+	<520CBF1D-AF6E-40ED-9890-F707694E42A1@canonware.com>
+Message-ID: <53E24FE3.7050508@cebitec.uni-bielefeld.de>
+
+Le 06/08/2014 01:10, Jason Evans a ?crit :
+> On Aug 5, 2014, at 10:35 AM, gholley at CeBiTec.Uni-Bielefeld.DE wrote:
+>> I?m currently working on a data structure allowing the storage of a
+>> dynamic set of short DNA sequences plus annotations.
+>> Here are few details : the data structure is written in C, tests are
+>> currently run on Ubuntu 14.04 64 bits, everything is single threaded and
+>> Valgrind indicates that the program which manipulates the data structure
+>> has no memory leaks.
+>>
+>> I?ve started to use Jemalloc in an attempt to reduce the fragmentation of
+>> the memory (by using one arena, disabling the thread caching system and
+>> using a high ratio of dirty pages). On small data sets (30 millions
+>> insertions), results are very good in comparison of Glibc: about 150MB
+>> less by using tuned Jemalloc.
+>>
+>> Now, I?ve started tests with much bigger data sets (3 to 10 billions
+>> insertions) and I realized that Jemalloc is using more memory than Glibc.
+>> I have generated a data set of 200 millions entries which I tried to
+>> insert in the data structure and when the memory used reached 1GB, I
+>> stopped the program and reported the number of entries inserted.
+>> When using Jemalloc, doesn?t matter the tuning parameters (1 or 4 arenas,
+>> tcache activated or not, lg_dirty = 3 or 8 or 16, lg_chunk = 14 or 22 or
+>> 30), the number of entries inserted varies between 120 millions to 172
+>> millions. Or by using the standard Glibc, I?m able to insert 187 millions
+>> of entries.
+>> And on billions of entries, Glibc (I don?t have precise numbers
+>> unfortunately) uses few Gigabytes less than Jemalloc.
+>>
+>> So I would like to know if there is an explanation for this and if I can
+>> do something to make Jemalloc at least as efficient as Glibc is on my
+>> tests ? Maybe I?m not using Jemalloc correctly ?
+> There are a few possible issues, mainly related to fragmentation, but I can't make many specific guesses because I don't know what the allocation/deallocation patterns are in your application.  It sounds like your application just does a bunch of allocation, with very little interspersed deallocation, in which case I'm surprised by your results unless you happen to be allocating lots of objects that are barely larger than the nearest size class boundaries (e.g. 17 bytes).  Have you taken a close look at the output of malloc_stats_print()?
+>
+> Jason
+
+Hi and thank you for the help.
+
+Well my application is doing like you said a lot of allocations with 
+very little deallocations, but the memory allocated is very often 
+reallocated. However, my application cannot allocate memory for more 
+than 600KB in one allocation, so no allocation of huge objects.
+I tried to have a look at malloc_stats_print() (which is enclosed at the 
+end of my answer) and I see that for bins of size 64, it seems I make a 
+huge amount of allocations/reallocations for a small amount of memory 
+allocated, and maybe this generates a lot of fragmentation but I don't 
+know in which proportion. Do you think my problem could be linked to 
+this, and if yes, can I do something on Jemalloc to solve it ?
+
+Here are the Jemalloc statistics for 200 millions insertions, Jemalloc 
+tuned with the following parameters : 
+"narenas:1,tcache:false,lg_dirty_mult:8"
+
+___ Begin jemalloc statistics ___
+Version: 3.6.0-0-g46c0af68bd248b04df75e4f92d5fb804c3d75340
+Assertions disabled
+Run-time option settings:
+   opt.abort: false
+   opt.lg_chunk: 22
+   opt.dss: "secondary"
+   opt.narenas: 1
+   opt.lg_dirty_mult: 8
+   opt.stats_print: false
+   opt.junk: false
+   opt.quarantine: 0
+   opt.redzone: false
+   opt.zero: false
+   opt.tcache: false
+   opt.lg_tcache_max: 15
+CPUs: 4
+Arenas: 1
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 256:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 1196728936, active: 1212567552, mapped: 1287651328
+Current active ceiling: 16416505856
+chunks: nchunks   highchunks    curchunks
+             307          307          307
+huge: nmalloc      ndalloc    allocated
+             0            0            0
+
+arenas[0]:
+assigned threads: 1
+dss allocation precedence: disabled
+dirty pages: 296037:66 active:dirty, 25210 sweeps, 90046 madvises, 
+627169 purged
+             allocated      nmalloc      ndalloc    nrequests
+small:     1116037736    372536523    370598419    372536523
+large:       80691200       223900       220617       223900
+total:     1196728936    372760423    370819036    372760423
+active:    1212567552
+mapped:    1283457024
+bins:     bin  size regs pgs    allocated      nmalloc ndalloc    
+nrequests       nfills     nflushes      newruns reruns      curruns
+             0     8  501   1        78696      1052422 1042585      
+1052422            0            0          127 694344           20
+             1    16  252   1      1578192      1017985 919348      
+1017985            0            0          533 708540          409
+             2    32  126   1      3514624      1123313 1013481      
+1123313            0            0         1210 867880          872
+             3    48   84   1      3035520      1016243 953003      
+1016243            0            0         1108 807914          754
+             4    64   63   1     10854720    352069628 351900023    
+352069628            0            0        54018 291399155         2981
+             5    80   50   1      3181120       911052 871288       
+911052            0            0         1096 734143          804
+             6    96   84   2      3104352       872936 840599       
+872936            0            0          536 678759          386
+             7   112   72   2      2807728       846038 820969       
+846038            0            0          505 664524          349
+             8   128   63   2      6818048      1020930 967664      
+1020930            0            0         1273 864533          846
+             9   160   51   2     36769280      1169391 939583      
+1169391            0            0         6277 854027         4507
+            10   192   63   3      6427584       995330 961853       
+995330            0            0          999 783827          544
+            11   224   72   4      6205472       915020 887317       
+915020            0            0          759 741292          422
+            12   256   63   4      7763456      1448444 1418118      
+1448444            0            0         1011 1402929          524
+            13   320   63   5     20894720      1038961 973665      
+1038961            0            0         1579 854341         1062
+            14   384   63   6     21324672       972166 916633       
+972166            0            0         1378 792419          900
+            15   448   63   7     22307264       916731 866938       
+916731            0            0         1283 737804          811
+            16   512   63   8     23352832       867656 822045       
+867656            0            0         1285 686944          749
+            17   640   51   8     52571520       826774 744631       
+826774            0            0         2379 614914         1616
+            18   768   47   9     53935872       937259 867030       
+937259            0            0         3608 810030         1495
+            19   896   45  10     51936640       677539 619574       
+677539            0            0         2016 473346         1289
+            20  1024   63  16     52584448       832395 781043       
+832395            0            0         1368 742251          816
+            21  1280   51  16    600357120       641800 172771       
+641800            0            0         9221 184785         9197
+            22  1536   42  16     62310912       174403 133836       
+174403            0            0          992 136077          966
+            23  1792   38  17     19763968        66986 55957        
+66986            0            0          295 52269          291
+            24  2048   65  33     12324864        45615 39597        
+45615            0            0          109 30775           93
+            25  2560   52  33     16240640        35532 29188        
+35532            0            0          131 22898          122
+            26  3072   43  33      8377344        24578 21851        
+24578            0            0           69 15804           64
+            27  3584   39  35      5616128        19396 17829        
+19396            0            0           51 11992           41
+large:   size pages      nmalloc      ndalloc    nrequests curruns
+          4096     1        15792        15119        15792 673
+          8192     2        10900         9456        10900 1444
+         12288     3         4568         4413         4568 155
+         16384     4         3405         3344         3405 61
+         20480     5         2905         2848         2905 57
+         24576     6         2618         2571         2618 47
+         28672     7        57010        56965        57010 45
+         32768     8         2703         2666         2703 37
+         36864     9         2656         2613         2656 43
+         40960    10         2745         2703         2745 42
+         45056    11         2919         2862         2919 57
+         49152    12         3034         2990         3034 44
+         53248    13         3136         3090         3136 46
+         57344    14         3347         3302         3347 45
+         61440    15         3645         3606         3645 39
+         65536    16         3864         3832         3864 32
+         69632    17         3879         3844         3879 35
+         73728    18         3889         3861         3889 28
+         77824    19         3937         3908         3937 29
+         81920    20         3956         3910         3956 46
+         86016    21         3985         3958         3985 27
+         90112    22         4005         3974         4005 31
+         94208    23         3924         3896         3924 28
+         98304    24         3815         3786         3815 29
+        102400    25         3775         3751         3775 24
+        106496    26         3767         3740         3767 27
+        110592    27         4004         3980         4004 24
+        114688    28         4289         4273         4289 16
+        118784    29         4274         4259         4274 15
+        122880    30         4160         4150         4160 10
+        126976    31         4096         4089 4096            7
+        131072    32         3934         3925 3934            9
+        135168    33         3792         3785 3792            7
+        139264    34         3704         3701 3704            3
+        143360    35         3571         3566 3571            5
+        147456    36         3559         3557 3559            2
+        151552    37         3412         3410 3412            2
+        155648    38         3155         3155 3155            0
+        159744    39         2826         2823 2826            3
+        163840    40         2423         2422 2423            1
+        167936    41         2174         2173 2174            1
+        172032    42         1883         1881 1883            2
+        176128    43         1563         1563 1563            0
+        180224    44         1145         1143 1145            2
+        184320    45          736          735 736            1
+        188416    46          492          491 492            1
+        192512    47          300          300 300            0
+        196608    48          149          149 149            0
+        200704    49           56           56 56            0
+        204800    50           20           20 20            0
+        208896    51            2            2 2            0
+        212992    52            1            1 1            0
+        217088    53            1            0 1            1
+[965]
+--- End jemalloc statistics ---
+
+Guillaume
+
+From jasone at canonware.com  Wed Aug  6 09:12:15 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 6 Aug 2014 09:12:15 -0700
+Subject: 
+In-Reply-To: <53E24FE3.7050508@cebitec.uni-bielefeld.de>
+References: <700edb0cf99cb0e0e0d84d37611d3010.squirrel@webmail.cebitec.uni-bielefeld.de>
+	<520CBF1D-AF6E-40ED-9890-F707694E42A1@canonware.com>
+	<53E24FE3.7050508@cebitec.uni-bielefeld.de>
+Message-ID: <CDF35676-B912-48BE-BBC9-8390455B4CB9@canonware.com>
+
+On Aug 6, 2014, at 8:55 AM, Guillaume Holley <gholley at cebitec.uni-bielefeld.de> wrote:
+> Le 06/08/2014 01:10, Jason Evans a ?crit :
+>> On Aug 5, 2014, at 10:35 AM, gholley at CeBiTec.Uni-Bielefeld.DE wrote:
+>>> I?m currently working on a data structure allowing the storage of a
+>>> dynamic set of short DNA sequences plus annotations.
+>>> Here are few details : the data structure is written in C, tests are
+>>> currently run on Ubuntu 14.04 64 bits, everything is single threaded and
+>>> Valgrind indicates that the program which manipulates the data structure
+>>> has no memory leaks.
+>>> 
+>>> I?ve started to use Jemalloc in an attempt to reduce the fragmentation of
+>>> the memory (by using one arena, disabling the thread caching system and
+>>> using a high ratio of dirty pages). On small data sets (30 millions
+>>> insertions), results are very good in comparison of Glibc: about 150MB
+>>> less by using tuned Jemalloc.
+>>> 
+>>> Now, I?ve started tests with much bigger data sets (3 to 10 billions
+>>> insertions) and I realized that Jemalloc is using more memory than Glibc.
+>>> I have generated a data set of 200 millions entries which I tried to
+>>> insert in the data structure and when the memory used reached 1GB, I
+>>> stopped the program and reported the number of entries inserted.
+>>> When using Jemalloc, doesn?t matter the tuning parameters (1 or 4 arenas,
+>>> tcache activated or not, lg_dirty = 3 or 8 or 16, lg_chunk = 14 or 22 or
+>>> 30), the number of entries inserted varies between 120 millions to 172
+>>> millions. Or by using the standard Glibc, I?m able to insert 187 millions
+>>> of entries.
+>>> And on billions of entries, Glibc (I don?t have precise numbers
+>>> unfortunately) uses few Gigabytes less than Jemalloc.
+>>> 
+>>> So I would like to know if there is an explanation for this and if I can
+>>> do something to make Jemalloc at least as efficient as Glibc is on my
+>>> tests ? Maybe I?m not using Jemalloc correctly ?
+>> There are a few possible issues, mainly related to fragmentation, but I can't make many specific guesses because I don't know what the allocation/deallocation patterns are in your application.  It sounds like your application just does a bunch of allocation, with very little interspersed deallocation, in which case I'm surprised by your results unless you happen to be allocating lots of objects that are barely larger than the nearest size class boundaries (e.g. 17 bytes).  Have you taken a close look at the output of malloc_stats_print()?
+>> 
+>> Jason
+> 
+> Hi and thank you for the help.
+> 
+> Well my application is doing like you said a lot of allocations with very little deallocations, but the memory allocated is very often reallocated. However, my application cannot allocate memory for more than 600KB in one allocation, so no allocation of huge objects.
+> I tried to have a look at malloc_stats_print() (which is enclosed at the end of my answer) and I see that for bins of size 64, it seems I make a huge amount of allocations/reallocations for a small amount of memory allocated, and maybe this generates a lot of fragmentation but I don't know in which proportion. Do you think my problem could be linked to this, and if yes, can I do something on Jemalloc to solve it ?
+> 
+> Here are the Jemalloc statistics for 200 millions insertions, Jemalloc tuned with the following parameters : "narenas:1,tcache:false,lg_dirty_mult:8"
+> 
+> ___ Begin jemalloc statistics ___
+> [...]
+> Allocated: 1196728936, active: 1212567552, mapped: 1287651328
+
+The overall external fragmentation is 1-(allocated/active), 1.3%, which is very low.
+
+> Current active ceiling: 16416505856
+> chunks: nchunks   highchunks    curchunks
+>            307          307          307
+> huge: nmalloc      ndalloc    allocated
+>            0            0            0
+> 
+> arenas[0]:
+> assigned threads: 1
+> dss allocation precedence: disabled
+> dirty pages: 296037:66 active:dirty, 25210 sweeps, 90046 madvises, 627169 purged
+>            allocated      nmalloc      ndalloc    nrequests
+> small:     1116037736    372536523    370598419    372536523
+> large:       80691200       223900       220617       223900
+> total:     1196728936    372760423    370819036    372760423
+> active:    1212567552
+> mapped:    1283457024
+> bins:     bin  size regs pgs    allocated      nmalloc ndalloc    nrequests       nfills     nflushes      newruns reruns      curruns
+> [...]
+>           21  1280   51  16    600357120       641800 172771       641800            0            0         9221 184785         9197
+
+The only aspect of jemalloc that might be causing you problems is size class rounding.  IIRC glibc's malloc spaces its small size classes closer together.  If your application allocates lots of 1025-byte objects, that could cost you nearly 20% in terms of memory usage for those allocations (~120 MB in this case).
+
+Jason
+
+From gholley at cebitec.uni-bielefeld.de  Fri Aug  8 00:08:05 2014
+From: gholley at cebitec.uni-bielefeld.de (Guillaume Holley)
+Date: Fri, 08 Aug 2014 09:08:05 +0200
+Subject: 
+In-Reply-To: <CDF35676-B912-48BE-BBC9-8390455B4CB9@canonware.com>
+References: <700edb0cf99cb0e0e0d84d37611d3010.squirrel@webmail.cebitec.uni-bielefeld.de>
+	<520CBF1D-AF6E-40ED-9890-F707694E42A1@canonware.com>
+	<53E24FE3.7050508@cebitec.uni-bielefeld.de>
+	<CDF35676-B912-48BE-BBC9-8390455B4CB9@canonware.com>
+Message-ID: <53E47755.80403@cebitec.uni-bielefeld.de>
+
+Le 06/08/2014 18:12, Jason Evans a ?crit :
+> On Aug 6, 2014, at 8:55 AM, Guillaume Holley <gholley at cebitec.uni-bielefeld.de> wrote:
+>> Le 06/08/2014 01:10, Jason Evans a ?crit :
+>>> On Aug 5, 2014, at 10:35 AM, gholley at CeBiTec.Uni-Bielefeld.DE wrote:
+>>>> I?m currently working on a data structure allowing the storage of a
+>>>> dynamic set of short DNA sequences plus annotations.
+>>>> Here are few details : the data structure is written in C, tests are
+>>>> currently run on Ubuntu 14.04 64 bits, everything is single threaded and
+>>>> Valgrind indicates that the program which manipulates the data structure
+>>>> has no memory leaks.
+>>>>
+>>>> I?ve started to use Jemalloc in an attempt to reduce the fragmentation of
+>>>> the memory (by using one arena, disabling the thread caching system and
+>>>> using a high ratio of dirty pages). On small data sets (30 millions
+>>>> insertions), results are very good in comparison of Glibc: about 150MB
+>>>> less by using tuned Jemalloc.
+>>>>
+>>>> Now, I?ve started tests with much bigger data sets (3 to 10 billions
+>>>> insertions) and I realized that Jemalloc is using more memory than Glibc.
+>>>> I have generated a data set of 200 millions entries which I tried to
+>>>> insert in the data structure and when the memory used reached 1GB, I
+>>>> stopped the program and reported the number of entries inserted.
+>>>> When using Jemalloc, doesn?t matter the tuning parameters (1 or 4 arenas,
+>>>> tcache activated or not, lg_dirty = 3 or 8 or 16, lg_chunk = 14 or 22 or
+>>>> 30), the number of entries inserted varies between 120 millions to 172
+>>>> millions. Or by using the standard Glibc, I?m able to insert 187 millions
+>>>> of entries.
+>>>> And on billions of entries, Glibc (I don?t have precise numbers
+>>>> unfortunately) uses few Gigabytes less than Jemalloc.
+>>>>
+>>>> So I would like to know if there is an explanation for this and if I can
+>>>> do something to make Jemalloc at least as efficient as Glibc is on my
+>>>> tests ? Maybe I?m not using Jemalloc correctly ?
+>>> There are a few possible issues, mainly related to fragmentation, but I can't make many specific guesses because I don't know what the allocation/deallocation patterns are in your application.  It sounds like your application just does a bunch of allocation, with very little interspersed deallocation, in which case I'm surprised by your results unless you happen to be allocating lots of objects that are barely larger than the nearest size class boundaries (e.g. 17 bytes).  Have you taken a close look at the output of malloc_stats_print()?
+>>>
+>>> Jason
+>> Hi and thank you for the help.
+>>
+>> Well my application is doing like you said a lot of allocations with very little deallocations, but the memory allocated is very often reallocated. However, my application cannot allocate memory for more than 600KB in one allocation, so no allocation of huge objects.
+>> I tried to have a look at malloc_stats_print() (which is enclosed at the end of my answer) and I see that for bins of size 64, it seems I make a huge amount of allocations/reallocations for a small amount of memory allocated, and maybe this generates a lot of fragmentation but I don't know in which proportion. Do you think my problem could be linked to this, and if yes, can I do something on Jemalloc to solve it ?
+>>
+>> Here are the Jemalloc statistics for 200 millions insertions, Jemalloc tuned with the following parameters : "narenas:1,tcache:false,lg_dirty_mult:8"
+>>
+>> ___ Begin jemalloc statistics ___
+>> [...]
+>> Allocated: 1196728936, active: 1212567552, mapped: 1287651328
+> The overall external fragmentation is 1-(allocated/active), 1.3%, which is very low.
+>
+>> Current active ceiling: 16416505856
+>> chunks: nchunks   highchunks    curchunks
+>>             307          307          307
+>> huge: nmalloc      ndalloc    allocated
+>>             0            0            0
+>>
+>> arenas[0]:
+>> assigned threads: 1
+>> dss allocation precedence: disabled
+>> dirty pages: 296037:66 active:dirty, 25210 sweeps, 90046 madvises, 627169 purged
+>>             allocated      nmalloc      ndalloc    nrequests
+>> small:     1116037736    372536523    370598419    372536523
+>> large:       80691200       223900       220617       223900
+>> total:     1196728936    372760423    370819036    372760423
+>> active:    1212567552
+>> mapped:    1283457024
+>> bins:     bin  size regs pgs    allocated      nmalloc ndalloc    nrequests       nfills     nflushes      newruns reruns      curruns
+>> [...]
+>>            21  1280   51  16    600357120       641800 172771       641800            0            0         9221 184785         9197
+> The only aspect of jemalloc that might be causing you problems is size class rounding.  IIRC glibc's malloc spaces its small size classes closer together.  If your application allocates lots of 1025-byte objects, that could cost you nearly 20% in terms of memory usage for those allocations (~120 MB in this case).
+>
+> Jason
+I will try to see if I can solve that, thank you for the help !
+
+Guillaume
+
+From Alexander.Sideropoulos at netapp.com  Mon Aug 11 16:28:50 2014
+From: Alexander.Sideropoulos at netapp.com (Sideropoulos, Alexander)
+Date: Mon, 11 Aug 2014 23:28:50 +0000
+Subject: understanding page/chunk reclaim algorithm
+Message-ID: <D00E9476.80D0%alexander.sideropoulos@netapp.com>
+
+Hey all. We are trying to understand how Jemalloc reclaims free runs and chunks.
+Specifically for small allocation sizes, what are the heuristics for
+
+1) free runs being reclaimed within the chunk to be reused for a different size and
+2) free chunks being released back to the OS?
+
+Could someone kindly point us to a web page, man page, white paper, or source code which explains this?
+
+Thanks!
+----------
+Alexander P. Sideropoulos
+NetApp -- Performance Engineering
+siderop1 at netapp.com<mailto:siderop1 at netapp.com>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140811/95624838/attachment.html>
+
+From jasone at canonware.com  Fri Aug 15 10:12:54 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 15 Aug 2014 10:12:54 -0700
+Subject: understanding page/chunk reclaim algorithm
+In-Reply-To: <D00E9476.80D0%alexander.sideropoulos@netapp.com>
+References: <D00E9476.80D0%alexander.sideropoulos@netapp.com>
+Message-ID: <E7AA7FFE-65D0-47A6-8D28-29555F5205B9@canonware.com>
+
+On Aug 11, 2014, at 4:28 PM, Sideropoulos, Alexander <Alexander.Sideropoulos at netapp.com> wrote:
+> Hey all. We are trying to understand how Jemalloc reclaims free runs and chunks.
+> Specifically for small allocation sizes, what are the heuristics for
+> 
+> 1) free runs being reclaimed within the chunk to be reused for a different size and
+
+jemalloc uses a lowest-address best fit search to allocate page runs.  In other words, it finds the set of runs which are closest to the minimum necessary size, and chooses the run from that set that is lowest in memory from which to split an appropriately sized run (the split tail, if any, remains unallocated).
+
+> 2) free chunks being released back to the OS?
+
+jemalloc maps/unmaps chunks as indivisible units, so chunks are released back to the OS as aggressively as possible, with two caveats:
+
+- Each arena maintains a ?spare? chunk, which avoids excessive chunk allocation/deallocation activity if memory usage repeatedly fluctuates in a manner that would require a new short-lived chunk during each growth.
+- On Linux, the ?disable-munmap configure option is the default, so chunk contents are madvise()d away, but they remain irreversibly mapped once created.  This avoids poor interactions with the Linux kernel?s fragile heuristics for finding available regions of virtual memory.  Without this workaround, it?s common for virtual memory holes to accumulate, and the kernel uses linear-time algorithms to scan the virtual memory map in some performance-critical operations.
+
+Jason
+
+From jasone at canonware.com  Fri Aug 15 10:24:56 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 15 Aug 2014 10:24:56 -0700
+Subject: jemalloc-3.6.0 fails to build on to-be-fedora-21
+In-Reply-To: <53E22EFA.5050002@redpill-linpro.com>
+References: <53A298D3.7050105@redpill-linpro.com>
+	<53A2A145.3000904@redpill-linpro.com>
+	<53E22EFA.5050002@redpill-linpro.com>
+Message-ID: <0F5E87B4-FDAF-4D97-A139-B12BB4C6BC8F@canonware.com>
+
+On Aug 6, 2014, at 6:34 AM, Ingvar Hagelund <ingvar at redpill-linpro.com> wrote:
+>> Ingvar Hagelund wrote
+>>> jemalloc-3.6.0 fails to build on to-be-fedora-21
+>>> 
+>>> https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log
+>>> 
+>>> Seems like gcc-4.9.0 changed emmintrin.h
+>> 
+>> ... though only when compiling against Fedora's i686 target, that is
+>> "gcc -m32 -march=i686 -mtune=atom"
+>> 
+>> x86_64 and the generic i386 target, that is "gcc -march=i386
+>> -mtune=generic" , works fine (though generic i386 is not a primary
+>> Fedora target anymore).
+> 
+> 
+> This is because of github commit
+> cb657e3170349a27e753cdf6316513f56550205e
+> 
+> See also jemalloc github issue 52:
+> 
+> https://github.com/jemalloc/jemalloc/issues/52
+> 
+> Adding -msse2 to CFLAGS fixes the build on Fedora, but there is an issue
+> with this: Fedora supports the i686 arch. i686 predates SSE2. i686 means
+> PentiumPro and above, while SSE2 was included around Pentium II, that is
+> later. So there is no guaranteed support for SSE2 in Fedora.
+> 
+> Grepping through the code, it looks like SSE2 is only used for test
+> cases. Does jemalloc use SSE2 features at runtime? If it does, will it
+> work correctly without SSE2 available?
+
+jemalloc doesn?t explicitly use SSE2; it?s for test code only.  If I?d known how much portability trouble the SSE2 optimizations for the Merseinne Twister PRNG would cause, I?d have left them completely disabled.  Maybe it?s time to give up on SSE2, since nothing important depends on it.
+
+Jason
+
+From danielmicay at gmail.com  Fri Aug 15 10:59:30 2014
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Fri, 15 Aug 2014 13:59:30 -0400
+Subject: jemalloc-3.6.0 fails to build on to-be-fedora-21
+In-Reply-To: <0F5E87B4-FDAF-4D97-A139-B12BB4C6BC8F@canonware.com>
+References: <53A298D3.7050105@redpill-linpro.com>	<53A2A145.3000904@redpill-linpro.com>	<53E22EFA.5050002@redpill-linpro.com>
+	<0F5E87B4-FDAF-4D97-A139-B12BB4C6BC8F@canonware.com>
+Message-ID: <53EE4A82.9000009@gmail.com>
+
+On 15/08/14 01:24 PM, Jason Evans wrote:
+> On Aug 6, 2014, at 6:34 AM, Ingvar Hagelund <ingvar at redpill-linpro.com> wrote:
+>>> Ingvar Hagelund wrote
+>>>> jemalloc-3.6.0 fails to build on to-be-fedora-21
+>>>>
+>>>> https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log
+>>>>
+>>>> Seems like gcc-4.9.0 changed emmintrin.h
+>>>
+>>> ... though only when compiling against Fedora's i686 target, that is
+>>> "gcc -m32 -march=i686 -mtune=atom"
+>>>
+>>> x86_64 and the generic i386 target, that is "gcc -march=i386
+>>> -mtune=generic" , works fine (though generic i386 is not a primary
+>>> Fedora target anymore).
+>>
+>>
+>> This is because of github commit
+>> cb657e3170349a27e753cdf6316513f56550205e
+>>
+>> See also jemalloc github issue 52:
+>>
+>> https://github.com/jemalloc/jemalloc/issues/52
+>>
+>> Adding -msse2 to CFLAGS fixes the build on Fedora, but there is an issue
+>> with this: Fedora supports the i686 arch. i686 predates SSE2. i686 means
+>> PentiumPro and above, while SSE2 was included around Pentium II, that is
+>> later. So there is no guaranteed support for SSE2 in Fedora.
+>>
+>> Grepping through the code, it looks like SSE2 is only used for test
+>> cases. Does jemalloc use SSE2 features at runtime? If it does, will it
+>> work correctly without SSE2 available?
+> 
+> jemalloc doesn?t explicitly use SSE2; it?s for test code only.  If I?d known how much portability trouble the SSE2 optimizations for the Merseinne Twister PRNG would cause, I?d have left them completely disabled.  Maybe it?s time to give up on SSE2, since nothing important depends on it.
+> 
+> Jason
+
+If performance is critical, perhaps a much simpler XorShift RNG would be
+a better choice. They're blazing fast and the quality is more than good
+enough for fuzzing.
+
+http://xorshift.di.unimi.it/
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140815/3066058d/attachment.sig>
+
+From ggp at mozilla.com  Thu Aug 21 14:52:07 2014
+From: ggp at mozilla.com (Guilherme Goncalves)
+Date: Thu, 21 Aug 2014 14:52:07 -0700 (PDT)
+Subject: Rounding up huge allocations to page boundaries instead of chunks
+In-Reply-To: <256468756.15208673.1408655670755.JavaMail.zimbra@mozilla.com>
+Message-ID: <1192065065.15225023.1408657927262.JavaMail.zimbra@mozilla.com>
+
+Hello,
+
+As part of our effort to move to jemalloc3 on Firefox, it would be interesting to upstream the
+changes introduced into mozjemalloc in bug 683597 [1]. Basically, we've observed that, at least
+on Linux and OSX, the operating system will commit pages lazily when they're written to (as opposed
+to when they're mapped by jemalloc). This distorts the allocation stats for huge allocations, as
+they are rounded up to chunk boundaries.
+
+For a concrete example, a huge allocation of size 1 chunk + 1 byte will cause jemalloc to map 2
+chunks, but the application will only ever physically use 1 chunk + 1 page. I haven't found any
+stats on jemalloc3 that reflect this smaller memory footprint; as far as I can see, all of the
+available stats.* metrics report multiples of the chunk size. There was some previous discussion
+about this on this list a few years ago, but it didn't seem to move forward at the time [2].
+
+Would you be interested in upstreaming such change? I took a shot at adapting the old patch on that
+bug to the current jemalloc3 repository [3], and it doesn't look like this would introduce too much
+bookkeeping. I did seem to break some assumptions in other API functions (see the FIXME note on
+huge_salloc), so it may be easier to just introduce a new statistic instead of tweaking the existing
+size field in chunks. Thoughts?
+
+1- https://bugzilla.mozilla.org/show_bug.cgi?id=683597
+2- http://www.canonware.com/pipermail/jemalloc-discuss/2012-April/000221.html
+3- https://github.com/guilherme-pg/jemalloc/commit/9ca3ca5f92053f3e605f7b470ade6e53e8fa5160
+
+-- 
+Guilherme
+
+From normalperson at yhbt.net  Sat Aug 30 23:29:16 2014
+From: normalperson at yhbt.net (Eric Wong)
+Date: Sun, 31 Aug 2014 06:29:16 +0000
+Subject: [PATCH] correctly detect adaptive mutexes in pthreads
+Message-ID: <20140831062916.GA17740@dcvr.yhbt.net>
+
+PTHREAD_MUTEX_ADAPTIVE_NP is an enum on glibc and not a macro,
+we must test for their existence by attempting compilation.
+---
+  Note: I have not benchmarked this, but I did test this by adding
+  a #warning in the #else branch.
+
+  If you prefer: git pull git://80x24.org/jemalloc dev
+
+  The following changes since commit 3ebf6db2c7fba746153cc67ca8fe6df7a886b8b8:
+
+    Merge pull request #108 from wqfish/dev (2014-08-27 12:04:01 -0700)
+
+  are available in the git repository at:
+
+    git://80x24.org/jemalloc dev
+
+  for you to fetch changes up to 579a7c567c157c2997140652d1955c6cdab350f4:
+
+    correctly detect adaptive mutexes in pthreads (2014-08-31 06:24:54 +0000)
+
+  ----------------------------------------------------------------
+  Eric Wong (1):
+        correctly detect adaptive mutexes in pthreads
+
+ configure.ac                                          | 12 ++++++++++++
+ include/jemalloc/internal/jemalloc_internal_defs.h.in |  3 +++
+ include/jemalloc/internal/mutex.h                     |  2 +-
+ 3 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 6f8fd3f..8e04b6f 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1371,6 +1371,18 @@ if test "x${je_cv_glibc_memalign_hook}" = "xyes" ; then
+   AC_DEFINE([JEMALLOC_GLIBC_MEMALIGN_HOOK], [ ])
+ fi
+ 
++JE_COMPILABLE([pthreads adaptive mutexes], [
++#include <pthread.h>
++], [
++  pthread_mutexattr_t attr;
++  pthread_mutexattr_init(&attr);
++  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ADAPTIVE_NP);
++  pthread_mutexattr_destroy(&attr);
++], [je_cv_pthread_mutex_adaptive_np])
++if test "x${je_cv_pthread_mutex_adaptive_np}" = "xyes" ; then
++  AC_DEFINE([JEMALLOC_HAVE_PTHREAD_MUTEX_ADAPTIVE_NP], [ ])
++fi
++
+ dnl ============================================================================
+ dnl Check for typedefs, structures, and compiler characteristics.
+ AC_HEADER_STDBOOL
+diff --git a/include/jemalloc/internal/jemalloc_internal_defs.h.in b/include/jemalloc/internal/jemalloc_internal_defs.h.in
+index 955582e..fd85e5c 100644
+--- a/include/jemalloc/internal/jemalloc_internal_defs.h.in
++++ b/include/jemalloc/internal/jemalloc_internal_defs.h.in
+@@ -215,4 +215,7 @@
+ /* glibc memalign hook */
+ #undef JEMALLOC_GLIBC_MEMALIGN_HOOK
+ 
++/* adaptive mutex support in pthreads */
++#undef JEMALLOC_HAVE_PTHREAD_MUTEX_ADAPTIVE_NP
++
+ #endif /* JEMALLOC_INTERNAL_DEFS_H_ */
+diff --git a/include/jemalloc/internal/mutex.h b/include/jemalloc/internal/mutex.h
+index de44e14..8a03d82 100644
+--- a/include/jemalloc/internal/mutex.h
++++ b/include/jemalloc/internal/mutex.h
+@@ -10,7 +10,7 @@ typedef struct malloc_mutex_s malloc_mutex_t;
+ #elif (defined(JEMALLOC_MUTEX_INIT_CB))
+ #  define MALLOC_MUTEX_INITIALIZER {PTHREAD_MUTEX_INITIALIZER, NULL}
+ #else
+-#  if (defined(PTHREAD_MUTEX_ADAPTIVE_NP) &&				\
++#  if (defined(JEMALLOC_HAVE_PTHREAD_MUTEX_ADAPTIVE_NP) &&		\
+        defined(PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP))
+ #    define MALLOC_MUTEX_TYPE PTHREAD_MUTEX_ADAPTIVE_NP
+ #    define MALLOC_MUTEX_INITIALIZER {PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP}
+-- 
+EW
+

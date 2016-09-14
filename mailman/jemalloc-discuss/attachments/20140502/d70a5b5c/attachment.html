@@ -1,0 +1,10 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Hi&nbsp;Jason,&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;This&nbsp;is&nbsp;follow&nbsp;up&nbsp;question&nbsp;to &lt;a&nbsp;href=&quot;https://github.com/jemalloc/jemalloc/issues/79&quot;&nbsp;target=&quot;_blank&quot;&gt;https://github.com/jemalloc/jemalloc/issues/79&lt;/a&gt;&lt;br&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;We&nbsp;wanted&nbsp;to&nbsp;periodically&nbsp;monitor&nbsp;memory&nbsp;usage&nbsp;with&nbsp;stack-trace&nbsp;of&nbsp;each&nbsp;allocation&nbsp;in&nbsp;multi-threaded&nbsp;application.&nbsp;Currently,&nbsp;I&nbsp;could&nbsp;dump&nbsp;memory&nbsp;usage&nbsp;(potential&nbsp;leak&#39;s)&nbsp;at&nbsp;exit&nbsp;time&nbsp;of&nbsp;the&nbsp;program.&nbsp;Is&nbsp;it&nbsp;possible&nbsp;to&nbsp;report&nbsp;memory&nbsp;usage&nbsp;(prof_fdump)&nbsp;called&nbsp;with&nbsp;leak&nbsp;enabled&nbsp;using&nbsp;timer&nbsp;thread&nbsp;while&nbsp;others&nbsp;threads&nbsp;are&nbsp;working&nbsp;on&nbsp;?. &lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Is&nbsp;there&nbsp;risk&nbsp;of&nbsp;calling&nbsp;&#39;prof_fdump&#39;&nbsp;with&nbsp;leak&nbsp;directly&nbsp;from&nbsp;program&nbsp;?.&nbsp; Currently&nbsp;prof_fdump&nbsp;is&nbsp;static&nbsp;function.&nbsp;Thats&nbsp;needed&nbsp;to&nbsp;be&nbsp;changed&nbsp;for&nbsp;this&nbsp;purpose.&nbsp;I&nbsp;will&nbsp;make&nbsp;sure&nbsp;only&nbsp;one&nbsp;thread&nbsp;(caller)&nbsp;calls&nbsp;prof_fdump. &lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Is&nbsp;there&nbsp;any&nbsp;other&nbsp;way&nbsp;to&nbsp;dump&nbsp;memory&nbsp;objects&nbsp;with&nbsp;stack&nbsp;trace&nbsp;currently&nbsp;held&nbsp;(more&nbsp;like&nbsp;exit&nbsp;time&nbsp;output&nbsp;using&nbsp;prof_leak)&nbsp;periodically&nbsp;?. &lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Thanks,&lt;/div&gt;&lt;div&gt;Regards,&lt;/div&gt;&lt;div&gt;<br>
+<br>
+Sudurais&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

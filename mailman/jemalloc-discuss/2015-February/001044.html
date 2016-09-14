@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Enabling profiling causes hang?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3CCAKthKi%3DeAR2PRuA-XeQq%2BJE-Q8jBBhn-GwAX5CHn7vPesBiy-w%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001030.html">
+   <LINK REL="Next"  HREF="001045.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Enabling profiling causes hang?</H1>
+    <B>Brock Pytlik</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3CCAKthKi%3DeAR2PRuA-XeQq%2BJE-Q8jBBhn-GwAX5CHn7vPesBiy-w%40mail.gmail.com%3E"
+       TITLE="Enabling profiling causes hang?">brock.pytlik at gmail.com
+       </A><BR>
+    <I>Wed Feb 11 14:49:59 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001030.html">Enabling profiling causes hang?
+</A></li>
+        <LI>Next message: <A HREF="001045.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1044">[ date ]</a>
+              <a href="thread.html#1044">[ thread ]</a>
+              <a href="subject.html#1044">[ subject ]</a>
+              <a href="author.html#1044">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>So I think we're closing in on the finish line. I've successfully generated
+profiles from ardb using the gate tip malloc. The problem I'm having is
+that pprof (the one distributed w/ jemalloc) shows no allocation
+information. (I use the one distributed w/ jemalloc b/c the one that's part
+of gperftools 2.4 doesn't know about heap_v2 afaict.) To be clear, pprof
+loads the file, then I do &quot;top&quot; and it says '0 B', as does &quot;top --cum&quot;.
+
+I haven't found documentation about what the heap_v2 file format is, so I'm
+not sure where the problem is. I've included what one of the profile files
+looks like. If you can point me to the documentation for the heap_v2 file
+format that would be great, then I could possibly interpret what's below.
+If you know what's going on when you look @ the file below, that would be
+great as well.
+
+heap_v2/524288
+&gt;<i>   t*: 217: 3029560 [0: 0]
+</I>&gt;<i>   t0: 6: 1015808 [0: 0]
+</I>&gt;<i>   t1: 0: 0 [0: 0]
+</I>&gt;<i>   t2: 207: 1440312 [0: 0]
+</I>&gt;<i>   t3: 0: 0 [0: 0]
+</I>&gt;<i>   t4: 0: 0 [0: 0]
+</I>&gt;<i>   t5: 0: 0 [0: 0]
+</I>&gt;<i>   t6: 0: 0 [0: 0]
+</I>&gt;<i>   t7: 4: 573440 [0: 0]
+</I>&gt;<i> @
+</I>&gt;<i>   t*: 217: 3029560 [0: 0]
+</I>&gt;<i>   t0: 6: 1015808 [0: 0]
+</I>&gt;<i>   t2: 207: 1440312 [0: 0]
+</I>&gt;<i>   t7: 4: 573440 [0: 0]
+</I>&gt;<i> MAPPED_LIBRARIES:
+</I>&gt;<i> 00008000-001f5000 r-xp 00000000 08:05 1318210    /usr/bin/ardb-server.prof
+</I>&gt;<i> 001fc000-00202000 rw-p 001ec000 08:05 1318210    /usr/bin/ardb-server.prof
+</I>&gt;<i> 00202000-00214000 rw-p 00000000 00:00 0          [heap]
+</I>&gt;<i> a6000000-adc00000 rw-p 00000000 00:00 0
+</I>&gt;<i> adc00000-adc01000 ---p 00000000 00:00 0
+</I>&gt;<i> adc01000-af400000 rw-p 00000000 00:00 0          [stack:5192]
+</I>&gt;<i> af400000-af401000 ---p 00000000 00:00 0
+</I>&gt;<i> af401000-b0400000 rw-p 00000000 00:00 0          [stack:4628]
+</I>&gt;<i> b0400000-b0401000 ---p 00000000 00:00 0
+</I>&gt;<i> b0401000-b1000000 rw-p 00000000 00:00 0          [stack:4627]
+</I>&gt;<i> b11ff000-b1200000 ---p 00000000 00:00 0
+</I>&gt;<i> b1200000-b19ff000 rw-p 00000000 00:00 0          [stack:4626]
+</I>&gt;<i> b19ff000-b1a00000 ---p 00000000 00:00 0
+</I>&gt;<i> b1a00000-b21ff000 rw-p 00000000 00:00 0          [stack:4625]
+</I>&gt;<i> b21ff000-b2200000 ---p 00000000 00:00 0
+</I>&gt;<i> b2200000-b29ff000 rw-p 00000000 00:00 0          [stack:4624]
+</I>&gt;<i> b29ff000-b2a00000 ---p 00000000 00:00 0
+</I>&gt;<i> b2a00000-b31ff000 rw-p 00000000 00:00 0          [stack:4623]
+</I>&gt;<i> b31ff000-b6400000 rw-s 00000000 08:06 2883593    &lt;&gt;/repl/repl.log
+</I>&gt;<i> b6400000-b6c00000 rw-p 00000000 00:00 0
+</I>&gt;<i> b6d25000-b6d26000 rw-p 00000000 00:00 0
+</I>&gt;<i> b6d27000-b6e42000 r-xp 00000000 08:05 130837     /lib/libc-2.13.so
+</I>&gt;<i> b6e42000-b6e49000 ---p 0011b000 08:05 130837     /lib/libc-2.13.so
+</I>&gt;<i> b6e49000-b6e4b000 r--p 0011a000 08:05 130837     /lib/libc-2.13.so
+</I>&gt;<i> b6e4b000-b6e4c000 rw-p 0011c000 08:05 130837     /lib/libc-2.13.so
+</I>&gt;<i> b6e4c000-b6e4f000 rw-p 00000000 00:00 0
+</I>&gt;<i> b6e4f000-b6e6e000 r-xp 00000000 08:05 130944     /lib/libgcc_s.so.1
+</I>&gt;<i> b6e6e000-b6e75000 ---p 0001f000 08:05 130944     /lib/libgcc_s.so.1
+</I>&gt;<i> b6e75000-b6e76000 rw-p 0001e000 08:05 130944     /lib/libgcc_s.so.1
+</I>&gt;<i> b6e76000-b6edf000 r-xp 00000000 08:05 130976     /lib/libm-2.13.so
+</I>&gt;<i> b6edf000-b6ee6000 ---p 00069000 08:05 130976     /lib/libm-2.13.so
+</I>&gt;<i> b6ee6000-b6ee7000 r--p 00068000 08:05 130976     /lib/libm-2.13.so
+</I>&gt;<i> b6ee7000-b6ee8000 rw-p 00069000 08:05 130976     /lib/libm-2.13.so
+</I>&gt;<i> b6ee8000-b6f84000 r-xp 00000000 08:05 1316222
+</I>&gt;<i> /usr/lib/libstdc++.so.6.0.17
+</I>&gt;<i> b6f84000-b6f8b000 ---p 0009c000 08:05 1316222
+</I>&gt;<i> /usr/lib/libstdc++.so.6.0.17
+</I>&gt;<i> b6f8b000-b6f8f000 r--p 0009b000 08:05 1316222
+</I>&gt;<i> /usr/lib/libstdc++.so.6.0.17
+</I>&gt;<i> b6f8f000-b6f91000 rw-p 0009f000 08:05 1316222
+</I>&gt;<i> /usr/lib/libstdc++.so.6.0.17
+</I>&gt;<i> b6f91000-b6f98000 rw-p 00000000 00:00 0
+</I>&gt;<i> b6f98000-b6fac000 r-xp 00000000 08:05 130941     /lib/libpthread-2.13.so
+</I>&gt;<i> b6fac000-b6fb3000 ---p 00014000 08:05 130941     /lib/libpthread-2.13.so
+</I>&gt;<i> b6fb3000-b6fb4000 r--p 00013000 08:05 130941     /lib/libpthread-2.13.so
+</I>&gt;<i> b6fb4000-b6fb5000 rw-p 00014000 08:05 130941     /lib/libpthread-2.13.so
+</I>&gt;<i> b6fb5000-b6fb7000 rw-p 00000000 00:00 0
+</I>&gt;<i> b6fb7000-b6fd4000 r-xp 00000000 08:05 130826     /lib/ld-2.13.so
+</I>&gt;<i> b6fd4000-b6fd7000 rw-p 00000000 00:00 0
+</I>&gt;<i> b6fd7000-b6fda000 rw-p 00000000 00:00 0
+</I>&gt;<i> b6fda000-b6fdb000 r-xp 00000000 00:00 0          [sigpage]
+</I>&gt;<i> b6fdb000-b6fdc000 r--p 0001c000 08:05 130826     /lib/ld-2.13.so
+</I>&gt;<i> b6fdc000-b6fdd000 rw-p 0001d000 08:05 130826     /lib/ld-2.13.so
+</I>&gt;<i> bef38000-bef59000 rw-p 00000000 00:00 0          [stack]
+</I>&gt;<i> ffff0000-ffff1000 r-xp 00000000 00:00 0          [vectors]
+</I>
+
+
+Thanks,
+Brock
+
+
+On Mon, Feb 9, 2015 at 3:23 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Feb 9, 2015, at 3:11 PM, Brock Pytlik &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">brock.pytlik at gmail.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;<i> Well, I thought it would handle what I needed, but I can't seem to get it
+</I>&gt;<i> to produce a dump. Here's what I did:
+</I>&gt;<i> From my experiments on x86, it seems like prof:true needs to be part of
+</I>&gt;<i> MALLOC_CONF for lg_prof_interval to work at all. However, when I set
+</I>&gt;<i> prof:true on arm, ardb hangs in the atexit code. This happens even when I
+</I>&gt;<i> set prof_final to false. To be clear this command hangs (on arm):
+</I>&gt;<i>
+</I>&gt;&gt;<i> MALLOC_CONF=prof:true,lg_prof_interval:2,prof_final:false ardb-server
+</I>&gt;&gt;<i> ardb.conf
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Oh, whoops, I forgot that in the dev branch I refactored the prof
+</I>&gt;<i> bootstrapping code to make the atexit() call conditional, but in 3.6.0 the
+</I>&gt;<i> call always happens if prof:true is set.  I think you will have to hack
+</I>&gt;<i> jemalloc in order to work around this.
+</I>&gt;<i>
+</I>&gt;<i> I'm confused about a couple of things:
+</I>&gt;<i> 1) Why it works on x86 and not arm (and whether that means the cross
+</I>&gt;<i> compiling build for arm has some issues).
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> I haven't dug into this, but I'm assuming that this is an arbitrary
+</I>&gt;<i> implementation difference in the libc being used on ARM, possibly motivated
+</I>&gt;<i> by the desire to reduce the data segment size and only pay for internal
+</I>&gt;<i> atexit() metadata overhead if the functionality is actually used.  I'm not
+</I>&gt;<i> very familiar with ARM-specific development, but I get the impression that
+</I>&gt;<i> there are multiple stripped down libc implementations in use.
+</I>&gt;<i>
+</I>&gt;<i> If these are things that are fixed in the gate tip of jemalloc, I'd also
+</I>&gt;<i> be happy to try changing ardb to use that (assuming it's largely a drop in
+</I>&gt;<i> replacement).
+</I>&gt;<i>
+</I>&gt;<i> Any suggestions on where I go next?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Assuming that your current goal is simply to get heap profiles and
+</I>&gt;<i> diagnose a leak, I'd recommend just trying to use the dev version of
+</I>&gt;<i> jemalloc.  If that doesn't work for some reason, then disabling the
+</I>&gt;<i> atexit() call in jemalloc's src/prof.c and rebuilding will probably be
+</I>&gt;<i> enough to get you what you need.
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150211/0c761d33/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150211/0c761d33/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001030.html">Enabling profiling causes hang?
+</A></li>
+	<LI>Next message: <A HREF="001045.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1044">[ date ]</a>
+              <a href="thread.html#1044">[ thread ]</a>
+              <a href="subject.html#1044">[ subject ]</a>
+              <a href="author.html#1044">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

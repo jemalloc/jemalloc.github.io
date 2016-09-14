@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Segfault with jemalloc 3.4.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segfault%20with%20jemalloc%203.4.&In-Reply-To=%3CD7CA1FED-88B7-43C8-8307-A849D5E8B2AD%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000636.html">
+   <LINK REL="Next"  HREF="000638.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Segfault with jemalloc 3.4.</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segfault%20with%20jemalloc%203.4.&In-Reply-To=%3CD7CA1FED-88B7-43C8-8307-A849D5E8B2AD%40canonware.com%3E"
+       TITLE="Segfault with jemalloc 3.4.">jasone at canonware.com
+       </A><BR>
+    <I>Thu Oct  3 14:11:49 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000636.html">Segfault with jemalloc 3.4.
+</A></li>
+        <LI>Next message: <A HREF="000638.html">maximally misaligned
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#637">[ date ]</a>
+              <a href="thread.html#637">[ thread ]</a>
+              <a href="subject.html#637">[ subject ]</a>
+              <a href="author.html#637">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 1, 2013, at 5:56 AM, adnan akbar &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">chaudry.adnan.akbar at gmail.com</A>&gt; wrote:
+&gt;<i> I have been using the jemalloc 3.4.0-0-g0ed518e5dab789ad2171bb38977a8927e2a26775. Usually  it runs fine but i have a rare crash at the following location. And sometime while allocating. Any pointer regarding the resolution would be helpful. 
+</I>&gt;<i> 
+</I>&gt;<i> (gdb) bt
+</I>&gt;<i> #0  tcache_dalloc_small (ptr=0x7f1be585cc00)
+</I>&gt;<i>     at include/jemalloc/internal/tcache.h:405
+</I>&gt;<i> #1  arena_dalloc (ptr=0x7f1be585cc00) at include/jemalloc/internal/arena.h:1003
+</I>&gt;<i> #2  idallocx (ptr=0x7f1be585cc00)
+</I>&gt;<i>     at include/jemalloc/internal/jemalloc_internal.h:913
+</I>&gt;<i> #3  iqallocx (ptr=0x7f1be585cc00)
+</I>&gt;<i>     at include/jemalloc/internal/jemalloc_internal.h:932
+</I>&gt;<i> #4  iqalloc (ptr=0x7f1be585cc00)
+</I>&gt;<i>     at include/jemalloc/internal/jemalloc_internal.h:939
+</I>&gt;<i> #5  js_free (ptr=0x7f1be585cc00) at src/jemalloc.c:1272
+</I>&gt;<i> #6  0x00007f1c4af5180d in std::basic_string&lt;char, std::char_traits&lt;char&gt;, mcommons::mem::JEAllocator&lt;char&gt; &gt;::_Rep::_M_destroy(mcommons::mem::JEAllocator&lt;char&gt; const&amp;) () from ../mcommons/output/libmcommons.so
+</I>&gt;<i> #7  0x00007f1c42dec17f in handlers::userhandlers::handleUserSessionEvent(mcommons::security::Session*, bool) () from ../LPConnector/output/libLPConnector.so
+</I>&gt;<i> #8  0x00007f1c4af9de93 in mcommons::framework::Consumer::processDescIO(unsigned long, unsigned long) const () from ../mcommons/output/libmcommons.so
+</I>&gt;<i> ---Type &lt;return&gt; to continue, or q &lt;return&gt; to quit---
+</I>&gt;<i> #9  0x00007f1c4af9e2ee in mcommons::framework::Consumer::run() ()
+</I>&gt;<i>    from ../mcommons/output/libmcommons.so
+</I>&gt;<i> #10 0x00007f1c4af66389 in start_persistent_thread(void*) ()
+</I>&gt;<i>    from ../mcommons/output/libmcommons.so
+</I>&gt;<i> #11 0x0000003bd7007851 in start_thread () from /lib64/libpthread.so.0
+</I>&gt;<i> #12 0x0000003bd64e890d in nfsservctl () from /lib64/libc.so.6
+</I>&gt;<i> #13 0x0000000000000000 in ?? ()
+</I>
+This backtrace may indicate that your application is double-freeing an allocation.  The crash may occur long after the double-free occurs.  In order to narrow down the problem, I recommend using a debug build of jemalloc and disabling tcache (either at compile time or at run time) so that assertions in the arena code catch the error immediately.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000636.html">Segfault with jemalloc 3.4.
+</A></li>
+	<LI>Next message: <A HREF="000638.html">maximally misaligned
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#637">[ date ]</a>
+              <a href="thread.html#637">[ thread ]</a>
+              <a href="subject.html#637">[ subject ]</a>
+              <a href="author.html#637">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

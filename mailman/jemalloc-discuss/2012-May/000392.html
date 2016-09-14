@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Last call for 3.0.0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Last%20call%20for%203.0.0&In-Reply-To=%3C20120509083827.GA13146%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000390.html">
+   <LINK REL="Next"  HREF="000394.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Last call for 3.0.0</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Last%20call%20for%203.0.0&In-Reply-To=%3C20120509083827.GA13146%40glandium.org%3E"
+       TITLE="Last call for 3.0.0">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May  9 01:38:27 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000390.html">Last call for 3.0.0
+</A></li>
+        <LI>Next message: <A HREF="000394.html">Last call for 3.0.0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#392">[ date ]</a>
+              <a href="thread.html#392">[ thread ]</a>
+              <a href="subject.html#392">[ subject ]</a>
+              <a href="author.html#392">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, May 07, 2012 at 03:06:51PM +0200, Mike Hommey wrote:
+&gt;<i> On Thu, May 03, 2012 at 10:39:15AM -0700, Jason Evans wrote:
+</I>&gt;<i> &gt; On May 3, 2012, at 10:24 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt; On Wed, May 02, 2012 at 04:45:42PM -0700, Jason Evans wrote:
+</I>&gt;<i> &gt; &gt;&gt; On May 2, 2012, at 7:51 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt;&gt;&gt; I have to write 2 patches for MSVC-related issues that I'll send
+</I>&gt;<i> &gt; &gt;&gt;&gt; later today.
+</I>&gt;<i> &gt; &gt;&gt; 
+</I>&gt;<i> &gt; &gt;&gt; I just committed all of your patches; thanks.
+</I>&gt;<i> &gt; &gt;&gt; 
+</I>&gt;<i> &gt; &gt;&gt;&gt; I also get concerning (kind of) random (but not entirely so)
+</I>&gt;<i> &gt; &gt;&gt;&gt; crashes in Firefox on Windows when using current jemalloc-dev. I
+</I>&gt;<i> &gt; &gt;&gt;&gt; haven't narrowed down the problem yet, and probably won't until
+</I>&gt;<i> &gt; &gt;&gt;&gt; tomorrow. It might be better to hold off a release until things
+</I>&gt;<i> &gt; &gt;&gt;&gt; are cleared.
+</I>&gt;<i> &gt; &gt;&gt; 
+</I>&gt;<i> &gt; &gt;&gt; Some of my tests on Linux are crashing too; memset() within
+</I>&gt;<i> &gt; &gt;&gt; huge_ralloc() is causing a segfault, but I don't know whether the
+</I>&gt;<i> &gt; &gt;&gt; source or the destination is the problem, nor whether the bug is in
+</I>&gt;<i> &gt; &gt;&gt; jemalloc or the application (betting on jemalloc though).  Until
+</I>&gt;<i> &gt; &gt;&gt; that's resolved I won't be cutting a release.  Please let me know
+</I>&gt;<i> &gt; &gt;&gt; if you are able to further characterize the crashes you're seeing;
+</I>&gt;<i> &gt; &gt;&gt; they might be related to what I'm seeing.
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; It's rather strange that I get my crashes on Windows only.
+</I>&gt;<i> &gt; &gt; Unfortunately, I can't reproduce locally, so debugging them will
+</I>&gt;<i> &gt; &gt; have to wait for access to one of our test machines. Chances are
+</I>&gt;<i> &gt; &gt; you'll have a patch for your issues before that, so I'll be able to
+</I>&gt;<i> &gt; &gt; test if that fixes my issues.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I determined last night that the problem I'm hitting is due to a bad
+</I>&gt;<i> &gt; interaction between Linux kernel vma fragmentation (adjacent VM areas
+</I>&gt;<i> &gt; aren't being coalesced) and mremap(2).  This problem appears to be
+</I>&gt;<i> &gt; peculiar to Linux, so I doubt it's related to what you're seeing.
+</I>&gt;<i> &gt; Anyway, the fix/workaround may end up being rather involved, so I'm
+</I>&gt;<i> &gt; not optimistic about getting 3.0.0 released before next week.
+</I>&gt;<i> 
+</I>&gt;<i> So far, I haven't even been able to reproduce the issue on a machine I
+</I>&gt;<i> have a shell on, which would allow better debugging. I tried enabling
+</I>&gt;<i> debug on jemalloc in my firefox builds, and all that managed to produce
+</I>&gt;<i> is trigger an assertion in arena.c:
+</I>&gt;<i>  170         /* Freeing an unallocated pointer can cause assertion failure. */
+</I>&gt;<i>  171         assert(bitmap_get(bitmap, &amp;bin_info-&gt;bitmap_info, regind));
+</I>&gt;<i> 
+</I>&gt;<i> ... the interesting part being that I'm still seeing the same crash as
+</I>&gt;<i> the one I was originally getting, and *not* the assertion above when
+</I>&gt;<i> running through our automated tests.
+</I>
+I've now been able to reproduce the crashes, and I think I found what
+goes wrong: lack of contiguous virtual memory to allocate chunks. Now,
+I need to see why this happens (that is, is jemalloc failing to
+deallocate some virtual memory or something else is happening?)
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000390.html">Last call for 3.0.0
+</A></li>
+	<LI>Next message: <A HREF="000394.html">Last call for 3.0.0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#392">[ date ]</a>
+              <a href="thread.html#392">[ thread ]</a>
+              <a href="subject.html#392">[ subject ]</a>
+              <a href="author.html#392">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> High amount of private clean data in smaps
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3C35941C6B-8CDA-47B2-A190-839B65880FBF%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000597.html">
+   <LINK REL="Next"  HREF="000602.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>High amount of private clean data in smaps</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3C35941C6B-8CDA-47B2-A190-839B65880FBF%40canonware.com%3E"
+       TITLE="High amount of private clean data in smaps">jasone at canonware.com
+       </A><BR>
+    <I>Mon Jun  3 16:23:05 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000597.html">performance regression after 3.1
+</A></li>
+        <LI>Next message: <A HREF="000602.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#598">[ date ]</a>
+              <a href="thread.html#598">[ thread ]</a>
+              <a href="subject.html#598">[ subject ]</a>
+              <a href="author.html#598">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 30, 2013, at 4:06 PM, Kurtis Martin wrote:
+&gt;<i> 1) Why does jemalloc have smaps with such large Private_Clean size?  I'm actually surprised jemalloc has such large smaps in general.  I would expect a bunch of smaller smaps that match the configured chunk size. 
+</I>
+I've been trying to figure this out for quite a while now, and I have yet to come up a way to transition pages that were mapped as MAP_PRIVATE|MAP_ANON to the Private_Clean state.  My experiments included fork(2) abuse, mmap'ed files, shared anonymous memory, etc., and I'm currently out of ideas.  If you're able to observe a process as its Private_Clean page count is increasing, can you capture an strace log to see what system calls are occurring?  Also, can you tell me the Linux kernel version you're using, jemalloc configuration (e.g. whether munmap is disabled), and jemalloc run-time options specified?
+
+Regarding large smaps, all the Unix operating systems I've dealt with coalesce mappings that have identical attributes.  If jemalloc maps two chunks that happen to be adjacent to each other, the kernel tracks them as a single mapping.  jemalloc goes to some effort to make coalescing possible, because Linux unfortunately does linear map scans that severely degrade performance if the number of map entries isn't kept low.
+
+Thanks,
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130603/c463ce5a/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130603/c463ce5a/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000597.html">performance regression after 3.1
+</A></li>
+	<LI>Next message: <A HREF="000602.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#598">[ date ]</a>
+              <a href="thread.html#598">[ thread ]</a>
+              <a href="subject.html#598">[ subject ]</a>
+              <a href="author.html#598">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

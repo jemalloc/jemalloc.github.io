@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory allocation/release hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3CCAGKz%3DuJfCOa2rtrf9teA_muxS7mPON_S12KfP2v_ZSJUoDZCzg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001183.html">
+   <LINK REL="Next"  HREF="001198.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory allocation/release hooks</H1>
+    <B>Jeff Hammond</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3CCAGKz%3DuJfCOa2rtrf9teA_muxS7mPON_S12KfP2v_ZSJUoDZCzg%40mail.gmail.com%3E"
+       TITLE="Memory allocation/release hooks">jeff.science at gmail.com
+       </A><BR>
+    <I>Tue Oct 20 08:31:45 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001183.html">Memory allocation/release hooks
+</A></li>
+        <LI>Next message: <A HREF="001198.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1197">[ date ]</a>
+              <a href="thread.html#1197">[ thread ]</a>
+              <a href="subject.html#1197">[ subject ]</a>
+              <a href="author.html#1197">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Pavel,
+
+You may find <A HREF="http://memkind.github.io/memkind/">http://memkind.github.io/memkind/</A> relevant.  In particular,
+<A HREF="http://memkind.github.io/memkind/memkind_arch_20150318.pdf">http://memkind.github.io/memkind/memkind_arch_20150318.pdf</A> section 2.2 and
+2.3 discusses exactly the issues you raise.  We also note that memkind is
+intended to support multiple types of memory within a node, such as one
+might encounter in a platform such as Knights Landing.  You are free to
+imagine how it might map to OpenPOWER based upon your superior knowledge of
+that platform :-)
+
+While I recognize that the origins of memkind at Intel may pose a challenge
+for some in the OpenPOWER family, it would be tremendously valuable to the
+community if it was reused for MPI and OpenSHMEM projects, rather than the
+UCX team trying to implement something new.  As you know, the both MPI and
+OpenSHMEM should run on a range of platforms, and it doubles the
+implementation effort in all relevant projects (MPICH, OpenMPI, OpenSHMEM
+reference, etc.) if UCX goes in a different direction.
+
+I would be happy to introduce you to the memkind developers (I am not one
+of them, just someone who helps them understand user/client requirements).
+
+Best,
+
+Jeff
+
+
+On Thu, Oct 15, 2015 at 8:45 AM, Shamis, Pavel &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">shamisp at ornl.gov</A>&gt; wrote:
+
+&gt;<i> Dear Jemalloc Community,
+</I>&gt;<i>
+</I>&gt;<i> We are developer of UCX project [1] and as part of the effort
+</I>&gt;<i> we are looking for a malloc library that supports hooks for alloc/dealloc
+</I>&gt;<i> chunks and can be used for the following:
+</I>&gt;<i>
+</I>&gt;<i> (a) Allocation of memory that can be shared transparently between
+</I>&gt;<i> processes on the same node. For this purpose we would like to mmap memory
+</I>&gt;<i> with MAP_SHARED. This is very useful for implementation for Remote Memory
+</I>&gt;<i> Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3]
+</I>&gt;<i> communication libraries. This allow a remote process to map user allocated
+</I>&gt;<i> memory and provide RMA operations through memcpy().
+</I>&gt;<i>
+</I>&gt;<i> (b) Implementation of memory de-allocation hooks for RDMA hardware
+</I>&gt;<i> (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a
+</I>&gt;<i> lazy memory de-registration (memory unpinning) policy and we use the hook
+</I>&gt;<i> for the  notification of communication library about memory release event.
+</I>&gt;<i> On the event, we cleanup our registration cache and de-register (unpin) the
+</I>&gt;<i> memory on hardware.
+</I>&gt;<i>
+</I>&gt;<i> Based on this requirements we would like to understand what is the best
+</I>&gt;<i> approach for integration this functionality within jemalloc.
+</I>&gt;<i>
+</I>&gt;<i> Regards,
+</I>&gt;<i> Pasha &amp; Yossi
+</I>&gt;<i>
+</I>&gt;<i> [1] OpenUCX: <A HREF="https://github.com/openucx/ucx">https://github.com/openucx/ucx</A> or www.openucx.org
+</I>&gt;<i> [2] MPI SPEC: <A HREF="http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf">http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf</A>
+</I>&gt;<i> [3] OpenSHMEM SPEC:
+</I>&gt;<i> <A HREF="http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf">http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+Jeff Hammond
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jeff.science at gmail.com</A>
+<A HREF="http://jeffhammond.github.io/">http://jeffhammond.github.io/</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151020/904073c4/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151020/904073c4/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001183.html">Memory allocation/release hooks
+</A></li>
+	<LI>Next message: <A HREF="001198.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1197">[ date ]</a>
+              <a href="thread.html#1197">[ thread ]</a>
+              <a href="subject.html#1197">[ subject ]</a>
+              <a href="author.html#1197">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

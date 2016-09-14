@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Gather Arena stats
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Gather%20Arena%20stats&In-Reply-To=%3CCAMAQheOQBmwEcispN4oD7inOKvUo%3DG4HUWpQyqKtGemxNR17sg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000686.html">
+   <LINK REL="Next"  HREF="000688.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Gather Arena stats</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Gather%20Arena%20stats&In-Reply-To=%3CCAMAQheOQBmwEcispN4oD7inOKvUo%3DG4HUWpQyqKtGemxNR17sg%40mail.gmail.com%3E"
+       TITLE="Gather Arena stats">edsiper at gmail.com
+       </A><BR>
+    <I>Tue Nov 26 12:10:40 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000686.html">Gather Arena stats
+</A></li>
+        <LI>Next message: <A HREF="000688.html">Gather Arena stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#687">[ date ]</a>
+              <a href="thread.html#687">[ thread ]</a>
+              <a href="subject.html#687">[ subject ]</a>
+              <a href="author.html#687">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>thanks for your help!, thats the info that i need.
+
+best
+
+
+On Tue, Nov 26, 2013 at 2:01 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Nov 26, 2013, at 11:40 AM, Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;<i> i am interested into gather memory usage per Linux thread, as i am using
+</I>&gt;<i> jemalloc i think this can be done quering the arenas per thread. if i am
+</I>&gt;<i> correct, do you have some code example that accomplish something similar to
+</I>&gt;<i> this ?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Threads don't own memory; allocated regions can be shared among threads,
+</I>&gt;<i> and allocation/deallocation can be split between threads.  That said,
+</I>&gt;<i> jemalloc does track total volume of allocation and deallocation on a per
+</I>&gt;<i> thread basis, so you can derive the information you want as long as you
+</I>&gt;<i> account for allocated regions that are shared among threads.  Take a look
+</I>&gt;<i> at the &quot;thread.allocated&quot; and &quot;thread.deallocated&quot; mallctl() interfaces in
+</I>&gt;<i> the man page:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html</A>
+</I>&gt;<i>
+</I>&gt;<i> There is a relevant test program included with jemalloc:
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c">https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c</A>
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>
+
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/41b24a83/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/41b24a83/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000686.html">Gather Arena stats
+</A></li>
+	<LI>Next message: <A HREF="000688.html">Gather Arena stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#687">[ date ]</a>
+              <a href="thread.html#687">[ thread ]</a>
+              <a href="subject.html#687">[ subject ]</a>
+              <a href="author.html#687">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Profiling memory allocations in run-time in production
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Profiling%20memory%20allocations%20in%20run-time%20in%20production&In-Reply-To=%3CCAO6Ho0ckFHUC6HJzcccOkogw_uFh%2BjCwMVDuLfY6VKmkyz3TUQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000705.html">
+   <LINK REL="Next"  HREF="000709.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Profiling memory allocations in run-time in production</H1>
+    <B>Evgeniy Ivanov</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Profiling%20memory%20allocations%20in%20run-time%20in%20production&In-Reply-To=%3CCAO6Ho0ckFHUC6HJzcccOkogw_uFh%2BjCwMVDuLfY6VKmkyz3TUQ%40mail.gmail.com%3E"
+       TITLE="Profiling memory allocations in run-time in production">i at eivanov.com
+       </A><BR>
+    <I>Thu Jan 16 06:10:29 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000705.html">Profiling memory allocations in run-time in production
+</A></li>
+        <LI>Next message: <A HREF="000709.html">SSD backing
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#706">[ date ]</a>
+              <a href="thread.html#706">[ thread ]</a>
+              <a href="subject.html#706">[ subject ]</a>
+              <a href="author.html#706">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Jan 15, 2014 at 8:39 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On Jan 15, 2014, at 1:09 AM, Evgeniy Ivanov &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">i at eivanov.com</A>&gt; wrote:
+</I>&gt;&gt;<i> On Tue, Jan 14, 2014 at 10:22 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> On Dec 22, 2013, at 11:41 PM, Evgeniy Ivanov &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">i at eivanov.com</A>&gt; wrote:
+</I>&gt;&gt;&gt;&gt;<i> I need to profile my application running in production. Is it
+</I>&gt;&gt;&gt;&gt;<i> performance safe to build jemalloc with &quot;--enable-prof&quot;, start
+</I>&gt;&gt;&gt;&gt;<i> application with profiling disabled and enable it for short time
+</I>&gt;&gt;&gt;&gt;<i> (probably via mallctl() call), when I need? I'm mostly interested in
+</I>&gt;&gt;&gt;&gt;<i> stacks, i.e. opt.prof_accum. Or are there better alternatives in
+</I>&gt;&gt;&gt;&gt;<i> Linux? I've tried perf, but it just counts stacks and doesn't care
+</I>&gt;&gt;&gt;&gt;<i> about amount of memory allocated. There is also stap, but I haven't
+</I>&gt;&gt;&gt;&gt;<i> try it yet.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> Yes, you can use jemalloc's heap profiling as you describe, with essentially no performance impact while heap profiling is inactive.  You may even be able to leave heap profiling active all the time with little performance impact, depending on how heavily your application uses malloc.  At Facebook we leave heap profiling active all the time for a wide variety of server applications; there are only a couple of exceptions I'm aware of for which the performance impact is unacceptable (heavy malloc use, ~2% slowdown when heap profiling is active).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> What settings had you been using and what had been measured, when you
+</I>&gt;&gt;<i> got 2% slowdown?
+</I>&gt;<i>
+</I>&gt;<i> My vague recollection is that the app was heavily multi-threaded, and spent about 10% of its total time in malloc.  Therefore a 2% overall slowdown corresponded to a ~20% slowdown in jemalloc itself.  Note that size class distribution matters to heap profiling performance because there are two sources of overhead (counter maintenance and backtracing), but I don&#8217;t remember what the distribution looked like.  We were using a version of libunwind that had a backtrace caching mechanism built in (it was never accepted upstream, and libunwind&#8217;s current caching mechanism cannot safely be used by malloc).
+</I>&gt;<i>
+</I>&gt;&gt;<i> In our test (latency related) I got following
+</I>&gt;&gt;<i> results:
+</I>&gt;&gt;<i> normal jemalloc: %99 &lt;= 87 usec (Avg: 65 usec)
+</I>&gt;&gt;<i> inactive profiling: %99 &lt;= 88 usec (Avg: 66 usec)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> MALLOC_CONF=&quot;prof:true,prof_active:true,lg_prof_sample:19,prof_accum:true,prof_prefix:jeprof.out&#8221;
+</I>&gt;<i>
+</I>&gt;<i> We usually use prof_accum:false, mainly because complicated call graphs can cause a huge number of retained backtraces, but otherwise your settings match.
+</I>
+Stacks is our primary point of interest. Using DTrace we trace each
+malloc, but skip the ones, which request less than 16 Kb. DTrace
+overhead on Solaris is just 13%. Not sure if allocation statistics
+might be useful for us.
+
+&gt;&gt;<i> prof-libgcc: %99 &lt;= 125 usec (Avg: 70 usec)
+</I>&gt;&gt;<i> prof-libunwind: %99 &lt;= 146 usec (Avg: 76 usec)
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> So in average slowdown is 6% for libgcc and 15% for libunwind. But for
+</I>&gt;&gt;<i> distribution (99% &lt; X) slowdown is 42% or 65% depending on library,
+</I>&gt;&gt;<i> which is huge difference. For 64 Kb numbers are dramatic: 154% (99% &lt;
+</I>&gt;&gt;<i> X) performance lose.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Do I miss something in configuration?
+</I>&gt;<i>
+</I>&gt;<i> If your application is spending ~10-30% of its time in malloc, then your numbers sound reasonable.  You may find that a lower sampling rate (e.g. lg_prof_sample:21) drops backtracing overhead enough that performance is acceptable.  I&#8217;ve experimented in the past with lower sampling rates, and for long-running applications I&#8217;ve found that the heap profiles are still totally usable, because total allocation volume is high.
+</I>
+Tested on one of our workloads. For lg_prof_sample:20 we get 18%
+slowdown, and for lg_prof_sample:21 it is just 4.5%, which is
+absolutely acceptable.
+
+
+Jason, thanks a lot for your answers! jemalloc is really awesome and
+powerful thing!
+
+
+-- 
+Cheers,
+Evgeniy
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000705.html">Profiling memory allocations in run-time in production
+</A></li>
+	<LI>Next message: <A HREF="000709.html">SSD backing
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#706">[ date ]</a>
+              <a href="thread.html#706">[ thread ]</a>
+              <a href="subject.html#706">[ subject ]</a>
+              <a href="author.html#706">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

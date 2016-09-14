@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 04/11] Add a pages_purge function to wrap	madvise(JEMALLOC_MADV_PURGE) calls
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2004/11%5D%20Add%20a%20pages_purge%20function%20to%20wrap%0A%09madvise%28JEMALLOC_MADV_PURGE%29%20calls&In-Reply-To=%3C1334766590-7296-4-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000315.html">
+   <LINK REL="Next"  HREF="000311.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 04/11] Add a pages_purge function to wrap	madvise(JEMALLOC_MADV_PURGE) calls</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2004/11%5D%20Add%20a%20pages_purge%20function%20to%20wrap%0A%09madvise%28JEMALLOC_MADV_PURGE%29%20calls&In-Reply-To=%3C1334766590-7296-4-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 04/11] Add a pages_purge function to wrap	madvise(JEMALLOC_MADV_PURGE) calls">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Apr 18 09:29:43 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000315.html">[PATCH 03/11] Add an abstraction layer for threading in tests
+</A></li>
+        <LI>Next message: <A HREF="000311.html">[PATCH 05/11] Fix malloc_vsnprintf handling of %o, %u and %x
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#310">[ date ]</a>
+              <a href="thread.html#310">[ thread ]</a>
+              <a href="subject.html#310">[ subject ]</a>
+              <a href="author.html#310">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: unknown &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at jigen.</A>(none)&gt;
+
+This will be used to implement the feature on mingw, which doesn't have
+madvise.
+---
+ include/jemalloc/internal/chunk_mmap.h |    2 ++
+ include/jemalloc/jemalloc_defs.h.in    |    7 -------
+ src/arena.c                            |    4 ++--
+ src/chunk.c                            |    2 +-
+ src/chunk_mmap.c                       |   13 +++++++++++++
+ 5 files changed, 18 insertions(+), 10 deletions(-)
+
+diff --git a/include/jemalloc/internal/chunk_mmap.h b/include/jemalloc/internal/chunk_mmap.h
+index 04e86af..2d01ac2 100644
+--- a/include/jemalloc/internal/chunk_mmap.h
++++ b/include/jemalloc/internal/chunk_mmap.h
+@@ -9,6 +9,8 @@
+ /******************************************************************************/
+ #ifdef JEMALLOC_H_EXTERNS
+ 
++void	pages_purge(void *addr, size_t length);
++
+ void	*chunk_alloc_mmap(size_t size, size_t alignment);
+ bool	chunk_dealloc_mmap(void *chunk, size_t size);
+ 
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 90baa35..6e81655 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -220,13 +220,6 @@
+  */
+ #undef JEMALLOC_PURGE_MADVISE_DONTNEED
+ #undef JEMALLOC_PURGE_MADVISE_FREE
+-#ifdef JEMALLOC_PURGE_MADVISE_DONTNEED
+-#  define JEMALLOC_MADV_PURGE MADV_DONTNEED
+-#elif defined(JEMALLOC_PURGE_MADVISE_FREE)
+-#  define JEMALLOC_MADV_PURGE MADV_FREE
+-#else
+-#  error &quot;No method defined for purging unused dirty pages.&quot;
+-#endif
+ 
+ /* sizeof(void *) == 2^LG_SIZEOF_PTR. */
+ #undef LG_SIZEOF_PTR
+diff --git a/src/arena.c b/src/arena.c
+index 989034d..cbd92e2 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -676,8 +676,8 @@ arena_chunk_purge(arena_t *arena, arena_chunk_t *chunk)
+ 		if (config_debug)
+ 			ndirty -= npages;
+ 
+-		madvise((void *)((uintptr_t)chunk + (pageind &lt;&lt; LG_PAGE)),
+-		    (npages &lt;&lt; LG_PAGE), JEMALLOC_MADV_PURGE);
++		pages_purge((void *)((uintptr_t)chunk + (pageind &lt;&lt; LG_PAGE)),
++		    (npages &lt;&lt; LG_PAGE));
+ 		if (config_stats)
+ 			nmadvise++;
+ 	}
+diff --git a/src/chunk.c b/src/chunk.c
+index 67e0d50..bcaedea 100644
+--- a/src/chunk.c
++++ b/src/chunk.c
+@@ -171,7 +171,7 @@ chunk_record(void *chunk, size_t size)
+ {
+ 	extent_node_t *xnode, *node, *prev, key;
+ 
+-	madvise(chunk, size, JEMALLOC_MADV_PURGE);
++	pages_purge(chunk, size);
+ 
+ 	xnode = NULL;
+ 	malloc_mutex_lock(&amp;chunks_mtx);
+diff --git a/src/chunk_mmap.c b/src/chunk_mmap.c
+index e11cc0e..3ab9095 100644
+--- a/src/chunk_mmap.c
++++ b/src/chunk_mmap.c
+@@ -72,6 +72,19 @@ pages_unmap(void *addr, size_t size)
+ 	}
+ }
+ 
++void
++pages_purge(void *addr, size_t length)
++{
++#ifdef JEMALLOC_PURGE_MADVISE_DONTNEED
++#  define JEMALLOC_MADV_PURGE MADV_DONTNEED
++#elif defined(JEMALLOC_PURGE_MADVISE_FREE)
++#  define JEMALLOC_MADV_PURGE MADV_FREE
++#else
++#  error &quot;No method defined for purging unused dirty pages.&quot;
++#endif
++	madvise(addr, length, JEMALLOC_MADV_PURGE);
++}
++
+ static void *
+ chunk_alloc_mmap_slow(size_t size, size_t alignment, bool unaligned)
+ {
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000315.html">[PATCH 03/11] Add an abstraction layer for threading in tests
+</A></li>
+	<LI>Next message: <A HREF="000311.html">[PATCH 05/11] Fix malloc_vsnprintf handling of %o, %u and %x
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#310">[ date ]</a>
+              <a href="thread.html#310">[ thread ]</a>
+              <a href="subject.html#310">[ subject ]</a>
+              <a href="author.html#310">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

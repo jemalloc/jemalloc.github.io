@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Workload causes significant internal fragmentation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Workload%20causes%20significant%20internal%20fragmentation&In-Reply-To=%3COF14D6AB2F.116FB72B-ON85257B64.006E65DB-85257B64.006F6310%40us.ibm.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000585.html">
+   <LINK REL="Next"  HREF="000587.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Workload causes significant internal fragmentation</H1>
+    <B>Thomas W Savage</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Workload%20causes%20significant%20internal%20fragmentation&In-Reply-To=%3COF14D6AB2F.116FB72B-ON85257B64.006E65DB-85257B64.006F6310%40us.ibm.com%3E"
+       TITLE="Workload causes significant internal fragmentation">savagetw at us.ibm.com
+       </A><BR>
+    <I>Tue May  7 13:16:38 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000585.html">[PATCH] Add aarch64 LG_QUANTUM size definition
+</A></li>
+        <LI>Next message: <A HREF="000587.html">Workload causes significant internal fragmentation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#586">[ date ]</a>
+              <a href="thread.html#586">[ thread ]</a>
+              <a href="subject.html#586">[ subject ]</a>
+              <a href="author.html#586">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+Hey all,
+
+My team is having trouble determining how to address increasing internal
+fragmentation (sizeable diff b/w Jm allocated and active) for a particular
+workload.
+
+We are allocating objects into three small bins (48, 320, 896). We start
+with an insertion phase in which we continually allocate &quot;entries&quot;, which
+are made up of four allocations: 2x 48-byte objects, 1x 320 obj, and 1x 896
+obj. Once we have inserted entries up to a certain threshold, we begin an
+eviction phase in which we have some threads continuing insertion and
+another thread freeing 320's and 896's (not touching the 48's). By the end
+of this run, we observe significant internal fragmentation as demonstrated
+in the stats below. Is there anything that can be done to mitigate this
+internal frag?
+
+Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+Assertions disabled
+Run-time option settings:
+&#160; opt.abort: false
+&#160; opt.lg_chunk: 21
+&#160; opt.dss: &quot;secondary&quot;
+&#160; opt.narenas: 96
+&#160; opt.lg_dirty_mult: 1
+&#160; opt.stats_print: false
+&#160; opt.junk: false
+&#160; opt.quarantine: 0
+&#160; opt.redzone: false
+&#160; opt.zero: false
+CPUs: 24
+Arenas: 96
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 2:1
+Chunk size: 2097152 (2&#710;21)
+Allocated: 7574200736, active: 8860864512, mapped: 9013559296
+Current active ceiling: 8963227648
+chunks: nchunks&#160;&#160; highchunks&#160;&#160;&#160; curchunks
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 4553&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 4298&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 4298
+huge: nmalloc&#160;&#160;&#160;&#160;&#160; ndalloc&#160;&#160;&#160; allocated
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 16&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 15&#160;&#160;&#160;&#160; 35651584
+
+Merged arenas stats:
+assigned threads: 79
+dss allocation precedence: N/A
+dirty pages: 2154593:0 active:dirty, 0 sweeps, 0 madvises, 0 purged
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; allocated&#160;&#160;&#160;&#160;&#160; nmalloc&#160;&#160;&#160;&#160;&#160; ndalloc&#160;&#160;&#160; nrequests
+small:&#160;&#160;&#160;&#160; 7515054496&#160;&#160;&#160;&#160; 29540988&#160;&#160;&#160;&#160;&#160; 3552884&#160;&#160;&#160;&#160; 29540988
+large:&#160;&#160;&#160;&#160;&#160;&#160; 23494656&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1432&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1432
+total:&#160;&#160;&#160;&#160; 7538549152&#160;&#160;&#160;&#160; 29542420&#160;&#160;&#160;&#160;&#160; 3552884&#160;&#160;&#160;&#160; 29542420
+active:&#160;&#160;&#160; 8825212928
+mapped:&#160;&#160;&#160; 8973713408
+bins:&#160;&#160;&#160;&#160; bin&#160; size regs pgs&#160;&#160;&#160; allocated&#160;&#160;&#160;&#160;&#160; nmalloc&#160;&#160;&#160;&#160;&#160; ndalloc
+newruns&#160;&#160;&#160;&#160;&#160;&#160; reruns&#160;&#160;&#160;&#160;&#160; curruns
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160; 8&#160; 501&#160;&#160; 1&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 176&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 22
+0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 11&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 11
+[1]
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 2&#160;&#160;&#160; 32&#160; 126&#160;&#160; 1&#160;&#160;&#160;&#160;&#160;&#160;&#160; 68448&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 2187
+48&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 22&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 21
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 3&#160;&#160;&#160; 48&#160;&#160; 84&#160;&#160; 1&#160;&#160;&#160; 666243696&#160;&#160;&#160;&#160; 13880077&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0
+165272&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160; 165272
+[4]
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 5&#160;&#160;&#160; 80&#160;&#160; 50&#160;&#160; 1&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1760&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 22
+0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 11&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 11
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 6&#160;&#160;&#160; 96&#160;&#160; 84&#160;&#160; 2&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 2112&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 22
+0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 11&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 11
+[7..12]
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 13&#160;&#160; 320&#160;&#160; 63&#160;&#160; 5&#160;&#160; 2221154560&#160;&#160;&#160;&#160;&#160; 8717502&#160;&#160;&#160;&#160;&#160; 1776394
+125156&#160;&#160;&#160;&#160;&#160;&#160; 701794&#160;&#160;&#160;&#160;&#160;&#160; 125156
+[14..18]
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 19&#160;&#160; 896&#160;&#160; 45&#160; 10&#160;&#160; 4627583744&#160;&#160;&#160;&#160;&#160; 6941156&#160;&#160;&#160;&#160;&#160; 1776442
+135776&#160;&#160;&#160;&#160;&#160;&#160; 692084&#160;&#160;&#160;&#160;&#160;&#160; 135774
+[20..27]
+large:&#160;&#160; size pages&#160;&#160;&#160;&#160;&#160; nmalloc&#160;&#160;&#160;&#160;&#160; ndalloc&#160;&#160;&#160; nrequests&#160;&#160;&#160;&#160;&#160; curruns
+[1]
+&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 8192&#160;&#160;&#160;&#160; 2&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 22&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 22&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 22
+[1]
+&#160;&#160;&#160;&#160;&#160;&#160;&#160; 16384&#160;&#160;&#160;&#160; 4&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1408&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1408&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1408
+[13]
+&#160;&#160;&#160;&#160;&#160;&#160;&#160; 73728&#160;&#160;&#160; 18&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1
+[23]
+&#160;&#160;&#160;&#160;&#160;&#160; 172032&#160;&#160;&#160; 42&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 0&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; 1
+[467]
+--- End jemalloc statistics ---
+
+Thanks,
+Thom
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/d2bbd8b6/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/d2bbd8b6/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000585.html">[PATCH] Add aarch64 LG_QUANTUM size definition
+</A></li>
+	<LI>Next message: <A HREF="000587.html">Workload causes significant internal fragmentation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#586">[ date ]</a>
+              <a href="thread.html#586">[ thread ]</a>
+              <a href="subject.html#586">[ subject ]</a>
+              <a href="author.html#586">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Cross-compiling and configure.ac macros
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3CBANLkTi%3DGGM%2BH6S6MyN8etJEh3OdXv4T81Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000003.html">
+   <LINK REL="Next"  HREF="000006.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Cross-compiling and configure.ac macros</H1>
+    <B>Andreas Vinsander</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3CBANLkTi%3DGGM%2BH6S6MyN8etJEh3OdXv4T81Q%40mail.gmail.com%3E"
+       TITLE="Cross-compiling and configure.ac macros">andreas+jemalloc at vinsander.se
+       </A><BR>
+    <I>Fri Apr 15 06:48:55 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000003.html">Cross-compiling and configure.ac macros
+</A></li>
+        <LI>Next message: <A HREF="000006.html">Cross-compiling and configure.ac macros
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4">[ date ]</a>
+              <a href="thread.html#4">[ thread ]</a>
+              <a href="subject.html#4">[ subject ]</a>
+              <a href="author.html#4">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>2011/4/15 Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;:
+&gt;<i> On 04/14/2011 05:16 AM, Andreas Vinsander wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I am trying to cross-compile jemalloc for evaluation on an embedded
+</I>&gt;&gt;<i> device running a Linux home brew distro.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I have some problems with the way jemalloc tests for various support
+</I>&gt;&gt;<i> of the host (target) system.
+</I>&gt;<i>
+</I>&gt;<i> For a first pass, can you run configure without the cross compiler
+</I>&gt;<i> specified, then hack up Makefile and include/jemalloc/jemalloc_defs.h to do
+</I>&gt;<i> the right thing for your platform?
+</I>
+Yes, I could do that but I would rather fix the autoconf issues.
+
+&gt;<i>
+</I>&gt;&gt;<i> So far I have modified jemalloc-2.2.1 configure.ac as seen in the
+</I>&gt;&gt;<i> attached patch, but there still exists a call to AC_RUN_IFELSE.
+</I>&gt;<i>
+</I>&gt;<i> The one remaining AC_RUN_IFELSE is for page size detection, right? &#160;I think
+</I>&gt;<i> it's reasonable to just specify a default of 12 (and maybe even allow an
+</I>&gt;<i> environment variable to override that default) if the test fails.
+</I>
+Yes, the STATIC_PAGE_SHIFT test.
+Shouldn't that be possible to find out in runtime. Or is that what
+--enable-dynamic-page-shift is doing? In that case shouldn't the
+configure.ac script ignore the STATIC_PAGE_SHIFT if
+--enable-dynamic-page-shift was specified?
+
+&gt;<i>
+</I>&gt;&gt;<i> What is the best way to handle it? To use autoconf cache and supply a
+</I>&gt;&gt;<i> default value when cross-compiling?
+</I>&gt;<i>
+</I>&gt;<i> How would the autoconf cache help here? &#160;Isn't it still necessary for the
+</I>&gt;<i> test to have successfully run at some point for the cache to have a valid
+</I>&gt;<i> result?
+</I>
+See for example:
+<A HREF="http://developer.gnome.org/glib/2.28/glib-cross-compiling.html">http://developer.gnome.org/glib/2.28/glib-cross-compiling.html</A>
+
+It is possible to provide a pre-defined cache with values that suites
+the target system.
+I thought that could be useful here as well. I have poked around a bit
+with it here and it seems to work.
+
+/Andreas
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000003.html">Cross-compiling and configure.ac macros
+</A></li>
+	<LI>Next message: <A HREF="000006.html">Cross-compiling and configure.ac macros
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#4">[ date ]</a>
+              <a href="thread.html#4">[ thread ]</a>
+              <a href="subject.html#4">[ subject ]</a>
+              <a href="author.html#4">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

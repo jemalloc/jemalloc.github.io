@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> realloc stack use under O0 for x86_64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3C4434BECB-00B2-4C40-8B66-4F88E86D2DFE%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001077.html">
+   <LINK REL="Next"  HREF="001079.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>realloc stack use under O0 for x86_64</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3C4434BECB-00B2-4C40-8B66-4F88E86D2DFE%40canonware.com%3E"
+       TITLE="realloc stack use under O0 for x86_64">jasone at canonware.com
+       </A><BR>
+    <I>Wed Mar 25 17:34:55 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001077.html">realloc stack use under O0 for x86_64
+</A></li>
+        <LI>Next message: <A HREF="001079.html">realloc stack use under O0 for x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1078">[ date ]</a>
+              <a href="thread.html#1078">[ thread ]</a>
+              <a href="subject.html#1078">[ subject ]</a>
+              <a href="author.html#1078">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+&gt;<i> We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+</I>&gt;<i> 
+</I>&gt;<i> When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+</I>&gt;<i> 
+</I>&gt;<i> ```asm
+</I>&gt;<i> 0000000000070e48 &lt;realloc&gt;:
+</I>&gt;<i>   70e48:       55                      push   %rbp
+</I>&gt;<i>   70e49:       48 89 e5                mov    %rsp,%rbp
+</I>&gt;<i>   70e4c:       53                      push   %rbx
+</I>&gt;<i>   70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+</I>&gt;<i> ```
+</I>
+Wow, that's far more stack space than I can imagine an explanation for.  What version of jemalloc is this happening with, which OS, compiler, etc.?
+
+&gt;<i> [...]
+</I>&gt;<i> 
+</I>&gt;<i> I&#8217;ve tried to look through the source code for realloc, but I got a little lost. Can someone point me to what&#8217;s getting stack allocated that could possible need so much space? Is this a bug?
+</I>
+realloc() is actually je_realloc() in src/jemalloc.c.  In at least some release versions of jemalloc (not the current dev version), the fast path for realloc(NULL, size) is inlined, and that means a lot of functions could be involved.  Even so, none of them allocates huge on-stack data structures, and there's minimal recursive code, specifically in order to avoid the problems you're somehow hitting.
+
+I can think of a couple possible techniques for narrowing down the problem.  One is to selectively force functions to not be inlined, and the other is to selectively disable compiler optimizations.  Neither is guaranteed to point directly at the problem though.
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001077.html">realloc stack use under O0 for x86_64
+</A></li>
+	<LI>Next message: <A HREF="001079.html">realloc stack use under O0 for x86_64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1078">[ date ]</a>
+              <a href="thread.html#1078">[ thread ]</a>
+              <a href="subject.html#1078">[ subject ]</a>
+              <a href="author.html#1078">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

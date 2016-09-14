@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add -FS flag to support parallel builds with MSVC 2013
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20-FS%20flag%20to%20support%20parallel%20builds%20with%20MSVC%202013&In-Reply-To=%3C1401350301-12812-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000845.html">
+   <LINK REL="Next"  HREF="000847.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add -FS flag to support parallel builds with MSVC 2013</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20-FS%20flag%20to%20support%20parallel%20builds%20with%20MSVC%202013&In-Reply-To=%3C1401350301-12812-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Add -FS flag to support parallel builds with MSVC 2013">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu May 29 00:58:21 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000845.html">d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0 broken MSVC builds
+</A></li>
+        <LI>Next message: <A HREF="000847.html">[PATCH] Make in-tree MSVC builds work
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#846">[ date ]</a>
+              <a href="thread.html#846">[ thread ]</a>
+              <a href="subject.html#846">[ subject ]</a>
+              <a href="author.html#846">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ configure.ac | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configure.ac b/configure.ac
+index 5aeaa08..045f62e 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -141,6 +141,7 @@ if test &quot;x$CFLAGS&quot; = &quot;x&quot; ; then
+     JE_CFLAGS_APPEND([-Zi])
+     JE_CFLAGS_APPEND([-MT])
+     JE_CFLAGS_APPEND([-W3])
++    JE_CFLAGS_APPEND([-FS])
+     CPPFLAGS=&quot;$CPPFLAGS -I${srcroot}/include/msvc_compat&quot;
+   fi
+ fi
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000845.html">d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0 broken MSVC builds
+</A></li>
+	<LI>Next message: <A HREF="000847.html">[PATCH] Make in-tree MSVC builds work
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#846">[ date ]</a>
+              <a href="thread.html#846">[ thread ]</a>
+              <a href="subject.html#846">[ subject ]</a>
+              <a href="author.html#846">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

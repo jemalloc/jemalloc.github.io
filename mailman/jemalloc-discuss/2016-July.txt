@@ -1,0 +1,195 @@
+From ingvar at redpill-linpro.com  Fri Jul  1 08:22:12 2016
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Fri, 1 Jul 2016 17:22:12 +0200
+Subject: 4.2.1 test/integration/mallocx still fails on older i686 (Was:
+	jemalloc 4.1.1 released)
+In-Reply-To: <24AD8C0B-65E8-4CE7-BA7C-1BC05EE081F2@canonware.com>
+References: <46439D75-8BD8-4CFD-97EC-668ED6A8D7D0@canonware.com>
+	<1462367572.4559.11.camel@redpill-linpro.com>
+	<24AD8C0B-65E8-4CE7-BA7C-1BC05EE081F2@canonware.com>
+Message-ID: <ce39aa08-8ccd-85ac-8d42-6bed184682b7@redpill-linpro.com>
+
+Den 11. mai 2016 09:57, skrev Jason Evans:
+> On May 4, 2016, at 6:12 AM, Ingvar Hagelund <ingvar at redpill-linpro.com> wrote:
+>> test/integration/mallocx fails on older i686. It fails on el5, el6,
+>> though it works on fedora 22.
+>>
+>> el5 and el6 dies at the same spot:
+>>
+>> === test/integration/mallocx ===
+>> test_overflow: pass
+>> test_oom: pass
+>> test_basic: pass
+>> test_alignment_and_size:test/integration/mallocx.c:170: Failed
+>> assertion: (ps[i]) != (NULL) --> 0x0 == 0x0: mallocx() error for
+>> alignment=33554432, size=100663291 (0x5fffffb)
+>> test/test.sh: line 22: 24762 Segmentation fault      (core dumped) ${t}
+>> /builddir/build/BUILD/jemalloc-4.1.1/ /builddir/build/BUILD/jemalloc-
+>> 4.1.1/
+>> Test harness error
+>> make: *** [check_integration] Error 1
+>>
+>> Full build log for el5: https://ingvar.fedorapeople.org/jemalloc/jemall
+>> oc-4.1.1.el5.i686.build.log
+> 
+> This is probably fixed:
+> 
+> 	https://github.com/jemalloc/jemalloc/commit/3a9ec676267cf215ed2591a1060f870daced2472
+
+
+Doesn't seem so:
+
+4.2.1 build on rhel6/i686:
+
+=== test/integration/mallocx ===
+test_overflow: pass
+test_oom: pass
+test_basic: pass
+test_alignment_and_size:test/integration/mallocx.c:175: Failed
+assertion: (ps[i]) != (NULL) --> 0x0 == 0x0: mallocx() error for
+alignment=33554432, size=67108861 (0x3fffffd)
+test/test.sh: line 22: 26890 Segmentation fault      (core dumped) ${t}
+/builddir/build/BUILD/jemalloc-4.2.1/ /builddir/build/BUILD/jemalloc-4.2.1/
+Test harness error
+make: *** [check_integration] Error 1
+error: Bad exit status from /var/tmp/rpm-tmp.khBQZJ (%check)
+
+
+Full build log here:
+
+https://kojipkgs.fedoraproject.org//work/tasks/1019/14731019/build.log
+
+
+
+From jasone at canonware.com  Thu Jul  7 14:04:49 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 7 Jul 2016 14:04:49 -0700
+Subject: [jemalloc-4.2.1]Can't profile heap on ARM target
+In-Reply-To: <5b103a9d.3d24.15594def16a.Coremail.zack93@126.com>
+References: <5b103a9d.3d24.15594def16a.Coremail.zack93@126.com>
+Message-ID: <82264FDE-183E-40B1-968B-906256172EB4@canonware.com>
+
+On Jun 27, 2016, at 7:38 PM, ?? <zack93 at 126.com> wrote:
+> Hi all, I was trying HeapProf on ARM target, But always get a Empty call stack. 
+> Step:
+> 1. cross-compile jemalloc-4.2.1 (./configure --build=x86_64-unknown-linux-gnu --host=arm-none-linux-gnueabi EXTRA_CFLAGS="-fno-omit-frame-pointer -DUSE_UTF8 -O2 -fPIC -std=gnu99 " LDFLAGS=" -fPIC -std=gnu99" CC="arm-linux-gnueabi-gcc" CXX="arm-linux-gnueabihf-g++" AR="arm-linux-gnueabihf-ar" CFLAGS="-O2" --enable-debug --enable-prof
+> ) and test.c (a very simple code)
+> 2. running "MALLOC_CONF=stats_print:true LD_PRELOAD=/usr/lib/libjemalloc.so ./test" , Yes, it works!
+> 3. Try profile heap like following: 
+>     MALLOC_CONF=prof:true,lg_prof_sample:0,prof_final:true LD_PRELOAD=/usr/lib/libjemalloc.so ./test
+> then get heap file "jeprof.10678.0.f.heap" with empty call stack:
+> /tmp/jemalloc # cat jeprof.10678.0.f.heap
+> cat jeprof.10678.0.f.heap
+> heap_v2/1
+>   t*: 1000: 54673752 [0: 0]
+>   t0: 1000: 54673752 [0: 0]
+> @
+>   t*: 1000: 54673752 [0: 0]
+>   t0: 1000: 54673752 [0: 0]
+> 
+> Note: With same steps and commands, HeapProf works on x86 platform; like:
+> kuii at ubuntu:~/mem/jemalloc/mytest$ MALLOC_CONF=prof:true,lg_prof_sample:0,prof_final:true LD_PRELOAD=/home/kuii/mem/jemalloc/jemalloc-4.2.1/lib/libjemalloc.so ./test
+> kuii at ubuntu:~/mem/jemalloc/mytest$ cat jeprof.23836.0.f.heap
+> heap_v2/1
+>   t*: 10: 47112 [0: 0]
+>   t0: 10: 47112 [0: 0]
+> @ 0x7fa08cb98c2d 0x7fa08cb91a1d 0x7fa08cb5d171 0x7fa08cb5d3da 0x7fa08cb5d651 0x40054c 0x400573 0x7fa08c7b0ec5 0x400469
+>   t*: 10: 47112 [0: 0]
+>   t0: 10: 47112 [0: 0]
+
+A few months ago I tracked down the cause of a similar report, and it turned out to be due to a bug in libgcc on ARM.  Try libunwind (--enable-prof-libunwind).
+
+Jason
+
+From jasone at canonware.com  Thu Jul  7 14:08:18 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 7 Jul 2016 14:08:18 -0700
+Subject: Jemalloc quickly OOMs with custom chunk_hooks that opt out of
+	purge
+In-Reply-To: <CAJc7KoaST=QD-YtwdroVUx8jdzLDKGuf4fqyYaJe2UDJubho+w@mail.gmail.com>
+References: <CAJc7KoaST=QD-YtwdroVUx8jdzLDKGuf4fqyYaJe2UDJubho+w@mail.gmail.com>
+Message-ID: <53C96C9F-D592-4016-BD79-0F96BF0DD545@canonware.com>
+
+On Jun 15, 2016, at 10:17 AM, Benjamin Barg <benbakerbarg at gmail.com> wrote:
+> I'm writing a set of chunk_hooks that satisfy chunk_alloc requests with a bump pointer and opt out of dalloc, decommit, and purge. The goal is to back an arena with 2MB and 1GB huge pages on demand and force jemalloc to reuse the memory in that space.
+> 
+> I wrote a simple program to test page reuse. As pseudocode:
+> 	? malloc 1GB of memory using repeated small allocations
+> 	? free that same 1GB
+> 	? malloc a small amount of memory again
+> 	? check whether jemalloc call chunk_alloc again in (3)
+> I've noticed that when dirty page purging is disabled by setting MALLOC_CONF="lg_dirty_mult:-1", jemalloc willingly reuses all of the memory provided by my chunk hooks, but when the option is off, it only reuses about one chunk's worth (~4Mb).
+> 
+> I would consider this intended behavior (obviously my test program goes below the default 8:1 minimum active to free page ratio), except that the man page entry for chunk_purge_t reads
+> 
+> > A chunk purge function conforms to the chunk_purge_t type and optionally discards physical pages
+> 
+> I'm further confused because it seems that API for chunk_hooks_t offers no mechanism for signaling to jemalloc that the pages were not released.
+> 
+> Basically, I'm asking whether it's intended that opt.lg_dirty_mult must be set to -1 in order for jemalloc to reuse an arbitrary amount of chunk_hook-allocated memory.
+
+I'm guessing that your chunk hook functions are opting out of purging, and that jemalloc is calling the deallocation hook.  If so, it's up to your chunk management code to deallocate (or reuse) that memory, so perhaps you're effectively leaking the memory in the chunk hook code.
+
+Jason
+
+From jasone at canonware.com  Thu Jul  7 14:28:01 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 7 Jul 2016 14:28:01 -0700
+Subject: Diagnosing an out-of-memory issue
+In-Reply-To: <CACR1ONBfZq=PdgLvJ2sm7RYTK=uamKG8irkX3wLLnJBU_QQTZA@mail.gmail.com>
+References: <CACR1ONBfZq=PdgLvJ2sm7RYTK=uamKG8irkX3wLLnJBU_QQTZA@mail.gmail.com>
+Message-ID: <5086BC01-A7B1-4E16-A24B-97372E793A0A@canonware.com>
+
+On Jun 26, 2016, at 1:00 PM, Matthew Fleming <mdf at purestorage.com> wrote:
+> I'm not sure which details will be relevant so I may be including too much info below.  I'm using jemalloc with custom hooks to manage about 54GB of virtual space under Linux on x86_64. The hooks manage the address space in 2MB chunks so I can use HUGETLB for the mappings. Slightly simplified, the hooks do the following (roughly as expected, I think):
+> 
+>     alloc: mmap size bytes, aligned appropriately
+>     dalloc: munmap the space (not really, I recycle the memory internally, but it's logically the same)
+>     commit: return false
+>     decommit: return true
+>     purge: return true
+>     split: return false
+>     merge: return false
+> 
+> We're experiencing some out-of-memory issues, mostly due to a known runaway allocation site that we're working to fix. However, while debugging this I'm seeing some numbers for jemalloc usage that leave me concerned.  At the time of the OOM, I can see that we indeed have 54GB of virtual space used (we're using rlimit to set a 54GB limit for the process).
+> 
+> However, I also see the following from je_malloc_stats_print at the time we cross the 54GB virtual threshold which seems low to me:
+> 
+> Allocated: 38825889776, active: 47743795200, metadata: 1304838720, resident: 50520985600, mapped: 56247713792
+> Current active ceiling: 47758442496
+> 
+> [...]
+> 
+> Where I'm wondering if I'm mis-using jemalloc is in the allocated vs active vs mapped numbers. Allocated/active implies 0.813 utilization; is this expected? Active/mapped adds further gives a 0.848 utilization; is this expected? It seems somewhere between unfortunate and buggy that jemalloc calls my alloc hook for more virtual/physical space, when there's only 69% of the total mapped space used. This turns my 54GB vmem limit into something like a 37GB limit on actual allocations, a loss of 17GB!
+
+0.813 utilization isn't great, but it isn't awful either.  You may be able to substantially improve this by decreasing the number of arenas, so that threads don't cause so much per arena usage fluctuation.
+
+Regarding low virtual memory utilization, I'm guessing that the chunks are too fragmented to service the 16 KiB requests that appear to be the most common size class in your application.
+
+> One thing I think I did wrong that I am fixing is that I had set opt.lg_tcache_max: 21; based on the actual use of the system I don't think I need to have a per-thread cache for anything over 16kB. I have no visibility (even slightly laggy) to how much memory is held in the tcache, though. This would be a nice addition to the available stats, even if the number isn't completely accurate.
+
+We will hopefully have such stats in 5.x (see https://github.com/jemalloc/jemalloc/pull/380).
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Thu Jul  7 14:29:57 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 7 Jul 2016 14:29:57 -0700
+Subject: difference between used memory and that in profiled result
+In-Reply-To: <CALuYO4e=TGKasKrUrQPKX8vre8eckQ_2WVS+8xKNw7VMEGyJrg@mail.gmail.com>
+References: <CALuYO4e=TGKasKrUrQPKX8vre8eckQ_2WVS+8xKNw7VMEGyJrg@mail.gmail.com>
+Message-ID: <E5C8AF60-C54F-4B76-A3D5-9BFD7837DA9D@canonware.com>
+
+On Jun 22, 2016, at 10:12 PM, Himanshu <g.himanshu at gmail.com> wrote:
+> I used the steps described on https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Leak-Checking to dump profiling information of a java process. When the process runs, I can see with "top" that utilized 
+>   - virtual memory by the process goes upto about 6 GB and stays there
+>   - resident memory by the process goes upto about 4GB and stays there
+> 
+> 
+> However , the pdf graph generated shows "Total B: 104353080" (~ 100 MB) which is way smaller than the actual memory utilized by the process. What configuration do I need to use so that graph can account for all memory utilization as reported by "top".
+
+Is all allocation being done via jemalloc?  I'm guessing that Java is calling mmap() directly for most its heap.
+
+Jason
+

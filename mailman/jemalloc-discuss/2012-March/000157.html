@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 3/3] Improve zone support for OSX
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/3%5D%20Improve%20zone%20support%20for%20OSX&In-Reply-To=%3C20120320171048.GA32129%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000156.html">
+   <LINK REL="Next"  HREF="000159.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 3/3] Improve zone support for OSX</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/3%5D%20Improve%20zone%20support%20for%20OSX&In-Reply-To=%3C20120320171048.GA32129%40glandium.org%3E"
+       TITLE="[PATCH 3/3] Improve zone support for OSX">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Mar 20 10:10:48 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000156.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+        <LI>Next message: <A HREF="000159.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#157">[ date ]</a>
+              <a href="thread.html#157">[ thread ]</a>
+              <a href="subject.html#157">[ subject ]</a>
+              <a href="author.html#157">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Mar 20, 2012 at 01:04:54PM -0400, Justin Lebar wrote:
+&gt;<i> btw, I'm skeptical of the value of supporting OSX 10.5, because 10.5
+</I>&gt;<i> occasionally passes invalid pointers to ozone_size [1].
+</I>&gt;<i> 
+</I>&gt;<i> [1] <A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=694335">https://bugzilla.mozilla.org/show_bug.cgi?id=694335</A>
+</I>
+For one, not all jemalloc users are going to have the problem, which is
+limited to some APIs.
+Also, AIUI, the current jemalloc code does the right thing for the
+ozone_size, which is not the case in the old jemalloc fork we use in
+Firefox, so depending on what is done with the result of ozone_size,
+it might be okay.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000156.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+	<LI>Next message: <A HREF="000159.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#157">[ date ]</a>
+              <a href="thread.html#157">[ thread ]</a>
+              <a href="subject.html#157">[ subject ]</a>
+              <a href="author.html#157">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

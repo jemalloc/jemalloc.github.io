@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Reason opt.lg_dirty_mult is not writable?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Reason%20opt.lg_dirty_mult%20is%20not%20writable%3F&In-Reply-To=%3C9427FBBC-E603-4BC6-89F7-57535634B6BA%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001002.html">
+   <LINK REL="Next"  HREF="001004.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Reason opt.lg_dirty_mult is not writable?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Reason%20opt.lg_dirty_mult%20is%20not%20writable%3F&In-Reply-To=%3C9427FBBC-E603-4BC6-89F7-57535634B6BA%40canonware.com%3E"
+       TITLE="Reason opt.lg_dirty_mult is not writable?">jasone at canonware.com
+       </A><BR>
+    <I>Wed Jan 21 13:32:39 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001002.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+        <LI>Next message: <A HREF="001004.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1003">[ date ]</a>
+              <a href="thread.html#1003">[ thread ]</a>
+              <a href="subject.html#1003">[ subject ]</a>
+              <a href="author.html#1003">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 21, 2015, at 1:25 PM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+&gt;&gt;<i> On Jan 21, 2015, at 4:10 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;&gt;<i> Can you instead set malloc_conf (with appropriate mangling) to &quot;lg_dirty_mult:-1&#8221;?  
+</I>&gt;<i> 
+</I>&gt;<i> Ah, maybe? I didn&#8217;t realize that we could mangle those up front, the opt code can be pretty opaque :-) That would be good enough for my purposes. So if my configuration normally generates the symbol as &#8220;prefix_je_opt_lg_dirty_mult&#8221;, then can I use that fully mangled name?
+</I>
+You can use PREFIX_MALLOC_CONF=lg_dirty_mult:-1 in the environment, or you can use prefix_malloc_conf = &quot;lg_dirty_mult:-1&quot; in C code.  There should be a distinct *MALLOC_CONF and *malloc_conf for each version of jemalloc you link into your application.
+
+&gt;<i> As a side note, we run into some symbols that aren&#8217;t properly mangled to link against two jemalloc instances. At some point (soon) we&#8217;ll submit an upstream patch to mangle them.
+</I>
+I just integrated a patch for this today (<A HREF="https://github.com/jemalloc/jemalloc/pull/185">https://github.com/jemalloc/jemalloc/pull/185</A>).
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001002.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+	<LI>Next message: <A HREF="001004.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1003">[ date ]</a>
+              <a href="thread.html#1003">[ thread ]</a>
+              <a href="subject.html#1003">[ subject ]</a>
+              <a href="author.html#1003">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

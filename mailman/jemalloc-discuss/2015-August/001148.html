@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-4.0.0 on el5 and el6: undefined reference to `clock_gettime'
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20on%20el5%20and%20el6%3A%20undefined%20reference%20to%20%60clock_gettime%27&In-Reply-To=%3C55D58323.2010104%40redpill-linpro.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001150.html">
+   <LINK REL="Next"  HREF="001149.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-4.0.0 on el5 and el6: undefined reference to `clock_gettime'</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20on%20el5%20and%20el6%3A%20undefined%20reference%20to%20%60clock_gettime%27&In-Reply-To=%3C55D58323.2010104%40redpill-linpro.com%3E"
+       TITLE="jemalloc-4.0.0 on el5 and el6: undefined reference to `clock_gettime'">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Thu Aug 20 00:34:59 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001150.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+        <LI>Next message: <A HREF="001149.html">jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1148">[ date ]</a>
+              <a href="thread.html#1148">[ thread ]</a>
+              <a href="subject.html#1148">[ subject ]</a>
+              <a href="author.html#1148">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>When compiling jemalloc-4.0.0 on rhel5 or rhel6, the linker stops with
+&quot;undefined reference to `clock_gettime'&quot;
+
+Adding &quot;-lrt&quot; to LDFLAGS gets around this, but perhaps it could have
+been picked up automatically?
+
+Regards,
+Ingvar
+
+
+el6$ gcc -o test/unit/atomic test/unit/atomic.o src/jemalloc.jet.o
+src/arena.jet.o src/atomic.jet.o src/base.jet.o src/bitmap.jet.o
+src/chunk.jet.o src/chunk_dss.jet.o src/chunk_mmap.jet.o src/ckh.jet.o
+src/ctl.jet.o src/extent.jet.o src/hash.jet.o src/huge.jet.o
+src/mb.jet.o src/mutex.jet.o src/pages.jet.o src/prof.jet.o
+src/quarantine.jet.o src/rtree.jet.o src/stats.jet.o src/tcache.jet.o
+src/util.jet.o src/tsd.jet.o src/valgrind.jet.o test/src/btalloc.unit.o
+test/src/btalloc_0.unit.o test/src/btalloc_1.unit.o test/src/math.unit.o
+test/src/mtx.unit.o test/src/mq.unit.o test/src/SFMT.unit.o
+test/src/test.unit.o test/src/thd.unit.o test/src/timer.unit.o
+-Wl,-rpath,lib  -lpthread -lm
+test/src/timer.unit.o: In function `timer_stop':
+/builddir/build/BUILD/jemalloc-4.0.0/test/src/timer.c:27: undefined
+reference to `clock_gettime'
+test/src/timer.unit.o: In function `timer_start':
+/builddir/build/BUILD/jemalloc-4.0.0/test/src/timer.c:14: undefined
+reference to `clock_gettime'
+/builddir/build/BUILD/jemalloc-4.0.0/test/src/timer.c:14: undefined
+reference to `clock_gettime'
+collect2: ld returned 1 exit status
+make: *** [test/unit/atomic] Error 1
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001150.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+	<LI>Next message: <A HREF="001149.html">jemalloc-4.0.0 on el5 and el6: undefined reference to	`clock_gettime'
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1148">[ date ]</a>
+              <a href="thread.html#1148">[ thread ]</a>
+              <a href="subject.html#1148">[ subject ]</a>
+              <a href="author.html#1148">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,29 @@
+From jasone at canonware.com  Tue Feb 25 17:10:35 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 25 Feb 2014 17:10:35 -0800
+Subject: jemalloc 3.5.1 released
+Message-ID: <4C3732D4-FC99-4F05-8B4A-21A355B1A8F3@canonware.com>
+
+jemalloc 3.5.1 is now available.  This version primarily addresses minor bugs in test code.
+
+Bug fixes:
+- Configure Solaris/Illumos to use MADV_FREE.
+- Fix junk filling for mremap(2)-based huge reallocation.  This is only relevant if configuring with the --enable-mremap option specified.
+- Avoid compilation failure if 'restrict' C99 keyword is not supported by the compiler.
+- Add a configure test for SSE2 rather than assuming it is usable on i686 systems.  This fixes test compilation errors, especially on 32-bit Linux systems.
+- Fix mallctl argument size mismatches (size_t vs. uint64_t) in the stats unit test.
+- Fix/remove flawed alignment-related overflow tests.
+- Prevent compiler optimizations that could change backtraces in the prof_accum unit test.
+
+For the complete ChangeLog, see:
+	http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+	http://www.canonware.com/download/jemalloc/jemalloc-3.5.1.tar.bz2
+
+Starting point for general information:
+	http://www.canonware.com/jemalloc/
+
+Browsable revision history:
+	https://github.com/jemalloc/jemalloc/tree/3.5.1
+

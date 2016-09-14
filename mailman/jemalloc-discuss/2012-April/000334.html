@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 11/11] Add support for Mingw
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2011/11%5D%20Add%20support%20for%20Mingw&In-Reply-To=%3C20120419172606.GA30307%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000326.html">
+   <LINK REL="Next"  HREF="000335.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 11/11] Add support for Mingw</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2011/11%5D%20Add%20support%20for%20Mingw&In-Reply-To=%3C20120419172606.GA30307%40glandium.org%3E"
+       TITLE="[PATCH 11/11] Add support for Mingw">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 19 10:26:06 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000326.html">[PATCH 12/14] Rename LIB to LIBPREFIX, and set it to nothing on	mingw
+</A></li>
+        <LI>Next message: <A HREF="000335.html">[PATCH] Simplify TSD without TLS
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#334">[ date ]</a>
+              <a href="thread.html#334">[ thread ]</a>
+              <a href="subject.html#334">[ subject ]</a>
+              <a href="author.html#334">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Apr 18, 2012 at 06:29:50PM +0200, Mike Hommey wrote:
+&gt;<i>  int
+</I>&gt;<i>  buferror(int errnum, char *buf, size_t buflen)
+</I>&gt;<i> +#ifdef _WIN32
+</I>&gt;<i> +	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 0, (LPSTR)buf, buflen, NULL);
+</I>&gt;<i> +	return (0);
+</I>&gt;<i> +#elif defined(_GNU_SOURCE)
+</I>&gt;<i>  	char *b = strerror_r(errno, buf, buflen);
+</I>
+Note that there is an error in buferror: it ignores the errnum argument.
+Which is okayish, since it's always called for errno. There are two
+ways out here:
+- actually using the given argument
+- remove that argument
+
+I'd go for the latter... Anyways, there are other errno-related things
+I need to change for MSVC, so it's fine to land this patch as-is.
+
+Cheers,
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000326.html">[PATCH 12/14] Rename LIB to LIBPREFIX, and set it to nothing on	mingw
+</A></li>
+	<LI>Next message: <A HREF="000335.html">[PATCH] Simplify TSD without TLS
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#334">[ date ]</a>
+              <a href="thread.html#334">[ thread ]</a>
+              <a href="subject.html#334">[ subject ]</a>
+              <a href="author.html#334">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Make zone_{free, realloc,	free_definite_size} fallback to the system allocator if they are	called with a pointer that jemalloc didn't allocate
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Make%20zone_%7Bfree%2C%20realloc%2C%0A%09free_definite_size%7D%20fallback%20to%20the%20system%20allocator%20if%20they%20are%0A%09called%20with%20a%20pointer%20that%20jemalloc%20didn%27t%20allocate&In-Reply-To=%3C1332779975-11443-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000199.html">
+   <LINK REL="Next"  HREF="000184.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Make zone_{free, realloc,	free_definite_size} fallback to the system allocator if they are	called with a pointer that jemalloc didn't allocate</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Make%20zone_%7Bfree%2C%20realloc%2C%0A%09free_definite_size%7D%20fallback%20to%20the%20system%20allocator%20if%20they%20are%0A%09called%20with%20a%20pointer%20that%20jemalloc%20didn%27t%20allocate&In-Reply-To=%3C1332779975-11443-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Make zone_{free, realloc,	free_definite_size} fallback to the system allocator if they are	called with a pointer that jemalloc didn't allocate">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Mar 26 09:39:35 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000199.html">make check fails on rhel5/ppc
+</A></li>
+        <LI>Next message: <A HREF="000184.html">[PATCH] Make zone_{free, realloc,	free_definite_size} fallback to the system allocator if they are	called with a pointer that jemalloc didn't allocate
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#173">[ date ]</a>
+              <a href="thread.html#173">[ thread ]</a>
+              <a href="subject.html#173">[ subject ]</a>
+              <a href="author.html#173">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+It turns out some OSX system libraries (like CoreGraphics on 10.6) like
+to call malloc_zone_* functions, but giving them pointers that weren't
+allocated with the zone they are using.
+
+Possibly, they do malloc_zone_malloc(malloc_default_zone()) before we
+register the jemalloc zone, and malloc_zone_realloc(malloc_default_zone())
+after. malloc_default_zone() returning a different value in both cases.
+---
+ src/zone.c |   18 ++++++++++++++----
+ 1 files changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/src/zone.c b/src/zone.c
+index a8f09c9..23f22fa 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -79,15 +79,21 @@ zone_valloc(malloc_zone_t *zone, size_t size)
+ static void
+ zone_free(malloc_zone_t *zone, void *ptr)
+ {
++	if (ivsalloc(ptr) != 0) {
++		je_free(ptr);
++		return;
++	}
+ 
+-	je_free(ptr);
++	free(ptr);
+ }
+ 
+ static void *
+ zone_realloc(malloc_zone_t *zone, void *ptr, size_t size)
+ {
++	if (ivsalloc(ptr) != 0)
++		return (je_realloc(ptr, size));
+ 
+-	return (je_realloc(ptr, size));
++	return (realloc(ptr, size));
+ }
+ 
+ #if (JEMALLOC_ZONE_VERSION &gt;= 5)
+@@ -106,9 +112,13 @@ zone_memalign(malloc_zone_t *zone, size_t alignment, size_t size)
+ static void
+ zone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
+ {
++	if (ivsalloc(ptr) != 0) {
++		assert(ivsalloc(ptr) == size);
++		je_free(ptr);
++		return;
++	}
+ 
+-	assert(ivsalloc(ptr) == size);
+-	je_free(ptr);
++	free(ptr);
+ }
+ #endif
+ 
+-- 
+1.7.9.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000199.html">make check fails on rhel5/ppc
+</A></li>
+	<LI>Next message: <A HREF="000184.html">[PATCH] Make zone_{free, realloc,	free_definite_size} fallback to the system allocator if they are	called with a pointer that jemalloc didn't allocate
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#173">[ date ]</a>
+              <a href="thread.html#173">[ thread ]</a>
+              <a href="subject.html#173">[ subject ]</a>
+              <a href="author.html#173">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

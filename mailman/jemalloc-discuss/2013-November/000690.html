@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> NULL bin issue in arena_dalloc_bin_locked
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20NULL%20bin%20issue%20in%20arena_dalloc_bin_locked&In-Reply-To=%3C5298896B.8080100%40dragonwar.fr%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000689.html">
+   <LINK REL="Next"  HREF="000691.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>NULL bin issue in arena_dalloc_bin_locked</H1>
+    <B>Max Fest</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20NULL%20bin%20issue%20in%20arena_dalloc_bin_locked&In-Reply-To=%3C5298896B.8080100%40dragonwar.fr%3E"
+       TITLE="NULL bin issue in arena_dalloc_bin_locked">fest at dragonwar.fr
+       </A><BR>
+    <I>Fri Nov 29 04:32:43 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000689.html">Gather Arena stats
+</A></li>
+        <LI>Next message: <A HREF="000691.html">NULL bin issue in arena_dalloc_bin_locked
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#690">[ date ]</a>
+              <a href="thread.html#690">[ thread ]</a>
+              <a href="subject.html#690">[ subject ]</a>
+              <a href="author.html#690">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi everybody,
+
+i got an issue with the lib, i get some random segmentation fault with 
+my program on basic operation.
+During the call of a destructor for example.
+
+On the top of my backtrace i've got this :
+
+(gdb) frame 0
+#0  arena_dalloc_bin_locked (arena=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">arena at entry</A>=0x7f4fc645b1c0, 
+chunk=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">chunk at entry</A>=0x7f4de8000000, ptr=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ptr at entry</A>=0x7f4de817b800, 
+mapelm=&lt;optimized out&gt;) at 
+/home/server/dwcatacore3/dep/jemalloc/src/arena.c:1713
+1713        } else if (run-&gt;nfree == 1 &amp;&amp; run != bin-&gt;runcur)
+(gdb) info locals
+pageind = 379
+run = 0x7f4de8179000
+bin = 0x0
+bin_info = 0x1f551d0
+size = 1536
+
+
+So you can see that bin is NULL, and the call at bin-&gt;runcur will ran 
+into a segmentation fault.
+
+I use jemalloc 3.4.1 compiled with my project as a dependance. It run on 
+a Debian 7 x86_64.
+
+Is it a jemalloc related issue ?
+The full backtrace : <A HREF="http://pastebin.com/w2KVAs8p">http://pastebin.com/w2KVAs8p</A>
+
+Thanks.
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000689.html">Gather Arena stats
+</A></li>
+	<LI>Next message: <A HREF="000691.html">NULL bin issue in arena_dalloc_bin_locked
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#690">[ date ]</a>
+              <a href="thread.html#690">[ thread ]</a>
+              <a href="subject.html#690">[ subject ]</a>
+              <a href="author.html#690">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

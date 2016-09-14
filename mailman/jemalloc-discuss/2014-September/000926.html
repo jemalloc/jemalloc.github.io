@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> compilation error for client app w/ clang and 913e9a8
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compilation%20error%20for%20client%20app%20w/%20clang%20and%20913e9a8&In-Reply-To=%3CCAMwDBHO-rS45ZbzOQx8jOq5o8SOPe7MOv2WS56e-yxdtW6iq9Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000925.html">
+   <LINK REL="Next"  HREF="000927.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>compilation error for client app w/ clang and 913e9a8</H1>
+    <B>Qinfan Wu</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compilation%20error%20for%20client%20app%20w/%20clang%20and%20913e9a8&In-Reply-To=%3CCAMwDBHO-rS45ZbzOQx8jOq5o8SOPe7MOv2WS56e-yxdtW6iq9Q%40mail.gmail.com%3E"
+       TITLE="compilation error for client app w/ clang and 913e9a8">wuqinfan at gmail.com
+       </A><BR>
+    <I>Tue Sep 23 22:42:17 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000925.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+        <LI>Next message: <A HREF="000927.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#926">[ date ]</a>
+              <a href="thread.html#926">[ thread ]</a>
+              <a href="subject.html#926">[ subject ]</a>
+              <a href="author.html#926">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>You actually need to include stdbool.h:
+
+#include &lt;stdbool.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;jemalloc/jemalloc.h&gt;
+
+
+
+On Wed, Sep 24, 2014 at 1:26 AM, Matthew Hall &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mhall at mhcomputing.net</A>&gt; wrote:
+
+&gt;<i> Hello,
+</I>&gt;<i>
+</I>&gt;<i> I'm seeing the following error using this jemalloc version in a client app.
+</I>&gt;<i> I'm suspecting the code was supposed to include the header stdbool.h but
+</I>&gt;<i> did
+</I>&gt;<i> not do so?
+</I>&gt;<i>
+</I>&gt;<i> I grepped for this header but I did not see it included in the base
+</I>&gt;<i> jemalloc
+</I>&gt;<i> header. I did see it included in jemalloc_internal_decls.h but jemalloc.h
+</I>&gt;<i> only
+</I>&gt;<i> includes limits.h and strings.h.
+</I>&gt;<i>
+</I>&gt;<i> Matthew.
+</I>&gt;<i>
+</I>&gt;<i> /usr/local/jemalloc/include/jemalloc/jemalloc.h:155:47: error: unknown
+</I>&gt;<i> type name 'bool'
+</I>&gt;<i> typedef void *(chunk_alloc_t)(size_t, size_t, bool *, unsigned);
+</I>&gt;<i>                                               ^
+</I>&gt;<i> /usr/local/jemalloc/include/jemalloc/jemalloc.h:156:9: warning: type
+</I>&gt;<i> specifier missing, defaults to 'int' [-Wimplicit-int]
+</I>&gt;<i> typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+</I>&gt;<i> ~~~~~~ ^
+</I>&gt;<i> /usr/local/jemalloc/include/jemalloc/jemalloc.h:156:14: error: function
+</I>&gt;<i> cannot return function type 'int (void *, size_t, unsigned int)'
+</I>&gt;<i> typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+</I>&gt;<i>              ^
+</I>&gt;<i> /usr/local/jemalloc/include/jemalloc/jemalloc.h:156:15: error: a parameter
+</I>&gt;<i> list without types is only allowed in a function definition
+</I>&gt;<i> typedef bool (chunk_dalloc_t)(void *, size_t, unsigned);
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140924/e2189842/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140924/e2189842/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000925.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+	<LI>Next message: <A HREF="000927.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#926">[ date ]</a>
+              <a href="thread.html#926">[ thread ]</a>
+              <a href="subject.html#926">[ subject ]</a>
+              <a href="author.html#926">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

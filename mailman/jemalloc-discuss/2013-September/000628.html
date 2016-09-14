@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc on Solaris (Joyent SmartOS)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20on%20Solaris%20%28Joyent%20SmartOS%29&In-Reply-To=%3C1378387553.1332.186.camel%40pdsdesk%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000630.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc on Solaris (Joyent SmartOS)</H1>
+    <B>Paul Smith</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20on%20Solaris%20%28Joyent%20SmartOS%29&In-Reply-To=%3C1378387553.1332.186.camel%40pdsdesk%3E"
+       TITLE="jemalloc on Solaris (Joyent SmartOS)">paul at mad-scientist.net
+       </A><BR>
+    <I>Thu Sep  5 06:25:53 PDT 2013</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000630.html">jemalloc on Solaris (Joyent SmartOS)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#628">[ date ]</a>
+              <a href="thread.html#628">[ thread ]</a>
+              <a href="subject.html#628">[ subject ]</a>
+              <a href="author.html#628">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all.
+
+I have some software using jemalloc (in a large, heavily multi-threaded
+C++ program) currently running on Linux, MacOSX, and Windows, and we are
+porting it to Joyent's cloud-based SmartOS offering, which is Solaris
+underneath.  This is compiled using GCC 4.7.0 (that's the version
+packaged with this OS).
+
+I'm using jemalloc 3.1.0-0-g3b1f3aca54fede23299cde9034f7b909c3d290d7
+currently; I'm not adverse to upgrading if that's warranted.
+
+When I start my program it dumps core.  Examining the core dump the
+problem is obvious: my program is going into an infinite recursion
+trying to allocate memory.
+
+Based on the stacktrace I rebuilt jemalloc without TLS support
+(--disable-tls), then I don't get this failure but I've not tested far
+enough to know if there might be other issues.
+
+My main question is, I've noted that <A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+doesn't list Solaris as supported by the stand-alone jemalloc
+implementation, which is what I'm using.  A subsequent bullet item lists
+Solaris as being supported by the version of jemalloc that's included in
+Mozilla's FireFox allocator.
+
+Is that still the situation today?  I'd really prefer to not try to use
+two different versions of jemalloc on my different platforms.  Is anyone
+familiar with the differences, and can they advise me on my best bet
+going forward?  Should I continue on working with stand-alone jemalloc
+on Solaris, or should I investigate using the version in FireFox?
+
+
+FYI, the recursion looks like this:
+
+Program terminated with signal 11, Segmentation fault.
+#0  0x0000000001c7c4e7 in icalloc ()
+#0  0x0000000001c7c4e7 in icalloc ()
+#1  0x0000000001c8095e in calloc ()
+#2  0x0000000001d099b1 in __emutls_get_address (obj=0x1ff3f40) at ../../../gcc-4.7.0/libgcc/emutls.c:159
+#3  0x0000000001c7a738 in tcache_tsd_get ()
+#4  0x0000000001c7aa4e in tcache_get ()
+#5  0x0000000001c7bbde in arena_malloc ()
+#6  0x0000000001c7c4b5 in icallocx ()
+#7  0x0000000001c7c4ec in icalloc ()
+#8  0x0000000001c8095e in calloc ()
+#9  0x0000000001d099b1 in __emutls_get_address (obj=0x1ff3f40) at ../../../gcc-4.7.0/libgcc/emutls.c:159
+#10 0x0000000001c7a738 in tcache_tsd_get ()
+#11 0x0000000001c7aa4e in tcache_get ()
+#12 0x0000000001c7bbde in arena_malloc ()
+#13 0x0000000001c7c4b5 in icallocx ()
+#14 0x0000000001c7c4ec in icalloc ()
+#15 0x0000000001c8095e in calloc ()
+#16 0x0000000001d099b1 in __emutls_get_address (obj=0x1ff3f40) at ../../../gcc-4.7.0/libgcc/emutls.c:159
+    ....
+#191103 0x0000000001c7a738 in tcache_tsd_get ()
+#191104 0x0000000001c7aa4e in tcache_get ()
+#191105 0x0000000001c7bbde in arena_malloc ()
+#191106 0x0000000001c7c4b5 in icallocx ()
+#191107 0x0000000001c7c4ec in icalloc ()
+#191108 0x0000000001c8095e in calloc ()
+#191109 0x0000000001d099b1 in __emutls_get_address (obj=0x1ff3f40) at ../../../gcc-4.7.0/libgcc/emutls.c:159
+#191110 0x0000000001c7a738 in tcache_tsd_get ()
+#191111 0x0000000001c7aa4e in tcache_get ()
+#191112 0x0000000001c7bbde in arena_malloc ()
+#191113 0x0000000001c7c43c in imallocx ()
+#191114 0x0000000001c7c473 in imalloc ()
+#191115 0x0000000001c80021 in malloc ()
+#191116 0x0000000000934fb2 in Init() ()
+#191117 0x00000000009353f0 in __static_initialization_and_destruction_0 ()
+#191118 0x000000000093540c in _GLOBAL__sub_I_JEMemory.cpp ()
+#191119 0x0000000001d09b66 in __do_global_ctors_aux ()
+#191120 0x0000000001d09b8e in _init ()
+#191121 0x0000000000759103 in _start ()
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000630.html">jemalloc on Solaris (Joyent SmartOS)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#628">[ date ]</a>
+              <a href="thread.html#628">[ thread ]</a>
+              <a href="subject.html#628">[ subject ]</a>
+              <a href="author.html#628">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,581 @@
+From ppedriana at gmail.com  Fri Apr 11 00:43:57 2014
+From: ppedriana at gmail.com (Paul Pedriana)
+Date: Fri, 11 Apr 2014 00:43:57 -0700
+Subject: Some jemalloc questions...
+Message-ID: <53479D3D.2040908@gmail.com>
+
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140411/47ff3b20/attachment.html>
+
+From jasone at canonware.com  Fri Apr 11 09:20:09 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 11 Apr 2014 09:20:09 -0700
+Subject: Some jemalloc questions...
+In-Reply-To: <53479D3D.2040908@gmail.com>
+References: <53479D3D.2040908@gmail.com>
+Message-ID: <2DEDFB07-5999-4EEE-BF2F-8CC1694CC724@canonware.com>
+
+On Apr 11, 2014, at 12:43 AM, Paul Pedriana <ppedriana at gmail.com> wrote:
+> I've been reading through the jemalloc source in order to understand how it works, and I have a few questions.
+> 
+> What are bitmap levels (and groups)? The bitmap functionality seems to be a little different from a basic 1 dimensional array of bits and has some concept of levels and groups. But I don't understand what that's for and why it exists.
+
+The bitmap levels implement a tree-like structure that allows O(lg N) searches for the lowest unset bit (see bitmap_sfu()).  Older versions of jemalloc used some heuristics to amortize the cost of searches, but some realistic allocation/deallocation patterns thwarted the heuristics.
+
+> Is the reason for having malloc_printf, etc. to have a printf that won't call malloc internally?
+
+As you say, if printf() were to allocate internally, that would cause problems, though in practice printf() tends not to allocate much for performance reasons.  The primary driver for malloc_printf() is that on FreeBSD, jemalloc is used as an integral part of libc, and if jemalloc were to use printf(), it would add run-time dependencies on all of the printf() machinery, including a bunch of floating point code.  Older versions of jemalloc used malloc_write() for everything that couldn't be omitted, and malloc_printf() (which was a thin wrapper around printf()) for e.g. statistics printing.  For the 3.0.0 release I implemented a stand-alone malloc_printf() so that it could be used everywhere in jemalloc.
+
+> I see #define LG_TINY_MIN 3 . Does this mean that these allocations are minimally 8 byte aligned? I ask because I'm under the impression that some platforms (e.g. Apple) require 16 byte minimum allocator alignment.
+
+My vague recollection of what the C standard says indicates that all x86_64 systems should require at least 16-byte alignment, because otherwise 128-bit vector code is a pain to write.  That's not what we get on Linux though, and now that we're seeing vector sizes on the order of 256 and 512 bits, maybe it's reasonable to provide default alignment smaller than that needed by the largest fundamental types.  jemalloc effectively implements 16-byte alignment, because 8-byte allocations are considered "tiny", and only tiny allocations have weaker alignment than the quantum (see LG_QUANTUM), which is 16 for most of the platforms jemalloc supports.  There's never any call to access an 8-byte allocation with an instruction that requires 16-byte alignment (unless compiler builtins like memcpy() make alignment assumptions), so this works out fine in practice.
+
+> What is prof promote/demote?
+
+jemalloc implements heap profiling, which under normal circumstances samples a representative subset of all allocations, and any small allocations (less than 1 page) are "promoted" to 1 page, so that profiling metadata can be stored in the chunk map.  However, the memory cost of promoting small objects becomes very high as the sample rate increases.  jemalloc currently implements an alternative bookkeeping strategy for small allocations when using a high sampling rate; metadata are stored in the page run header, just after the bitmap that tracks allocated/deallocated status.  As it happens, I'm ripping that alternative strategy out today, as part of some optimization and refactoring work for the 4.0.0 release.  Although it's possible to semi-efficiently track all allocations and perform comprehensive leak detection, in practice Valgrind is a reasonable alternative for this use case, because the performance overhead of capturing backtraces for every allocation is substantial enough that it isn't realistic to use jemalloc in this mode unless willing to accept a slowdown on the order of what Valgrind causes anyway.  Backtracing is expensive in the absence of frame pointers, which I didn't have a full appreciation for until after I'd already implemented the non-promoting bookkeeping alternative.
+
+> What is the defined behavior of mb_write? Similarly what's the expected memory consistency behavior of the atomic functions (e.g. atomic_add_uint64)?
+
+mb_write() implements a typical write barrier, which can be thought of as a barrier across which write operations cannot be moved.  It's used in jemalloc to perform lock-free multi-phase commit.  The atomic_*() functions have semantics equivalent to what can be built on top of compare-exchange, and they are used for updating/reading simple counters.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140411/9f1fbe77/attachment.html>
+
+From danielmicay at gmail.com  Fri Apr 25 02:55:26 2014
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Fri, 25 Apr 2014 05:55:26 -0400
+Subject: mremap with modern Linux kernel
+Message-ID: <535A310E.4060209@gmail.com>
+
+This option was originally disabled by default due to fragmentation
+issues. It provides a significant performance win for Rust's vectors at
+very large sizes, so I'm curious about the severity of this issue and
+whether it is still around in the latest Linux kernel releases.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 836 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140425/4da5ea91/attachment.sig>
+
+From jasone at canonware.com  Fri Apr 25 15:21:53 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 25 Apr 2014 15:21:53 -0700
+Subject: mremap with modern Linux kernel
+In-Reply-To: <535A310E.4060209@gmail.com>
+References: <535A310E.4060209@gmail.com>
+Message-ID: <362FC467-4ED9-485D-ABA1-C3AA938D22F6@canonware.com>
+
+On Apr 25, 2014, at 2:55 AM, Daniel Micay <danielmicay at gmail.com> wrote:
+> This option was originally disabled by default due to fragmentation
+> issues. It provides a significant performance win for Rust's vectors at
+> very large sizes, so I'm curious about the severity of this issue and
+> whether it is still around in the latest Linux kernel releases.
+
+As far as I know, this problem still exists in Linux.  The problem is that Linux doesn't have a reliable way to find the first fit for an mmap() request other than linear scan, so it uses heuristics to decide where to start the scan.  It's quite easy to trigger pathological behavior where a chunk of memory is unmapped, but the kernel doesn't revise its scan start point, and the VM map hole remains indefinitely.  The more holes there are, the more mapped regions there are to linearly scan.  I don't remember what the common triggers of linear scans are, but they definitely happen enough to cause a performance issue, at least for some of the heavily loaded network server applications Facebook runs.
+
+One way to reduce the impact of huge reallocs would be to use exponential size class increases, rather than linear increases.  jemalloc will always round up to the nearest multiple of the chunk size, but it it were to instead use e.g. [4, 8, 16, 32, 64, ...] MiB as size classes, the realloc overhead would amortize away.  I've been thinking about exploring this strategy for large size classes, [4 KiB .. 4 MiB), and I just wrote up a tracking issue that also keeps your use case in mind: 
+
+	https://github.com/jemalloc/jemalloc/issues/77
+
+Thanks,
+Jason
+
+From danielmicay at gmail.com  Fri Apr 25 17:15:53 2014
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Fri, 25 Apr 2014 20:15:53 -0400
+Subject: mremap with modern Linux kernel
+In-Reply-To: <362FC467-4ED9-485D-ABA1-C3AA938D22F6@canonware.com>
+References: <535A310E.4060209@gmail.com>
+	<362FC467-4ED9-485D-ABA1-C3AA938D22F6@canonware.com>
+Message-ID: <535AFAB9.2010302@gmail.com>
+
+On 25/04/14 06:21 PM, Jason Evans wrote:
+> On Apr 25, 2014, at 2:55 AM, Daniel Micay <danielmicay at gmail.com> wrote:
+>> This option was originally disabled by default due to fragmentation
+>> issues. It provides a significant performance win for Rust's vectors at
+>> very large sizes, so I'm curious about the severity of this issue and
+>> whether it is still around in the latest Linux kernel releases.
+> 
+> As far as I know, this problem still exists in Linux.  The problem is that Linux doesn't have a reliable way to find the first fit for an mmap() request other than linear scan, so it uses heuristics to decide where to start the scan.  It's quite easy to trigger pathological behavior where a chunk of memory is unmapped, but the kernel doesn't revise its scan start point, and the VM map hole remains indefinitely.  The more holes there are, the more mapped regions there are to linearly scan.  I don't remember what the common triggers of linear scans are, but they definitely happen enough to cause a performance issue, at least for some of the heavily loaded network server applications Facebook runs.
+> 
+> One way to reduce the impact of huge reallocs would be to use exponential size class increases, rather than linear increases.  jemalloc will always round up to the nearest multiple of the chunk size, but it it were to instead use e.g. [4, 8, 16, 32, 64, ...] MiB as size classes, the realloc overhead would amortize away.  I've been thinking about exploring this strategy for large size classes, [4 KiB .. 4 MiB), and I just wrote up a tracking issue that also keeps your use case in mind: 
+> 
+> 	https://github.com/jemalloc/jemalloc/issues/77
+> 
+> Thanks,
+> Jason
+
+Luckily this isn't a huge issue since the allocation costs are already
+amortized out by the container types. I'll have a closer look at the
+folly vector type, since it's integrated well with jemalloc.
+
+If I'm understanding correctly the issue is caused by unmapping, so
+perhaps jemalloc could still use MREMAP_FIXED and then fall back to
+copying. I don't know if it would succeed often enough to be worth it
+though.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 836 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140425/49fc37ff/attachment.sig>
+
+From antony.dovgal at gmail.com  Mon Apr 28 04:08:16 2014
+From: antony.dovgal at gmail.com (Antony Dovgal)
+Date: Mon, 28 Apr 2014 15:08:16 +0400
+Subject: keeping memory usage at certain limit
+Message-ID: <535E36A0.5080805@gmail.com>
+
+Hello all,
+
+I'm currently working on a daemon that processes a lot of data and has to store the most recent of it.
+Unfortunately, memory is allocated and freed in small blocks and in totally random (for the allocator) manner.
+I use "stats.allocated" to measure how much memory is currently in use, delete the oldest data when the memory limit is reached and purge thread caches with "arena.N.purge" from time to time.
+
+The problem is that keeping stat.allocated on a certain level doesn't keep the process from growing until it's killed by OOM-killer.
+I suspect that this is caused by memory fragmentation issues, though I've no idea how to prove it (or at least all my ideas involve complex stats and are quite inefficient).
+
+So my main questions are:
+is there any way to see how much memory is currently being (under)used because of fragmentation in Jemalloc?
+is there a way to prevent it or force some garbage collection?
+
+Thanks in advance.
+
+-- 
+Wbr,
+Antony Dovgal
+
+From antony.dovgal at gmail.com  Tue Apr 29 00:46:57 2014
+From: antony.dovgal at gmail.com (Antony Dovgal)
+Date: Tue, 29 Apr 2014 11:46:57 +0400
+Subject: keeping memory usage at certain limit
+In-Reply-To: <535E36A0.5080805@gmail.com>
+References: <535E36A0.5080805@gmail.com>
+Message-ID: <535F58F1.1040808@gmail.com>
+
+Here is the output of malloc_stats_print() ~20h after the process start.
+The dirty/active pages ratio is 0.02%, the stats.allocated is stable at 107.42G for about 8 hours already,
+but both maxrss from getrusage() and `top` report slow, but constant growth and the process is currently at 117G.
+
+Can somebody help me to locate the problem?
+Jemalloc is the latest 3.6.1, the server is SLES 11SP2 with 3.0.13-0.28.1-default kernel.
+
+
+Merged arenas stats:
+assigned threads: 1534
+dss allocation precedence: N/A
+dirty pages: 30687799:8168 active:dirty, 33408 sweeps, 601205 madvises, 2438751 purged
+              allocated      nmalloc      ndalloc    nrequests
+small:    93168540424   3004799703   1470963737   9264491673
+large:    22176190464     14660311      9267172     63169190
+total:   115344730888   3019460014   1480230909   9327660863
+active:  125697224704
+mapped:  126835752960
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc    nrequests       nfills     nflushes      newruns       reruns      curruns
+              0     8  501   1       187080      2126908      2103523   1116416777      1555126       581832          259          446          250
+              1    16  252   1   1009393200     73690994     10603919    409774890      1195005       634185       260659      2339496       260298
+              2    32  126   1  25238593216   1023814477    235108439   2436114995     12326052      2442614      6785629     53333719      6749049
+              3    48   84   1   3038375616    904172945    840873453   1949316101     11110139     10331717       835619    279254946       764188
+              4    64   63   1    690966016     53752004     42955660    639269895      1759730      1333503       247975     15673477       171852
+              5    80   50   1  40474885680    650494671    144558600    672186803     13318752      3230015     11177482     32259383     11175827
+              6    96   84   2   1062968448     39626341     28553753    465736871      1112411      1067446       137727     16327920       132170
+              7   112   72   2         2240        31813        31793        60475        21899        22328          153            2            2
+              8   128   63   2   4549588736     62704970     27161308    442268899      1941056       965362       588306     17299897       564516
+              9   160   51   2       878880       884471       878978     10989296       547747        73180         7112         9614          646
+             10   192   63   3   3332299200     68192386     50836661    350773752      1828422      1430862       298788     24850226       280966
+             11   224   72   4        82880       201645       201275      1355238       120818       125326         1985          916          126
+             12   256   63   4   4436903168     65932357     48600704    343566754      1922969      1395158       312713     23206402       298496
+             13   320   63   5       820800       300581       298016      1021102       194469       198863          770         3320          529
+             14   384   63   6   3776567808     38617426     28782614    186385036      1731152      1105440       230725      7560797       218083
+             15   448   63   7       323904       264187       263464      2136968       163723       167838         6654         1232          136
+             16   512   63   8   5546707456     19354481      8521068    221862388      1584431       831055       175294      2714070       172054
+             17   640   51   8         1280        43868        43866      5529027        19499        20648         1299           61            1
+             18   768   47   9          768        26068        26067        11346         5544         6621          722           52            1
+             19   896   45  10            0        15578        15578        24313        15494        15498        15494            0            0
+             20  1024   63  16      1235968       200289       199082      2304970       102401       106699         1035         2014          600
+             21  1280   51  16      5251840        20599        16496       319262        14088        14157          130            2          130
+             22  1536   42  16         1536           85           84           53           39           43            4            0            1
+             23  1792   38  17            0           93           93           67           50           54           50            0            0
+             24  2048   65  33      2504704       330001       328778      7066010       172616       139016         1039         2291          604
+             25  2560   52  33            0          173          173          152          113          117          113            0            0
+             26  3072   43  33            0          199          199          170          144          148          144            0            0
+             27  3584   39  35            0           93           93           63           46           50           46            0            0
+
+
+
+On 04/28/2014 03:08 PM, Antony Dovgal wrote:
+> Hello all,
+>
+> I'm currently working on a daemon that processes a lot of data and has to store the most recent of it.
+> Unfortunately, memory is allocated and freed in small blocks and in totally random (for the allocator) manner.
+> I use "stats.allocated" to measure how much memory is currently in use, delete the oldest data when the memory limit is reached and purge thread caches with "arena.N.purge" from time to time.
+>
+> The problem is that keeping stat.allocated on a certain level doesn't keep the process from growing until it's killed by OOM-killer.
+> I suspect that this is caused by memory fragmentation issues, though I've no idea how to prove it (or at least all my ideas involve complex stats and are quite inefficient).
+>
+> So my main questions are:
+> is there any way to see how much memory is currently being (under)used because of fragmentation in Jemalloc?
+> is there a way to prevent it or force some garbage collection?
+>
+> Thanks in advance.
+>
+
+
+-- 
+Wbr,
+Antony Dovgal
+---
+http://pinba.org - realtime profiling for PHP
+
+-- 
+Wbr,
+Antony Dovgal
+---
+http://pinba.org - realtime profiling for PHP
+
+From bradley at mit.edu  Tue Apr 29 04:28:57 2014
+From: bradley at mit.edu (Bradley C. Kuszmaul)
+Date: Tue, 29 Apr 2014 07:28:57 -0400
+Subject: keeping memory usage at certain limit
+In-Reply-To: <535F58F1.1040808@gmail.com>
+References: <535E36A0.5080805@gmail.com>
+	<535F58F1.1040808@gmail.com>
+Message-ID: <CAKSyJXfd0f5QEyL3Jsm6En6p4K=Ti5TM0GwbWmXTNr8XRwNbsw@mail.gmail.com>
+
+Are transparent huge pages enabled? Does disabling them help?  (If so, you
+may be able to thus workaround, and perhaps jemalloc could be improved.)
+
+Bradley C Kuszmaul - via snartphone
+On Apr 29, 2014 3:47 AM, "Antony Dovgal" <antony.dovgal at gmail.com> wrote:
+
+> Here is the output of malloc_stats_print() ~20h after the process start.
+> The dirty/active pages ratio is 0.02%, the stats.allocated is stable at
+> 107.42G for about 8 hours already,
+> but both maxrss from getrusage() and `top` report slow, but constant
+> growth and the process is currently at 117G.
+>
+> Can somebody help me to locate the problem?
+> Jemalloc is the latest 3.6.1, the server is SLES 11SP2 with
+> 3.0.13-0.28.1-default kernel.
+>
+>
+> Merged arenas stats:
+> assigned threads: 1534
+> dss allocation precedence: N/A
+> dirty pages: 30687799:8168 active:dirty, 33408 sweeps, 601205 madvises,
+> 2438751 purged
+>              allocated      nmalloc      ndalloc    nrequests
+> small:    93168540424   3004799703   1470963737   9264491673
+> large:    22176190464     14660311      9267172     63169190
+> total:   115344730888   3019460014   1480230909   9327660863
+> active:  125697224704
+> mapped:  126835752960
+> bins:     bin  size regs pgs    allocated      nmalloc      ndalloc
+>  nrequests       nfills     nflushes      newruns       reruns      curruns
+>              0     8  501   1       187080      2126908      2103523
+> 1116416777      1555126       581832          259          446          250
+>              1    16  252   1   1009393200     73690994     10603919
+>  409774890      1195005       634185       260659      2339496       260298
+>              2    32  126   1  25238593216   1023814477    235108439
+> 2436114995     12326052      2442614      6785629     53333719      6749049
+>              3    48   84   1   3038375616    904172945    840873453
+> 1949316101     11110139     10331717       835619    279254946       764188
+>              4    64   63   1    690966016     53752004     42955660
+>  639269895      1759730      1333503       247975     15673477       171852
+>              5    80   50   1  40474885680    650494671    144558600
+>  672186803     13318752      3230015     11177482     32259383     11175827
+>              6    96   84   2   1062968448     39626341     28553753
+>  465736871      1112411      1067446       137727     16327920       132170
+>              7   112   72   2         2240        31813        31793
+>  60475        21899        22328          153            2            2
+>              8   128   63   2   4549588736     62704970     27161308
+>  442268899      1941056       965362       588306     17299897       564516
+>              9   160   51   2       878880       884471       878978
+> 10989296       547747        73180         7112         9614          646
+>             10   192   63   3   3332299200     68192386     50836661
+>  350773752      1828422      1430862       298788     24850226       280966
+>             11   224   72   4        82880       201645       201275
+>  1355238       120818       125326         1985          916          126
+>             12   256   63   4   4436903168     65932357     48600704
+>  343566754      1922969      1395158       312713     23206402       298496
+>             13   320   63   5       820800       300581       298016
+>  1021102       194469       198863          770         3320          529
+>             14   384   63   6   3776567808     38617426     28782614
+>  186385036      1731152      1105440       230725      7560797       218083
+>             15   448   63   7       323904       264187       263464
+>  2136968       163723       167838         6654         1232          136
+>             16   512   63   8   5546707456     19354481      8521068
+>  221862388      1584431       831055       175294      2714070       172054
+>             17   640   51   8         1280        43868        43866
+>  5529027        19499        20648         1299           61            1
+>             18   768   47   9          768        26068        26067
+>  11346         5544         6621          722           52            1
+>             19   896   45  10            0        15578        15578
+>  24313        15494        15498        15494            0            0
+>             20  1024   63  16      1235968       200289       199082
+>  2304970       102401       106699         1035         2014          600
+>             21  1280   51  16      5251840        20599        16496
+> 319262        14088        14157          130            2          130
+>             22  1536   42  16         1536           85           84
+>     53           39           43            4            0            1
+>             23 1792 38 17            0           93           93
+>   67           50           54           50            0            0
+>             24  2048   65  33      2504704       330001       328778
+>  7066010       172616       139016         1039         2291          604
+>             25 2560 52 33            0          173          173
+>  152          113          117          113            0            0
+>             26  3072   43  33            0          199          199
+>    170          144          148          144            0            0
+>             27  3584   39  35            0           93           93
+>     63           46           50           46            0            0
+>
+>
+>
+> On 04/28/2014 03:08 PM, Antony Dovgal wrote:
+>
+>> Hello all,
+>>
+>> I'm currently working on a daemon that processes a lot of data and has to
+>> store the most recent of it.
+>> Unfortunately, memory is allocated and freed in small blocks and in
+>> totally random (for the allocator) manner.
+>> I use "stats.allocated" to measure how much memory is currently in use,
+>> delete the oldest data when the memory limit is reached and purge thread
+>> caches with "arena.N.purge" from time to time.
+>>
+>> The problem is that keeping stat.allocated on a certain level doesn't
+>> keep the process from growing until it's killed by OOM-killer.
+>> I suspect that this is caused by memory fragmentation issues, though I've
+>> no idea how to prove it (or at least all my ideas involve complex stats and
+>> are quite inefficient).
+>>
+>> So my main questions are:
+>> is there any way to see how much memory is currently being (under)used
+>> because of fragmentation in Jemalloc?
+>> is there a way to prevent it or force some garbage collection?
+>>
+>> Thanks in advance.
+>>
+>>
+>
+> --
+> Wbr,
+> Antony Dovgal
+> ---
+> http://pinba.org - realtime profiling for PHP
+>
+> --
+> Wbr,
+> Antony Dovgal
+> ---
+> http://pinba.org - realtime profiling for PHP
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140429/5b82352f/attachment.html>
+
+From rnsanchez at wait4.org  Tue Apr 29 04:43:35 2014
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Tue, 29 Apr 2014 08:43:35 -0300
+Subject: keeping memory usage at certain limit
+In-Reply-To: <535E36A0.5080805@gmail.com>
+References: <535E36A0.5080805@gmail.com>
+Message-ID: <20140429084335.452d99e9@darkbook.lan.box>
+
+On Mon, 28 Apr 2014 15:08:16 +0400
+Antony Dovgal <antony.dovgal at gmail.com> wrote:
+
+> I suspect that this is caused by memory fragmentation issues, though I've no idea how to prove it (or at least all my ideas involve complex stats and are quite inefficient).
+
+You could dump your pointers and their sizes, and plot that information
+graphically, including relevant info from jemalloc (map bases and their
+sizes as well).  If it's heavily fragmented, it will be apparent.
+
+If that is indeed your case, and you can modify your data container,
+perhaps switching to index-based access could solve your problem.  That
+would require you to forget about pointers and instead use an index, so
+that your data container is free to move data around and shrink the
+memory in use.  There is a lot of management and memory copying,
+meaning the impact of such a change should be quite perceptible.
+
+Of course, this is no trivial change.  Dealing with long- and
+short-lived objects is challenging.  :-)
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+From antony.dovgal at gmail.com  Tue Apr 29 05:29:34 2014
+From: antony.dovgal at gmail.com (Antony Dovgal)
+Date: Tue, 29 Apr 2014 16:29:34 +0400
+Subject: keeping memory usage at certain limit
+In-Reply-To: <CAKSyJXfd0f5QEyL3Jsm6En6p4K=Ti5TM0GwbWmXTNr8XRwNbsw@mail.gmail.com>
+References: <535E36A0.5080805@gmail.com>	<535F58F1.1040808@gmail.com>
+	<CAKSyJXfd0f5QEyL3Jsm6En6p4K=Ti5TM0GwbWmXTNr8XRwNbsw@mail.gmail.com>
+Message-ID: <535F9B2E.6000304@gmail.com>
+
+On 04/29/2014 03:28 PM, Bradley C. Kuszmaul wrote:
+> Are transparent huge pages enabled? Does disabling them help?  (If so, you may be able to thus workaround, and perhaps jemalloc could be improved.)
+
+ From what I can see, they are disabled:
+
+$ cat /sys/kernel/mm/transparent_hugepage/enabled
+always madvise [never]
+
+-- 
+Wbr,
+Antony Dovgal
+
+
+From antirez at gmail.com  Tue Apr 29 05:36:17 2014
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Tue, 29 Apr 2014 14:36:17 +0200
+Subject: keeping memory usage at certain limit
+In-Reply-To: <535F9B2E.6000304@gmail.com>
+References: <535E36A0.5080805@gmail.com> <535F58F1.1040808@gmail.com>
+	<CAKSyJXfd0f5QEyL3Jsm6En6p4K=Ti5TM0GwbWmXTNr8XRwNbsw@mail.gmail.com>
+	<535F9B2E.6000304@gmail.com>
+Message-ID: <CA+XzkVf48n4D6pNHqjq7yMtfZe+d31Gfh4F82O-i5Hs_PU_3Tw@mail.gmail.com>
+
+Hello,
+
+Redis files zmalloc.[ch] contain an implementation of a jemalloc
+wrapper that can track the size of the currently allocated memory, as
+the sum of all the individual allocations, plus functions to get the
+ratio between the actual resident set size of the process and this
+sum, in order to obtain the fragmentation level. This is used as a
+base to implement Redis "maxmemory" directive that looks similar to
+what you want.
+
+Source code (BSD licensed) here:
+
+https://github.com/antirez/redis/blob/unstable/src/zmalloc.c
+https://github.com/antirez/redis/blob/unstable/src/zmalloc.h
+
+Regards,
+Salvatore
+
+On Tue, Apr 29, 2014 at 2:29 PM, Antony Dovgal <antony.dovgal at gmail.com> wrote:
+> On 04/29/2014 03:28 PM, Bradley C. Kuszmaul wrote:
+>>
+>> Are transparent huge pages enabled? Does disabling them help?  (If so, you
+>> may be able to thus workaround, and perhaps jemalloc could be improved.)
+>
+>
+> From what I can see, they are disabled:
+>
+> $ cat /sys/kernel/mm/transparent_hugepage/enabled
+> always madvise [never]
+>
+> --
+> Wbr,
+> Antony Dovgal
+>
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - GoPivotal
+http://invece.org
+
+To "attack a straw man" is to create the illusion of having refuted a
+proposition by replacing it with a superficially similar yet
+unequivalent proposition (the "straw man"), and to refute it
+       ? Wikipedia (Straw man page)
+
+From antony.dovgal at gmail.com  Tue Apr 29 06:00:24 2014
+From: antony.dovgal at gmail.com (Antony Dovgal)
+Date: Tue, 29 Apr 2014 17:00:24 +0400
+Subject: keeping memory usage at certain limit
+In-Reply-To: <20140429084335.452d99e9@darkbook.lan.box>
+References: <535E36A0.5080805@gmail.com>
+	<20140429084335.452d99e9@darkbook.lan.box>
+Message-ID: <535FA268.7060302@gmail.com>
+
+On 04/29/2014 03:43 PM, Ricardo Nabinger Sanchez wrote:
+> On Mon, 28 Apr 2014 15:08:16 +0400
+> Antony Dovgal <antony.dovgal at gmail.com> wrote:
+>
+>> I suspect that this is caused by memory fragmentation issues, though I've no idea how to prove it (or at least all my ideas involve complex stats and are quite inefficient).
+>
+> You could dump your pointers and their sizes, and plot that information
+> graphically, including relevant info from jemalloc (map bases and their
+> sizes as well).  If it's heavily fragmented, it will be apparent.
+
+Dumping millions of pointers and hashtables (I use Judy arrays a lot) to plot the data - that's what I meant by complex stats, yes =).
+
+> If that is indeed your case, and you can modify your data container,
+> perhaps switching to index-based access could solve your problem.  That
+> would require you to forget about pointers and instead use an index, so
+> that your data container is free to move data around and shrink the
+> memory in use.  There is a lot of management and memory copying,
+> meaning the impact of such a change should be quite perceptible.
+>
+> Of course, this is no trivial change.  Dealing with long- and
+> short-lived objects is challenging.  :-)
+
+Yeah, it's quite non-trivial.
+Thanks for the suggestion, though, I'll keep it in mind.
+
+-- 
+Wbr,
+Antony Dovgal
+
+
+From jasone at canonware.com  Wed Apr 30 19:43:31 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 30 Apr 2014 19:43:31 -0700
+Subject: keeping memory usage at certain limit
+In-Reply-To: <535E36A0.5080805@gmail.com>
+References: <535E36A0.5080805@gmail.com>
+Message-ID: <63BF35A6-06C6-483C-A1D1-E533B1DF10FC@canonware.com>
+
+On Apr 28, 2014, at 4:08 AM, Antony Dovgal <antony.dovgal at gmail.com> wrote:
+> I'm currently working on a daemon that processes a lot of data and has to store the most recent of it.
+> Unfortunately, memory is allocated and freed in small blocks and in totally random (for the allocator) manner.
+> I use "stats.allocated" to measure how much memory is currently in use, delete the oldest data when the memory limit is reached and purge thread caches with "arena.N.purge" from time to time.
+
+Use "thread.tcache.flush" to flush thread caches; "arena.<i>.purge" merely uses madvise(2) to inform the kernel that it can recycle dirty pages that contain unused data.
+
+> The problem is that keeping stat.allocated on a certain level doesn't keep the process from growing until it's killed by OOM-killer.
+> I suspect that this is caused by memory fragmentation issues, though I've no idea how to prove it (or at least all my ideas involve complex stats and are quite inefficient).
+> 
+> So my main questions are:
+> is there any way to see how much memory is currently being (under)used because of fragmentation in Jemalloc?
+
+There are two statistics jemalloc tracks that directly allow you to measure external fragmentation: "stats.allocated" [1] and "stats.active" [2].  allocated/active tells you the proportion of allocated memory within active pages, i.e. external fragmentation.
+
+In a later email you report merged arena stats (which exclude huge allocations), for which allocated/active is .918, i.e. 8% external fragmentation.  The application has 1534 active allocating threads, which may be retaining a few GiB in their thread caches depending on how the application behaves.  There are some top-level statistics that might be relevant, in particular the total number of chunks.  The application has roughly 20 GiB of large allocations, and it's possible that chunk-level fragmentation is causing a huge amount of virtual memory usage (as well as chunk metadata overhead).
+
+> is there a way to prevent it or force some garbage collection?
+
+jemalloc's worst case fragmentation behavior is pretty straightforward to reason about for small objects.  Each size class [3] can be considered independently.  The worst thing that can possibly happen is that after the application reaches its maximum usage, it then frees all but one allocated region in each page run.  However, your application is presumably reaching a stable number of allocations, then replacing old data with new.  If the total number of allocated regions for each size class remains stable in the steady state, then your application should suffer very little fragmentation.  However, if your application maintains the same total memory usage, but shifts from, say, mostly 48-byte regions to mostly 64-byte regions, it can end up with highly fragmented runs that contain the few remaining 48-byte allocations.  Given 28 small size classes, it's possible for this to be a terrible fragmentation situation, but I have yet to see this happen in a real application.
+
+Please let us know what you discover, especially if there might be some general improvement to jemalloc that would help your application.
+
+Thanks,
+Jason
+
+[1] http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.allocated
+[2] http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#stats.active
+[3] http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#size_classes
+

@@ -1,0 +1,250 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 5/7] Add variables for library prefix, and static library,	object and executable suffixes
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%205/7%5D%20Add%20variables%20for%20library%20prefix%2C%20and%20static%20library%2C%0A%09object%20and%20executable%20suffixes&In-Reply-To=%3C1334586626-2008-5-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000280.html">
+   <LINK REL="Next"  HREF="000281.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 5/7] Add variables for library prefix, and static library,	object and executable suffixes</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%205/7%5D%20Add%20variables%20for%20library%20prefix%2C%20and%20static%20library%2C%0A%09object%20and%20executable%20suffixes&In-Reply-To=%3C1334586626-2008-5-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 5/7] Add variables for library prefix, and static library,	object and executable suffixes">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 16 07:30:24 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000280.html">[PATCH 1/7] Remove -dynamic CFLAG on OSX
+</A></li>
+        <LI>Next message: <A HREF="000281.html">[PATCH 6/7] Limit the number of flags directly given to the linker,	and refactor rpath
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#282">[ date ]</a>
+              <a href="thread.html#282">[ thread ]</a>
+              <a href="subject.html#282">[ subject ]</a>
+              <a href="author.html#282">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+This makes hacking on Makefile easier.
+---
+ Makefile.in  |   58 ++++++++++++++++++++++++++++++++--------------------------
+ configure.ac |    8 ++++++++
+ 2 files changed, 40 insertions(+), 26 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 1c30f32..146f57f 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -29,6 +29,10 @@ LDFLAGS := @LDFLAGS@
+ LIBS := @LIBS@
+ RPATH_EXTRA := @RPATH_EXTRA@
+ SO := @so@
++O := @o@
++A := @a@
++EXE := @exe@
++LIB := @lib@
+ ifeq (macho, @abi@)
+ WL_SONAME := dylib_install_name
+ else
+@@ -53,6 +57,8 @@ else
+ TEST_LIBRARY_PATH :=
+ endif
+ 
++LIBJEMALLOC := $(LIB)jemalloc$(install_suffix)
++
+ # Lists of files.
+ BINS := $(srcroot)bin/pprof $(objroot)bin/jemalloc.sh
+ CHDRS := $(objroot)include/jemalloc/jemalloc$(install_suffix).h \
+@@ -68,10 +74,10 @@ CSRCS := $(srcroot)src/jemalloc.c $(srcroot)src/arena.c $(srcroot)src/atomic.c \
+ ifeq (macho, $(ABI))
+ CSRCS += $(srcroot)src/zone.c
+ endif
+-STATIC_LIBS := $(objroot)lib/libjemalloc$(install_suffix).a
+-DSOS := $(objroot)lib/libjemalloc$(install_suffix).$(SO).$(REV) \
+-	$(objroot)lib/libjemalloc$(install_suffix).$(SO) \
+-	$(objroot)lib/libjemalloc$(install_suffix)_pic.a
++STATIC_LIBS := $(objroot)lib/$(LIBJEMALLOC).$(A)
++DSOS := $(objroot)lib/$(LIBJEMALLOC).$(SO).$(REV) \
++	$(objroot)lib/$(LIBJEMALLOC).$(SO) \
++	$(objroot)lib/$(LIBJEMALLOC)_pic.$(A)
+ MAN3 := $(objroot)doc/jemalloc$(install_suffix).3
+ DOCS_XML := $(objroot)doc/jemalloc$(install_suffix).xml
+ DOCS_HTML := $(DOCS_XML:$(objroot)%.xml=$(srcroot)%.html)
+@@ -90,7 +96,7 @@ endif
+ .PHONY: install_html install_man install_doc install
+ .PHONY: tests check clean distclean relclean
+ 
+-.SECONDARY : $(CTESTS:$(srcroot)%.c=$(objroot)%.o)
++.SECONDARY : $(CTESTS:$(srcroot)%.c=$(objroot)%.$(O))
+ 
+ # Default target.
+ all: build
+@@ -114,39 +120,39 @@ build_doc: $(DOCS)
+ -include $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.d)
+ -include $(CTESTS:$(srcroot)%.c=$(objroot)%.d)
+ 
+-$(objroot)src/%.o: $(srcroot)src/%.c
++$(objroot)src/%.$(O): $(srcroot)src/%.c
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -c $(CPPFLAGS) -o $@ $&lt;
+-	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.o=%.d) $&lt;
++	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.$(O)=%.d) $&lt;
+ 
+-$(objroot)src/%.pic.o: $(srcroot)src/%.c
++$(objroot)src/%.pic.$(O): $(srcroot)src/%.c
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -fPIC -DPIC -c $(CPPFLAGS) -o $@ $&lt;
+-	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.o=%.d) $&lt;
++	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.$(O)=%.d) $&lt;
+ 
+ %.$(SO) : %.$(SO).$(REV)
+ 	@mkdir -p $(@D)
+ 	ln -sf $(&lt;F) $@
+ 
+-$(objroot)lib/libjemalloc$(install_suffix).$(SO).$(REV) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.o)
++$(objroot)lib/$(LIBJEMALLOC).$(SO).$(REV) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
+ 	@mkdir -p $(@D)
+ 	$(CC) -shared -Wl,-$(WL_SONAME),$(@F) $(RPATH_EXTRA:%=$(RPATH)%) -o $@ $+ $(LDFLAGS) $(LIBS)
+ 
+-$(objroot)lib/libjemalloc$(install_suffix)_pic.a : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.o)
++$(objroot)lib/$(LIBJEMALLOC)_pic.$(A) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
+ 	@mkdir -p $(@D)
+ 	ar crus $@ $+
+ 
+-$(objroot)lib/libjemalloc$(install_suffix).a : $(CSRCS:$(srcroot)%.c=$(objroot)%.o)
++$(objroot)lib/$(LIBJEMALLOC).$(A) : $(CSRCS:$(srcroot)%.c=$(objroot)%.$(O))
+ 	@mkdir -p $(@D)
+ 	ar crus $@ $+
+ 
+-$(objroot)test/%.o: $(srcroot)test/%.c
++$(objroot)test/%.$(O): $(srcroot)test/%.c
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -c $(CPPFLAGS) -I$(objroot)test -o $@ $&lt;
+-	@$(CC) -MM $(CPPFLAGS) -I$(objroot)test -MT $@ -o $(@:%.o=%.d) $&lt;
++	@$(CC) -MM $(CPPFLAGS) -I$(objroot)test -MT $@ -o $(@:%.$(O)=%.d) $&lt;
+ 
+-$(objroot)test/%: $(objroot)test/%.o \
+-		 $(objroot)lib/libjemalloc$(install_suffix).$(SO)
++$(objroot)test/%$(EXE): $(objroot)test/%.$(O) \
++		 $(objroot)lib/$(LIBJEMALLOC).$(SO)
+ 	@mkdir -p $(@D)
+ ifneq ($(RPATH), )
+ 	$(CC) -o $@ $&lt; $(RPATH)$(objroot)lib -L$(objroot)lib -ljemalloc$(install_suffix) $(LIBS)
+@@ -174,13 +180,13 @@ done
+ 
+ install_lib_shared: $(DSOS)
+ 	install -d $(LIBDIR)
+-	install -m 755 $(objroot)lib/libjemalloc$(install_suffix).$(SO).$(REV) $(LIBDIR)
+-	ln -sf libjemalloc$(install_suffix).$(SO).$(REV) $(LIBDIR)/libjemalloc$(install_suffix).$(SO)
++	install -m 755 $(objroot)lib/$(LIBJEMALLOC).$(SO).$(REV) $(LIBDIR)
++	ln -sf $(LIBJEMALLOC).$(SO).$(REV) $(LIBDIR)/$(LIBJEMALLOC).$(SO)
+ 
+ install_lib_static: $(DSOS) $(STATIC_LIBS)
+ 	install -d $(LIBDIR)
+-	install -m 755 $(objroot)lib/libjemalloc$(install_suffix)_pic.a $(LIBDIR)
+-	install -m 755 $(objroot)lib/libjemalloc$(install_suffix).a $(LIBDIR)
++	install -m 755 $(objroot)lib/$(LIBJEMALLOC)_pic.$(A) $(LIBDIR)
++	install -m 755 $(objroot)lib/$(LIBJEMALLOC).$(A) $(LIBDIR)
+ 
+ install_lib: install_lib_shared install_lib_static
+ 
+@@ -202,7 +208,7 @@ install_doc: install_doc_html install_doc_man
+ 
+ install: install_bin install_include install_lib install_doc
+ 
+-tests: $(CTESTS:$(srcroot)%.c=$(objroot)%)
++tests: $(CTESTS:$(srcroot)%.c=$(objroot)%$(EXE))
+ 
+ check: tests
+ 	@mkdir -p $(objroot)test
+@@ -212,7 +218,7 @@ check: tests
+ 		for t in $(CTESTS:$(srcroot)%.c=$(objroot)%); do \
+ 			total=`expr $$total + 1`; \
+ 			/bin/echo -n &quot;$${t} ... &quot;; \
+-			$(TEST_LIBRARY_PATH) $${t} $(abs_srcroot) $(abs_objroot) \
++			$(TEST_LIBRARY_PATH) $${t}$(EXE) $(abs_srcroot) $(abs_objroot) \
+ 			  &gt; $(objroot)$${t}.out 2&gt;&amp;1; \
+ 			if test -e &quot;$(srcroot)$${t}.exp&quot;; then \
+ 				diff -w -u $(srcroot)$${t}.exp \
+@@ -233,12 +239,12 @@ check: tests
+ 		echo &quot;Failures: $${failures}/$${total}&quot;'
+ 
+ clean:
+-	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.o)
+-	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.o)
++	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.$(O))
++	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
+ 	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.d)
+ 	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.d)
+-	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%)
+-	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%.o)
++	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%$(EXE))
++	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%.$(O))
+ 	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%.d)
+ 	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%.out)
+ 	rm -f $(DSOS) $(STATIC_LIBS)
+diff --git a/configure.ac b/configure.ac
+index 8d20659..11b09e8 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -195,6 +195,10 @@ AC_DEFINE_UNQUOTED([CPU_SPINWAIT], [$CPU_SPINWAIT])
+ 
+ LD_PRELOAD_VAR=&quot;LD_PRELOAD&quot;
+ so=&quot;so&quot;
++o=&quot;o&quot;
++a=&quot;a&quot;
++exe=
++lib=&quot;lib&quot;
+ 
+ dnl Heap profiling uses the log(3) function.
+ LIBS=&quot;$LIBS -lm&quot;
+@@ -275,6 +279,10 @@ AC_SUBST([abi])
+ AC_SUBST([RPATH])
+ AC_SUBST([LD_PRELOAD_VAR])
+ AC_SUBST([so])
++AC_SUBST([o])
++AC_SUBST([a])
++AC_SUBST([exe])
++AC_SUBST([lib])
+ 
+ JE_COMPILABLE([__attribute__ syntax],
+               [static __attribute__((unused)) void foo(void){}],
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000280.html">[PATCH 1/7] Remove -dynamic CFLAG on OSX
+</A></li>
+	<LI>Next message: <A HREF="000281.html">[PATCH 6/7] Limit the number of flags directly given to the linker,	and refactor rpath
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#282">[ date ]</a>
+              <a href="thread.html#282">[ thread ]</a>
+              <a href="subject.html#282">[ subject ]</a>
+              <a href="author.html#282">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

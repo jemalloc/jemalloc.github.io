@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> allocating memory above 2GB
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20allocating%20memory%20above%202GB&In-Reply-To=%3C52FE9028.9070705%40neomantra.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000737.html">
+   <LINK REL="Next"  HREF="000739.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>allocating memory above 2GB</H1>
+    <B>Evan Wies</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20allocating%20memory%20above%202GB&In-Reply-To=%3C52FE9028.9070705%40neomantra.net%3E"
+       TITLE="allocating memory above 2GB">evan at neomantra.net
+       </A><BR>
+    <I>Fri Feb 14 13:52:40 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000737.html">jemalloc compiled for windows 7?
+</A></li>
+        <LI>Next message: <A HREF="000739.html">allocating memory above 2GB
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#738">[ date ]</a>
+              <a href="thread.html#738">[ thread ]</a>
+              <a href="subject.html#738">[ subject ]</a>
+              <a href="author.html#738">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+Is it possible to allocate memory in a defined region, specifically 
+anywhere above the first 2GB?
+
+I see that mallocx with ALLOCM_ALIGN allows one to specify a base 
+address aligned to a power of 2.  Can I grab a bunch of memory that way 
+and somehow tell an arena to use that space and then always mallocx with 
+that arena?
+
+I'm in the midst of writing a LuaJIT [1] binding to jemalloc, and have 
+successfully allocated memory aligned to 2^31 but can't figure out the 
+next step -- short of writing my own allocator to dole out 
+jemalloc-allocated memory.
+
+Context:
+LuaJIT, a Lua Just-In-Time compiler, can itself only allocate memory in 
+the lower portions of memory (&lt;1GB, &lt;2GB, &lt;4GB depending on platform).   
+One can get around this limitation by using its FFI to allocate memory 
+for FFI-bound C structures, however allocating these in the lower 
+regions effectively &quot;steals&quot; available memory from the LuaJIT VM for Lua 
+objects.   I want to ensure maximum available memory for the LuaJIT by 
+allocating all my objects outside this area.
+
+Thanks,
+Evan
+
+[1] <A HREF="http://www.luajit.org">http://www.luajit.org</A>
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140214/63ac3fa2/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140214/63ac3fa2/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000737.html">jemalloc compiled for windows 7?
+</A></li>
+	<LI>Next message: <A HREF="000739.html">allocating memory above 2GB
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#738">[ date ]</a>
+              <a href="thread.html#738">[ thread ]</a>
+              <a href="subject.html#738">[ subject ]</a>
+              <a href="author.html#738">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

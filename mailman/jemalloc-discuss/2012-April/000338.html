@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Simplify TSD without TLS
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Simplify%20TSD%20without%20TLS&In-Reply-To=%3C20120420063656.GA2098%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000335.html">
+   <LINK REL="Next"  HREF="000339.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Simplify TSD without TLS</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Simplify%20TSD%20without%20TLS&In-Reply-To=%3C20120420063656.GA2098%40glandium.org%3E"
+       TITLE="[PATCH] Simplify TSD without TLS">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 19 23:36:56 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000335.html">[PATCH] Simplify TSD without TLS
+</A></li>
+        <LI>Next message: <A HREF="000339.html">[PATCH 1/7] Add support for Mingw
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#338">[ date ]</a>
+              <a href="thread.html#338">[ thread ]</a>
+              <a href="subject.html#338">[ subject ]</a>
+              <a href="author.html#338">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Apr 19, 2012 at 05:32:05PM -0700, Jason Evans wrote:
+&gt;<i> Patch 6/11 did indeed expose a bug in the FreeBSD implementation --
+</I>&gt;<i> the cleanup function wasn't being called at all!  I've been thinking
+</I>&gt;<i> about how to include such tests, and two closely related ideas come to
+</I>&gt;<i> mind.  One is to add a --enable-unit-tests option that causes unit
+</I>&gt;<i> test entry points to be built into libjemalloc.  Then test programs
+</I>&gt;<i> can call those entry points.  I'm not super excited about this though,
+</I>&gt;<i> because it requires special build configuration to run all the tests.
+</I>&gt;<i> The other option is to build a libjemalloc_test that has these entry
+</I>&gt;<i> points built in, and link all tests against that instead of
+</I>&gt;<i> libjemalloc.  What do you think?  Any other ideas?
+</I>
+We could go with a variant of the latter: build a shared library off the
+tests + libjemalloc_pic.a. And then have a program linked against that
+library and calls all tests. That would also allow to get rid of the
+Makefile glue to run the tests.
+
+&gt;<i> &gt; This patch queue closes on Mingw support. Next will be MSVC.
+</I>&gt;<i> 
+</I>&gt;<i> Patch 11/11 (Add support for Mingw) doesn't apply after the various
+</I>&gt;<i> changes I made while applying the rest of your patches (and leaving
+</I>&gt;<i> out 6/11 and 7/11).  Can you please rebase and resend?
+</I>
+I'll rebase and squash a few things. For good measure, I'll resend the
+remaining patch queue.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000335.html">[PATCH] Simplify TSD without TLS
+</A></li>
+	<LI>Next message: <A HREF="000339.html">[PATCH 1/7] Add support for Mingw
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#338">[ date ]</a>
+              <a href="thread.html#338">[ thread ]</a>
+              <a href="subject.html#338">[ subject ]</a>
+              <a href="author.html#338">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

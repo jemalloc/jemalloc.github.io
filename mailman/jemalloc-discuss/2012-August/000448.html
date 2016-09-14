@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> PATCH: Support to iterate over all regions in arena.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20PATCH%3A%20Support%20to%20iterate%20over%20all%20regions%20in%20arena.&In-Reply-To=%3C1346153960.19882.36.camel%40avalon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000447.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>PATCH: Support to iterate over all regions in arena.</H1>
+    <B>Alessandro Pignotti</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20PATCH%3A%20Support%20to%20iterate%20over%20all%20regions%20in%20arena.&In-Reply-To=%3C1346153960.19882.36.camel%40avalon%3E"
+       TITLE="PATCH: Support to iterate over all regions in arena.">alexpigna.dev at gmail.com
+       </A><BR>
+    <I>Tue Aug 28 04:39:20 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000447.html">Need help with patch allowing to iterate over all objects
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#448">[ date ]</a>
+              <a href="thread.html#448">[ thread ]</a>
+              <a href="subject.html#448">[ subject ]</a>
+              <a href="author.html#448">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I'm attaching an updated version of the patches I've sent some time ago.
+This new version have been tested on real world scenarios and seems to
+work correctly. I'd like to stress that the functionality is implemented
+with minimal overhead as it only needs to keep all allocated chunks in a
+list. Moreover, the support is totally opt-in at compile time.
+
+Please note that the patches do not solve the whole problem of iterating
+over every object allocated by jemalloc, but only the smaller one of
+iterating over objects allocated in an arena. tcache and huge regions
+are not handled. Despite the limitations I think this is sufficient for
+my purposes and I would like to share my work, hoping it might be
+included upstream. This patch set, although limited, may be the base for
+a full blown solution.
+
+The last patch includes a simple test for the functionality. Still I
+don't know how to integrate it in the build system since it requires
+access to internal APIs only available in the statically linked version
+of the library, while other test cases seems to link to the dynamic
+version of it.
+
+Hoping to receive some review,
+Alessandro Pignotti
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Add-a-configuration-option-to-enable-iteration-over-.patch
+Type: text/x-patch
+Size: 2191 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment.bin</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0002-Keep-track-of-all-allocated-chunks.patch
+Type: text/x-patch
+Size: 2506 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0001.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0001.bin</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0003-Add-a-method-to-iterate-over-objects-allocated-in-an.patch
+Type: text/x-patch
+Size: 3147 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0002.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0002.bin</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0004-Add-test-for-iterate-regions.patch
+Type: text/x-patch
+Size: 3344 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0003.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0003.bin</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000447.html">Need help with patch allowing to iterate over all objects
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#448">[ date ]</a>
+              <a href="thread.html#448">[ thread ]</a>
+              <a href="subject.html#448">[ subject ]</a>
+              <a href="author.html#448">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

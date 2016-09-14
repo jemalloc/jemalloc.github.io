@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 4.2.1 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%204.2.1%20released&In-Reply-To=%3C12851233-3688-4937-A1D9-F5651E740733%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 4.2.1 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%204.2.1%20released&In-Reply-To=%3C12851233-3688-4937-A1D9-F5651E740733%40canonware.com%3E"
+       TITLE="jemalloc 4.2.1 released">jasone at canonware.com
+       </A><BR>
+    <I>Thu Jun  9 00:14:05 PDT 2016</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#26">[ date ]</a>
+              <a href="thread.html#26">[ thread ]</a>
+              <a href="subject.html#26">[ subject ]</a>
+              <a href="author.html#26">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 4.2.1 is now available.
+
+Bug fixes:
+- Fix bootstrapping issues for configurations that require allocation during tsd initialization (e.g. --disable-tls). (@cferris1000, @jasone)
+- Fix gettimeofday() version of nstime_update(). (@ronawho)
+- Fix Valgrind regressions in calloc() and chunk_alloc_wrapper(). (@ronawho)
+- Fix potential VM map fragmentation regression. (@jasone)
+- Fix opt_zero-triggered in-place huge reallocation zeroing. (@jasone)
+- Fix heap profiling context leaks in reallocation edge cases. (@jasone)
+
+For the complete ChangeLog, see:
+	<A HREF="https://github.com/jemalloc/jemalloc/raw/4.2.1/ChangeLog">https://github.com/jemalloc/jemalloc/raw/4.2.1/ChangeLog</A>
+
+Direct download:
+	<A HREF="https://github.com/jemalloc/jemalloc/releases/download/4.2.1/jemalloc-4.2.1.tar.bz2">https://github.com/jemalloc/jemalloc/releases/download/4.2.1/jemalloc-4.2.1.tar.bz2</A>
+
+Starting point for general information:
+	<A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+
+Browsable revision history:
+	<A HREF="https://github.com/jemalloc/jemalloc/tree/4.2.1">https://github.com/jemalloc/jemalloc/tree/4.2.1</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#26">[ date ]</a>
+              <a href="thread.html#26">[ thread ]</a>
+              <a href="subject.html#26">[ subject ]</a>
+              <a href="author.html#26">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

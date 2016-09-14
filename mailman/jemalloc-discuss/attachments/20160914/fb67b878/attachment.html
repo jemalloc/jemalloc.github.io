@@ -1,0 +1,90 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Hi&nbsp;Jason,&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Please&nbsp;let&nbsp;us&nbsp;know&nbsp;how&nbsp;you&nbsp;went.&nbsp;Thanks&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Fri,&nbsp;Sep&nbsp;9,&nbsp;2016&nbsp;at&nbsp;2:46&nbsp;AM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;Hi&nbsp;Ramesh,&lt;br&gt;<br>
+&lt;br&gt;<br>
+This&nbsp;crash&nbsp;is&nbsp;happening&nbsp;inside&nbsp;glibc,&nbsp;perhaps&nbsp;due&nbsp;to&nbsp;recursive&nbsp;allocation&nbsp;failing&nbsp;despite&nbsp;a&nbsp;temporary&nbsp;bootstrap&nbsp;allocation&nbsp;environment&nbsp;having&nbsp;been&nbsp;set&nbsp;up&nbsp;inside&nbsp;jemalloc. &nbsp;Are&nbsp;you&nbsp;able&nbsp;to&nbsp;determine&nbsp;whether&nbsp;something&nbsp;is&nbsp;going&nbsp;wrong&nbsp;during&nbsp;a&nbsp;malloc()&nbsp;(or&nbsp;similar)&nbsp;call&nbsp;inside&nbsp;get_nprocs()?&lt;br&gt;<br>
+&lt;br&gt;<br>
+I&#39;m&nbsp;in&nbsp;the&nbsp;process&nbsp;of&nbsp;setting&nbsp;up&nbsp;a&nbsp;CentOS&nbsp;7&nbsp;system&nbsp;right&nbsp;now,&nbsp;but&nbsp;it&nbsp;will&nbsp;take&nbsp;some&nbsp;time&nbsp;before&nbsp;I&nbsp;can&nbsp;reproduce&nbsp;this.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thanks,&lt;br&gt;<br>
+Jason&lt;br&gt;<br>
+&lt;div&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;&lt;br&gt;<br>
+&gt;&nbsp;On&nbsp;Aug&nbsp;25,&nbsp;2016,&nbsp;at&nbsp;2:27&nbsp;AM,&nbsp;Ramesh&nbsp;Sivaraman&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:ramesh.sivaraman@percona.com&quot;&gt;ramesh.sivaraman@percona.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Hi&nbsp;Team,&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Forgot&nbsp;to&nbsp;mention&nbsp;version&nbsp;details&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;jemalloc.x86_64 &nbsp;:&nbsp;3.6.0-3.el7&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;On&nbsp;Thu,&nbsp;Aug&nbsp;25,&nbsp;2016&nbsp;at&nbsp;2:49&nbsp;PM,&nbsp;Ramesh&nbsp;Sivaraman&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:ramesh.sivaraman@percona.com&quot;&gt;ramesh.sivaraman@percona.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;Hi&nbsp;Team,&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Jemalloc&nbsp;library&nbsp;is&nbsp;hitting &nbsp;Segmentation&nbsp;fault&nbsp;on&nbsp;CentOS-7&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;With&nbsp;debug&nbsp;library&nbsp;Segmentation&nbsp;fault&nbsp;issue&nbsp;triggering&nbsp;with&nbsp;simple&nbsp;`ls`&nbsp;command.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;$&nbsp;export&nbsp;LD_PRELOAD=/usr/lib/debug/usr/&lt;wbr&gt;lib64/libjemalloc.so.1.debug&lt;br&gt;<br>
+&gt;&nbsp;$&nbsp;ls&lt;br&gt;<br>
+&gt;&nbsp;Segmentation&nbsp;fault&nbsp;(core&nbsp;dumped)&lt;br&gt;<br>
+&gt;&nbsp;$&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Also&nbsp;seeing&nbsp;a&nbsp;segmentation&nbsp;fault&nbsp;issue&nbsp;(same&nbsp;issue?)&nbsp;with&nbsp;non-debug&nbsp;jemalloc&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;$&nbsp;export&nbsp;LD_PRELOAD=/usr/lib64/&lt;wbr&gt;libjemalloc.so.1&lt;br&gt;<br>
+&gt;&nbsp;$&nbsp;./bin/mysqld&nbsp;--version&lt;br&gt;<br>
+&gt;&nbsp;Segmentation&nbsp;fault&nbsp;(core&nbsp;dumped)&lt;br&gt;<br>
+&gt;&nbsp;$&nbsp;gdb&nbsp;./bin/mysqld&nbsp;core.11345.mysqld.11&lt;br&gt;<br>
+&gt;&nbsp;[..]&lt;br&gt;<br>
+&gt;&nbsp;(gdb)&nbsp;bt&lt;br&gt;<br>
+&gt;&nbsp;+bt&lt;br&gt;<br>
+&gt;&nbsp;#0 &nbsp;0x00007f1c21fa5964&nbsp;in&nbsp;get_nprocs&nbsp;()&nbsp;from&nbsp;/lib64/libc.so.6&lt;br&gt;<br>
+&gt;&nbsp;#1 &nbsp;0x00007f1c21f70b0c&nbsp;in&nbsp;sysconf&nbsp;()&nbsp;from&nbsp;/lib64/libc.so.6&lt;br&gt;<br>
+&gt;&nbsp;#2 &nbsp;0x00007f1c26efebd0&nbsp;in&nbsp;malloc_ncpus&nbsp;()&nbsp;at&nbsp;src/jemalloc.c:256&lt;br&gt;<br>
+&gt;&nbsp;#3 &nbsp;malloc_init_hard&nbsp;()&nbsp;at&nbsp;src/jemalloc.c:776&lt;br&gt;<br>
+&gt;&nbsp;#4 &nbsp;0x00007f1c26f01705&nbsp;in&nbsp;malloc_init&nbsp;()&nbsp;at&nbsp;src/jemalloc.c:292&lt;br&gt;<br>
+&gt;&nbsp;#5 &nbsp;calloc&nbsp;(num=1,&nbsp;size=32)&nbsp;at&nbsp;src/jemalloc.c:1123&lt;br&gt;<br>
+&gt;&nbsp;#6 &nbsp;0x00007f1c22eb1690&nbsp;in&nbsp;_dlerror_run&nbsp;()&nbsp;from&nbsp;/lib64/libdl.so.2&lt;br&gt;<br>
+&gt;&nbsp;#7 &nbsp;0x00007f1c22eb1198&nbsp;in&nbsp;dlsym&nbsp;()&nbsp;from&nbsp;/lib64/libdl.so.2&lt;br&gt;<br>
+&gt;&nbsp;#8 &nbsp;0x00007f1c23f88fec&nbsp;in&nbsp;??&nbsp;()&nbsp;from&nbsp;/lib64/libasan.so.0&lt;br&gt;<br>
+&gt;&nbsp;#9 &nbsp;0x00007f1c23f7b2c9&nbsp;in&nbsp;??&nbsp;()&nbsp;from&nbsp;/lib64/libasan.so.0&lt;br&gt;<br>
+&gt;&nbsp;#10&nbsp;0x00007f1c23f7d91b&nbsp;in&nbsp;__asan_init_v1&nbsp;()&nbsp;from&nbsp;/lib64/libasan.so.0&lt;br&gt;<br>
+&gt;&nbsp;#11&nbsp;0x00007f1c271426c3&nbsp;in&nbsp;_dl_init_internal&nbsp;()&nbsp;from&nbsp;/lib64/ld-linux-x86-64.so.2&lt;br&gt;<br>
+&gt;&nbsp;#12&nbsp;0x00007f1c2713445a&nbsp;in&nbsp;_dl_start_user&nbsp;()&nbsp;from&nbsp;/lib64/ld-linux-x86-64.so.2&lt;br&gt;<br>
+&gt;&nbsp;#13&nbsp;0x0000000000000002&nbsp;in&nbsp;??&nbsp;()&lt;br&gt;<br>
+&gt;&nbsp;#14&nbsp;0x00007fff9d552740&nbsp;in&nbsp;??&nbsp;()&lt;br&gt;<br>
+&gt;&nbsp;#15&nbsp;0x00007fff9d55274d&nbsp;in&nbsp;??&nbsp;()&lt;br&gt;<br>
+&gt;&nbsp;#16&nbsp;0x0000000000000000&nbsp;in&nbsp;??&nbsp;()&lt;br&gt;<br>
+&gt;&nbsp;(gdb)&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;--&lt;br&gt;<br>
+&gt;&nbsp;Best&nbsp;Regards,&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Ramesh&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;--&lt;br&gt;<br>
+&gt;&nbsp;Best&nbsp;Regards,&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Ramesh&nbsp;Sivaraman&lt;br&gt;<br>
+&gt;&nbsp;QA&nbsp;Engineer,&nbsp;Percona&lt;br&gt;<br>
+&gt;&nbsp;&lt;a&nbsp;href=&quot;http://www.percona.com/&quot;&nbsp;rel=&quot;noreferrer&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.percona.com/&lt;/a&gt;&lt;br&gt;<br>
+&gt;&nbsp;Phone&nbsp;:&nbsp;&lt;a&nbsp;href=&quot;tel:%2B91%208606432991&quot;&nbsp;value=&quot;+918606432991&quot;&gt;+91&nbsp;8606432991&lt;/a&gt;&lt;br&gt;<br>
+&gt;&nbsp;Skype&nbsp;:&nbsp;rameshvs02&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&lt;/div&gt;&lt;/div&gt;&gt;&nbsp;______________________________&lt;wbr&gt;_________________&lt;br&gt;<br>
+&gt;&nbsp;jemalloc-discuss&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&gt;&nbsp;&lt;a&nbsp;href=&quot;mailto:jemalloc-discuss@canonware.com&quot;&gt;jemalloc-discuss@canonware.com&lt;/a&gt;&lt;br&gt;<br>
+&gt;&nbsp;&lt;a&nbsp;href=&quot;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&quot;&nbsp;rel=&quot;noreferrer&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/&lt;wbr&gt;mailman/listinfo/jemalloc-&lt;wbr&gt;discuss&lt;/a&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+______________________________&lt;wbr&gt;_________________&lt;br&gt;<br>
+jemalloc-discuss&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:jemalloc-discuss@canonware.com&quot;&gt;jemalloc-discuss@canonware.com&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&quot;&nbsp;rel=&quot;noreferrer&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/&lt;wbr&gt;mailman/listinfo/jemalloc-&lt;wbr&gt;discuss&lt;/a&gt;&lt;br&gt;<br>
+&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_signature&quot;&nbsp;data-smartmail=&quot;gmail_signature&quot;&gt;&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&gt;&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;<br>
+&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

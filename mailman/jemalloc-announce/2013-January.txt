@@ -1,0 +1,31 @@
+From jasone at canonware.com  Wed Jan 23 12:08:24 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 Jan 2013 12:08:24 -0800
+Subject: jemalloc 3.3.0 released
+Message-ID: <D6C1ECB0-3546-427B-BCF8-AAF825B5C9C2@canonware.com>
+
+jemalloc 3.3.0 is now available.  This version includes a few minor performance improvements in addition to the listed new features and bug fixes.
+
+New features:
+- Add clipping support to lg_chunk option processing.
+- Add the --enable-ivsalloc option.
+- Add the --without-export option.
+- Add the --disable-zone-allocator option.
+
+Bug fixes:
+- Fix "arenas.extend" mallctl to output the number of arenas.
+- Fix chunk_recycyle() to unconditionally inform Valgrind that returned memory is undefined.
+- Fix build break on FreeBSD related to alloca.h.
+
+For the complete ChangeLog, see:
+	http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+	http://www.canonware.com/download/jemalloc/jemalloc-3.3.0.tar.bz2
+
+Starting point for general information:
+	http://www.canonware.com/jemalloc/
+
+Browsable revision history:
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git
+

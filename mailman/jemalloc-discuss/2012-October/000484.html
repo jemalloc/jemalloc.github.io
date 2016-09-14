@@ -1,0 +1,977 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121025064211.GA16176%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000479.html">
+   <LINK REL="Next"  HREF="000480.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121025064211.GA16176%40glandium.org%3E"
+       TITLE="Memory usage regression">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Oct 24 23:42:11 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000479.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000480.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#484">[ date ]</a>
+              <a href="thread.html#484">[ thread ]</a>
+              <a href="subject.html#484">[ subject ]</a>
+              <a href="author.html#484">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Oct 24, 2012 at 03:06:25PM -0700, Jason Evans wrote:
+&gt;<i> On Oct 24, 2012, at 12:36 PM, Mike Hommey wrote:
+</I>&gt;<i> &gt; With that replayed workload, I can see two main things: - The amount
+</I>&gt;<i> &gt; of resident memory used by jemalloc 3 is greater than that of
+</I>&gt;<i> &gt; mozjemalloc after freeing big parts of what was allocated (in
+</I>&gt;<i> &gt; Firefox, after closing all tabs, waiting for a settle, and forcing
+</I>&gt;<i> &gt; GC).  This is most likely due to different allocation patterns
+</I>&gt;<i> &gt; leading to some kind of fragmentation after freeing part of the
+</I>&gt;<i> &gt; allocated memory.  See <A HREF="http://i.imgur.com/fQKi4.png">http://i.imgur.com/fQKi4.png</A> for a graphical
+</I>&gt;<i> &gt; representation of what happens to the RSS value at the different
+</I>&gt;<i> &gt; checkpoints during the Firefox workload.
+</I>&gt;<i> 
+</I>&gt;<i> This difference may be inherent, due to something like size class
+</I>&gt;<i> changes.  Are there any configuration differences between mozjemalloc
+</I>&gt;<i> and jemalloc 3 besides tcache that weren't removed?  In particular,
+</I>&gt;<i> narenas is an important one.
+</I>
+In the 3 jemalloc cases, narenas = 1 (like mozjemalloc). The chunk size
+for mozjemalloc is 1MB, which is why I tested with that chunk size as
+well, and also tried without tcache. There's still a large difference
+between jemalloc 3 and mozjemalloc with similar config.
+
+I did try hacking jemalloc 3 to use the same size classes but didn't get
+much different results, although retrospectively, I think I was only
+looking at the VmData numbers, then. I'll respin, looking at VmRSS.
+
+&gt;<i> &gt; - The amount of mmap()ed memory is dangerously increasing during the
+</I>&gt;<i> &gt; workload. It almost (but not quite) looks like jemalloc don't reuse
+</I>&gt;<i> &gt; pages it purged. See <A HREF="http://i.imgur.com/klfJv.png">http://i.imgur.com/klfJv.png</A> ; VmData is
+</I>&gt;<i> &gt; essentially the sum of all anonymous ranges of memory in the
+</I>&gt;<i> &gt; process.  Such an increase in VmData means we'd eventually exhaust
+</I>&gt;<i> &gt; the 32-bits address space on 32-bits OSes, even though the resident
+</I>&gt;<i> &gt; memory usage is pretty low.
+</I>&gt;<i> 
+</I>&gt;<i> This looks pretty bad.  The only legitimate potential explanation I
+</I>&gt;<i> can think of is that jemalloc now partitions dirty and clean pages
+</I>&gt;<i> (and jemalloc 3 is much less aggressive than mozjemalloc about
+</I>&gt;<i> purging), so it's possible to have to allocate a new chunk for a large
+</I>&gt;<i> object, even though there would be enough room in an existing chunk if
+</I>&gt;<i> clean and dirty available runs were coalesced.  This increases run
+</I>&gt;<i> fragmentation in general, but it tends to dramatically reduce the
+</I>&gt;<i> number of pages that are dirtied.  I'd like to see the output of
+</I>&gt;<i> malloc_stats_print() for two adjacent points along the x axis, like
+</I>&gt;<i> &quot;After iteration 5&quot; and its predecessor.  I'd also be curious if the
+</I>&gt;<i> VM size increases continue after many grow/shrink cycles (if so, it
+</I>&gt;<i> might be due to an outright bug in jemalloc).
+</I>
+Here you are, for narenas=1 and no other option:
+- After Iteration 4, tabs closed [+30s, forced GC]
+
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 22
+  opt.dss: &quot;secondary&quot;
+  opt.narenas: 1
+  opt.lg_dirty_mult: 5
+  opt.stats_print: true
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+  opt.valgrind: false
+  opt.tcache: true
+  opt.lg_tcache_max: 15
+CPUs: 8
+Arenas: 1
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 32:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 45575704, active: 132845568, mapped: 658505728
+Current active ceiling: 134217728
+chunks: nchunks   highchunks    curchunks
+            556          160          157
+huge: nmalloc      ndalloc    allocated
+          142          142            0
+
+arenas[0]:
+assigned threads: 1
+dss allocation precedence: disabled
+dirty pages: 32433:0 active:dirty, 23561 sweeps, 120394 madvises, 1529816 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:       25923096     27391093     27157263     73118117
+large:       19652608       346991       346124       740122
+total:       45575704     27738084     27503387     73858239
+active:     132845568
+mapped:     654311424
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc    nrequests       nfills     nflushes      newruns       reruns      curruns
+            0     8  501   1       275144       984384       949991      2407118        84093        13927          211        20156          166
+            1    16  252   1       319664      3968805      3948826      8525510       174274        42536         3312       101027          751
+            2    32  126   1      1405376      6780517      6736599     22938791       156402        69545        11912       304796         2041
+            3    48   84   1      1430304      3748262      3718464      7794311       189965        47227         5942       226834         1972
+            4    64   63   1      1877632      2235624      2206286      5221262        80644        37041         8044       140284         2022
+            5    80   50   1      1549040      2799626      2780263      4873441       129605        58420        37865        93296         1121
+            6    96   84   2       741408       789407       781684      2115504        59595        13195         1266        45934          314
+            7   112   72   2       454384       689097       685040      1547015        49192        13315         2797        44443          321
+            8   128   63   2      1709056      2068970      2055618      3564319        93440        35608        14020        89247         1528
+            9   160   51   2       907040       659323       653654      4872237        69086        16193         1856        79120          309
+           10   192   63   3       713088       467964       464250       869869        36038        11400         2309        30493          199
+           11   224   72   4       639520       371744       368889       764056        38136         9540          949        30700          184
+           12   256   63   4       756736       371527       368571       857072        39551        10526          793        43024          276
+           13   320   63   5       933440       180504       177587      1087101        22646         8020          625        16817          127
+           14   384   63   6      1077120       152607       149802       591724        21143         7680          463        18564          179
+           15   448   63   7       481600        91051        89976       227821        19817         7284          322         8804           43
+           16   512   63   8      1209856       266356       263993       726737        37640         9239          499        29978          183
+           17   640   51   8       680960       103736       102672      1685905        17562         7568          393        16828           70
+           18   768   47   9       579840        71510        70755       202734        15729         7009          310        10938           71
+           19   896   45  10       307328        37940        37597       137150        10462         6408          232         6701           26
+           20  1024   63  16      2723840       270881       268221      1391361        53243         9375          917        24824          160
+           21  1280   51  16       775680        76967        76361       142722        16471         7035          238        10515           44
+           22  1536   42  16       603648        23228        22835        69854         7823         5563           59         5170           28
+           23  1792   38  17       559104        16254        15942        30236         6098         4332           85         2956           19
+           24  2048   65  33      2146304       108302       107254       283506        44797         7332          112        10761           57
+           25  2560   52  33       478720        33426        33239       109814        18785         5413          202         3805           18
+           26  3072   43  33       497664        15274        15112        43290         5624         5106           48         3743           16
+           27  3584   39  35        89600         7807         7782        37657         4145         3722           39         1364            6
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+         4096     1        69918        69784       213448          134
+         8192     2        63723        63332       196312          391
+        12288     3         9401         9313        32214           88
+        16384     4         8967         8939        51350           28
+        20480     5         7576         7567        26531            9
+        24576     6         4681         4666         8585           15
+        28672     7         3309         3308        10206            1
+        32768     8        35136        35098        57196           38
+        36864     9        21622        21527        21622           95
+        40960    10         3115         3111         3115            4
+        45056    11         2312         2311         2312            1
+        49152    12         3194         3190         3194            4
+        53248    13         3349         3345         3349            4
+        57344    14         1089         1089         1089            0
+        61440    15          876          876          876            0
+        65536    16        33869        33850        33869           19
+        69632    17         1463         1463         1463            0
+        73728    18          987          987          987            0
+        77824    19          793          793          793            0
+        81920    20          708          708          708            0
+        86016    21          397          397          397            0
+        90112    22          535          535          535            0
+        94208    23          466          466          466            0
+        98304    24          646          644          646            2
+       102400    25          861          861          861            0
+       106496    26          348          348          348            0
+       110592    27          306          306          306            0
+       114688    28          224          224          224            0
+       118784    29          365          365          365            0
+       122880    30          238          238          238            0
+       126976    31          229          229          229            0
+       131072    32        55419        55398        55419           21
+       135168    33          580          580          580            0
+       139264    34          200          200          200            0
+       143360    35          146          146          146            0
+       147456    36          269          269          269            0
+       151552    37          113          113          113            0
+       155648    38          114          114          114            0
+       159744    39          196          196          196            0
+       163840    40          175          173          175            2
+       167936    41          109          109          109            0
+       172032    42          199          198          199            1
+       176128    43          132          132          132            0
+       180224    44          117          117          117            0
+       184320    45          135          135          135            0
+       188416    46          124          124          124            0
+       192512    47          677          677          677            0
+       196608    48          149          148          149            1
+       200704    49          101          101          101            0
+       204800    50          104          104          104            0
+       208896    51          140          140          140            0
+       212992    52           82           82           82            0
+       217088    53           68           67           68            1
+       221184    54          122          122          122            0
+       225280    55           82           82           82            0
+       229376    56          189          189          189            0
+       233472    57          202          201          202            1
+       237568    58           62           62           62            0
+       241664    59           84           84           84            0
+       245760    60           71           71           71            0
+       249856    61           90           90           90            0
+       253952    62          117          117          117            0
+       258048    63           73           73           73            0
+       262144    64          352          350          352            2
+       266240    65         1061         1061         1061            0
+       270336    66           62           62           62            0
+       274432    67          114          114          114            0
+       278528    68           62           62           62            0
+       282624    69           45           44           45            1
+       286720    70           38           38           38            0
+       290816    71           59           59           59            0
+       294912    72           43           43           43            0
+       299008    73           42           42           42            0
+       303104    74           66           66           66            0
+       307200    75           63           63           63            0
+       311296    76           41           41           41            0
+       315392    77           31           31           31            0
+       319488    78           55           55           55            0
+       323584    79           31           31           31            0
+       327680    80          117          116          117            1
+       331776    81           33           33           33            0
+       335872    82           34           34           34            0
+       339968    83           39           39           39            0
+       344064    84           66           66           66            0
+       348160    85           24           24           24            0
+       352256    86           47           47           47            0
+       356352    87           16           16           16            0
+       360448    88           36           36           36            0
+       364544    89           32           32           32            0
+       368640    90           36           36           36            0
+       372736    91           36           36           36            0
+       376832    92           25           25           25            0
+       380928    93           50           49           50            1
+       385024    94           26           26           26            0
+       389120    95           33           33           33            0
+       393216    96           26           26           26            0
+       397312    97           32           32           32            0
+       401408    98           23           23           23            0
+       405504    99           16           16           16            0
+       409600   100           31           31           31            0
+       413696   101           16           16           16            0
+       417792   102            9            9            9            0
+       421888   103           20           20           20            0
+       425984   104           17           17           17            0
+       430080   105           25           25           25            0
+       434176   106           41           41           41            0
+       438272   107           44           44           44            0
+       442368   108           32           32           32            0
+       446464   109           16           16           16            0
+       450560   110           12           12           12            0
+       454656   111           17           17           17            0
+       458752   112           28           28           28            0
+       462848   113            6            6            6            0
+       466944   114           30           30           30            0
+       471040   115            8            8            8            0
+       475136   116           29           29           29            0
+       479232   117           35           35           35            0
+       483328   118           60           60           60            0
+       487424   119           24           24           24            0
+       491520   120            7            7            7            0
+[1]
+       499712   122           17           17           17            0
+[1]
+       507904   124           10            9           10            1
+       512000   125           16           16           16            0
+       516096   126            1            1            1            0
+[1]
+       524288   128          644          644          644            0
+       528384   129           84           84           84            0
+       532480   130            9            9            9            0
+       536576   131           16           16           16            0
+       540672   132           21           21           21            0
+       544768   133           43           43           43            0
+       548864   134           11           11           11            0
+       552960   135           29           29           29            0
+       557056   136           19           19           19            0
+       561152   137           24           24           24            0
+       565248   138            9            9            9            0
+       569344   139           27           27           27            0
+       573440   140            8            8            8            0
+       577536   141           10           10           10            0
+       581632   142            3            3            3            0
+       585728   143            6            6            6            0
+       589824   144           19           19           19            0
+       593920   145            1            1            1            0
+       598016   146            1            1            1            0
+       602112   147           26           26           26            0
+       606208   148           13           13           13            0
+       610304   149            5            5            5            0
+       614400   150           26           26           26            0
+       618496   151            8            8            8            0
+       622592   152            9            9            9            0
+       626688   153           26           26           26            0
+       630784   154            5            5            5            0
+[1]
+       638976   156           33           33           33            0
+       643072   157           13           13           13            0
+       647168   158           29           29           29            0
+       651264   159           42           42           42            0
+       655360   160           15           15           15            0
+[1]
+       663552   162            8            8            8            0
+[2]
+[2]
+       675840   165            6            6            6            0
+[2]
+       688128   168           12           12           12            0
+       692224   169           21           21           21            0
+[1]
+       700416   171            4            4            4            0
+[2]
+       712704   174            4            4            4            0
+       716800   175            6            6            6            0
+[1]
+       724992   177            8            8            8            0
+       729088   178            8            8            8            0
+[3]
+       745472   182            4            4            4            0
+       749568   183            5            5            5            0
+       753664   184           28           28           28            0
+       757760   185           14           14           14            0
+[1]
+       765952   187            6            6            6            0
+       770048   188            4            4            4            0
+[1]
+       778240   190            4            4            4            0
+[1]
+       786432   192            6            6            6            0
+       790528   193           16           16           16            0
+[2]
+       802816   196           20           20           20            0
+       806912   197            6            6            6            0
+       811008   198            6            6            6            0
+[1]
+       819200   200            4            4            4            0
+[1]
+       827392   202           36           36           36            0
+[1]
+       835584   204            6            6            6            0
+[1]
+       843776   206            1            1            1            0
+       847872   207            8            8            8            0
+[2]
+       860160   210            1            1            1            0
+       864256   211            4            4            4            0
+       868352   212            4            4            4            0
+[2]
+       880640   215            1            1            1            0
+       884736   216            4            4            4            0
+[4]
+       905216   221            5            5            5            0
+[1]
+       913408   223            3            3            3            0
+[1]
+       921600   225           96           96           96            0
+       925696   226           52           52           52            0
+[3]
+       942080   230            5            5            5            0
+[4]
+       962560   235           20           20           20            0
+       966656   236            8            8            8            0
+[3]
+       983040   240            8            8            8            0
+[1]
+       991232   242           11           11           11            0
+       995328   243            6            6            6            0
+[1]
+      1003520   245            7            7            7            0
+      1007616   246            5            5            5            0
+      1011712   247            1            1            1            0
+[2]
+      1024000   250            8            8            8            0
+      1028096   251            8            8            8            0
+[3]
+      1044480   255            8            8            8            0
+      1048576   256           61           60           61            1
+      1052672   257           12           12           12            0
+[1]
+      1060864   259           16           16           16            0
+[3]
+      1077248   263           17           17           17            0
+[2]
+      1089536   266            8            8            8            0
+[2]
+      1101824   269            8            8            8            0
+[7]
+      1134592   277           11           11           11            0
+[4]
+      1155072   282            1            1            1            0
+[1]
+      1163264   284            1            1            1            0
+[6]
+      1191936   291            1            1            1            0
+[1]
+      1200128   293            1            1            1            0
+[3]
+      1216512   297            4            4            4            0
+[1]
+      1224704   299            6            6            6            0
+      1228800   300            8            8            8            0
+[4]
+      1249280   305            1            1            1            0
+      1253376   306            7            7            7            0
+      1257472   307           16           16           16            0
+      1261568   308            8            8            8            0
+[2]
+      1273856   311            4            4            4            0
+[2]
+      1286144   314            5            5            5            0
+[2]
+      1298432   317            1            1            1            0
+      1302528   318            6            6            6            0
+[1]
+      1310720   320            6            6            6            0
+[1]
+      1318912   322            4            4            4            0
+[2]
+      1331200   325           12           12           12            0
+      1335296   326            6            6            6            0
+[4]
+      1355776   331            8            8            8            0
+[2]
+      1368064   334            6            6            6            0
+[16]
+      1437696   351            8            8            8            0
+[4]
+      1458176   356            3            3            3            0
+[1]
+      1466368   358            6            6            6            0
+[8]
+      1503232   367          104          104          104            0
+      1507328   368           14           14           14            0
+      1511424   369            8            8            8            0
+[17]
+      1585152   387           60           60           60            0
+[11]
+      1634304   399            8            8            8            0
+[2]
+      1646592   402            2            2            2            0
+[4]
+      1667072   407            2            2            2            0
+[14]
+      1728512   422            6            6            6            0
+[12]
+      1781760   435            2            2            2            0
+[6]
+      1810432   442            3            3            3            0
+[14]
+      1871872   457            8            8            8            0
+[7]
+      1904640   465            1            1            1            0
+[3]
+      1921024   469           17           17           17            0
+[4]
+      1941504   474            6            6            6            0
+[9]
+      1982464   484            1            1            1            0
+      1986560   485            1            1            1            0
+[2]
+      1998848   488            1            1            1            0
+      2002944   489            1            1            1            0
+[3]
+      2019328   493            1            1            1            0
+[1]
+      2027520   495            1            1            1            0
+      2031616   496            1            1            1            0
+[3]
+      2048000   500            9            9            9            0
+[5]
+      2072576   506            1            1            1            0
+[1]
+      2080768   508            4            4            4            0
+[2]
+      2093056   511            4            4            4            0
+      2097152   512           24           24           24            0
+[15]
+      2162688   528            4            4            4            0
+      2166784   529            6            6            6            0
+[56]
+      2400256   586            4            4            4            0
+[7]
+      2433024   594            8            8            8            0
+[14]
+      2494464   609            8            8            8            0
+[60]
+      2744320   670            8            8            8            0
+[39]
+      2908160   710            8            8            8            0
+[7]
+      2940928   718            8            8            8            0
+[219]
+      3842048   938            4            4            4            0
+[28]
+      3960832   967            8            8            8            0
+[7]
+      3993600   975            8            8            8            0
+[1]
+      4001792   977            2            2            2            0
+[36]
+      4153344  1014            6            6            6            0
+[4]
+
+- After Iteration 5:
+
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 22
+  opt.dss: &quot;secondary&quot;
+  opt.narenas: 1
+  opt.lg_dirty_mult: 5
+  opt.stats_print: true
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+  opt.valgrind: false
+  opt.tcache: true
+  opt.lg_tcache_max: 15
+CPUs: 8
+Arenas: 1
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 32:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 290862080, active: 304779264, mapped: 729808896
+Current active ceiling: 306184192
+chunks: nchunks   highchunks    curchunks
+            663          177          174
+huge: nmalloc      ndalloc    allocated
+          174          174            0
+
+arenas[0]:
+assigned threads: 1
+dss allocation precedence: disabled
+dirty pages: 74409:0 active:dirty, 27196 sweeps, 134472 madvises, 1756180 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:      167171072     34000600     32301000     89294833
+large:      123691008       422306       414219       897295
+total:      290862080     34422906     32715219     90192128
+active:     304779264
+mapped:     725614592
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc    nrequests       nfills     nflushes      newruns       reruns      curruns
+            0     8  501   1       667088      1189199      1105813      2945456       101289        16392          214        24916          168
+            1    16  252   1      3114928      4964496      4769813     10580608       220037        51347         3546       126861          877
+            2    32  126   1     11524448      8449033      8088894     27208808       192841        83408        13694       386849         3120
+            3    48   84   1      9026304      4664158      4476110      9684214       246138        56861         6542       286026         2420
+            4    64   63   1     10496320      2772989      2608984      6452451        98227        43763         9219       174798         2792
+            5    80   50   1     21769440      3488869      3216751      6074744       159660        67696        47084       115542         5505
+            6    96   84   2      3793536       969388       929872      2625897        73680        15787         1479        56997          487
+            7   112   72   2      5995584       852625       799093      1911851        59691        15665         3376        55166          789
+            8   128   63   2     21236864      2577927      2412014      4428127       112833        41807        16366       112357         2804
+            9   160   51   2      3908480       805463       781035      5984966        79540        19399         2175        98544          493
+           10   192   63   3      6305472       573500       540659      1069360        42556        13438         2818        37645          522
+           11   224   72   4      4747008       458892       437700       940985        46466        11437         1100        38518          296
+           12   256   63   4      5120768       459529       439526      1055454        47367        12619          868        53252          336
+           13   320   63   5      4068480       216780       204066      1329174        26546         9580          723        20681          204
+           14   384   63   6      5132928       186337       172970       728013        24687         9187          511        23090          213
+           15   448   63   7      2151296       108676       103874       276235        22386         8741          365        11070           77
+           16   512   63   8      6482944       328600       315938       893868        46000        11118          549        37030          205
+           17   640   51   8      3685760       123967       118208      2092129        20810         9086          461        20778          113
+           18   768   47   9      3407616        87442        83005       247229        18946         8490          344        13553           95
+           19   896   45  10      1742720        46285        44340       168321        12716         7745          267         8464           46
+           20  1024   63  16     14713856       332415       318046      1723608        63005        11241         1056        31161          242
+           21  1280   51  16      3978240        94349        91241       174505        19515         8548          275        12977           67
+           22  1536   42  16      1721856        28589        27468        84844         9477         6790           63         6428           30
+           23  1792   38  17      1440768        19393        18589        35914         7132         5260           97         3627           23
+           24  2048   65  33      6623232       135271       132037       345895        55526         8966          123        13366           66
+           25  2560   52  33      1607680        37852        37224       132608        20471         6564          202         4698           18
+           26  3072   43  33      1947648        18962        18328        53274         6877         6252           52         4664           17
+           27  3584   39  35       759808         9614         9402        46295         5087         4553           52         1696            7
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+         4096     1        87473        86307       258112         1166
+         8192     2        78586        73329       241582         5257
+        12288     3        11660        11231        39720          429
+        16384     4        10876        10585        61461          291
+        20480     5         9030         8938        32353           92
+        24576     6         5772         5683        10406           89
+        28672     7         4106         4082        12410           24
+        32768     8        43623        43488        70071          135
+        36864     9        26446        26244        26446          202
+        40960    10         3788         3774         3788           14
+        45056    11         2755         2748         2755            7
+        49152    12         3862         3829         3862           33
+        53248    13         4217         4207         4217           10
+        57344    14         1337         1333         1337            4
+        61440    15         1053         1050         1053            3
+        65536    16        41348        41295        41348           53
+        69632    17         1798         1798         1798            0
+        73728    18         1164         1163         1164            1
+        77824    19          950          945          950            5
+        81920    20          861          858          861            3
+        86016    21          491          487          491            4
+        90112    22          654          654          654            0
+        94208    23          594          593          594            1
+        98304    24          788          780          788            8
+       102400    25         1030         1029         1030            1
+       106496    26          409          408          409            1
+       110592    27          379          379          379            0
+       114688    28          273          273          273            0
+       118784    29          431          430          431            1
+       122880    30          291          291          291            0
+       126976    31          282          281          282            1
+       131072    32        62925        62696        62925          229
+       135168    33          720          720          720            0
+       139264    34          246          246          246            0
+       143360    35          184          184          184            0
+       147456    36          340          340          340            0
+       151552    37          144          144          144            0
+       155648    38          135          135          135            0
+       159744    39          240          240          240            0
+       163840    40          211          210          211            1
+       167936    41          138          138          138            0
+       172032    42          246          245          246            1
+       176128    43          163          163          163            0
+       180224    44          143          143          143            0
+       184320    45          167          167          167            0
+       188416    46          158          158          158            0
+       192512    47          860          858          860            2
+       196608    48          173          170          173            3
+       200704    49          124          123          124            1
+       204800    50          127          127          127            0
+       208896    51          176          176          176            0
+       212992    52           98           98           98            0
+       217088    53           83           82           83            1
+       221184    54          149          149          149            0
+       225280    55          101          101          101            0
+       229376    56          229          229          229            0
+       233472    57          245          244          245            1
+       237568    58           76           76           76            0
+       241664    59          102          102          102            0
+       245760    60           88           88           88            0
+       249856    61          109          109          109            0
+       253952    62          136          136          136            0
+       258048    63           90           90           90            0
+       262144    64          435          430          435            5
+       266240    65         1197         1197         1197            0
+       270336    66           76           76           76            0
+       274432    67          135          135          135            0
+       278528    68           77           77           77            0
+       282624    69           55           54           55            1
+       286720    70           47           47           47            0
+       290816    71           71           71           71            0
+       294912    72           53           53           53            0
+       299008    73           52           52           52            0
+       303104    74           86           86           86            0
+       307200    75           75           75           75            0
+       311296    76           51           51           51            0
+       315392    77           38           38           38            0
+       319488    78           68           68           68            0
+       323584    79           38           38           38            0
+       327680    80          134          133          134            1
+       331776    81           41           41           41            0
+       335872    82           42           42           42            0
+       339968    83           48           48           48            0
+       344064    84           79           79           79            0
+       348160    85           30           30           30            0
+       352256    86           55           55           55            0
+       356352    87           20           20           20            0
+       360448    88           41           41           41            0
+       364544    89           40           40           40            0
+       368640    90           44           44           44            0
+       372736    91           45           45           45            0
+       376832    92           31           31           31            0
+       380928    93           61           60           61            1
+       385024    94           32           32           32            0
+       389120    95           40           40           40            0
+       393216    96           32           32           32            0
+       397312    97           40           40           40            0
+       401408    98           28           28           28            0
+       405504    99           20           20           20            0
+       409600   100           35           35           35            0
+       413696   101           20           20           20            0
+       417792   102           11           11           11            0
+       421888   103           25           25           25            0
+       425984   104           21           21           21            0
+       430080   105           31           31           31            0
+       434176   106           49           49           49            0
+       438272   107           55           55           55            0
+       442368   108           38           38           38            0
+       446464   109           20           20           20            0
+       450560   110           14           14           14            0
+       454656   111           21           21           21            0
+       458752   112           31           31           31            0
+       462848   113            7            7            7            0
+       466944   114           34           34           34            0
+       471040   115           10           10           10            0
+       475136   116           33           33           33            0
+       479232   117           41           41           41            0
+       483328   118           71           71           71            0
+       487424   119           29           29           29            0
+       491520   120            8            8            8            0
+[1]
+       499712   122           21           21           21            0
+[1]
+       507904   124           12           11           12            1
+       512000   125           20           20           20            0
+       516096   126            1            1            1            0
+[1]
+       524288   128          692          692          692            0
+       528384   129          105          105          105            0
+       532480   130           11           11           11            0
+       536576   131           20           20           20            0
+       540672   132           26           26           26            0
+       544768   133           50           50           50            0
+       548864   134           13           13           13            0
+       552960   135           36           36           36            0
+       557056   136           23           23           23            0
+       561152   137           28           28           28            0
+       565248   138           11           11           11            0
+       569344   139           33           33           33            0
+       573440   140           11           11           11            0
+       577536   141           12           12           12            0
+       581632   142            3            3            3            0
+       585728   143            7            7            7            0
+       589824   144           22           22           22            0
+       593920   145            1            1            1            0
+       598016   146            1            1            1            0
+       602112   147           30           30           30            0
+       606208   148           15           15           15            0
+       610304   149            6            6            6            0
+       614400   150           30           30           30            0
+       618496   151           10            9           10            1
+       622592   152           11           11           11            0
+       626688   153           32           32           32            0
+       630784   154            6            6            6            0
+[1]
+       638976   156           41           41           41            0
+       643072   157           16           16           16            0
+       647168   158           31           31           31            0
+       651264   159           52           52           52            0
+       655360   160           16           16           16            0
+[1]
+       663552   162           10           10           10            0
+[2]
+       675840   165            7            7            7            0
+[2]
+       688128   168           14           14           14            0
+       692224   169           24           24           24            0
+[1]
+       700416   171            5            5            5            0
+[2]
+       712704   174            5            5            5            0
+       716800   175            7            7            7            0
+[1]
+       724992   177           10           10           10            0
+       729088   178           10           10           10            0
+[3]
+       745472   182            5            5            5            0
+       749568   183            5            5            5            0
+       753664   184           33           33           33            0
+       757760   185           17           17           17            0
+[1]
+       765952   187            7            7            7            0
+       770048   188            5            5            5            0
+[1]
+       778240   190            5            5            5            0
+[1]
+       786432   192            7            7            7            0
+       790528   193           20           20           20            0
+[2]
+       802816   196           25           25           25            0
+       806912   197            6            6            6            0
+       811008   198            7            7            7            0
+[1]
+       819200   200            5            5            5            0
+[1]
+       827392   202           38           38           38            0
+[1]
+       835584   204            7            7            7            0
+[1]
+       843776   206            1            1            1            0
+       847872   207           10           10           10            0
+[2]
+       860160   210            1            1            1            0
+       864256   211            5            5            5            0
+       868352   212            5            5            5            0
+[2]
+       880640   215            1            1            1            0
+       884736   216            5            5            5            0
+[4]
+       905216   221            5            5            5            0
+[1]
+       913408   223            3            3            3            0
+[1]
+       921600   225          102          102          102            0
+       925696   226           56           56           56            0
+[3]
+       942080   230            5            5            5            0
+[4]
+       962560   235           25           25           25            0
+       966656   236           10           10           10            0
+[3]
+       983040   240           10           10           10            0
+[1]
+       991232   242           13           13           13            0
+       995328   243            7            7            7            0
+[1]
+      1003520   245            8            8            8            0
+      1007616   246            5            5            5            0
+      1011712   247            1            1            1            0
+[2]
+      1024000   250           10           10           10            0
+      1028096   251           10           10           10            0
+[3]
+      1044480   255           10           10           10            0
+      1048576   256           70           69           70            1
+      1052672   257           15           15           15            0
+[1]
+      1060864   259           20           20           20            0
+[3]
+      1077248   263           19           19           19            0
+[2]
+      1089536   266           10           10           10            0
+[2]
+      1101824   269           10           10           10            0
+[7]
+      1134592   277           13           13           13            0
+[4]
+      1155072   282            1            1            1            0
+[1]
+      1163264   284            1            1            1            0
+[6]
+      1191936   291            1            1            1            0
+[1]
+      1200128   293            1            1            1            0
+[3]
+      1216512   297            5            5            5            0
+[1]
+      1224704   299            7            7            7            0
+      1228800   300           10           10           10            0
+[4]
+      1249280   305            1            1            1            0
+      1253376   306            7            7            7            0
+      1257472   307           18           18           18            0
+      1261568   308           10           10           10            0
+[2]
+      1273856   311            5            5            5            0
+[2]
+      1286144   314            5            5            5            0
+[2]
+      1298432   317            1            1            1            0
+      1302528   318            7            7            7            0
+[1]
+      1310720   320            7            6            7            1
+[1]
+      1318912   322            5            5            5            0
+[2]
+      1331200   325           14           14           14            0
+      1335296   326            7            7            7            0
+[4]
+      1355776   331           10           10           10            0
+[2]
+      1368064   334            7            7            7            0
+[16]
+      1437696   351            9            9            9            0
+[4]
+      1458176   356            3            3            3            0
+[1]
+      1466368   358            7            7            7            0
+[8]
+      1503232   367          122          122          122            0
+      1507328   368           17           17           17            0
+      1511424   369           10           10           10            0
+[17]
+      1585152   387           70           70           70            0
+[11]
+      1634304   399           10           10           10            0
+[2]
+      1646592   402            2            2            2            0
+[4]
+      1667072   407            2            2            2            0
+[14]
+      1728512   422            7            7            7            0
+[12]
+      1781760   435            2            2            2            0
+[6]
+      1810432   442            3            3            3            0
+[14]
+      1871872   457           10           10           10            0
+[7]
+      1904640   465            1            1            1            0
+[3]
+      1921024   469           21           21           21            0
+[4]
+      1941504   474            7            7            7            0
+[9]
+      1982464   484            1            1            1            0
+      1986560   485            1            1            1            0
+[2]
+      1998848   488            1            1            1            0
+      2002944   489            1            1            1            0
+[3]
+      2019328   493            1            1            1            0
+[1]
+      2027520   495            1            1            1            0
+      2031616   496            1            1            1            0
+[3]
+      2048000   500           11           11           11            0
+[5]
+      2072576   506            1            1            1            0
+[1]
+      2080768   508            5            5            5            0
+[2]
+      2093056   511            5            5            5            0
+      2097152   512           25           24           25            1
+[15]
+      2162688   528            5            5            5            0
+      2166784   529            7            7            7            0
+[56]
+      2400256   586            5            5            5            0
+[7]
+      2433024   594           10           10           10            0
+[14]
+      2494464   609           10           10           10            0
+[60]
+      2744320   670           10           10           10            0
+[39]
+      2908160   710           10           10           10            0
+[7]
+      2940928   718           10           10           10            0
+[219]
+      3842048   938            5            5            5            0
+[28]
+      3960832   967           10           10           10            0
+[7]
+      3993600   975           10           10           10            0
+[1]
+      4001792   977            2            2            2            0
+[36]
+      4153344  1014            7            7            7            0
+[4]
+
+Cheers,
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000479.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000480.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#484">[ date ]</a>
+              <a href="thread.html#484">[ thread ]</a>
+              <a href="subject.html#484">[ subject ]</a>
+              <a href="author.html#484">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

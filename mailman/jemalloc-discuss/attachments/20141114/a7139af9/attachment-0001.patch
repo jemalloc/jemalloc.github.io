@@ -1,0 +1,31 @@
+>From 870eb004d977b92a82531275c5739ec2d2667281 Mon Sep 17 00:00:00 2001
+From: "Yuriy M. Kaminskiy" <yumkam@gmail.com>
+Date: Fri, 14 Nov 2014 02:13:02 +0300
+Subject: [PATCH] Fix test breakage on 32-bit systems
+
+test_stats_arenas_bins:test/unit/stats.c:332: Failed assertion:
+(jet_mallctl("stats.arenas.0.bins.0.nfills", &nfills, &sz, ((void *)0),
+0)) == (config_tcache ? expected : 2) --> 22 != 0: Unexpected mallctl()
+result
+etc
+(22 is EINVAL on this platform)
+
+Regression by 3c4d92e82a31f652a7c77ca937a02d0185085b06
+---
+ test/unit/stats.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/test/unit/stats.c b/test/unit/stats.c
+index fd92d54..946e737 100644
+--- a/test/unit/stats.c
++++ b/test/unit/stats.c
+@@ -327,6 +327,7 @@ TEST_BEGIN(test_stats_arenas_bins)
+ 	assert_d_eq(mallctl("stats.arenas.0.bins.0.curregs", &curregs, &sz,
+ 	    NULL, 0), expected, "Unexpected mallctl() result");
+ 
++	sz = sizeof(uint64_t);
+ 	assert_d_eq(mallctl("stats.arenas.0.bins.0.nfills", &nfills, &sz,
+ 	    NULL, 0), config_tcache ? expected : ENOENT,
+ 	    "Unexpected mallctl() result");
+-- 
+

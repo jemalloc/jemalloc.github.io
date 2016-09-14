@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3.5.0 regressions on i586
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203.5.0%20regressions%20on%20i586&In-Reply-To=%3CCAJ1KOAi9uGEwHbEwCMcOGOQaqFjLfrgDz8D%3DYBmeqipERspbyg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000731.html">
+   <LINK REL="Next"  HREF="000733.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3.5.0 regressions on i586</H1>
+    <B>&#304;smail D&#246;nmez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203.5.0%20regressions%20on%20i586&In-Reply-To=%3CCAJ1KOAi9uGEwHbEwCMcOGOQaqFjLfrgDz8D%3DYBmeqipERspbyg%40mail.gmail.com%3E"
+       TITLE="jemalloc 3.5.0 regressions on i586">ismail at donmez.ws
+       </A><BR>
+    <I>Wed Jan 29 11:17:20 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000731.html">jemalloc 3.5.0 regressions on i586
+</A></li>
+        <LI>Next message: <A HREF="000733.html">jemalloc 3.5.0 regressions on i586
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#732">[ date ]</a>
+              <a href="thread.html#732">[ thread ]</a>
+              <a href="subject.html#732">[ subject ]</a>
+              <a href="author.html#732">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+
+On Wed, Jan 29, 2014 at 9:09 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Jan 29, 2014, at 4:28 AM, &#304;smail D&#246;nmez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ismail at donmez.ws</A>&gt; wrote:
+</I>&gt;<i> &gt; I have 2 new failures:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; thd_start:test/unit/prof_accum.c:83: Failed assertion:
+</I>&gt;<i> (bt_count_prev+(i-i_prev)) &lt;= (bt_count) --&gt; 6 &gt; 1: thd_start
+</I>&gt;<i>
+</I>&gt;<i> I'm guessing that this is due to the compiler being especially intelligent
+</I>&gt;<i> regarding mutual recursion for alloc_[01](), and I just added noinline
+</I>&gt;<i> attributes for those functions:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62">https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62</A>
+</I>&gt;<i>
+</I>&gt;<i> However, if the compiler is being that smart, it may also be smart enough
+</I>&gt;<i> to do tail call optimization despite an attempt in the code to thwart
+</I>&gt;<i> optimization.  It appears that the gcc flag to disable this is
+</I>&gt;<i> -fno-optimize-sibling-calls, but I'm reluctant to resort to that unless the
+</I>&gt;<i> noinline attribute fails to do the job.
+</I>&gt;<i>
+</I>
+This one is still failing, also adding -fno-optimize-sibling-calls to
+CFLAGS didn't fix it.
+
+&gt;<i>
+</I>&gt;<i> &gt; [test_alignment_errors:test/integration/allocm.c:60: Failed assertion:
+</I>&gt;<i> (allocm(&amp;p, &amp;rsz, sz, (ffs(alignment)-1))) != (0) --&gt; 0 == 0:
+</I>&gt;<i> test_alignment_errors
+</I>&gt;<i>
+</I>&gt;<i> This is the equivalent failure to the mallocx failure you hit before.
+</I>&gt;<i>  Fixed:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/commit/2850e90d0d42d0e2b54864949bfa41c59c3a8dc9">https://github.com/jemalloc/jemalloc/commit/2850e90d0d42d0e2b54864949bfa41c59c3a8dc9</A>
+</I>&gt;<i>
+</I>&gt;<i> Testing is hard.  I am continually amazed by how much variation there is
+</I>&gt;<i> in compiler warnings and other behaviors, even between minor compiler
+</I>&gt;<i> revisions.  That said, most of the issues you hit are unique to 32-bit
+</I>&gt;<i> systems, so I really need to set up a 32-bit test system prior to the next
+</I>&gt;<i> release.
+</I>&gt;<i>
+</I>
+This is working as expected :)
+
+Regards.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/1e879b96/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140129/1e879b96/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000731.html">jemalloc 3.5.0 regressions on i586
+</A></li>
+	<LI>Next message: <A HREF="000733.html">jemalloc 3.5.0 regressions on i586
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#732">[ date ]</a>
+              <a href="thread.html#732">[ thread ]</a>
+              <a href="subject.html#732">[ subject ]</a>
+              <a href="author.html#732">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

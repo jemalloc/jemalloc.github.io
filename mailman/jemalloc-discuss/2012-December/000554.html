@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> maximally misaligned
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20maximally%20misaligned&In-Reply-To=%3CCAKSyJXdmf0h%3Dz1Ha3ivhjdaX7ZwPzaAJszDcT%2Bjzy9p2i6Je7w%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000549.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>maximally misaligned</H1>
+    <B>Bradley C. Kuszmaul</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20maximally%20misaligned&In-Reply-To=%3CCAKSyJXdmf0h%3Dz1Ha3ivhjdaX7ZwPzaAJszDcT%2Bjzy9p2i6Je7w%40mail.gmail.com%3E"
+       TITLE="maximally misaligned">kuszmaul at gmail.com
+       </A><BR>
+    <I>Wed Dec 26 15:50:40 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000549.html">[PATCH] Allow to disable the zone allocator on Darwin
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#554">[ date ]</a>
+              <a href="thread.html#554">[ thread ]</a>
+              <a href="subject.html#554">[ subject ]</a>
+              <a href="author.html#554">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>It would be useful if there were a way to configure jemalloc to give
+the worst acceptable alignment for every returned object.
+
+I'm currently debugging a program that uses O_DIRECT for file I/O.
+This option requires that all pointers passed to read() and write() be
+512-byte aligned.  There is an occasional function that uses malloc()
+to create a buffer instead of something like memalign().  I'd like it
+if the malloc() could be tweaked so that the returned pointer from
+malloc(4096) was aligned to be off by, say 16 bytes.  Otherwise there
+fact that malloc(4096) seems to return a 512-byte aligned pointer
+masks a bug in the program.
+
+I've implemented this misaligned mallocator on top of malloc() for my purposes.
+
+Is this something that might belong in the jemalloc library instead of
+in my code?  Maybe it's already there and I don't know about it.
+Maybe this is a dumb idea and it really belongs in the application, as
+I've done it.
+
+Any thoughts?
+
+-Bradley
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000549.html">[PATCH] Allow to disable the zone allocator on Darwin
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#554">[ date ]</a>
+              <a href="thread.html#554">[ thread ]</a>
+              <a href="subject.html#554">[ subject ]</a>
+              <a href="author.html#554">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

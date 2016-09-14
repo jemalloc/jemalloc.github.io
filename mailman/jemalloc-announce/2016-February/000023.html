@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 4.1.0 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%204.1.0%20released&In-Reply-To=%3C1F691E81-4709-45D1-9062-4E6DFD3CA8C4%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 4.1.0 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%204.1.0%20released&In-Reply-To=%3C1F691E81-4709-45D1-9062-4E6DFD3CA8C4%40canonware.com%3E"
+       TITLE="jemalloc 4.1.0 released">jasone at canonware.com
+       </A><BR>
+    <I>Sun Feb 28 15:23:30 PST 2016</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#23">[ date ]</a>
+              <a href="thread.html#23">[ thread ]</a>
+              <a href="subject.html#23">[ subject ]</a>
+              <a href="author.html#23">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 4.1.0 is now available.  This release is primarily about optimizations, but it also incorporates a lot of portability-motivated refactoring and enhancements. Many people worked on this release, to an extent that even with the omission here of minor changes (see git revision history), and of the people who reported and diagnosed issues, so much of the work was contributed that starting with this release, changes are annotated with author credits to help reflect the collaborative effort involved.
+
+New features:
+- Implement decay-based unused dirty page purging, a major optimization with mallctl API impact. This is an alternative to the existing ratio-based unused dirty page purging, and is intended to eventually become the sole purging mechanism. New mallctls:
+  + opt.purge
+  + opt.decay_time
+  + arena.&lt;i&gt;.decay
+  + arena.&lt;i&gt;.decay_time
+  + arenas.decay_time
+  + stats.arenas.&lt;i&gt;.decay_time
+ (@jasone, @cevans87)
+- Add --with-malloc-conf, which makes it possible to embed a default options string during configuration. This was motivated by the desire to specify --with-malloc-conf=purge:decay , since the default must remain purge:ratio until the 5.0.0 release. (@jasone)
+- Add MS Visual Studio 2015 support. (@rustyx, @yuslepukhin)
+- Make *allocx() size class overflow behavior defined. The maximum size class is now less thanPTRDIFF_MAX to protect applications against numerical overflow, and all allocation functions are guaranteed to indicate errors rather than potentially crashing if the request size exceeds the maximum size class. (@jasone)
+-jeprof:
+  + Add raw heap profile support. (@jasone)
+  + Add --retain and --exclude for backtrace symbol filtering. (@jasone)
+
+Optimizations:
+- Optimize the fast path to combine various bootstrapping and configuration checks and execute more streamlined code in the common case. (@interwq)
+- Use linear scan for small bitmaps (used for small object tracking). In addition to speeding up bitmap operations on 64-bit systems, this reduces allocator metadata overhead by approximately 0.2%. (@djwatson)
+- Separate arena_avail trees, which substantially speeds up run tree operations. (@djwatson)
+- Use memoization (boot-time-computed table) for run quantization. Separate arena_avail trees reduced the importance of this optimization. (@jasone)
+- Attempt mmap-based in-place huge reallocation. This can dramatically speed up incremental huge reallocation. (@jasone)
+
+Incompatible changes:
+- Make opt.narenas unsigned rather than size_t. (@jasone)
+
+Bug fixes:
+- Fix stats.cactive accounting regression. (@rustyx, @jasone)
+- Handle unaligned keys in hash(). This caused problems for some ARM systems. (@jasone, Christopher Ferris)
+- Refactor arenas array. In addition to fixing a fork-related deadlock, this makes arena lookups faster and simpler. (@jasone)
+- Move retained memory allocation out of the default chunk allocation function, to a location that gets executed even if the application installs a custom chunk allocation function. This resolves a virtual memory leak. (@buchgr)
+- Fix a potential tsd cleanup leak. (Christopher Ferris, @jasone)
+- Fix run quantization. In practice this bug had no impact unless applications requested memory with alignment exceeding one page. (@jasone, @djwatson)
+- Fix LinuxThreads-specific bootstrapping deadlock. (Cosmin Paraschiv)
+- jeprof:
+  + Don't discard curl options if timeout is not defined. (@djwatson)
+  + Detect failed profile fetches. (@djwatson)
+- Fix stats.arenas.&lt;i&gt;.{dss,lg_dirty_mult,decay_time,pactive,pdirty} for --disable-stats case. (@jasone)
+
+For the complete ChangeLog, see:
+	<A HREF="https://github.com/jemalloc/jemalloc/raw/4.1.0/ChangeLog">https://github.com/jemalloc/jemalloc/raw/4.1.0/ChangeLog</A>
+
+Direct download:
+	<A HREF="https://github.com/jemalloc/jemalloc/releases/download/4.1.0/jemalloc-4.1.0.tar.bz2">https://github.com/jemalloc/jemalloc/releases/download/4.1.0/jemalloc-4.1.0.tar.bz2</A>
+
+Starting point for general information:
+	<A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+
+Browsable revision history:
+	<A HREF="https://github.com/jemalloc/jemalloc/tree/4.1.0">https://github.com/jemalloc/jemalloc/tree/4.1.0</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#23">[ date ]</a>
+              <a href="thread.html#23">[ thread ]</a>
+              <a href="subject.html#23">[ subject ]</a>
+              <a href="author.html#23">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

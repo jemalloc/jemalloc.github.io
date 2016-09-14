@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a build option to freeze the number of arenas to 1
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20build%20option%20to%20freeze%20the%20number%20of%20arenas%20to%201&In-Reply-To=%3C20120223134954.GA20949%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000094.html">
+   <LINK REL="Next"  HREF="000096.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a build option to freeze the number of arenas to 1</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20build%20option%20to%20freeze%20the%20number%20of%20arenas%20to%201&In-Reply-To=%3C20120223134954.GA20949%40glandium.org%3E"
+       TITLE="[PATCH] Add a build option to freeze the number of arenas to 1">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Feb 23 05:49:54 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000094.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+        <LI>Next message: <A HREF="000096.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#95">[ date ]</a>
+              <a href="thread.html#95">[ thread ]</a>
+              <a href="subject.html#95">[ subject ]</a>
+              <a href="author.html#95">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Feb 23, 2012 at 02:40:41PM +0100, Justin Lebar wrote:
+&gt;<i> &gt; Mozilla does not currently make extensive use of concurrent allocation,
+</I>&gt;<i> &gt; so the increased fragmentation associated with multiple arenas is not
+</I>&gt;<i> &gt; warranted.
+</I>&gt;<i> 
+</I>&gt;<i> If any testing was done on Firefox with its fork of jemalloc to reach
+</I>&gt;<i> this conclusion, surely it's no longer valid.
+</I>&gt;<i> 
+</I>&gt;<i> I'd rather stick closer to the stock implementation until we can
+</I>&gt;<i> demonstrate that changes are beneficial.
+</I>
+I really don't think Firefox will benefit from having as much arenas as
+there are CPUs, and each thread being bound to a given arena. I'm pretty
+certain this will significantly increase its memory footprint.
+
+I also don't think things changed significantly with multiple arenas
+between the old jemalloc fork it uses and current jemalloc.
+
+Anyways, besides Mozilla, I'm pretty sure this can have some other uses.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000094.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+	<LI>Next message: <A HREF="000096.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#95">[ date ]</a>
+              <a href="thread.html#95">[ thread ]</a>
+              <a href="subject.html#95">[ subject ]</a>
+              <a href="author.html#95">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Gather Arena stats
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Gather%20Arena%20stats&In-Reply-To=%3CCAMAQheMxK%2B0QudqhY3BhXkCxwmB%3D8pXzcCog-o2kG%3D8bXUJGLw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000687.html">
+   <LINK REL="Next"  HREF="000689.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Gather Arena stats</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Gather%20Arena%20stats&In-Reply-To=%3CCAMAQheMxK%2B0QudqhY3BhXkCxwmB%3D8pXzcCog-o2kG%3D8bXUJGLw%40mail.gmail.com%3E"
+       TITLE="Gather Arena stats">edsiper at gmail.com
+       </A><BR>
+    <I>Tue Nov 26 16:20:41 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000687.html">Gather Arena stats
+</A></li>
+        <LI>Next message: <A HREF="000689.html">Gather Arena stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#688">[ date ]</a>
+              <a href="thread.html#688">[ thread ]</a>
+              <a href="subject.html#688">[ subject ]</a>
+              <a href="author.html#688">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I have implemented a similar code and its working great. Now an extra
+question: i would like to spawn a thread to monitor the threads
+allocation/deallocations, can i access this data from a different thread ?,
+if so, is there any API or example available ?
+
+thanks again.
+
+
+On Tue, Nov 26, 2013 at 2:10 PM, Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+
+&gt;<i> thanks for your help!, thats the info that i need.
+</I>&gt;<i>
+</I>&gt;<i> best
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On Tue, Nov 26, 2013 at 2:01 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> On Nov 26, 2013, at 11:40 AM, Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> i am interested into gather memory usage per Linux thread, as i am using
+</I>&gt;&gt;<i> jemalloc i think this can be done quering the arenas per thread. if i am
+</I>&gt;&gt;<i> correct, do you have some code example that accomplish something similar to
+</I>&gt;&gt;<i> this ?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Threads don't own memory; allocated regions can be shared among threads,
+</I>&gt;&gt;<i> and allocation/deallocation can be split between threads.  That said,
+</I>&gt;&gt;<i> jemalloc does track total volume of allocation and deallocation on a per
+</I>&gt;&gt;<i> thread basis, so you can derive the information you want as long as you
+</I>&gt;&gt;<i> account for allocated regions that are shared among threads.  Take a look
+</I>&gt;&gt;<i> at the &quot;thread.allocated&quot; and &quot;thread.deallocated&quot; mallctl() interfaces in
+</I>&gt;&gt;<i> the man page:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> There is a relevant test program included with jemalloc:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c">https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Jason
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> Eduardo Silva
+</I>&gt;<i> <A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+</I>&gt;<i> <A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/2a261ed4/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/2a261ed4/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000687.html">Gather Arena stats
+</A></li>
+	<LI>Next message: <A HREF="000689.html">Gather Arena stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#688">[ date ]</a>
+              <a href="thread.html#688">[ thread ]</a>
+              <a href="subject.html#688">[ subject ]</a>
+              <a href="author.html#688">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

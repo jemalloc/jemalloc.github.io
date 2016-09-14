@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 16/19] Remove #includes in tests
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2016/19%5D%20Remove%20%23includes%20in%20tests&In-Reply-To=%3C1334852886-28716-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000327.html">
+   <LINK REL="Next"  HREF="000330.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 16/19] Remove #includes in tests</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2016/19%5D%20Remove%20%23includes%20in%20tests&In-Reply-To=%3C1334852886-28716-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 16/19] Remove #includes in tests">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 19 09:28:03 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000327.html">[PATCH 15/15] Fix intmax_t configure error message
+</A></li>
+        <LI>Next message: <A HREF="000330.html">[PATCH 17/19] Remove unused #includes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#329">[ date ]</a>
+              <a href="thread.html#329">[ thread ]</a>
+              <a href="subject.html#329">[ subject ]</a>
+              <a href="author.html#329">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+Since we're now including jemalloc_internal.h, all the required headers
+are already pulled. This will avoid having to fiddle with headers that can
+or can't be used with MSVC. Also, now that we use malloc_printf, we can use
+util.h's definition of assert instead of assert.h's.
+---
+ test/aligned_alloc.c         |    7 -------
+ test/allocated.c             |    8 --------
+ test/allocm.c                |    4 ----
+ test/bitmap.c                |    6 ------
+ test/mremap.c                |    6 ------
+ test/posix_memalign.c        |    7 -------
+ test/rallocm.c               |    6 ------
+ test/thread_arena.c          |    5 -----
+ test/thread_tcache_enabled.c |    6 ------
+ 9 files changed, 55 deletions(-)
+
+diff --git a/test/aligned_alloc.c b/test/aligned_alloc.c
+index 81b8f93..81caa0a 100644
+--- a/test/aligned_alloc.c
++++ b/test/aligned_alloc.c
+@@ -1,10 +1,3 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;stdint.h&gt;
+-#include &lt;unistd.h&gt;
+-#include &lt;errno.h&gt;
+-#include &lt;string.h&gt;
+-
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+diff --git a/test/allocated.c b/test/allocated.c
+index 3f889f4..b29f2bc 100644
+--- a/test/allocated.c
++++ b/test/allocated.c
+@@ -1,11 +1,3 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;stdint.h&gt;
+-#include &lt;stdbool.h&gt;
+-#include &lt;assert.h&gt;
+-#include &lt;errno.h&gt;
+-#include &lt;string.h&gt;
+-
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+diff --git a/test/allocm.c b/test/allocm.c
+index c6bc6f8..80be673 100644
+--- a/test/allocm.c
++++ b/test/allocm.c
+@@ -1,7 +1,3 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;stdint.h&gt;
+-
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+diff --git a/test/bitmap.c b/test/bitmap.c
+index ee9b1ec..ff50ecb 100644
+--- a/test/bitmap.c
++++ b/test/bitmap.c
+@@ -1,12 +1,6 @@
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+-/*
+- * Avoid using the assert() from jemalloc_internal.h, since it requires
+- * internal libjemalloc functionality.
+- * */
+-#include &lt;assert.h&gt;
+-
+ #if (LG_BITMAP_MAXBITS &gt; 12)
+ #  define MAXBITS	4500
+ #else
+diff --git a/test/mremap.c b/test/mremap.c
+index 84c0349..47efa7c 100644
+--- a/test/mremap.c
++++ b/test/mremap.c
+@@ -1,9 +1,3 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;assert.h&gt;
+-#include &lt;errno.h&gt;
+-#include &lt;string.h&gt;
+-
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+diff --git a/test/posix_memalign.c b/test/posix_memalign.c
+index e1302df..2185bcf 100644
+--- a/test/posix_memalign.c
++++ b/test/posix_memalign.c
+@@ -1,10 +1,3 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;stdint.h&gt;
+-#include &lt;unistd.h&gt;
+-#include &lt;errno.h&gt;
+-#include &lt;string.h&gt;
+-
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+diff --git a/test/rallocm.c b/test/rallocm.c
+index f2a4770..c5dedf4 100644
+--- a/test/rallocm.c
++++ b/test/rallocm.c
+@@ -1,9 +1,3 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;unistd.h&gt;
+-#include &lt;string.h&gt;
+-#include &lt;assert.h&gt;
+-
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+diff --git a/test/thread_arena.c b/test/thread_arena.c
+index 9835428..2020d99 100644
+--- a/test/thread_arena.c
++++ b/test/thread_arena.c
+@@ -1,8 +1,3 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;string.h&gt;
+-#include &lt;assert.h&gt;
+-
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+diff --git a/test/thread_tcache_enabled.c b/test/thread_tcache_enabled.c
+index e1cba43..150a224 100644
+--- a/test/thread_tcache_enabled.c
++++ b/test/thread_tcache_enabled.c
+@@ -1,9 +1,3 @@
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;stdbool.h&gt;
+-#include &lt;assert.h&gt;
+-#include &lt;errno.h&gt;
+-
+ #define	JEMALLOC_MANGLE
+ #include &quot;jemalloc_test.h&quot;
+ 
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000327.html">[PATCH 15/15] Fix intmax_t configure error message
+</A></li>
+	<LI>Next message: <A HREF="000330.html">[PATCH 17/19] Remove unused #includes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#329">[ date ]</a>
+              <a href="thread.html#329">[ thread ]</a>
+              <a href="subject.html#329">[ subject ]</a>
+              <a href="author.html#329">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

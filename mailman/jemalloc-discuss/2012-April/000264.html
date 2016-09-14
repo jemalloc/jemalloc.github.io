@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Mingw port, status update
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Mingw%20port%2C%20status%20update&In-Reply-To=%3C20120412141542.GA6458%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000263.html">
+   <LINK REL="Next"  HREF="000266.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Mingw port, status update</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Mingw%20port%2C%20status%20update&In-Reply-To=%3C20120412141542.GA6458%40glandium.org%3E"
+       TITLE="Mingw port, status update">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 12 07:15:42 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000263.html">Mingw port, status update
+</A></li>
+        <LI>Next message: <A HREF="000266.html">Mingw port, status update
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#264">[ date ]</a>
+              <a href="thread.html#264">[ thread ]</a>
+              <a href="subject.html#264">[ subject ]</a>
+              <a href="author.html#264">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Apr 12, 2012 at 03:47:53PM +0200, Mike Hommey wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> Here's where I am standing with the mingw port: it passes the test
+</I>&gt;<i> suite, and repeated running of test/thread_arena (which, until mutexes
+</I>&gt;<i> were actually implemented, randomly failed :) )
+</I>&gt;<i> 
+</I>&gt;<i> The patches I'm currently using on top of current dev branch (5ff709c)
+</I>&gt;<i> are:
+</I>&gt;<i> - Replace %z in format strings with configure-time determined printf
+</I>&gt;<i>   length modifier.
+</I>&gt;<i> - Use a stub replacement and disable dss when sbrk is not supported.
+</I>&gt;<i> - Call base_boot before chunk_boot0.
+</I>&gt;<i> 
+</I>&gt;<i> On top of these, I have a patch adding win32 support:
+</I>&gt;<i>  configure.ac                                     |   25 ++++++-
+</I>&gt;<i>  include/jemalloc/internal/jemalloc_internal.h.in |   11 ++-
+</I>&gt;<i>  include/jemalloc/internal/mutex.h                |   16 +++-
+</I>&gt;<i>  include/jemalloc/internal/tsd.h                  |   44 +++++++++++
+</I>&gt;<i>  src/arena.c                                      |    2 +
+</I>&gt;<i>  src/chunk_dss.c                                  |    5 +-
+</I>&gt;<i>  src/chunk_mmap.c                                 |   87 +++++++++++++++++-----
+</I>&gt;<i>  src/jemalloc.c                                   |   30 +++++++-
+</I>&gt;<i>  src/mutex.c                                      |   10 ++-
+</I>&gt;<i>  src/util.c                                       |    5 +-
+</I>&gt;<i>  test/rallocm.c                                   |    9 +++
+</I>&gt;<i>  11 files changed, 210 insertions(+), 34 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> The remaining things to do:
+</I>&gt;<i> - Build with the right extensions, the right flags, etc.
+</I>&gt;<i> - Replace the madvise calls instead of removing them.
+</I>&gt;<i> - Handle thread creation (equivalent to pthread_atfork)
+</I>&gt;<i> - Call cleanup functions for tsd.
+</I>&gt;<i> 
+</I>&gt;<i> As mentioned in another message, the latter is tricky, as it basically
+</I>&gt;<i> requires that all cleanup functions are called from a single point, so
+</I>&gt;<i> we need to decide how to group them.
+</I>&gt;<i> 
+</I>&gt;<i> Equivalent to pthread_atfork is not a given, because while it is &quot;easy&quot;
+</I>&gt;<i> to be notified of the creation of a thread through the dllmain entry
+</I>&gt;<i> point (which means jemalloc needs to be a shared library, btw, because
+</I>&gt;<i> executables don't have that), that only gives one half of the equation:
+</I>&gt;<i> in the child, after thread creation. I haven't found a way to run
+</I>&gt;<i> something in the parent before thread creation (at least yet).
+</I>&gt;<i> 
+</I>&gt;<i> For the madvise calls, I'm considering writing a &quot;generic&quot; function to
+</I>&gt;<i> be used from both places madvise is called, I just need to know where to
+</I>&gt;<i> put that (it would kind of make sense in chunk_mmap.h or chunk.h), and
+</I>&gt;<i> what to name it.
+</I>&gt;<i> 
+</I>&gt;<i> This will only bring mingw support. MSVC will probably require more
+</I>&gt;<i> tweaking, especially in the build system.
+</I>
+Something else I wanted to mention. The init_lock has to be initialized
+with malloc_mutex_init. It doesn't seem safe to call it from
+malloc_init_hard, so it would be  necessary to use a constructor
+function. While this is easy to do with mingw
+(__attribute__((constructor))), there is no equivalent in MSVC besides,
+apparently, hacks with sections or C++ static initializers. Or, using
+DllMain, which mandates that jemalloc is a shared library.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000263.html">Mingw port, status update
+</A></li>
+	<LI>Next message: <A HREF="000266.html">Mingw port, status update
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#264">[ date ]</a>
+              <a href="thread.html#264">[ thread ]</a>
+              <a href="subject.html#264">[ subject ]</a>
+              <a href="author.html#264">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

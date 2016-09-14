@@ -1,0 +1,1775 @@
+From taehwan.weon at gmail.com  Sat Nov  2 23:04:27 2013
+From: taehwan.weon at gmail.com (Taehwan Weon)
+Date: Sun, 3 Nov 2013 15:04:27 +0900
+Subject: [Q] Strange stack dump when using jemalloc-3.4.0
+Message-ID: <CAH_X2ff-UYRQd91vJt5oH+D0mw17Gksrcnk-KR5520Kq7o407A@mail.gmail.com>
+
+Hi, I am using jemalloc-3.4.0 on CentOs 5.4.
+While running for a few hours, SEGV triggered with the following stack dump.
+nc_dump_stack() is a signal handler.
+As you see, a function in libc is the first jemalloc caller.
+Does this mean some kind of memory corruption in jemalloc()?
+
+
+------------------------ stack dump --------------------------------
+nc_dump_stack at /root/trozan/netcache-core/trunk/netcache/cfs_apix.c:428
+arena_chunk_purge at
+/root/trozan/netcache-core/trunk/jemalloc-3.4.0/src/arena.c:783
+?? at ??:0 (/lib64/libc.so.6) 0x30330)
+malloc_mutex_unlock at
+/root/trozan/netcache-core/trunk/jemalloc-3.4.0/include/jemalloc/internal/mutex.h:92
+tcache_tsd_set at /root/trozan/netcache-core/trunk/jemalloc-3.4.0/include/
+jemalloc/internal/tcache.h:143
+?? at ??:0 (/lib64/libpthread.so.0) 0x5b19)
+?? at ??:0 (/lib64/libc.so.6) 0xd503d)
+
+
+Any hint would be highly appreciated!
+Thanks in advance.
+
+-- 
+weon
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131103/a7810227/attachment.html>
+
+From david.abdurachmanov at gmail.com  Sat Nov  9 08:30:34 2013
+From: david.abdurachmanov at gmail.com (David Abdurachmanov)
+Date: Sat, 9 Nov 2013 17:30:34 +0100
+Subject: calling a function via PLT and jemalloc realloc changes function
+	first argument (XMM0)
+Message-ID: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+
+Hi,
+
+I am having problems with jemalloc 3.4.1 (currently we use 2.2.2 in production). I found that with jemalloc 3.4.1 function first argument will be changed if first argument is passed by XMM0 register. Compiled with GCC 4.8.1 (tested also with 4.8.2). No problems on Scientific Linux 6 (RHEL6-based), but it fails on Scientific Linux 5 (RHEL5-based). All of this is because _dl_lookup_symbol_x calls _realloc_ in Scientific Linux 5.
+
+This probably makes jemalloc 3.4.1 and the whole 3.X.Y series not recommended for RHEL5 and RHEL5-based distributions.
+
+Original email below.
+
+- - - - - - -
+
+My initial investigations were done on slc6_amd64_gcc481 and the release is available for slc5_amd64_gcc481.
+
+Most of the workflows will fail on this [slc5_amd64_gcc481] architecture, while on slc6_amd64_gcc481 all workflows pass.
+
+If you are interested into the cause and calling conventions continue reading.
+
+Most workflows fails with:
+
+----- Begin Fatal Exception 08-Nov-2013 14:19:25 CET-----------------------
+An exception of category 'InvalidIntervalError' occurred while
+  [0] Processing run: 208307 lumi: 1 event: 643482
+  [1] Running path 'reconstruction_step'
+  [2] Calling event method for module TrackIPProducer/'impactParameterTagInfos'
+Exception Message:
+Upper boundary below lower boundary in histogram integral.
+----- End Fatal Exception -------------------------------------------------
+
+Code triggering exception (CondFormats/PhysicsToolsObjects/interface/Histogram.icc):
+
+244 template<typename Value_t, typename Axis_t>
+245 Value_t Histogram<Value_t, Axis_t>::integral(Axis_t hBound, Axis_t lBound,
+246                                              int mode) const
+247 {
+248         if (hBound < lBound)
+249                 throw cms::Exception("InvalidIntervalError")
+250                         << "Upper boundary below lower boundary in "
+251                         << "histogram integral." << std::endl;
+
+The problem by example (description below):
+
+Dump of assembler code for function PhysicsTools::Calibration::Histogram<float, float>::normalizedIntegral(float, float, int) const:
+  0x00002aaabc67ceb0 <+0>:     push   %rbx
+  0x00002aaabc67ceb1 <+1>:     mov    %rdi,%rbx
+  0x00002aaabc67ceb4 <+4>:     sub    $0x10,%rsp
+  0x00002aaabc67ceb8 <+8>:     callq  0x2aaabc6331e0 <_ZNK12PhysicsTools11Calibration9HistogramIffE8integralEffi at plt>
+  0x00002aaabc67cebd <+13>:    mov    %rbx,%rdi
+  0x00002aaabc67cec0 <+16>:    movss  %xmm0,0xc(%rsp)
+  0x00002aaabc67cec6 <+22>:    callq  0x2aaabc632c80 <_ZNK12PhysicsTools11Calibration9HistogramIffE13normalizationEv at plt>
+  0x00002aaabc67cecb <+27>:    movss  0xc(%rsp),%xmm1
+  0x00002aaabc67ced1 <+33>:    add    $0x10,%rsp
+  0x00002aaabc67ced5 <+37>:    divss  %xmm0,%xmm1
+  0x00002aaabc67ced9 <+41>:    pop    %rbx
+  0x00002aaabc67ceda <+42>:    movaps %xmm1,%xmm0
+  0x00002aaabc67cedd <+45>:    retq   
+End of assembler dump.
+this = 0x2aab170a9ff0
+hBound = 57.6329994
+lBound = 0
+mode = 1
+
+Breakpoint 1, PhysicsTools::Calibration::Histogram<float, float>::integral (this=0x2aab170a9ff0, hBound=-2.23135843e-10, lBound=0, mode=1)
+   at /build/davidlt/CMSSW_7_0_0_pre8_jemalloc341/src/CondFormats/PhysicsToolsObjects/interface/Histogram.icc:245
+245     Value_t Histogram<Value_t, Axis_t>::integral(Axis_t hBound, Axis_t lBound,
+1: x/i $pc
+=> 0x2aaabc67cbdc <PhysicsTools::Calibration::Histogram<float, float>::integral(float, float, int) const>:      push   %r14
+this = 0x2aab170a9ff0
+hBound = -2.23135843e-10
+lBound = 0
+mode = 1
+
+KA-BOOM! 
+
+_normalizedIntegral_ calls _integral_ with IDENTICAL arguments, yet once we reach _integral_ body our _hBound_ is changed to a different value.
+
+We call _integral_ via PLT and we try to resolve the symbol (/lib64/ld-linux-x86-64.so.2). Between these two functions while we are resolving the symbol the value is modified.
+
+That happens in _dl_lookup_symbol_x (/lib64/ld-linux-x86-64.so.2) as on SLC5 is calls _realloc_, and on SLC6 library calls _malloc_. This is the reason why in works fine under SLC6, the change in dynamic linker/loader.
+
+_hBound_ is stored in $xmm0.v4_float[0]. It happens to be that in _realloc_ (jemalloc) for this (src/jemalloc.c):
+
+1244     ta->allocated += usize;
+
+1244 line compiler will generate SSE based code (using $xmm0).
+
+  0x00002aaaad381666 <+630>:   mov    %r12,0x28(%rsp)
+  0x00002aaaad38166b <+635>:   movq   0x28(%rsp),%xmm0
+  0x00002aaaad381671 <+641>:   movhps 0x20(%rsp),%xmm0
+  0x00002aaaad381676 <+646>:   paddq  (%rax),%xmm0
+  0x00002aaaad38167a <+650>:   movdqa %xmm0,(%rax)
+  0x00002aaaad38167e <+654>:   add    $0x38,%rsp 
+
+Just a few instructions which modify _hBound_ value.
+
+Old value = 57.6329994
+New value = 6.72623263e-44
+0x00002aaaad381671 in realloc (ptr=<optimized out>, size=<optimized out>) at src/jemalloc.c:1244
+1244	src/jemalloc.c: No such file or directory.
+1: x/i $pc
+=> 0x2aaaad381671 <realloc+641>:	movhps 0x20(%rsp),%xmm0
+Continuing.
+Watchpoint 7: $xmm0.v4_float[0]
+
+Old value = 6.72623263e-44
+New value = -2.22548424e-10
+0x00002aaaad38167a in realloc (ptr=<optimized out>, size=<optimized out>) at src/jemalloc.c:1244
+1244	in src/jemalloc.c
+1: x/i $pc
+=> 0x2aaaad38167a <realloc+650>:	movdqa %xmm0,(%rax)
+Continuing.
+
+If you look into "Calling conventions for different C++ compilers and operating systems". (I assume should be fine for C also, as they are compatible).
+
+64-bit Linux. Callee-saved registers: RBX, RBP, R12-R15. All fine in jemallo _realloc_:
+
+Dump of assembler code for function realloc:
+  0x00002aaaad3803f0 <+0>:     push   %r15
+  0x00002aaaad3803f2 <+2>:     push   %r14
+  0x00002aaaad3803f4 <+4>:     push   %r13
+  0x00002aaaad3803f6 <+6>:     push   %r12
+  0x00002aaaad3803f8 <+8>:     push   %rbp
+  0x00002aaaad3803f9 <+9>:     mov    %rsi,%rbp
+  0x00002aaaad3803fc <+12>:    push   %rbx
+
+But all other registers are scratch registers.
+
+Also looking into "System V Application Binary Interface AMD64 Architecture Processor Supplement" (October 7, 2013) [3.2.1 section]
+
+Registers %rbp, %rbx and %r12 through %r15 "belong" to the calling function and the called function is required to preserve their values. In other words, a called function must preserve these registers' values for its caller. Remaining registers "belong" to the called function. If a calling function wants to preserve such a register value across a function call, it must save the value in its local stack frame.
+
+Simply put, according to this /lib64/ld-linux-x86-64.so.2 dynamic linker/loader (_dl_lookup_symbol_x) before calling _realloc_ had to take the action to protect xmm0 register value.
+
+You cannot compile jemalloc without SSE:
+
+include/jemalloc/internal/prof.h:349:40: error: SSE register return with SSE disabled
+
+If we cannot jemalloc from using SSE registers, how can we go around the problem?
+
+1240   if (config_stats && ret != NULL) {
+1241     thread_allocated_t *ta;
+1242     assert(usize == isalloc(ret, config_prof));
+1243     ta = thread_allocated_tsd_get();
+1244     ta->allocated += usize;
+1245     ta->deallocated += old_size;
+1246   }
+
+In _realloc_ 1244 line is wrapped around if with config_stats. Compiling jemalloc with --disable-stats options disables statistic collection, should also slightly increase performance.
+
+It's a bit worrisome that arguments can change in between function calls.
+
+david
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131109/b44af851/attachment.html>
+
+From david.abdurachmanov at gmail.com  Sat Nov  9 09:33:19 2013
+From: david.abdurachmanov at gmail.com (David Abdurachmanov)
+Date: Sat, 9 Nov 2013 18:33:19 +0100
+Subject: calling a function via PLT and jemalloc realloc changes function
+	first argument (XMM0)
+In-Reply-To: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+References: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+Message-ID: <0256D408-C7C7-4CC4-8564-DF79142BBA7C@gmail.com>
+
+Some thoughts from a colleague:
+
+When dl_lookup_symbol gets called, it doesn't really know what it's getting into--it doesn't know what processor model the stack frames around it were built with, it doesn't necessarily even know what registers the processor has. So there's a rule that ld.so/rtld et al. shouldn't touch the xmm registers or any of the other registers beyond the base set.  There's a glibc test, tst-xmmymm.sh, which checks this.  There's also a recent bug report,https://sourceware.org/bugzilla/show_bug.cgi?id=15627 , that gcc-4.8 can vectorize such things as memset (with -O3 or -ftree-vectorize), so rtld needed to add it's own assembler version of memset that doesn't touch the SSE registers.  It looks like this is basically the same thing; presumably tst-xmmymm.sh would fail if we ran it against ld.so linked with jemalloc built with gcc 4.8.
+
+glibc contains tst-xmmymm.sh
+
+Initial commit message states:
+
+    Make sure no code in ld.so uses xmm/ymm registers on x86-64.
+
+    This patch introduces a test to make sure no function modifies the
+    xmm/ymm registers.  With the exception of the auditing functions.
+
+Looks like jemalloc breaks the rule by using SSE registers.
+
+david
+
+On Nov 9, 2013, at 5:30 PM, David Abdurachmanov wrote:
+
+> Hi,
+> 
+> I am having problems with jemalloc 3.4.1 (currently we use 2.2.2 in production). I found that with jemalloc 3.4.1 function first argument will be changed if first argument is passed by XMM0 register. Compiled with GCC 4.8.1 (tested also with 4.8.2). No problems on Scientific Linux 6 (RHEL6-based), but it fails on Scientific Linux 5 (RHEL5-based). All of this is because _dl_lookup_symbol_x calls _realloc_ in Scientific Linux 5.
+> 
+> This probably makes jemalloc 3.4.1 and the whole 3.X.Y series not recommended for RHEL5 and RHEL5-based distributions.
+> 
+> Original email below.
+> 
+> - - - - - - -
+> 
+> My initial investigations were done on slc6_amd64_gcc481 and the release is available for slc5_amd64_gcc481.
+> 
+> Most of the workflows will fail on this [slc5_amd64_gcc481] architecture, while on slc6_amd64_gcc481 all workflows pass.
+> 
+> If you are interested into the cause and calling conventions continue reading.
+> 
+> Most workflows fails with:
+> 
+> ----- Begin Fatal Exception 08-Nov-2013 14:19:25 CET-----------------------
+> An exception of category 'InvalidIntervalError' occurred while
+>   [0] Processing run: 208307 lumi: 1 event: 643482
+>   [1] Running path 'reconstruction_step'
+>   [2] Calling event method for module TrackIPProducer/'impactParameterTagInfos'
+> Exception Message:
+> Upper boundary below lower boundary in histogram integral.
+> ----- End Fatal Exception -------------------------------------------------
+> 
+> Code triggering exception (CondFormats/PhysicsToolsObjects/interface/Histogram.icc):
+> 
+> 244 template<typename Value_t, typename Axis_t>
+> 245 Value_t Histogram<Value_t, Axis_t>::integral(Axis_t hBound, Axis_t lBound,
+> 246                                              int mode) const
+> 247 {
+> 248         if (hBound < lBound)
+> 249                 throw cms::Exception("InvalidIntervalError")
+> 250                         << "Upper boundary below lower boundary in "
+> 251                         << "histogram integral." << std::endl;
+> 
+> The problem by example (description below):
+> 
+> Dump of assembler code for function PhysicsTools::Calibration::Histogram<float, float>::normalizedIntegral(float, float, int) const:
+>   0x00002aaabc67ceb0 <+0>:     push   %rbx
+>   0x00002aaabc67ceb1 <+1>:     mov    %rdi,%rbx
+>   0x00002aaabc67ceb4 <+4>:     sub    $0x10,%rsp
+>   0x00002aaabc67ceb8 <+8>:     callq  0x2aaabc6331e0 <_ZNK12PhysicsTools11Calibration9HistogramIffE8integralEffi at plt>
+>   0x00002aaabc67cebd <+13>:    mov    %rbx,%rdi
+>   0x00002aaabc67cec0 <+16>:    movss  %xmm0,0xc(%rsp)
+>   0x00002aaabc67cec6 <+22>:    callq  0x2aaabc632c80 <_ZNK12PhysicsTools11Calibration9HistogramIffE13normalizationEv at plt>
+>   0x00002aaabc67cecb <+27>:    movss  0xc(%rsp),%xmm1
+>   0x00002aaabc67ced1 <+33>:    add    $0x10,%rsp
+>   0x00002aaabc67ced5 <+37>:    divss  %xmm0,%xmm1
+>   0x00002aaabc67ced9 <+41>:    pop    %rbx
+>   0x00002aaabc67ceda <+42>:    movaps %xmm1,%xmm0
+>   0x00002aaabc67cedd <+45>:    retq   
+> End of assembler dump.
+> this = 0x2aab170a9ff0
+> hBound = 57.6329994
+> lBound = 0
+> mode = 1
+> 
+> Breakpoint 1, PhysicsTools::Calibration::Histogram<float, float>::integral (this=0x2aab170a9ff0, hBound=-2.23135843e-10, lBound=0, mode=1)
+>    at /build/davidlt/CMSSW_7_0_0_pre8_jemalloc341/src/CondFormats/PhysicsToolsObjects/interface/Histogram.icc:245
+> 245     Value_t Histogram<Value_t, Axis_t>::integral(Axis_t hBound, Axis_t lBound,
+> 1: x/i $pc
+> => 0x2aaabc67cbdc <PhysicsTools::Calibration::Histogram<float, float>::integral(float, float, int) const>:      push   %r14
+> this = 0x2aab170a9ff0
+> hBound = -2.23135843e-10
+> lBound = 0
+> mode = 1
+> 
+> KA-BOOM! 
+> 
+> _normalizedIntegral_ calls _integral_ with IDENTICAL arguments, yet once we reach _integral_ body our _hBound_ is changed to a different value.
+> 
+> We call _integral_ via PLT and we try to resolve the symbol (/lib64/ld-linux-x86-64.so.2). Between these two functions while we are resolving the symbol the value is modified.
+> 
+> That happens in _dl_lookup_symbol_x (/lib64/ld-linux-x86-64.so.2) as on SLC5 is calls _realloc_, and on SLC6 library calls _malloc_. This is the reason why in works fine under SLC6, the change in dynamic linker/loader.
+> 
+> _hBound_ is stored in $xmm0.v4_float[0]. It happens to be that in _realloc_ (jemalloc) for this (src/jemalloc.c):
+> 
+> 1244     ta->allocated += usize;
+> 
+> 1244 line compiler will generate SSE based code (using $xmm0).
+> 
+>   0x00002aaaad381666 <+630>:   mov    %r12,0x28(%rsp)
+>   0x00002aaaad38166b <+635>:   movq   0x28(%rsp),%xmm0
+>   0x00002aaaad381671 <+641>:   movhps 0x20(%rsp),%xmm0
+>   0x00002aaaad381676 <+646>:   paddq  (%rax),%xmm0
+>   0x00002aaaad38167a <+650>:   movdqa %xmm0,(%rax)
+>   0x00002aaaad38167e <+654>:   add    $0x38,%rsp 
+> 
+> Just a few instructions which modify _hBound_ value.
+> 
+> Old value = 57.6329994
+> New value = 6.72623263e-44
+> 0x00002aaaad381671 in realloc (ptr=<optimized out>, size=<optimized out>) at src/jemalloc.c:1244
+> 1244	src/jemalloc.c: No such file or directory.
+> 1: x/i $pc
+> => 0x2aaaad381671 <realloc+641>:	movhps 0x20(%rsp),%xmm0
+> Continuing.
+> Watchpoint 7: $xmm0.v4_float[0]
+> 
+> Old value = 6.72623263e-44
+> New value = -2.22548424e-10
+> 0x00002aaaad38167a in realloc (ptr=<optimized out>, size=<optimized out>) at src/jemalloc.c:1244
+> 1244	in src/jemalloc.c
+> 1: x/i $pc
+> => 0x2aaaad38167a <realloc+650>:	movdqa %xmm0,(%rax)
+> Continuing.
+> 
+> If you look into "Calling conventions for different C++ compilers and operating systems". (I assume should be fine for C also, as they are compatible).
+> 
+> 64-bit Linux. Callee-saved registers: RBX, RBP, R12-R15. All fine in jemallo _realloc_:
+> 
+> Dump of assembler code for function realloc:
+>   0x00002aaaad3803f0 <+0>:     push   %r15
+>   0x00002aaaad3803f2 <+2>:     push   %r14
+>   0x00002aaaad3803f4 <+4>:     push   %r13
+>   0x00002aaaad3803f6 <+6>:     push   %r12
+>   0x00002aaaad3803f8 <+8>:     push   %rbp
+>   0x00002aaaad3803f9 <+9>:     mov    %rsi,%rbp
+>   0x00002aaaad3803fc <+12>:    push   %rbx
+> 
+> But all other registers are scratch registers.
+> 
+> Also looking into "System V Application Binary Interface AMD64 Architecture Processor Supplement" (October 7, 2013) [3.2.1 section]
+> 
+> Registers %rbp, %rbx and %r12 through %r15 "belong" to the calling function and the called function is required to preserve their values. In other words, a called function must preserve these registers' values for its caller. Remaining registers "belong" to the called function. If a calling function wants to preserve such a register value across a function call, it must save the value in its local stack frame.
+> 
+> Simply put, according to this /lib64/ld-linux-x86-64.so.2 dynamic linker/loader (_dl_lookup_symbol_x) before calling _realloc_ had to take the action to protect xmm0 register value.
+> 
+> You cannot compile jemalloc without SSE:
+> 
+> include/jemalloc/internal/prof.h:349:40: error: SSE register return with SSE disabled
+> 
+> If we cannot jemalloc from using SSE registers, how can we go around the problem?
+> 
+> 1240   if (config_stats && ret != NULL) {
+> 1241     thread_allocated_t *ta;
+> 1242     assert(usize == isalloc(ret, config_prof));
+> 1243     ta = thread_allocated_tsd_get();
+> 1244     ta->allocated += usize;
+> 1245     ta->deallocated += old_size;
+> 1246   }
+> 
+> In _realloc_ 1244 line is wrapped around if with config_stats. Compiling jemalloc with --disable-stats options disables statistic collection, should also slightly increase performance.
+> 
+> It's a bit worrisome that arguments can change in between function calls.
+> 
+> david
+
+
+
+From valtteri at rahkonen.fi  Tue Nov 12 23:34:42 2013
+From: valtteri at rahkonen.fi (valtteri at rahkonen.fi)
+Date: Wed, 13 Nov 2013 09:34:42 +0200 (EET)
+Subject: arena_tcache_fill_small can corrupt the tcache
+Message-ID: <Pine.LNX.4.64.1311130923120.16261@artemis>
+
+Hi,
+
+It seems that there is a thread cache memory in case of memory has run out 
+or process hits to the memory limit. Basically the arena_tcache_fill_small 
+will start to fill the thread cache from the end and if memory allocation 
+fails before all cache entries have been filled the earlier thread cache 
+entries will contain old pointers given already to the program. Now when 
+new allocations are made the memory is given twice causing memory 
+corruption. Also the new memory allocated and placed after tbin->ncached 
+index is leaked.
+
+There is really simple fix for this i.e. start to fill the tcache from the 
+beginning. Attached patch fixes this problem that way i.e. one liner fix 
+for the issue. I'm not totally sure if you want to use that because this 
+brakes the low region using first that was with the original 
+implementation, but on the other hand this gives first memory that was 
+allocated from existing arenas, so this approach might be better in that 
+sense.
+
+Best regards,
+Valtteri
+
+-- 
+Valtteri Rahkonen
+valtteri at rahkonen.fi
+http://www.rahkonen.fi
++358 40 5077041
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc.diff
+Type: text/x-diff
+Size: 499 bytes
+Desc: 
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131113/ea87dc1c/attachment.diff>
+
+From valtteri at rahkonen.fi  Wed Nov 13 00:29:57 2013
+From: valtteri at rahkonen.fi (valtteri at rahkonen.fi)
+Date: Wed, 13 Nov 2013 10:29:57 +0200 (EET)
+Subject: arena_tcache_fill_small can corrupt the tcache
+In-Reply-To: <Pine.LNX.4.64.1311130923120.16261@artemis>
+References: <Pine.LNX.4.64.1311130923120.16261@artemis>
+Message-ID: <Pine.LNX.4.64.1311131028460.16261@artemis>
+
+On Wed, 13 Nov 2013, valtteri at rahkonen.fi wrote:
+
+> Hi,
+>
+> It seems that there is a thread cache memory in case of memory has run out or 
+> process hits to the memory limit. Basically the arena_tcache_fill_small will 
+> start to fill the thread cache from the end and if memory allocation fails 
+> before all cache entries have been filled the earlier thread cache entries 
+> will contain old pointers given already to the program. Now when new 
+> allocations are made the memory is given twice causing memory corruption. 
+> Also the new memory allocated and placed after tbin->ncached index is leaked.
+>
+> There is really simple fix for this i.e. start to fill the tcache from the 
+> beginning. Attached patch fixes this problem that way i.e. one liner fix for 
+> the issue. I'm not totally sure if you want to use that because this brakes 
+> the low region using first that was with the original implementation, but on 
+> the other hand this gives first memory that was allocated from existing 
+> arenas, so this approach might be better in that sense.
+>
+> Best regards,
+> Valtteri
+>
+>
+
+It seems that my fix is revert for the 
+https://github.com/jemalloc/jemalloc/commit/9c43c13a35220c10d97a886616899189daceb359 
+commit.
+
+Best regrads,
+Valtteri
+
+-- 
+Valtteri Rahkonen
+valtteri at rahkonen.fi
+http://www.rahkonen.fi
++358 40 5077041
+
+
+From jasone at canonware.com  Wed Nov 13 12:59:00 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 13 Nov 2013 12:59:00 -0800
+Subject: arena_tcache_fill_small can corrupt the tcache
+In-Reply-To: <Pine.LNX.4.64.1311130923120.16261@artemis>
+References: <Pine.LNX.4.64.1311130923120.16261@artemis>
+Message-ID: <A3B5D9BA-E2D5-4A4A-9E0B-5829DE88BF50@canonware.com>
+
+On Nov 12, 2013, at 11:34 PM, valtteri at rahkonen.fi wrote:
+> It seems that there is a thread cache memory in case of memory has run out or process hits to the memory limit. Basically the arena_tcache_fill_small will start to fill the thread cache from the end and if memory allocation fails before all cache entries have been filled the earlier thread cache entries will contain old pointers given already to the program. Now when new allocations are made the memory is given twice causing memory corruption. Also the new memory allocated and placed after tbin->ncached index is leaked.
+> 
+> There is really simple fix for this i.e. start to fill the tcache from the beginning. Attached patch fixes this problem that way i.e. one liner fix for the issue. I'm not totally sure if you want to use that because this brakes the low region using first that was with the original implementation, but on the other hand this gives first memory that was allocated from existing arenas, so this approach might be better in that sense.
+
+Yikes.  As you guessed, I want to fix this by memmove()ing the valid pointers on failure rather than by reversing the insertion order.  If you have time to modify your patch, great; otherwise I'll make sure to integrate a fix prior to the next release.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed Nov 13 14:18:07 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 13 Nov 2013 14:18:07 -0800
+Subject: calling a function via PLT and jemalloc realloc changes function
+	first argument (XMM0)
+In-Reply-To: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+References: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+Message-ID: <DDAF3DEA-7484-4592-B6B7-0C6EED27008E@canonware.com>
+
+On Nov 9, 2013, at 8:30 AM, David Abdurachmanov <david.abdurachmanov at gmail.com> wrote:
+> I am having problems with jemalloc 3.4.1 (currently we use 2.2.2 in production). I found that with jemalloc 3.4.1 function first argument will be changed if first argument is passed by XMM0 register. Compiled with GCC 4.8.1 (tested also with 4.8.2). No problems on Scientific Linux 6 (RHEL6-based), but it fails on Scientific Linux 5 (RHEL5-based). All of this is because _dl_lookup_symbol_x calls _realloc_ in Scientific Linux 5.
+> 
+> This probably makes jemalloc 3.4.1 and the whole 3.X.Y series not recommended for RHEL5 and RHEL5-based distributions.
+
+If I understand correctly, then the simplest correct fix for this problem is to modify ld.so such that it preserves all caller-saved registers when calling out to functions like realloc(3).  In my opinion, ld.so probably shouldn't be using the normal malloc at all (instead use a directly embedded minimal malloc implementation), because there are lots of mind-boggling ways bootstrapping can fail, but that's a more involved change.
+
+Can you disable the gcc optimization (-fno-tree-vectorize) when building jemalloc?  You won't hit actual floating point code in jemalloc unless you enable heap profiling, so that should prevent XMM usage in all the relevant jemalloc code.  If that works okay, I'll need to get a better understanding of when to automatically configure the gcc flags that way when building jemalloc.
+
+What about setting LD_BIND_NOW=1 in the environment so that all the register-corrupting badness happens prior to application execution (when it doesn't matter)?
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131113/a164f498/attachment.html>
+
+From valtteri at rahkonen.fi  Thu Nov 14 02:20:02 2013
+From: valtteri at rahkonen.fi (valtteri at rahkonen.fi)
+Date: Thu, 14 Nov 2013 12:20:02 +0200 (EET)
+Subject: arena_tcache_fill_small can corrupt the tcache
+In-Reply-To: <A3B5D9BA-E2D5-4A4A-9E0B-5829DE88BF50@canonware.com>
+References: <Pine.LNX.4.64.1311130923120.16261@artemis>
+	<A3B5D9BA-E2D5-4A4A-9E0B-5829DE88BF50@canonware.com>
+Message-ID: <Pine.LNX.4.64.1311141214310.16261@artemis>
+
+On Wed, 13 Nov 2013, Jason Evans wrote:
+
+> On Nov 12, 2013, at 11:34 PM, valtteri at rahkonen.fi wrote:
+>> It seems that there is a thread cache memory in case of memory has run 
+>> out or process hits to the memory limit. Basically the 
+>> arena_tcache_fill_small will start to fill the thread cache from the 
+>> end and if memory allocation fails before all cache entries have been 
+>> filled the earlier thread cache entries will contain old pointers given 
+>> already to the program. Now when new allocations are made the memory is 
+>> given twice causing memory corruption. Also the new memory allocated 
+>> and placed after tbin->ncached index is leaked.
+>>
+>> There is really simple fix for this i.e. start to fill the tcache from 
+>> the beginning. Attached patch fixes this problem that way i.e. one 
+>> liner fix for the issue. I'm not totally sure if you want to use that 
+>> because this brakes the low region using first that was with the 
+>> original implementation, but on the other hand this gives first memory 
+>> that was allocated from existing arenas, so this approach might be 
+>> better in that sense.
+>
+> Yikes.  As you guessed, I want to fix this by memmove()ing the valid pointers on failure rather than by reversing the insertion order.  If you have time to modify your patch, great; otherwise I'll make sure to integrate a fix prior to the next release.
+>
+> Thanks,
+> Jason
+
+Hi Jason,
+
+Sure, changed the patch to move the filled cache to the beginning of the 
+thread cache.
+
+Best regards,
+Valtteri
+
+-- 
+Valtteri Rahkonen
+valtteri at rahkonen.fi
+http://www.rahkonen.fi
++358 40 5077041
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc2.diff
+Type: text/x-diff
+Size: 423 bytes
+Desc: 
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131114/c37df18b/attachment.diff>
+
+From david.abdurachmanov at gmail.com  Thu Nov 14 07:49:24 2013
+From: david.abdurachmanov at gmail.com (David Abdurachmanov)
+Date: Thu, 14 Nov 2013 16:49:24 +0100
+Subject: calling a function via PLT and jemalloc realloc changes function
+	first argument (XMM0)
+In-Reply-To: <DDAF3DEA-7484-4592-B6B7-0C6EED27008E@canonware.com>
+References: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+	<DDAF3DEA-7484-4592-B6B7-0C6EED27008E@canonware.com>
+Message-ID: <05F9D05D-8EDD-4EF5-AB7D-D0CC4805E437@gmail.com>
+
+
+> If I understand correctly, then the simplest correct fix for this problem is to modify ld.so such that it preserves all caller-saved registers when calling out to functions like realloc(3).  In my opinion, ld.so probably shouldn't be using the normal malloc at all (instead use a directly embedded minimal malloc implementation), because there are lots of mind-boggling ways bootstrapping can fail, but that's a more involved change.
+
+I think you cannot count on any fixes on ld.so side. Have you tried running glibc test with jemalloc?
+
+> 
+> Can you disable the gcc optimization (-fno-tree-vectorize) when building jemalloc?  You won't hit actual floating point code in jemalloc unless you enable heap profiling, so that should prevent XMM usage in all the relevant jemalloc code.  If that works okay, I'll need to get a better understanding of when to automatically configure the gcc flags that way when building jemalloc.
+
+I know that --disable-stats at least allows my computation workflows to run fine, yet it doesn't mean that I am confident about jemalloc.
+
+If SSE/AVX cannot be used in malloc implementation, simple idea is to disable it:
+
+gcc -mno-sse -fvisibility=hidden -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.pic.o src/jemalloc.c
+In file included from include/jemalloc/internal/jemalloc_internal.h:1037:0,
+                 from src/jemalloc.c:2:
+include/jemalloc/internal/prof.h: In function 'prof_sample_threshold_update':
+include/jemalloc/internal/prof.h:349:40: error: SSE register return with SSE disabled
+  prof_tdata->threshold = (uint64_t)(log(u) /
+
+Disabling SSE does not allow jemalloc to be compiled, even with --disable-stats.
+
+./include/jemalloc/internal/prof.h
+
+349         prof_tdata->threshold = (uint64_t)(log(u) /
+350             log(1.0 - (1.0 / (double)((uint64_t)1U << opt_lg_prof_sample))))
+351             + (uint64_t)1U;
+
+This requires SSE register.
+
+From Microsoft x86_64 calling conventions, same applies for Linux:
+
+"All floating point operations are done using the 16 XMM registers."
+
+Same with argument passing, all floats/doubles goes through XMM registers.
+
+So these pieces of code _requires_ XMM registers. We just need to make sure those pieces are never in ld.so call path.
+
+My suggestions:
+- By default jemalloc should be compiled without SSE/AXV. This is also means that such options as "stats" by default is off. Special note must be added about possible problems.
+- Make sure that jemalloc passes the same or a similar test as in glibc on multiple platforms.
+
+> What about setting LD_BIND_NOW=1 in the environment so that all the register-corrupting badness happens prior to application execution (when it doesn't matter)?
+
+It probably depends on application. It would increase a start time of application, which is not always preferred.
+
+My current thoughts would be that jemalloc shouldn't try to go around it, but try to do similar QA as glibc, get rid of SSE/AVX registers in functions possibly used by ld.so.
+
+david
+
+> Thanks,
+> Jason
+
+
+
+From prohaska7 at gmail.com  Thu Nov 14 11:58:44 2013
+From: prohaska7 at gmail.com (Rich Prohaska)
+Date: Thu, 14 Nov 2013 14:58:44 -0500
+Subject: bounds on execution time for various jemalloc APIs
+Message-ID: <CAL5sXW7EsR5W7tExPF_i1pBHQcdiQ8BYzXPp1KthWRKXdiWP=g@mail.gmail.com>
+
+Does jemalloc provide bounds on execution time for malloc, free, etc?
+
+I suspect that free sometimes takes a long time to execute.  What is a good
+way to measure the time to execute it?  Does jemalloc already have methods
+to measure this, or do I add this to my application?
+
+Thanks
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131114/fa40b1ae/attachment.html>
+
+From jasone at canonware.com  Thu Nov 14 12:58:07 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 14 Nov 2013 12:58:07 -0800
+Subject: bounds on execution time for various jemalloc APIs
+In-Reply-To: <CAL5sXW7EsR5W7tExPF_i1pBHQcdiQ8BYzXPp1KthWRKXdiWP=g@mail.gmail.com>
+References: <CAL5sXW7EsR5W7tExPF_i1pBHQcdiQ8BYzXPp1KthWRKXdiWP=g@mail.gmail.com>
+Message-ID: <9C801F7A-3783-464D-9154-132B46BA71C7@canonware.com>
+
+On Nov 14, 2013, at 11:58 AM, Rich Prohaska <prohaska7 at gmail.com> wrote:
+> Does jemalloc provide bounds on execution time for malloc, free, etc? 
+> 
+> I suspect that free sometimes takes a long time to execute.  What is a good way to measure the time to execute it?  Does jemalloc already have methods to measure this, or do I add this to my application?
+
+jemalloc does not, and can not, provide hard bounds on execution time, because it relies on system calls that in turn provide no bounds, namely mmap(2), madvise(2), and munmap(2).  In practice, the biggest cause of variation is that calls to free(3) can trigger numerous madvise() calls (in order to purge unused dirty pages).  If your application is sensitive to timing variation, you may find the "opt.lg_dirty_mult" mallctl of use (e.g. set MALLOC_CONF=lg_dirty_mult:-1 in the environment prior to application launch).
+
+jemalloc does not collect timing statistics, so you'll need to either use a CPU profiler or add timers directly to your code.
+
+Jason
+
+
+
+From leif.walsh at gmail.com  Thu Nov 14 13:00:03 2013
+From: leif.walsh at gmail.com (Leif Walsh)
+Date: Thu, 14 Nov 2013 16:00:03 -0500
+Subject: tracking paged in memory
+Message-ID: <CAOa4UzKsMB_c=rXUv8SU+HPKvSFxAp9Ysz=_br6TdSR+=sNprA@mail.gmail.com>
+
+Hi,
+
+I would like to track how much physical memory is in use by my application
+(which uses jemalloc).  For allocations that are eventually served by mmap,
+the physical memory used is the amount of that allocation that I've
+actually touched, rounded up to the page size.  For smaller allocations
+(i.e. those of which I can fit many in a single page), I only want to track
+the actual size of the allocation because I'll sum the sizes for each
+allocation.  I would like to figure out what this threshold is, i.e. what
+is the allocation size such that for all allocations of at least that size,
+only a portion of the allocation may be paged in, based on how much of it
+I've actually touched?
+
+I believe that this number is exactly the page size, for jemalloc, because
+I believe allocations of at least the page size are all aligned to at least
+the page size.  Is this correct?  Is there some configuration parameter I
+can access through mallctl, or should I just trust what I get from
+sysconf(_SC_PAGESIZE)?
+
+-- 
+Cheers,
+Leif
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131114/301b1add/attachment.html>
+
+From nbhatia at vmware.com  Thu Nov 14 13:17:02 2013
+From: nbhatia at vmware.com (Nikhil Bhatia)
+Date: Thu, 14 Nov 2013 13:17:02 -0800 (PST)
+Subject: jemalloc tuning help
+Message-ID: <539342798.29617248.1384463822358.JavaMail.root@vmware.com>
+
+Hi, 
+
+I am observing a huge gap between the "total allocated" & 
+"active" counts in the jemalloc stats. The "active" & "mapped"
+correctly point to the RSS and VIRT counters in top. Below
+is a snippet of the stats output. 
+
+How should I infer this gap? Is this the fragmentation caused
+by the chunk metadata & unused dirty pages? I am purging unused
+dirty pages a bit more aggressively than default (lg_dirty_mult: 5). 
+Should I consider being more aggressive? 
+
+Secondly, I am using 1 arena per CPU core but my application creates
+lots of transient threads making small allocations. Should I consider
+using more arenas to mitigate performance bottlenecks incurred due to
+blocking on per-arena locks?
+
+Finally, looking at the jemalloc stats how should I go about 
+configuring the tcache? My application has a high thread churn & 
+each thread performs lots of short-lived small allocations. Should
+I consider decreasing lg_tcache_max to 4K? 
+
+Thanks in advance for your help & a great !
+Nikhil 
+
+
+Version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+Assertions disabled
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 22
+  opt.dss: "secondary"
+  opt.narenas: 32
+  opt.lg_dirty_mult: 5
+  opt.stats_print: false
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+  opt.tcache: true
+  opt.lg_tcache_max: 15
+CPUs: 32
+Arenas: 32
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 32:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 4384464272, active: 7056244736, mapped: 9684647936
+Current active ceiling: 7117733888
+chunks: nchunks   highchunks    curchunks
+           7025         2310         2309
+huge: nmalloc      ndalloc    allocated
+         2049         2049            0
+
+Merged arenas stats:
+assigned threads: 2000
+dss allocation precedence: N/A
+dirty pages: 1722716:44009 active:dirty, 7058804 sweeps, 58038956 madvises, 213929279 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:     3511692688  47323002828  47265541258 113947055682
+large:      872771584    173173680    173125745    396022674
+total:     4384464272  47496176508  47438667003 114343078356
+active:    7056244736
+mapped:    9680453632
+
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc    nrequests       nfills     nflushes      newruns       reruns      curruns
+            0     8  501   1     50937728   9040731301   9034364085  17223271472    616102986     95651203      1077826     73949677        40745
+            1    16  252   1     77020144    573171274    568357515   2242686659     96351930     10266723       257739     44306633        21604
+            2    32  126   1    429852096  18555361191  18541928313  39525242385    509036325    189701168     30245928    575288258       231731
+            3    48   84   1    774254160  13193445786  13177315491  32755947543    645431203    161130307     11413376    719379426       344983
+            4    64   63   1    270561344   1606583978   1602356457   7022116344    175867804     29834157      2200328    286059147       102283
+            5    80   50   1    526179760    844027433    837450186   3673315871     80016507     20912400      3115050    123785057       163248
+            6    96   84   2     66918048    643271050    642573987   2261869920     94406420     13502497       378473     46646128        20469
+            7   112   72   2    141823360    613974631    612708351   1586692517     81034870     14137080      1211302     49616234        31895
+            8   128   63   2    117911808    261090749    260169563   1556337221     34923763      8789674      1200493     28901458        22666
+            9   160   51   2    104119200    623493227    622842482   2021853850     74126800     17569428      3034778     62741358        22748
+           10   192   63   3    178081344    483607033    482679526    904009644    182288927     13367164       684876     23522728        20630
+           11   224   72   4     65155104    106499296    106208425    332165705     31167068      5082954       439625      6081887         5327
+           12   256   63   4     48990208    175064106    174872738    472273979     16503128      7906539       199089     10246092         7009
+           13   320   63   5     99602240    183354471    183043214    372355472     51938313      7061197       441119     20284908        10444
+           14   384   63   6     22376448     44600424     44542152    120348652     10768940      3882450       397080      3666681         1897
+           15   448   63   7     19032384    182663513    182621030    217533670     23470929      6906695      1008007      4392356         2290
+           16   512   63   8     83511808     60243213     60080104   1082410264     26644419      7034468       173287     10135623         4852
+           17   640   51   8     40183040     36188548     36125762    161999704      6264681      4081641        43579      4966597         2979
+           18   768   47   9     17687040      3052902      3029872     10607471      1848614      1850140         2010      1170181          747
+           19   896   45  10     17929856      4151025      4131014     22233426      2621174      1978063         1738      1655723          730
+           20  1024   63  16    226070528     51727670     51506898    181066689     13752482      5460833        33701      6304216         4142
+           21  1280   51  16     24062720      6708042      6689243     34800612      3560278      3026925         2015      2823329          786
+           22  1536   42  16      9480192      5591142      5584970     96743012      4922706      2550424        12388       897135          326
+           23  1792   38  17      3695104     17709685     17707623     49250101      6896535      2060250       322840       255016          223
+           24  2048   65  33     42412032      3559112      3538403     12755832      2165621      1725408        13807       138715          565
+           25  2560   52  33     27392000      1716475      1705775      4200713      1311249      1165105         1082        37596          760
+           26  3072   43  33      1959936       491695       491057       810373       359939       339356        97162         3042           65
+           27  3584   39  35     24493056       923856       917022      2156581       684008       693906         2718        20676          235
+
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+         4096     1      3573958      3566123     56996547         7835
+         8192     2    126515167    126505796    204913885         9371
+        12288     3      5594725      5589477     17350232         5248
+        16384     4      3762445      3757246     20675309         5199
+        20480     5      3241286      3229987      4354437        11299
+        24576     6     22339006     22336848     65613502         2158
+        28672     7       343822       342626       346351         1196
+        32768     8      1572379      1569012     19541519         3367
+        36864     9      2708929      2708708      2708929          221
+        40960    10        32955        32952        32955            3
+        45056    11        57426        57419        57426            7
+        49152    12       583663       583651       583663           12
+        53248    13        54411        54368        54411           43
+        57344    14       141737       141665       141737           72
+        61440    15         1660         1522         1660          138
+        65536    16      1422733      1422535      1422733          198
+        69632    17        13344        13196        13344          148
+        73728    18         2949         2810         2949          139
+        77824    19         1533         1356         1533          177
+        81920    20       342699       342484       342699          215
+        86016    21         1561         1353         1561          208
+        90112    22         2487         2389         2487           98
+        94208    23         1456         1329         1456          127
+        98304    24        17666        17593        17666           73
+       102400    25         4889         4798         4889           91
+       106496    26         1410         1329         1410           81
+       110592    27         1414         1296         1414          118
+       114688    28       500876       500818       500876           58
+       118784    29         1223         1216         1223            7
+       122880    30         1528         1528         1528            0
+       126976    31         1202         1202         1202            0
+       131072    32        55098        55096        55098            2
+       135168    33         1292         1292         1292            0
+       139264    34         1218         1218         1218            0
+       143360    35         1221         1221         1221            0
+       147456    36         1192         1192         1192            0
+       151552    37         1214         1214         1214            0
+       155648    38         1244         1244         1244            0
+       159744    39         6360         6360         6360            0
+       163840    40         2367         2367         2367            0
+       167936    41         3538         3538         3538            0
+       172032    42         1206         1206         1206            0
+       176128    43         2271         2271         2271            0
+       180224    44         4303         4303         4303            0
+       184320    45         1220         1220         1220            0
+       188416    46         1177         1177         1177            0
+       192512    47         1182         1182         1182            0
+       196608    48         1305         1305         1305            0
+       200704    49         4508         4496         4508           12
+       204800    50        25259        25258        25259            1
+       208896    51         3380         3380         3380            0
+       212992    52         1335         1335         1335            0
+       217088    53          307          307          307            0
+       221184    54          309          309          309            0
+       225280    55          307          307          307            0
+       229376    56         3383         3383         3383            0
+       233472    57          308          308          308            0
+       237568    58          306          306          306            0
+       241664    59          308          308          308            0
+       245760    60          305          305          305            0
+       249856    61          302          302          302            0
+       253952    62          304          304          304            0
+       258048    63          314          314          314            0
+       262144    64        21397        21397        21397            0
+       266240    65          306          305          306            1
+       270336    66          304          304          304            0
+       274432    67          304          304          304            0
+       278528    68          292          292          292            0
+       282624    69          274          274          274            0
+       286720    70          273          273          273            0
+       290816    71          271          271          271            0
+       294912    72        29417        29417        29417            0
+       299008    73          275          275          275            0
+       303104    74          273          273          273            0
+       307200    75          273          273          273            0
+       311296    76          270          270          270            0
+       315392    77          273          273          273            0
+       319488    78         2319         2319         2319            0
+       323584    79          274          274          274            0
+       327680    80         1304         1304         1304            0
+       331776    81         2626         2626         2626            0
+       335872    82          274          274          274            0
+       339968    83          273          273          273            0
+       344064    84          275          275          275            0
+       348160    85          270          270          270            0
+       352256    86          273          273          273            0
+       356352    87          274          274          274            0
+       360448    88         3342         3342         3342            0
+       364544    89          273          273          273            0
+       368640    90          270          270          270            0
+       372736    91          274          274          274            0
+       376832    92          270          270          270            0
+       380928    93          272          272          272            0
+       385024    94          272          272          272            0
+       389120    95          272          272          272            0
+       393216    96          276          276          276            0
+       397312    97          290          281          290            9
+       401408    98          273          273          273            0
+       405504    99          270          270          270            0
+       409600   100         9279         9278         9279            1
+       413696   101         5142         5142         5142            0
+       417792   102         3089         3089         3089            0
+       421888   103         5181         5181         5181            0
+       425984   104        47539        47539        47539            0
+       430080   105           17           17           17            0
+      434176   106           15           15           15            0
+       438272   107           17           17           17            0
+       442368   108           14           14           14            0
+       446464   109           17           17           17            0
+       450560   110           20           20           20            0
+       454656   111           15           15           15            0
+       458752   112           16           16           16            0
+       462848   113           15           15           15            0
+       466944   114           16           16           16            0
+       471040   115           17           17           17            0
+       475136   116           14           14           14            0
+       479232   117           17           17           17            0
+       483328   118           15           15           15            0
+       487424   119           16           16           16            0
+       491520   120           16           16           16            0
+       495616   121           17           17           17            0
+       499712   122           14           14           14            0
+       503808   123           19           19           19            0
+       507904   124           17           17           17            0
+       512000   125           14           14           14            0
+       516096   126           17           17           17            0
+       520192   127           15           15           15            0
+       524288   128        35043        35043        35043            0
+       528384   129           14           14           14            0
+       532480   130           16           16           16            0
+       536576   131           16           16           16            0
+       540672   132           15           15           15            0
+       544768   133           16           16           16            0
+       548864   134           14           14           14            0
+       552960   135           16           16           16            0
+       557056   136            2            2            2            0
+[2]
+       569344   139            1            1            1            0
+       573440   140            1            1            1            0
+[1]
+       581632   142            1            1            1            0
+[1]
+       589824   144            1            1            1            0
+[1]
+       598016   146            1            1            1            0
+[3]
+       614400   150            1            1            1            0
+[1]
+       622592   152            1            1            1            0
+[5]
+       647168   158            1            1            1            0
+       651264   159            2            2            2            0
+       655360   160            3            3            3            0
+[3]
+       671744   164            2            2            2            0
+       675840   165            1            1            1            0
+[2]
+       688128   168            1            1            1            0
+       708608   173            1            1            1            0
+[2]
+       720896   176         5122         5122         5122            0
+[11]
+       770048   188            1            1            1            0
+[2]
+       782336   191            1            1            1            0
+       786432   192            1            1            1            0
+       790528   193            2            2            2            0
+[1]
+       798720   195            1            1            1            0
+[4]
+       819200   200            1            1            1            0
+[1]
+       827392   202         2048         2048         2048            0
+       831488   203         5120         5120         5120            0
+[1]
+       839680   205         7196         7196         7196            0
+[15]
+       905216   221            1            1            1            0
+[1]
+       913408   223            1            1            1            0
+[13]
+       970752   237            1            1            1            0
+[12]
+      1024000   250            1            1            1            0
+[1]
+      1032192   252            1            1            1            0
+[4]
+      1052672   257            1            1            1            0
+[48]
+      1253376   306            1            1            1            0
+      1257472   307            1            1            1            0
+[4]
+      1277952   312            1            1            1            0
+[7]
+      1310720   320            2            2            2            0
+[7]
+      1343488   328            1            1            1            0
+      1347584   329            1            1            1            0
+[15]
+      1413120   345            1            1            1            0
+      1417216   346            1            1            1            0
+[4]
+      1437696   351         2048         2048         2048            0
+[9]
+      1478656   361            1            1            1            0
+[14]
+      1540096   376            1            1            1            0
+[2]
+      1552384   379            1            1            1            0
+      1576960   385            2            1            2            1
+[20]
+      1662976   406         2048         2048         2048            0
+[3]
+      1679360   410         2048         2048         2048            0
+[21]
+      1769472   432         1626         1626         1626            0
+[2]
+      1781760   435            1            1            1            0
+[146]
+      2383872   582            7            7            7            0
+      2387968   583         1016         1016         1016            0
+[105]
+      2822144   689            1            1            1            0
+[79]
+      3149824   769            1            0            1            1
+[168]
+      3842048   938            1            1            1            0
+[80]
+
+
+From jasone at canonware.com  Thu Nov 14 17:20:45 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 14 Nov 2013 17:20:45 -0800
+Subject: jemalloc tuning help
+In-Reply-To: <539342798.29617248.1384463822358.JavaMail.root@vmware.com>
+References: <539342798.29617248.1384463822358.JavaMail.root@vmware.com>
+Message-ID: <6E4DDA16-71D7-4317-A306-F7C8FE8FCCED@canonware.com>
+
+On Nov 14, 2013, at 1:17 PM, Nikhil Bhatia <nbhatia at vmware.com> wrote:
+> I am observing a huge gap between the "total allocated" & 
+> "active" counts in the jemalloc stats. The "active" & "mapped"
+> correctly point to the RSS and VIRT counters in top. Below
+> is a snippet of the stats output. 
+> 
+> How should I infer this gap? Is this the fragmentation caused
+> by the chunk metadata & unused dirty pages?
+
+The gap is due to external fragmentation of small object page runs.  I computed per size class fragmentation and overall blame for the fragmented memory:
+
+bin	size	regs	pgs	allocated	cur runs	% of small		% of blame
+							utilization	frag memory
+0	8	501	1	50937728	40745	31%	1%	112368232	4%
+1	16	252	1	77020144	21604	88%	2%	10087184	0%
+2	32	126	1	429852096	231731	46%	12%	504487296	20%
+3	48	84	1	774254160	344983	56%	22%	616717296	24%
+4	64	63	1	270561344	102283	66%	8%	141843712	6%
+5	80	50	1	526179760	163248	81%	15%	126812240	5%
+6	96	84	2	66918048	20469	41%	2%	98143968	4%
+7	112	72	2	141823360	31895	55%	4%	115377920	4%
+8	128	63	2	117911808	22666	65%	3%	64866816	3%
+9	160	51	2	104119200	22748	56%	3%	81504480	3%
+10	192	63	3	178081344	20630	71%	5%	71459136	3%
+11	224	72	4	65155104	5327	76%	2%	20758752	1%
+12	256	63	4	48990208	7009	43%	1%	64050944	2%
+13	320	63	5	99602240	10444	47%	3%	110948800	4%
+14	384	63	6	22376448	1897	49%	1%	23515776	1%
+15	448	63	7	19032384	2290	29%	1%	45600576	2%
+16	512	63	8	83511808	4852	53%	2%	72994304	3%
+17	640	51	8	40183040	2979	41%	1%	57051520	2%
+18	768	47	9	17687040	747	66%	1%	9276672		0%
+19	896	45	10	17929856	730	61%	1%	11503744	0%
+20	1024	63	16	226070528	4142	85%	6%	41138176	2%
+21	1280	51	16	24062720	786	47%	1%	27247360	1%
+22	1536	42	16	9480192		326	45%	0%	11550720	0%
+23	1792	38	17	3695104		223	24%	0%	11490304	0%
+24	2048	65	33	42412032	565	56%	1%	32800768	1%
+25	2560	52	33	27392000	760	27%	1%	73779200	3%
+26	3072	43	33	1959936		65	23%	0%	6626304		0%
+27	3584	39	35	24493056	235	75%	1%	8354304		0%
+
+utilization = allocated / (size * regs * cur runs)
+% of small = allocated / total allocated
+frag memory = (size * regs * cur runs) - allocated
+% of blame = frag memory / total frag memory
+
+In order for fragmentation to be that bad, your application has to have a steady state memory usage that is well below its peak usage.  In absolute terms, 32- and 48-byte allocations are to blame for nearly half the total fragmentation, and they have utilization (1-fragmentation) of 46% and 56%, respectively.
+
+The core of the problem is that short-lived and long-lived object allocations are being interleaved even during near-peak memory usage, and when the short-lived objects are freed, the long-lived objects keep entire page runs active, even if almost all neighboring regions have been freed.  jemalloc is robust with regard to multiple grow/shrink cycles, in that its layout policies keep fragmentation from increasing from cycle to cycle, but it can do very little about the external fragmentation that exists during the low-usage time periods.  If the application accumulates long-lived objects (i.e. each peak is higher than the previous), then the layout policies tend to cause accumulation of long-lived objects in low memory, and fragmentation in high memory is proportionally small.  Presumably that's not how your application behaves though.
+
+You can potentially mitigate the problem by reducing the number of arenas (only helps if per thread memory usage spikes are uncorrelated).  Another possibility is to segregate short- and long-lived objects into different arenas, but this requires that you have reliable (and ideally stable) knowledge of object lifetimes.  In practice, segregation is usually very difficult to maintain.  If you choose to go this direction, take a look at the "arenas.extend" mallctl (for creating an arena that contains long-lived objects), and the ALLOCM_ARENA(a) macro argument to the [r]allocm() functions.
+
+> I am purging unused
+> dirty pages a bit more aggressively than default (lg_dirty_mult: 5). 
+> Should I consider being more aggressive? 
+
+Dirty page purging isn't related to this problem.
+
+> Secondly, I am using 1 arena per CPU core but my application creates
+> lots of transient threads making small allocations. Should I consider
+> using more arenas to mitigate performance bottlenecks incurred due to
+> blocking on per-arena locks?
+
+In general, the more arenas you have, the worse fragmentation is likely to be.  Use the smallest number of arenas that doesn't unacceptably degrade throughput.
+
+> Finally, looking at the jemalloc stats how should I go about 
+> configuring the tcache? My application has a high thread churn & 
+> each thread performs lots of short-lived small allocations. Should
+> I consider decreasing lg_tcache_max to 4K? 
+
+This probably won't have much effect one way or the other, but setting lg_tcache_max set to 12 will potentially reduce memory overhead, so go for it if application throughput doesn't degrade unacceptably as a side effect.
+
+It's worth mentioning that the tcache is a cause of fragmentation, because it thwarts jemalloc's layout policy of always choosing the lowest available region.  Fragmentation may go down substantially if you completely disable the tcache, though the potential throughput degradation may be unacceptable.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131114/8af6ca34/attachment.html>
+
+From normalperson at yhbt.net  Sun Nov 17 14:47:33 2013
+From: normalperson at yhbt.net (Eric Wong)
+Date: Sun, 17 Nov 2013 22:47:33 +0000
+Subject: compatibility with apps using mallopt?
+Message-ID: <20131117224733.GA14643@dcvr.yhbt.net>
+
+Hi, I'd like to continue providing the option of using jemalloc (and
+other alternative malloc implementations) to glibc/Linux users of
+cmogstored[1].
+
+I have a pending change[2] in cmogstored.git which adds mallopt(3)
+support.  This needed for good out-of-the-box VM usage on modern glibc
+and many disk-bound threads.  cmogstored is not at all dependent on
+malloc performance/scalability, so glibc malloc defaults clash greatly
+with the design of cmogstored.
+
+When I ./configure with LIBS=-ljemalloc, things go bad because the
+mallopt call is still detected and going to glibc even though the glibc
+malloc implementation is not used/linked.
+
+So my question is: what's the best way to avoid mallopt() when using
+glibc if cmogstored is linked to jemalloc (or any non-glibc malloc)?
+
+Or should jemalloc provide a mallopt() function which may
+wrap mallctl() in some cases and/or just do nothing at all?
+
+Thanks for reading.
+
+[1] - http://bogomips.org/cmogstored/README
+[2] - http://bogomips.org/cmogstored.git/patch?id=ebf312e250ff
+
+
+From Robert.Mowry at netapp.com  Thu Nov 14 18:15:46 2013
+From: Robert.Mowry at netapp.com (Mowry, Robert)
+Date: Fri, 15 Nov 2013 02:15:46 +0000
+Subject: jemalloc tuning help
+In-Reply-To: <6E4DDA16-71D7-4317-A306-F7C8FE8FCCED@canonware.com>
+Message-ID: <CEAAEA98.51FAB%robert.mowry@netapp.com>
+
+I just want to reiterate what Jason has said below.  I recently spent several months trying to reduce the amount of memory used by one of our applications.  We were seeing efficiency ratings for the heap in the 50-60% range (in terms of VM use vs outstanding buffers used by the app).
+
+In our case it was relatively easy to segregate one of the largest offenders (a periodic thread that consumes large amounts of heap and then frees it when finished).  This resulted in a very large efficiency gain (now closer to 90%).  If you are able to segregate long lived allocations I don't think it matters how many transient arenas you have configured because over time they'll empty themselves.
+
+Also, another use for arenas we are interested in trying but haven't explored is fault isolation.  Again this will depend a bit upon your application, but one idea is to assign a problem thread or module its own arena in order to pinpoint the source of memory corruption issues.  In reduced memory environments tools like valgrind aren't always an option so something much lighter weight like thread specific arenas seem likely to be more viable.
+
+We are using a fairly old version of jemalloc.  I'm happy to see that the newer version has official support for this type of segregation.  In the version we are using we also had to modify the code that detects when there's contention for a specific arena and allows threads to use alternate arenas.  We needed complete isolation of the one arena to see the efficiency gains noted above.
+
+I also want to apologize to Jason.  He's clearly spent a great deal of time optimizing the performance of jemalloc.  Those of us operating in limited memory environments start off by disabling much of his hard work :)
+
+From: Jason Evans <jasone at canonware.com<mailto:jasone at canonware.com>>
+Date: Thursday, November 14, 2013 8:20 PM
+To: Nikhil Bhatia <nbhatia at vmware.com<mailto:nbhatia at vmware.com>>
+Cc: "jemalloc-discuss at canonware.com<mailto:jemalloc-discuss at canonware.com>" <jemalloc-discuss at canonware.com<mailto:jemalloc-discuss at canonware.com>>
+Subject: Re: jemalloc tuning help
+
+You can potentially mitigate the problem by reducing the number of arenas (only helps if per thread memory usage spikes are uncorrelated).  Another possibility is to segregate short- and long-lived objects into different arenas, but this requires that you have reliable (and ideally stable) knowledge of object lifetimes.  In practice, segregation is usually very difficult to maintain.  If you choose to go this direction, take a look at the "arenas.extend" mallctl (for creating an arena that contains long-lived objects), and the ALLOCM_ARENA(a) macro argument to the [r]allocm() functions.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131115/c3f7e1df/attachment.html>
+
+From jasone at canonware.com  Thu Nov 21 16:02:25 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 21 Nov 2013 16:02:25 -0800
+Subject: compatibility with apps using mallopt?
+In-Reply-To: <20131117224733.GA14643@dcvr.yhbt.net>
+References: <20131117224733.GA14643@dcvr.yhbt.net>
+Message-ID: <2B69CFD0-20BA-45B6-9255-0CD1B21DC01C@canonware.com>
+
+On Nov 17, 2013, at 2:47 PM, Eric Wong <normalperson at yhbt.net> wrote:
+> Hi, I'd like to continue providing the option of using jemalloc (and
+> other alternative malloc implementations) to glibc/Linux users of
+> cmogstored[1].
+> 
+> I have a pending change[2] in cmogstored.git which adds mallopt(3)
+> support.  This needed for good out-of-the-box VM usage on modern glibc
+> and many disk-bound threads.  cmogstored is not at all dependent on
+> malloc performance/scalability, so glibc malloc defaults clash greatly
+> with the design of cmogstored.
+> 
+> When I ./configure with LIBS=-ljemalloc, things go bad because the
+> mallopt call is still detected and going to glibc even though the glibc
+> malloc implementation is not used/linked.
+> 
+> So my question is: what's the best way to avoid mallopt() when using
+> glibc if cmogstored is linked to jemalloc (or any non-glibc malloc)?
+> 
+> Or should jemalloc provide a mallopt() function which may
+> wrap mallctl() in some cases and/or just do nothing at all?
+
+mallopt() is a non-standard function, as is jemalloc?s mallctl().  I contemplated what to do about mallopt(), mallinfo(), mallinfo_heap(), etc. while implementing mallctl(), and decided that trying to emulate them would be an exercise in futility.  As for replacing them, I would be uncomfortable having replacements do anything besides call abort(3).  I?ve never followed through with that though, because I?m afraid the cure might be worse than the disease.
+
+In the case of cmogstored, I suggest you conditionalize the mallopt() calls such that they?re only used when using glibc?s allocator.  Since you?re making an explicit effort to support multiple alternative memory allocators, you may end up adding other allocator-specific tuning in #if..#elif..#else..#endif blocks anyway.
+
+Jason
+
+From normalperson at yhbt.net  Thu Nov 21 16:36:49 2013
+From: normalperson at yhbt.net (Eric Wong)
+Date: Fri, 22 Nov 2013 00:36:49 +0000
+Subject: compatibility with apps using mallopt?
+In-Reply-To: <2B69CFD0-20BA-45B6-9255-0CD1B21DC01C@canonware.com>
+References: <20131117224733.GA14643@dcvr.yhbt.net>
+	<2B69CFD0-20BA-45B6-9255-0CD1B21DC01C@canonware.com>
+Message-ID: <20131122003649.GA11768@dcvr.yhbt.net>
+
+Jason Evans <jasone at canonware.com> wrote:
+> On Nov 17, 2013, at 2:47 PM, Eric Wong <normalperson at yhbt.net> wrote:
+> > Hi, I'd like to continue providing the option of using jemalloc (and
+> > other alternative malloc implementations) to glibc/Linux users of
+> > cmogstored[1].
+> > 
+> > When I ./configure with LIBS=-ljemalloc, things go bad because the
+> > mallopt call is still detected and going to glibc even though the glibc
+> > malloc implementation is not used/linked.
+> > 
+> > So my question is: what's the best way to avoid mallopt() when using
+> > glibc if cmogstored is linked to jemalloc (or any non-glibc malloc)?
+> > 
+> > Or should jemalloc provide a mallopt() function which may
+> > wrap mallctl() in some cases and/or just do nothing at all?
+
+> mallopt() is a non-standard function, as is jemalloc?s mallctl().  I
+> contemplated what to do about mallopt(), mallinfo(), mallinfo_heap(),
+> etc. while implementing mallctl(), and decided that trying to emulate
+> them would be an exercise in futility.  As for replacing them, I would
+> be uncomfortable having replacements do anything besides call
+> abort(3).  I?ve never followed through with that though, because I?m
+> afraid the cure might be worse than the disease.
+
+Thanks for the response.  Is having mallopt() be a no-op acceptable to
+you?  That would be acceptable to me.
+
+> In the case of cmogstored, I suggest you conditionalize the mallopt()
+> calls such that they?re only used when using glibc?s allocator.  Since
+> you?re making an explicit effort to support multiple alternative
+> memory allocators, you may end up adding other allocator-specific
+> tuning in #if..#elif..#else..#endif blocks anyway.
+
+I'm trying to conditionalize the build already, but the problem is that
+mallopt detection succeeds with glibc even if I use LIBS=-ljemalloc (or
+any alternative allocator).  So I'm wondering if there's a way to stop
+mallopt detection if jemalloc is used on a GNU system.
+
+I suppose I could use dlsym to find mallctl and use that as an indicator
+jemalloc is linked into the process at runtime.  But maybe there's a
+better way...
+
+
+From edsiper at gmail.com  Sun Nov 24 23:56:48 2013
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Mon, 25 Nov 2013 01:56:48 -0600
+Subject: enable profiling for memory leaks
+Message-ID: <CAMAQheNNy3BRF3rW8ZwsoRf3xwd05wbtHehQm3X6KhQqAkSXTQ@mail.gmail.com>
+
+Hi,
+
+i have just integrated jemalloc in our open source project. I have linked
+jemalloc statically and after some tests i am not able to get any profiling
+file for analysis.
+
+jemalloc configure:
+
+   ./configure --enable-prof --with-jemalloc-prefix=je_ --enable-cc-silence
+
+once compiled and linked to my sources i do:
+
+   $ MALLOC_CONF=prof_leak:true,prof:true bin/monkey
+
+but on exit there is no details, do i am missing some steps ?
+
+thanks for your help,
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131125/dab24f78/attachment.html>
+
+From jasone at canonware.com  Mon Nov 25 08:40:58 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 25 Nov 2013 08:40:58 -0800
+Subject: enable profiling for memory leaks
+In-Reply-To: <CAMAQheNNy3BRF3rW8ZwsoRf3xwd05wbtHehQm3X6KhQqAkSXTQ@mail.gmail.com>
+References: <CAMAQheNNy3BRF3rW8ZwsoRf3xwd05wbtHehQm3X6KhQqAkSXTQ@mail.gmail.com>
+Message-ID: <618DBAD7-583B-4C2B-914C-490175C958A8@canonware.com>
+
+On Nov 24, 2013, at 11:56 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> i have just integrated jemalloc in our open source project. I have linked jemalloc statically and after some tests i am not able to get any profiling file for analysis.
+> 
+> jemalloc configure:
+> 
+>    ./configure --enable-prof --with-jemalloc-prefix=je_ --enable-cc-silence
+> 
+> once compiled and linked to my sources i do:
+> 
+>    $ MALLOC_CONF=prof_leak:true,prof:true bin/monkey
+> 
+> but on exit there is no details, do i am missing some steps ?
+
+The prefix also applies to the environment variable you set.  Try:
+
+	JE_MALLOC_CONF=prof_leak:true,prof:true bin/monkey
+
+Jason
+
+From edsiper at gmail.com  Mon Nov 25 08:54:31 2013
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Mon, 25 Nov 2013 10:54:31 -0600
+Subject: enable profiling for memory leaks
+In-Reply-To: <618DBAD7-583B-4C2B-914C-490175C958A8@canonware.com>
+References: <CAMAQheNNy3BRF3rW8ZwsoRf3xwd05wbtHehQm3X6KhQqAkSXTQ@mail.gmail.com>
+	<618DBAD7-583B-4C2B-914C-490175C958A8@canonware.com>
+Message-ID: <CAMAQheNyGMsXhbYOOoYpRgvFqhRPc4ryt_z1P+iGavwH0RUDZQ@mail.gmail.com>
+
+thanks! that worked :)
+
+
+On Mon, Nov 25, 2013 at 10:40 AM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Nov 24, 2013, at 11:56 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> > i have just integrated jemalloc in our open source project. I have
+> linked jemalloc statically and after some tests i am not able to get any
+> profiling file for analysis.
+> >
+> > jemalloc configure:
+> >
+> >    ./configure --enable-prof --with-jemalloc-prefix=je_
+> --enable-cc-silence
+> >
+> > once compiled and linked to my sources i do:
+> >
+> >    $ MALLOC_CONF=prof_leak:true,prof:true bin/monkey
+> >
+> > but on exit there is no details, do i am missing some steps ?
+>
+> The prefix also applies to the environment variable you set.  Try:
+>
+>         JE_MALLOC_CONF=prof_leak:true,prof:true bin/monkey
+>
+> Jason
+
+
+
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131125/bd8d43e4/attachment.html>
+
+From ingvar at redpill-linpro.com  Tue Nov 26 04:23:49 2013
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Tue, 26 Nov 2013 13:23:49 +0100
+Subject: calling a function via PLT and jemalloc realloc changes function
+	first argument (XMM0)
+In-Reply-To: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+References: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+Message-ID: <529492D5.7010103@redpill-linpro.com>
+
+David Abdurachmanov wrote:
+> Hi,
+>
+> I am having problems with jemalloc 3.4.1 (currently we use 2.2.2 in 
+> production). I found that with jemalloc 3.4.1 function first argument 
+> will be changed if first argument is passed by XMM0 register. Compiled 
+> with GCC 4.8.1 (tested also with 4.8.2). No problems on Scientific 
+> Linux 6 (RHEL6-based), but it fails on Scientific Linux 5 
+> (RHEL5-based). All of this is because _dl_lookup_symbol_x calls 
+> _realloc_ in Scientific Linux 5.
+>
+> This probably makes jemalloc 3.4.1 and the whole 3.X.Y series not 
+> recommended for RHEL5 and RHEL5-based distributions.
+> (...)
+
+Just a note from the EPEL* maintainer. EPEL6 has jemalloc-3.4.x. EPEL5 
+has stayed on 3.1.x for a while, and unless there are serious bugs that 
+should be fixed, I don't plan to update it.
+
+Ingvar
+
+
+
+
+*) EPEL is the Fedora "Extra packages for Enterprise Linux" project, 
+that is, repackaged Fedora RPMS for Red Hat Enterprise Linux and clones 
+like CentOS and Scientific Linux.
+
+
+From edsiper at gmail.com  Tue Nov 26 11:40:14 2013
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Tue, 26 Nov 2013 13:40:14 -0600
+Subject: Gather Arena stats
+Message-ID: <CAMAQheMho1xcWr_ZYfOeMZ+++Lr=79SuE1rTvSBFFn6mRpHuWg@mail.gmail.com>
+
+Hi,
+
+i am interested into gather memory usage per Linux thread, as i am using
+jemalloc i think this can be done quering the arenas per thread. if i am
+correct, do you have some code example that accomplish something similar to
+this ?
+
+thanks
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/529ebffd/attachment.html>
+
+From jasone at canonware.com  Tue Nov 26 11:50:19 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 26 Nov 2013 11:50:19 -0800
+Subject: calling a function via PLT and jemalloc realloc changes function
+	first argument (XMM0)
+In-Reply-To: <529492D5.7010103@redpill-linpro.com>
+References: <A77BF5E0-8AA6-4614-A3D7-6786A6295A00@gmail.com>
+	<529492D5.7010103@redpill-linpro.com>
+Message-ID: <28EA2EC5-18D0-45EB-8185-7A7D5FE1A32C@canonware.com>
+
+On Nov 26, 2013, at 4:23 AM, Ingvar Hagelund <ingvar at redpill-linpro.com> wrote:
+> David Abdurachmanov wrote:
+>> 
+>> I am having problems with jemalloc 3.4.1 (currently we use 2.2.2 in production). I found that with jemalloc 3.4.1 function first argument will be changed if first argument is passed by XMM0 register. Compiled with GCC 4.8.1 (tested also with 4.8.2). No problems on Scientific Linux 6 (RHEL6-based), but it fails on Scientific Linux 5 (RHEL5-based). All of this is because _dl_lookup_symbol_x calls _realloc_ in Scientific Linux 5.
+>> 
+>> This probably makes jemalloc 3.4.1 and the whole 3.X.Y series not recommended for RHEL5 and RHEL5-based distributions.
+>> (...)
+> 
+> Just a note from the EPEL* maintainer. EPEL6 has jemalloc-3.4.x. EPEL5 has stayed on 3.1.x for a while, and unless there are serious bugs that should be fixed, I don't plan to update it.
+> 
+> Ingvar
+> 
+> *) EPEL is the Fedora "Extra packages for Enterprise Linux" project, that is, repackaged Fedora RPMS for Red Hat Enterprise Linux and clones like CentOS and Scientific Linux.
+
+FWIW, I'm planning to provide a workaround for the floating point corruption issue in 3.5.0:
+
+	https://github.com/jemalloc/jemalloc/issues/29
+
+There have been numerous bug fixes since 3.1.0, but the following are the only ones that are likely to cause trouble for an application that doesn't use any non-standard features:
+
+	Fix deadlock related to chunk_record().
+	https://github.com/jemalloc/jemalloc/commit/741fbc6ba4499da39dd7d0c067c859fa52f1023f
+
+	Fix another deadlock related to chunk_record().
+	https://github.com/jemalloc/jemalloc/commit/4f929aa94853ecd7da2791f462d1b972ee66db8e
+
+I hope 3.5.x series will be a compelling stable update, as my primary focus right now is on testing.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Nov 26 12:01:09 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 26 Nov 2013 12:01:09 -0800
+Subject: Gather Arena stats
+In-Reply-To: <CAMAQheMho1xcWr_ZYfOeMZ+++Lr=79SuE1rTvSBFFn6mRpHuWg@mail.gmail.com>
+References: <CAMAQheMho1xcWr_ZYfOeMZ+++Lr=79SuE1rTvSBFFn6mRpHuWg@mail.gmail.com>
+Message-ID: <F9FEBBE0-9864-4372-96DB-A7C4ECA4088B@canonware.com>
+
+On Nov 26, 2013, at 11:40 AM, Eduardo Silva <edsiper at gmail.com> wrote:
+> i am interested into gather memory usage per Linux thread, as i am using jemalloc i think this can be done quering the arenas per thread. if i am correct, do you have some code example that accomplish something similar to this ?
+
+Threads don't own memory; allocated regions can be shared among threads, and allocation/deallocation can be split between threads.  That said, jemalloc does track total volume of allocation and deallocation on a per thread basis, so you can derive the information you want as long as you account for allocated regions that are shared among threads.  Take a look at the "thread.allocated" and "thread.deallocated" mallctl() interfaces in the man page:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html
+
+There is a relevant test program included with jemalloc:
+
+	https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/f6cd5282/attachment.html>
+
+From edsiper at gmail.com  Tue Nov 26 12:10:40 2013
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Tue, 26 Nov 2013 14:10:40 -0600
+Subject: Gather Arena stats
+In-Reply-To: <F9FEBBE0-9864-4372-96DB-A7C4ECA4088B@canonware.com>
+References: <CAMAQheMho1xcWr_ZYfOeMZ+++Lr=79SuE1rTvSBFFn6mRpHuWg@mail.gmail.com>
+	<F9FEBBE0-9864-4372-96DB-A7C4ECA4088B@canonware.com>
+Message-ID: <CAMAQheOQBmwEcispN4oD7inOKvUo=G4HUWpQyqKtGemxNR17sg@mail.gmail.com>
+
+thanks for your help!, thats the info that i need.
+
+best
+
+
+On Tue, Nov 26, 2013 at 2:01 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Nov 26, 2013, at 11:40 AM, Eduardo Silva <edsiper at gmail.com> wrote:
+>
+> i am interested into gather memory usage per Linux thread, as i am using
+> jemalloc i think this can be done quering the arenas per thread. if i am
+> correct, do you have some code example that accomplish something similar to
+> this ?
+>
+>
+> Threads don't own memory; allocated regions can be shared among threads,
+> and allocation/deallocation can be split between threads.  That said,
+> jemalloc does track total volume of allocation and deallocation on a per
+> thread basis, so you can derive the information you want as long as you
+> account for allocated regions that are shared among threads.  Take a look
+> at the "thread.allocated" and "thread.deallocated" mallctl() interfaces in
+> the man page:
+>
+>
+> http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html
+>
+> There is a relevant test program included with jemalloc:
+>
+> https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c
+>
+> Jason
+>
+
+
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/41b24a83/attachment.html>
+
+From edsiper at gmail.com  Tue Nov 26 16:20:41 2013
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Tue, 26 Nov 2013 18:20:41 -0600
+Subject: Gather Arena stats
+In-Reply-To: <CAMAQheOQBmwEcispN4oD7inOKvUo=G4HUWpQyqKtGemxNR17sg@mail.gmail.com>
+References: <CAMAQheMho1xcWr_ZYfOeMZ+++Lr=79SuE1rTvSBFFn6mRpHuWg@mail.gmail.com>
+	<F9FEBBE0-9864-4372-96DB-A7C4ECA4088B@canonware.com>
+	<CAMAQheOQBmwEcispN4oD7inOKvUo=G4HUWpQyqKtGemxNR17sg@mail.gmail.com>
+Message-ID: <CAMAQheMxK+0QudqhY3BhXkCxwmB=8pXzcCog-o2kG=8bXUJGLw@mail.gmail.com>
+
+I have implemented a similar code and its working great. Now an extra
+question: i would like to spawn a thread to monitor the threads
+allocation/deallocations, can i access this data from a different thread ?,
+if so, is there any API or example available ?
+
+thanks again.
+
+
+On Tue, Nov 26, 2013 at 2:10 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+
+> thanks for your help!, thats the info that i need.
+>
+> best
+>
+>
+> On Tue, Nov 26, 2013 at 2:01 PM, Jason Evans <jasone at canonware.com> wrote:
+>
+>> On Nov 26, 2013, at 11:40 AM, Eduardo Silva <edsiper at gmail.com> wrote:
+>>
+>> i am interested into gather memory usage per Linux thread, as i am using
+>> jemalloc i think this can be done quering the arenas per thread. if i am
+>> correct, do you have some code example that accomplish something similar to
+>> this ?
+>>
+>>
+>> Threads don't own memory; allocated regions can be shared among threads,
+>> and allocation/deallocation can be split between threads.  That said,
+>> jemalloc does track total volume of allocation and deallocation on a per
+>> thread basis, so you can derive the information you want as long as you
+>> account for allocated regions that are shared among threads.  Take a look
+>> at the "thread.allocated" and "thread.deallocated" mallctl() interfaces in
+>> the man page:
+>>
+>>
+>> http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html
+>>
+>> There is a relevant test program included with jemalloc:
+>>
+>> https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c
+>>
+>> Jason
+>>
+>
+>
+>
+> --
+> Eduardo Silva
+> http://edsiper.linuxchile.cl
+> http://monkey-project.com
+>
+
+
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/2a261ed4/attachment.html>
+
+From jasone at canonware.com  Tue Nov 26 16:28:40 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 26 Nov 2013 16:28:40 -0800
+Subject: Gather Arena stats
+In-Reply-To: <CAMAQheMxK+0QudqhY3BhXkCxwmB=8pXzcCog-o2kG=8bXUJGLw@mail.gmail.com>
+References: <CAMAQheMho1xcWr_ZYfOeMZ+++Lr=79SuE1rTvSBFFn6mRpHuWg@mail.gmail.com>
+	<F9FEBBE0-9864-4372-96DB-A7C4ECA4088B@canonware.com>
+	<CAMAQheOQBmwEcispN4oD7inOKvUo=G4HUWpQyqKtGemxNR17sg@mail.gmail.com>
+	<CAMAQheMxK+0QudqhY3BhXkCxwmB=8pXzcCog-o2kG=8bXUJGLw@mail.gmail.com>
+Message-ID: <6EC5A877-4A98-42FE-B110-BF066C730420@canonware.com>
+
+On Nov 26, 2013, at 4:20 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> On Tue, Nov 26, 2013 at 2:10 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> On Tue, Nov 26, 2013 at 2:01 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Nov 26, 2013, at 11:40 AM, Eduardo Silva <edsiper at gmail.com> wrote:
+>> i am interested into gather memory usage per Linux thread, as i am using jemalloc i think this can be done quering the arenas per thread. if i am correct, do you have some code example that accomplish something similar to this ?
+> 
+> Threads don't own memory; allocated regions can be shared among threads, and allocation/deallocation can be split between threads.  That said, jemalloc does track total volume of allocation and deallocation on a per thread basis, so you can derive the information you want as long as you account for allocated regions that are shared among threads.  Take a look at the "thread.allocated" and "thread.deallocated" mallctl() interfaces in the man page:
+> 
+> 	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html
+> 
+> There is a relevant test program included with jemalloc:
+> 
+> 	https://github.com/jemalloc/jemalloc/blob/dev/test/allocated.c
+> 
+> thanks for your help!, thats the info that i need.
+> 
+> I have implemented a similar code and its working great. Now an extra question: i would like to spawn a thread to monitor the threads allocation/deallocations, can i access this data from a different thread ?, if so, is there any API or example available ?
+
+You can call the "thread.allocatedp" and "thread.deallocatedp" mallctl() interfaces from each thread you care about, then pass the pointers to your monitoring thread.  You may get stale reads if you read the counters from a different thread since there's no synchronization protecting reads/writes of the counters, but in practice the values you read are unlikely to be substantially out of date, at least on x86/x64 systems.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131126/50ce6158/attachment.html>
+
+From fest at dragonwar.fr  Fri Nov 29 04:32:43 2013
+From: fest at dragonwar.fr (Max Fest)
+Date: Fri, 29 Nov 2013 13:32:43 +0100
+Subject: NULL bin issue in arena_dalloc_bin_locked
+Message-ID: <5298896B.8080100@dragonwar.fr>
+
+Hi everybody,
+
+i got an issue with the lib, i get some random segmentation fault with 
+my program on basic operation.
+During the call of a destructor for example.
+
+On the top of my backtrace i've got this :
+
+(gdb) frame 0
+#0  arena_dalloc_bin_locked (arena=arena at entry=0x7f4fc645b1c0, 
+chunk=chunk at entry=0x7f4de8000000, ptr=ptr at entry=0x7f4de817b800, 
+mapelm=<optimized out>) at 
+/home/server/dwcatacore3/dep/jemalloc/src/arena.c:1713
+1713        } else if (run->nfree == 1 && run != bin->runcur)
+(gdb) info locals
+pageind = 379
+run = 0x7f4de8179000
+bin = 0x0
+bin_info = 0x1f551d0
+size = 1536
+
+
+So you can see that bin is NULL, and the call at bin->runcur will ran 
+into a segmentation fault.
+
+I use jemalloc 3.4.1 compiled with my project as a dependance. It run on 
+a Debian 7 x86_64.
+
+Is it a jemalloc related issue ?
+The full backtrace : http://pastebin.com/w2KVAs8p
+
+Thanks.
+
+
+From jasone at canonware.com  Fri Nov 29 12:11:40 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 29 Nov 2013 12:11:40 -0800
+Subject: NULL bin issue in arena_dalloc_bin_locked
+In-Reply-To: <5298896B.8080100@dragonwar.fr>
+References: <5298896B.8080100@dragonwar.fr>
+Message-ID: <21FE6CC8-E876-48D6-A781-F8C6F8C17739@canonware.com>
+
+On Nov 29, 2013, at 4:32 AM, Max Fest <fest at dragonwar.fr> wrote:
+> i got an issue with the lib, i get some random segmentation fault with my program on basic operation.
+> During the call of a destructor for example.
+> 
+> On the top of my backtrace i've got this :
+> 
+> (gdb) frame 0
+> #0  arena_dalloc_bin_locked (arena=arena at entry=0x7f4fc645b1c0, chunk=chunk at entry=0x7f4de8000000, ptr=ptr at entry=0x7f4de817b800, mapelm=<optimized out>) at /home/server/dwcatacore3/dep/jemalloc/src/arena.c:1713
+> 1713        } else if (run->nfree == 1 && run != bin->runcur)
+> (gdb) info locals
+> pageind = 379
+> run = 0x7f4de8179000
+> bin = 0x0
+> bin_info = 0x1f551d0
+> size = 1536
+> 
+> 
+> So you can see that bin is NULL, and the call at bin->runcur will ran into a segmentation fault.
+> 
+> I use jemalloc 3.4.1 compiled with my project as a dependance. It run on a Debian 7 x86_64.
+> 
+> Is it a jemalloc related issue ?
+> The full backtrace : http://pastebin.com/w2KVAs8p
+
+It?s likely that your application is corrupting page run state by double freeing an allocation.  If you run a debug build of jemalloc and disable thread caching, jemalloc will probably fail an assertion when the double free occurs.
+
+Jason
+
+From fest at dragonwar.fr  Fri Nov 29 12:18:53 2013
+From: fest at dragonwar.fr (Max Fest)
+Date: Fri, 29 Nov 2013 21:18:53 +0100
+Subject: NULL bin issue in arena_dalloc_bin_locked
+In-Reply-To: <21FE6CC8-E876-48D6-A781-F8C6F8C17739@canonware.com>
+References: <5298896B.8080100@dragonwar.fr>
+	<21FE6CC8-E876-48D6-A781-F8C6F8C17739@canonware.com>
+Message-ID: <5298F6AD.70306@dragonwar.fr>
+
+
+Le 29/11/13 21:11, Jason Evans a ?crit :
+> On Nov 29, 2013, at 4:32 AM, Max Fest <fest at dragonwar.fr> wrote:
+>> i got an issue with the lib, i get some random segmentation fault with my program on basic operation.
+>> During the call of a destructor for example.
+>>
+>> On the top of my backtrace i've got this :
+>>
+>> (gdb) frame 0
+>> #0  arena_dalloc_bin_locked (arena=arena at entry=0x7f4fc645b1c0, chunk=chunk at entry=0x7f4de8000000, ptr=ptr at entry=0x7f4de817b800, mapelm=<optimized out>) at /home/server/dwcatacore3/dep/jemalloc/src/arena.c:1713
+>> 1713        } else if (run->nfree == 1 && run != bin->runcur)
+>> (gdb) info locals
+>> pageind = 379
+>> run = 0x7f4de8179000
+>> bin = 0x0
+>> bin_info = 0x1f551d0
+>> size = 1536
+>>
+>>
+>> So you can see that bin is NULL, and the call at bin->runcur will ran into a segmentation fault.
+>>
+>> I use jemalloc 3.4.1 compiled with my project as a dependance. It run on a Debian 7 x86_64.
+>>
+>> Is it a jemalloc related issue ?
+>> The full backtrace : http://pastebin.com/w2KVAs8p
+> It?s likely that your application is corrupting page run state by double freeing an allocation.  If you run a debug build of jemalloc and disable thread caching, jemalloc will probably fail an assertion when the double free occurs.
+>
+> Jason
+Thanks for your answers, i will try this.
+
+Max.
+
+

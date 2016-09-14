@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> understanding page/chunk reclaim algorithm
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20understanding%20page/chunk%20reclaim%20algorithm&In-Reply-To=%3CE7AA7FFE-65D0-47A6-8D28-29555F5205B9%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000909.html">
+   <LINK REL="Next"  HREF="000913.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>understanding page/chunk reclaim algorithm</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20understanding%20page/chunk%20reclaim%20algorithm&In-Reply-To=%3CE7AA7FFE-65D0-47A6-8D28-29555F5205B9%40canonware.com%3E"
+       TITLE="understanding page/chunk reclaim algorithm">jasone at canonware.com
+       </A><BR>
+    <I>Fri Aug 15 10:12:54 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000909.html">understanding page/chunk reclaim algorithm
+</A></li>
+        <LI>Next message: <A HREF="000913.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#910">[ date ]</a>
+              <a href="thread.html#910">[ thread ]</a>
+              <a href="subject.html#910">[ subject ]</a>
+              <a href="author.html#910">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Aug 11, 2014, at 4:28 PM, Sideropoulos, Alexander &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Alexander.Sideropoulos at netapp.com</A>&gt; wrote:
+&gt;<i> Hey all. We are trying to understand how Jemalloc reclaims free runs and chunks.
+</I>&gt;<i> Specifically for small allocation sizes, what are the heuristics for
+</I>&gt;<i> 
+</I>&gt;<i> 1) free runs being reclaimed within the chunk to be reused for a different size and
+</I>
+jemalloc uses a lowest-address best fit search to allocate page runs.  In other words, it finds the set of runs which are closest to the minimum necessary size, and chooses the run from that set that is lowest in memory from which to split an appropriately sized run (the split tail, if any, remains unallocated).
+
+&gt;<i> 2) free chunks being released back to the OS?
+</I>
+jemalloc maps/unmaps chunks as indivisible units, so chunks are released back to the OS as aggressively as possible, with two caveats:
+
+- Each arena maintains a &#8220;spare&#8221; chunk, which avoids excessive chunk allocation/deallocation activity if memory usage repeatedly fluctuates in a manner that would require a new short-lived chunk during each growth.
+- On Linux, the &#8212;disable-munmap configure option is the default, so chunk contents are madvise()d away, but they remain irreversibly mapped once created.  This avoids poor interactions with the Linux kernel&#8217;s fragile heuristics for finding available regions of virtual memory.  Without this workaround, it&#8217;s common for virtual memory holes to accumulate, and the kernel uses linear-time algorithms to scan the virtual memory map in some performance-critical operations.
+
+Jason
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000909.html">understanding page/chunk reclaim algorithm
+</A></li>
+	<LI>Next message: <A HREF="000913.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#910">[ date ]</a>
+              <a href="thread.html#910">[ thread ]</a>
+              <a href="subject.html#910">[ subject ]</a>
+              <a href="author.html#910">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

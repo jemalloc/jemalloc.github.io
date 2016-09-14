@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Reason opt.lg_dirty_mult is not writable?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Reason%20opt.lg_dirty_mult%20is%20not%20writable%3F&In-Reply-To=%3CEFD1DCD6-1756-4A46-B92C-793CA3E57F54%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001000.html">
+   <LINK REL="Next"  HREF="001002.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Reason opt.lg_dirty_mult is not writable?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Reason%20opt.lg_dirty_mult%20is%20not%20writable%3F&In-Reply-To=%3CEFD1DCD6-1756-4A46-B92C-793CA3E57F54%40canonware.com%3E"
+       TITLE="Reason opt.lg_dirty_mult is not writable?">jasone at canonware.com
+       </A><BR>
+    <I>Wed Jan 21 13:10:01 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001000.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+        <LI>Next message: <A HREF="001002.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1001">[ date ]</a>
+              <a href="thread.html#1001">[ thread ]</a>
+              <a href="subject.html#1001">[ subject ]</a>
+              <a href="author.html#1001">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 21, 2015, at 11:17 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+&gt;<i> I have an application where we use jemalloc to manage network-registered memory, and we have to make sure that it doesn&#8217;t madvise() chunks to the OS or we end up with rDMA failures.
+</I>&gt;<i> 
+</I>&gt;<i> I can disable madvise() globally with the opt.lg_dirty_mult option using the environment, but that isn&#8217;t ideal since there&#8217;s no reason that the normal allocator (a separate instance of jemalloc in our case). I have been declaring an extern version of the jemalloc opt variable (prefix_je_opt_lg_dirty_mult in our case), but this means I have to link to the .a directly, rather than linking to the dynamic library or the static library through -ljemalloc_suffix.
+</I>&gt;<i> 
+</I>&gt;<i> At the same time, this appears to actually work fine.
+</I>
+Can you instead set malloc_conf (with appropriate mangling) to &quot;lg_dirty_mult:-1&quot;?  That's the intended mechanism for setting these options at compile time, though linker subtleties have been known to keep it from working.  Also, if you have two versions of jemalloc linked into your application, doesn't name mangling help you avoid setting lg_dirty_mult for the other copy?
+
+&gt;<i> Until per-chunk-allocator control comes online for this, would it be reasonable to make this option R/W in jemalloc? Is there some corner case that I&#8217;m missing that would make this not work?
+</I>
+The historical reason that lg_dirty_mult is read-only is that gracefully transitioning between any two legal values adds complexity, and the primary use cases don't require this functionality.  I just added a note to <A HREF="https://github.com/jemalloc/jemalloc/issues/93">https://github.com/jemalloc/jemalloc/issues/93</A> to make this more flexible though, since the internals will have to support the functionality anyway.
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001000.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+	<LI>Next message: <A HREF="001002.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1001">[ date ]</a>
+              <a href="thread.html#1001">[ thread ]</a>
+              <a href="subject.html#1001">[ subject ]</a>
+              <a href="author.html#1001">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

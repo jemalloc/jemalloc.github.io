@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Reducing memory usage on console
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Reducing%20memory%20usage%20on%20console&In-Reply-To=%3CC7C7B3DB67F94049B1D91EE3CEA9CFB4011E453AD7D4%40MDC-MAIL-CMS01.ubisoft.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000614.html">
+   <LINK REL="Next"  HREF="000616.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Reducing memory usage on console</H1>
+    <B>Sebastien Lussier</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Reducing%20memory%20usage%20on%20console&In-Reply-To=%3CC7C7B3DB67F94049B1D91EE3CEA9CFB4011E453AD7D4%40MDC-MAIL-CMS01.ubisoft.org%3E"
+       TITLE="Reducing memory usage on console">sebastien.lussier at ubisoft.com
+       </A><BR>
+    <I>Thu Jul 11 21:52:33 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000614.html">valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+</A></li>
+        <LI>Next message: <A HREF="000616.html">Using jemalloc with static link
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#615">[ date ]</a>
+              <a href="thread.html#615">[ thread ]</a>
+              <a href="subject.html#615">[ subject ]</a>
+              <a href="author.html#615">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello!
+
+I just started testing jemalloc to see if we could improve our memory usage on Xbox &amp; PS3.
+What would be the best way to configure jemalloc for such &quot;low-memory&quot; platforms ?
+
+I changed lg_chunk to 19... I'm considering reducing the number of arenas (currently at 12). Or maybe disabling thread caching.
+
+We typically have very few threads making allocations (&lt; 15), and most of them are alive for the whole duration of the game. But their usage of the memory system differs a lot and in some cases I seem to waste arena space if two memory hungry threads ends up in the same arena.
+Can I expect good result if I use a single arena ?
+ 
+Did anyone experiment with jemalloc in a similar situation ? I fear disabling all those options will turn jemalloc into an average allocator...
+
+Thanks!
+Sebastien 
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000614.html">valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+</A></li>
+	<LI>Next message: <A HREF="000616.html">Using jemalloc with static link
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#615">[ date ]</a>
+              <a href="thread.html#615">[ thread ]</a>
+              <a href="subject.html#615">[ subject ]</a>
+              <a href="author.html#615">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

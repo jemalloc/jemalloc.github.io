@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3CB667717E-8CB4-4C6F-B244-D8F57CD17D88%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000092.html">
+   <LINK REL="Next"  HREF="000093.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3CB667717E-8CB4-4C6F-B244-D8F57CD17D88%40canonware.com%3E"
+       TITLE="[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions">jasone at canonware.com
+       </A><BR>
+    <I>Wed Feb 29 16:15:37 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000092.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+        <LI>Next message: <A HREF="000093.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#116">[ date ]</a>
+              <a href="thread.html#116">[ thread ]</a>
+              <a href="subject.html#116">[ subject ]</a>
+              <a href="author.html#116">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 23, 2012, at 3:23 AM, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> In some cases, it can be interesting to use different prefixes for the
+</I>&gt;<i> &quot;standard&quot; libc malloc functions and for jemalloc specific functions. One such
+</I>&gt;<i> case is to use the &quot;__wrap_&quot; prefix on libc malloc functions (for use with ld's
+</I>&gt;<i> --wrap option) and no prefix or &quot;je_&quot; for jemalloc functions.
+</I>&gt;<i> 
+</I>&gt;<i> In such cases, it can also me interesting not to exclude memalign and valloc,
+</I>&gt;<i> so this change also adds an option not to omit them when the prefix is set.
+</I>
+Do you have a practical use case that makes this a compelling feature?  I'm reluctant to hard-code the set of JEMALLOC_LIBC() functions to make distinct from JEMALLOC_P() functions, because it may vary by operating system.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000092.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+	<LI>Next message: <A HREF="000093.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#116">[ date ]</a>
+              <a href="thread.html#116">[ thread ]</a>
+              <a href="subject.html#116">[ subject ]</a>
+              <a href="author.html#116">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [OS X] Configuring jemalloc via je_malloc_conf
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BOS%20X%5D%20Configuring%20jemalloc%20via%20je_malloc_conf&In-Reply-To=%3C60660DE5-4DC0-4A09-9312-1B36A25F8665%40couchbase.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000916.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[OS X] Configuring jemalloc via je_malloc_conf</H1>
+    <B>David Rigby</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BOS%20X%5D%20Configuring%20jemalloc%20via%20je_malloc_conf&In-Reply-To=%3C60660DE5-4DC0-4A09-9312-1B36A25F8665%40couchbase.com%3E"
+       TITLE="[OS X] Configuring jemalloc via je_malloc_conf">daver at couchbase.com
+       </A><BR>
+    <I>Thu Sep  4 09:14:35 PDT 2014</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000916.html">[OS X] Configuring jemalloc via je_malloc_conf
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#915">[ date ]</a>
+              <a href="thread.html#915">[ thread ]</a>
+              <a href="subject.html#915">[ subject ]</a>
+              <a href="author.html#915">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I&#8217;m having some problems using je_malloc_conf to configure jemalloc&#8217;s runtime behaviour, but *only on OSX* - Linux is fine. The behaviour I see is that any je_malloc_conf setting on OS X Mavericks (clang-503.0.40) is ignored, but works perfectly when compiling on Ubuntu 14.04, x86_64, gcc 4.8.2)
+
+I&#8217;m defining je_malloc_conf as:
+
+    const char* je_malloc_conf = &quot;narenas:1&quot;;
+
+Full reproducer is at: <A HREF="https://github.com/daverigby/jemalloc_conf/blob/master/app.c">https://github.com/daverigby/jemalloc_conf/blob/master/app.c</A>
+
+&gt;<i>From what I can tell, it appears that under linux the je_malloc_conf symbols in libjemalloc and my app are correctly merged by the dynamic linker, but under OS X I there are duplicate symbols, and malloc_conf_init() sees the (NULL) definition in the library:
+</I>
+(lldb) bt 3
+* thread #1: tid = 0x7c0445, 0x0000000100011725 libjemalloc.2.dylib`jemalloc_constructor [inlined] malloc_conf_init + 147 at jemalloc.c:477, queue = 'com.apple.main-thread, stop reason = breakpoint 2.10
+  * frame #0: 0x0000000100011725 libjemalloc.2.dylib` jemalloc_constructor [inlined] malloc_conf_init  + 147 at jemalloc.c:477
+    frame #1: 0x0000000100011692 libjemalloc.2.dylib` jemalloc_constructor [inlined] malloc_init_hard  + 34 at jemalloc.c:761
+    frame #2: 0x0000000100011670 libjemalloc.2.dylib` jemalloc_constructor [inlined] malloc_init  + 228 at jemalloc.c:357
+(lldb) p je_malloc_conf
+(const char *) $0 = 0x0000000000000000
+(lldb) image lookup --symbol je_malloc_conf
+1 symbols match 'je_malloc_conf' in ./app:
+        Address: app[0x0000000100001028] (app.__DATA.__data + 0)
+        Summary:
+1 symbols match 'je_malloc_conf' in /Users/dave/lib/libjemalloc.2.dylib:
+        Address: libjemalloc.2.dylib[0x0000000000033c00] (libjemalloc.2.dylib.__DATA.__common + 112)
+        Summary: libjemalloc.2.dylib`je_malloc_conf
+
+Can anyone suggest what I&#8217;m doing wrong, and what&#8217;s necessary to be able to set je_malloc_conf in my (OS X) application?
+
+
+Thanks,
+
+Dave Rigby
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140904/7d7acc4c/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140904/7d7acc4c/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000916.html">[OS X] Configuring jemalloc via je_malloc_conf
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#915">[ date ]</a>
+              <a href="thread.html#915">[ thread ]</a>
+              <a href="subject.html#915">[ subject ]</a>
+              <a href="author.html#915">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

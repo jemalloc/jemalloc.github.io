@@ -1,0 +1,66 @@
+>From 7ce5b58aab20c95a852a9a2d501937a3ca040228 Mon Sep 17 00:00:00 2001
+From: Alessandro Pignotti <a.pignotti@sssup.it>
+Date: Sun, 19 Aug 2012 17:51:58 +0200
+Subject: [PATCH 1/4] Add a configuration option to enable iteration over
+ allocated regions
+
+---
+ configure.ac                        |   19 +++++++++++++++++++
+ include/jemalloc/jemalloc_defs.h.in |    6 ++++++
+ 2 files changed, 25 insertions(+)
+
+diff --git a/configure.ac b/configure.ac
+index a72019e..e8cf1c3 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1023,6 +1023,24 @@ if test "x$enable_lazy_lock" = "x1" ; then
+ fi
+ AC_SUBST([enable_lazy_lock])
+ 
++dnl Disable iteration over regions by default.
++AC_ARG_ENABLE([iterate-regions],
++  [AS_HELP_STRING([--enable-iterate-regions],
++  [Enable iteration over allocated regions])],
++[if test "x$enable_iterate_regions" = "xyes" ; then
++  enable_iterate_regions="1"
++else
++  enable_iterate_regions="0"
++fi
++],
++[enable_iterate_regions="0"]
++)
++
++if test "x$enable_iterate_regions" = "x1" ; then
++  AC_DEFINE([JEMALLOC_ITERATE_REGIONS], [ ])
++fi
++AC_SUBST([enable_iterate_regions])
++
+ AC_ARG_ENABLE([tls],
+   [AS_HELP_STRING([--disable-tls], [Disable thread-local storage (__thread keyword)])],
+ if test "x$enable_tls" = "xno" ; then
+@@ -1283,4 +1301,5 @@ AC_MSG_RESULT([munmap             : ${enable_munmap}])
+ AC_MSG_RESULT([dss                : ${enable_dss}])
+ AC_MSG_RESULT([lazy_lock          : ${enable_lazy_lock}])
+ AC_MSG_RESULT([tls                : ${enable_tls}])
++AC_MSG_RESULT([iterate-regions    : ${enable_iterate_regions}])
+ AC_MSG_RESULT([===============================================================================])
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index c469142..9a37551 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -101,6 +101,12 @@
+  */
+ #undef JEMALLOC_MUTEX_INIT_CB
+ 
++/*
++ * Defined if the data structures and methods to iterate over all the
++ * allocated regions should be enabled
++ */
++#undef JEMALLOC_ITERATE_REGIONS
++
+ /* Defined if __attribute__((...)) syntax is supported. */
+ #undef JEMALLOC_HAVE_ATTR
+ #ifdef JEMALLOC_HAVE_ATTR
+-- 
+1.7.9.5
+

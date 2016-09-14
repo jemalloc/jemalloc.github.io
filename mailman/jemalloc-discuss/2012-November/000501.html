@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121105071751.GA31443%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000500.html">
+   <LINK REL="Next"  HREF="000504.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121105071751.GA31443%40glandium.org%3E"
+       TITLE="Memory usage regression">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Sun Nov  4 23:17:51 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000500.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000504.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#501">[ date ]</a>
+              <a href="thread.html#501">[ thread ]</a>
+              <a href="subject.html#501">[ subject ]</a>
+              <a href="author.html#501">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sun, Nov 04, 2012 at 09:17:32PM -0800, Jason Evans wrote:
+&gt;<i> On Nov 1, 2012, at 12:23 PM, Jason Evans wrote:
+</I>&gt;<i> &gt; On Oct 31, 2012, at 12:00 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt;&gt; 
+</I>&gt;<i> &gt;&gt; It's unfortunately only slightly better.
+</I>&gt;<i> &gt;&gt; <A HREF="http://i.imgur.com/hN1Cj.png">http://i.imgur.com/hN1Cj.png</A>
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; Thanks for testing it.  Too bad it didn't help.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I spent some time yesterday thinking about the clean vs. dirty run
+</I>&gt;<i> &gt; fragmentation problem yesterday and came to realize that up to now
+</I>&gt;<i> &gt; all of the dirty page purging strategies jemalloc has employed have
+</I>&gt;<i> &gt; been about limiting RSS, with only indirect regard for VM size.  I
+</I>&gt;<i> &gt; developed a patch that actually tracks the amount of clean/dirty run
+</I>&gt;<i> &gt; fragmentation, but I'm still working out how to act on the
+</I>&gt;<i> &gt; information.
+</I>&gt;<i> 
+</I>&gt;<i> I finally managed to experiment a bit with the aforementioned patch,
+</I>&gt;<i> and it looks reasonably good (chunk fragmentation is *way* down).  I'm
+</I>&gt;<i> seeing a higher soft page fault rate with this patch in place, but the
+</I>&gt;<i> patch and the control appear to be converging as the experiments run,
+</I>&gt;<i> so the fragmentation reduction may have some positive performance
+</I>&gt;<i> effects that mitigate the cost of extra purging.
+</I>
+This patch works quite well. The result is still above mozjemalloc, but
+the leak is plugged. Thanks.
+<A HREF="http://i.imgur.com/Z24MQ.png">http://i.imgur.com/Z24MQ.png</A>
+
+BTW, an interesting fact, if I didn't botch my stats: at the end of
+the 5 iterations, while 17MB are allocated, sucking 68MB of RSS, only
+40MB worth of pages have allocated data in them. The number is similar
+to what I get with mozjemalloc (mozjemalloc is actually about 100K
+higher than jemalloc3 on that metric, while RSS is 6MB higher with
+jemalloc3) Which means (if my stats are not broken) that there is still
+room for improving RSS.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000500.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000504.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#501">[ date ]</a>
+              <a href="thread.html#501">[ thread ]</a>
+              <a href="subject.html#501">[ subject ]</a>
+              <a href="author.html#501">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

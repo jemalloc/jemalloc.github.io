@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 02/11] Refactor object and library build,	and only build PIC libraries when PIC_CFLAGS is defined
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2002/11%5D%20Refactor%20object%20and%20library%20build%2C%0A%09and%20only%20build%20PIC%20libraries%20when%20PIC_CFLAGS%20is%20defined&In-Reply-To=%3C1334766590-7296-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000309.html">
+   <LINK REL="Next"  HREF="000315.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 02/11] Refactor object and library build,	and only build PIC libraries when PIC_CFLAGS is defined</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2002/11%5D%20Refactor%20object%20and%20library%20build%2C%0A%09and%20only%20build%20PIC%20libraries%20when%20PIC_CFLAGS%20is%20defined&In-Reply-To=%3C1334766590-7296-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 02/11] Refactor object and library build,	and only build PIC libraries when PIC_CFLAGS is defined">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Apr 18 09:29:41 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000309.html">[PATCH 01/11] Make versioned shared library suffix configurable
+</A></li>
+        <LI>Next message: <A HREF="000315.html">[PATCH 03/11] Add an abstraction layer for threading in tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#314">[ date ]</a>
+              <a href="thread.html#314">[ thread ]</a>
+              <a href="subject.html#314">[ subject ]</a>
+              <a href="author.html#314">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ Makefile.in  |   73 ++++++++++++++++++++++++++++++----------------------------
+ configure.ac |    2 ++
+ 2 files changed, 40 insertions(+), 35 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index d426cbd..8a34928 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -48,6 +48,7 @@ enable_autogen := @enable_autogen@
+ enable_experimental := @enable_experimental@
+ DSO_LDFLAGS = @DSO_LDFLAGS@
+ SOREV = @SOREV@
++PIC_CFLAGS = @PIC_CFLAGS@
+ 
+ ifeq (macho, $(ABI))
+ TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=$(objroot)lib
+@@ -73,8 +74,10 @@ ifeq (macho, $(ABI))
+ CSRCS += $(srcroot)src/zone.c
+ endif
+ STATIC_LIBS := $(objroot)lib/$(LIBJEMALLOC).$(A)
+-DSOS := $(objroot)lib/$(LIBJEMALLOC)_pic.$(A) \
+-	$(objroot)lib/$(LIBJEMALLOC).$(SOREV)
++ifdef PIC_CFLAGS
++STATIC_LIBS += $(objroot)lib/$(LIBJEMALLOC)_pic.$(A)
++endif
++DSOS := $(objroot)lib/$(LIBJEMALLOC).$(SOREV)
+ ifneq ($(SOREV),$(SO))
+ DSOS += $(objroot)lib/$(LIBJEMALLOC).$(SO)
+ endif
+@@ -91,12 +94,16 @@ ifeq ($(enable_experimental), 1)
+ CTESTS += $(srcroot)test/allocm.c $(srcroot)test/rallocm.c
+ endif
+ 
++COBJS := $(CSRCS:$(srcroot)%.c=$(objroot)%.$(O))
++CPICOBJS := $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
++CTESTOBJS := $(CTESTS:$(srcroot)%.c=$(objroot)%.$(O))
++
+ .PHONY: all dist doc_html doc_man doc
+ .PHONY: install_bin install_include install_lib
+ .PHONY: install_html install_man install_doc install
+ .PHONY: tests check clean distclean relclean
+ 
+-.SECONDARY : $(CTESTS:$(srcroot)%.c=$(objroot)%.$(O))
++.SECONDARY : $(CTESTOBJS)
+ 
+ # Default target.
+ all: build
+@@ -116,18 +123,19 @@ build_doc: $(DOCS)
+ #
+ # Include generated dependency files.
+ #
+--include $(CSRCS:$(srcroot)%.c=$(objroot)%.d)
+--include $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.d)
+--include $(CTESTS:$(srcroot)%.c=$(objroot)%.d)
++-include $(COBJS:%.$(O)=%.d)
++-include $(CPICOBJS:%.$(O)=%.d)
++-include $(CTESTOBJS:%.$(O)=%.d)
+ 
+-$(objroot)src/%.$(O): $(srcroot)src/%.c
+-	@mkdir -p $(@D)
+-	$(CC) $(CFLAGS) -c $(CPPFLAGS) -o $@ $&lt;
+-	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.$(O)=%.d) $&lt;
++$(COBJS): $(objroot)src/%.$(O): $(srcroot)src/%.c
++$(CPICOBJS): $(objroot)src/%.pic.$(O): $(srcroot)src/%.c
++$(CPICOBJS): CFLAGS += $(PIC_CFLAGS)
++$(CTESTOBJS): $(objroot)test/%.$(O): $(srcroot)test/%.c
++$(CTESTOBJS): CPPFLAGS += -I$(objroot)test
+ 
+-$(objroot)src/%.pic.$(O): $(srcroot)src/%.c
++$(COBJS) $(CPICOBJS) $(CTESTOBJS): %.$(O):
+ 	@mkdir -p $(@D)
+-	$(CC) $(CFLAGS) -fPIC -DPIC -c $(CPPFLAGS) -o $@ $&lt;
++	$(CC) $(CFLAGS) -c $(CPPFLAGS) -o $@ $&lt;
+ 	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.$(O)=%.d) $&lt;
+ 
+ ifneq ($(SOREV),$(SO))
+@@ -136,27 +144,20 @@ ifneq ($(SOREV),$(SO))
+ 	ln -sf $(&lt;F) $@
+ endif
+ 
+-$(objroot)lib/$(LIBJEMALLOC).$(SOREV) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
++$(objroot)lib/$(LIBJEMALLOC).$(SOREV) : $(if $(PIC_CFLAGS),$(CPICOBJS),$(COBJS))
+ 	@mkdir -p $(@D)
+ 	$(CC) $(DSO_LDFLAGS) $(call RPATH,$(RPATH_EXTRA)) -o $@ $+ $(LDFLAGS) $(LIBS)
+ 
+-$(objroot)lib/$(LIBJEMALLOC)_pic.$(A) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
+-	@mkdir -p $(@D)
+-	ar crus $@ $+
++$(objroot)lib/$(LIBJEMALLOC)_pic.$(A) : $(CPICOBJS)
++$(objroot)lib/$(LIBJEMALLOC).$(A) : $(COBJS)
+ 
+-$(objroot)lib/$(LIBJEMALLOC).$(A) : $(CSRCS:$(srcroot)%.c=$(objroot)%.$(O))
++$(STATIC_LIBS):
+ 	@mkdir -p $(@D)
+ 	ar crus $@ $+
+ 
+-$(objroot)test/%.$(O): $(srcroot)test/%.c
+-	@mkdir -p $(@D)
+-	$(CC) $(CFLAGS) -c $(CPPFLAGS) -I$(objroot)test -o $@ $&lt;
+-	@$(CC) -MM $(CPPFLAGS) -I$(objroot)test -MT $@ -o $(@:%.$(O)=%.d) $&lt;
+-
+ $(objroot)test/bitmap$(EXE): $(objroot)src/bitmap.$(O)
+ 
+-$(objroot)test/%$(EXE): $(objroot)test/%.$(O) $(objroot)src/util.$(O) \
+-		 $(objroot)lib/$(LIBJEMALLOC).$(SO)
++$(objroot)test/%$(EXE): $(objroot)test/%.$(O) $(objroot)src/util.$(O) $(DSOS)
+ 	@mkdir -p $(@D)
+ 	$(CC) -o $@ $(filter %.$(O),$^) $(call RPATH,$(objroot)lib) -L$(objroot)lib -ljemalloc$(install_suffix) $(LIBS)
+ 
+@@ -185,10 +186,12 @@ ifneq ($(SOREV),$(SO))
+ 	ln -sf $(LIBJEMALLOC).$(SOREV) $(LIBDIR)/$(LIBJEMALLOC).$(SO)
+ endif
+ 
+-install_lib_static: $(DSOS) $(STATIC_LIBS)
++install_lib_static: $(STATIC_LIBS)
+ 	install -d $(LIBDIR)
+-	install -m 755 $(objroot)lib/$(LIBJEMALLOC)_pic.$(A) $(LIBDIR)
+-	install -m 755 $(objroot)lib/$(LIBJEMALLOC).$(A) $(LIBDIR)
++	@for l in $(STATIC_LIBS); do \
++	echo &quot;install -m 755 $$l $(LIBDIR)&quot;; \
++	install -m 755 $$l $(LIBDIR); \
++done
+ 
+ install_lib: install_lib_shared install_lib_static
+ 
+@@ -241,14 +244,14 @@ check: tests
+ 		echo &quot;Failures: $${failures}/$${total}&quot;'
+ 
+ clean:
+-	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.$(O))
+-	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
+-	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.d)
+-	rm -f $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.d)
+-	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%$(EXE))
+-	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%.$(O))
+-	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%.d)
+-	rm -f $(CTESTS:$(srcroot)%.c=$(objroot)%.out)
++	rm -f $(COBJS)
++	rm -f $(CPICOBJS)
++	rm -f $(COBJS:%.$(O)=%.d)
++	rm -f $(CPICOBJS:%.$(O)=%.d)
++	rm -f $(CTESTOBJS:%.$(O)=%$(EXE))
++	rm -f $(CTESTOBJS)
++	rm -f $(CTESTOBJS:%.$(O)=%.d)
++	rm -f $(CTESTOBJS:%.$(O)=%.out)
+ 	rm -f $(DSOS) $(STATIC_LIBS)
+ 
+ distclean: clean
+diff --git a/configure.ac b/configure.ac
+index 0f0de90..0ed0494 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -202,6 +202,7 @@ lib=&quot;lib&quot;
+ DSO_LDFLAGS='-shared -Wl,-soname,$(@F)'
+ RPATH='-Wl,-rpath,$(1)'
+ SOREV='$(SO).$(REV)'
++PIC_CFLAGS='-fPIC -DPIC'
+ 
+ dnl Heap profiling uses the log(3) function.
+ LIBS=&quot;$LIBS -lm&quot;
+@@ -287,6 +288,7 @@ AC_SUBST([exe])
+ AC_SUBST([lib])
+ AC_SUBST([DSO_LDFLAGS])
+ AC_SUBST([SOREV])
++AC_SUBST([PIC_CFLAGS])
+ 
+ JE_COMPILABLE([__attribute__ syntax],
+               [static __attribute__((unused)) void foo(void){}],
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000309.html">[PATCH 01/11] Make versioned shared library suffix configurable
+</A></li>
+	<LI>Next message: <A HREF="000315.html">[PATCH 03/11] Add an abstraction layer for threading in tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#314">[ date ]</a>
+              <a href="thread.html#314">[ thread ]</a>
+              <a href="subject.html#314">[ subject ]</a>
+              <a href="author.html#314">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

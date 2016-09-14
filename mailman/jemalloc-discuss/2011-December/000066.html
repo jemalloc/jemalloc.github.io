@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc+zeromq segfault
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%2Bzeromq%20segfault&In-Reply-To=%3CCAFm1DRG9gCWAJKD3%2BJaVejSnnTO3pWMNYECHPb_3t6zRn%2BFqpw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000067.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc+zeromq segfault</H1>
+    <B>Peter Bourgon</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%2Bzeromq%20segfault&In-Reply-To=%3CCAFm1DRG9gCWAJKD3%2BJaVejSnnTO3pWMNYECHPb_3t6zRn%2BFqpw%40mail.gmail.com%3E"
+       TITLE="jemalloc+zeromq segfault">peter at bourgon.org
+       </A><BR>
+    <I>Wed Dec  7 06:46:16 PST 2011</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000067.html">jemalloc problem when working with dynamic library
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#66">[ date ]</a>
+              <a href="thread.html#66">[ thread ]</a>
+              <a href="subject.html#66">[ subject ]</a>
+              <a href="author.html#66">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I'm running jemalloc 2.2.4 with &#216;MQ 2.1.7. I've got a very sporadic
+segfault occurring in zmq_msg_close, while freeing a previously
+allocated message structure. The allocating and deallocating threads
+may be different, but the memory is definitely protected by a mutex.
+The segfault is only occurring under high load, and is unfortunately
+not (yet) easily reproducible.
+
+Just a shot in the dark, but has anyone seen anything like this?
+
+Backtrace follows. Thanks.
+
+__________
+#0  0x00007f6850cdd81a in free (ptr=0x7f6623688780) at
+include/jemalloc/internal/tcache.h:373
+373 include/jemalloc/internal/tcache.h: No such file or directory.
+    in include/jemalloc/internal/tcache.h
+(gdb) bt
+#0  0x00007f6850cdd81a in free (ptr=0x7f6623688780) at
+include/jemalloc/internal/tcache.h:373
+#1  0x00007f68501763f9 in zmq_msg_close (msg_=0x47d70bc0) at zmq.cpp:153
+#2  0x0000000000423206 in buffer_read_message_from_socket
+(socket=0x7f684180e200) at ../src/broker.c:579
+#3  0x0000000000423d77 in broker_thread (arg=0x0) at ../src/broker.c:828
+#4  0x00007f68507c5fc7 in start_thread () from /lib/libpthread.so.0
+#5  0x00007f684e26e64d in clone () from /lib/libc.so.6
+#6  0x0000000000000000 in ?? ()
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000067.html">jemalloc problem when working with dynamic library
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#66">[ date ]</a>
+              <a href="thread.html#66">[ thread ]</a>
+              <a href="subject.html#66">[ subject ]</a>
+              <a href="author.html#66">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

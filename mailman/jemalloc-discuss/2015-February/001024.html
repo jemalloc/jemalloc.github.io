@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc debug mode
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20debug%20mode&In-Reply-To=%3C136B0B63-9856-4EA7-B1D4-D76754D0EEB8%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001012.html">
+   <LINK REL="Next"  HREF="001013.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc debug mode</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20debug%20mode&In-Reply-To=%3C136B0B63-9856-4EA7-B1D4-D76754D0EEB8%40canonware.com%3E"
+       TITLE="Jemalloc debug mode">jasone at canonware.com
+       </A><BR>
+    <I>Wed Feb  4 21:44:50 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001012.html">Jemalloc debug mode
+</A></li>
+        <LI>Next message: <A HREF="001013.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1024">[ date ]</a>
+              <a href="thread.html#1024">[ thread ]</a>
+              <a href="subject.html#1024">[ subject ]</a>
+              <a href="author.html#1024">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 30, 2015, at 7:18 AM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+&gt;<i> I am running following simple test case but double free is not detected, what am I missing ?
+</I>&gt;<i> 
+</I>&gt;<i> [df.c]
+</I>
+I saved your program as ~/jemalloc/df.c, added #include &lt;stdlib.h&gt;, then did the following:
+
+	gcc -g df.c -o df
+	./autogen.sh --enable-prof --enable-prof-libunwind --enable-debug &amp;&amp; make all
+	LD_PRELOAD=$HOME/jemalloc/lib/libjemalloc.so.2 MALLOC_CONF=tcache:false ./df
+
+Here's the result:
+
+	&lt;jemalloc&gt;: include/jemalloc/internal/arena.h:1003: Failed assertion: &quot;arena_mapbits_allocated_get(chunk, pageind) != 0&quot;
+
+You can verify that you're actually using jemalloc (and that it's configured as you intend) by adding stats_print:true to MALLOC_CONF, e.g.:
+
+	LD_PRELOAD=$HOME/jemalloc/lib/libjemalloc.so.2 MALLOC_CONF=tcache:false,stats_print:true ./df
+
+&gt;<i> 2.  Is quarantine basically a per thread free list ? How does it interact with tcache ?
+</I>
+
+tcache is a lower level facility than quarantine, so freed objects travel quarantine--&gt;tcache--&gt;arena.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001012.html">Jemalloc debug mode
+</A></li>
+	<LI>Next message: <A HREF="001013.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1024">[ date ]</a>
+              <a href="thread.html#1024">[ thread ]</a>
+              <a href="subject.html#1024">[ subject ]</a>
+              <a href="author.html#1024">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

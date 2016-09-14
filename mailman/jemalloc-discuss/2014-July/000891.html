@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Extracting%20the%20starting%20address%20of%20the%20arena_run_t%20from%20the%0A%09mapping%20information%20present%20in%20arena_chunk_t%20for%20each%20page&In-Reply-To=%3C1405630079.49264.YahooMailNeo%40web193405.mail.sg3.yahoo.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000888.html">
+   <LINK REL="Next"  HREF="000883.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page</H1>
+    <B>shireesh bhat</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Extracting%20the%20starting%20address%20of%20the%20arena_run_t%20from%20the%0A%09mapping%20information%20present%20in%20arena_chunk_t%20for%20each%20page&In-Reply-To=%3C1405630079.49264.YahooMailNeo%40web193405.mail.sg3.yahoo.com%3E"
+       TITLE="Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page">shireeshbhat at yahoo.co.in
+       </A><BR>
+    <I>Thu Jul 17 13:47:59 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000888.html">Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+</A></li>
+        <LI>Next message: <A HREF="000883.html">network registered memory and pages_purge()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#891">[ date ]</a>
+              <a href="thread.html#891">[ thread ]</a>
+              <a href="subject.html#891">[ subject ]</a>
+              <a href="author.html#891">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>[Adding jemalloc-discuss group]
+
+
+
+On Thursday, 17 July 2014 4:29 PM, shireesh bhat &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">shireeshbhat at yahoo.co.in</A>&gt; wrote:
+ 
+
+
+Hi Jason,
+Suppose I have an arena_chunk and the map has the following information
+map[0].bits = 0x3ff8
+map[1].bits = 0x2ff8
+map[2].bits = 0x3ff8
+map[3].bits = 0x149
+
+0x149 = 101001001
+
+In this example
+
+Only map[3] points to an allocated page and it is a small allocation and the bin index is 0x14 but I don't have any page offset. This is the case with many small allocations and I don't have any page offset.
+
+Since I am running on a 32 bit machine, I use the following layout mentioned in the explanation of arena_chunk_map_s
+???????? ???????? ????nnnn nnnndula
+
+Can you please tell me If I am missing something very basic.
+
+Regards,
+Shireesh
+
+
+On Thursday, 17 July 2014 3:31 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+ 
+
+
+On Jul 17, 2014, at 11:28 AM, shireesh bhat &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">shireeshbhat at yahoo.co.in</A>&gt; wrote:
+Even if I find out the page's offset how do I find the address of arena_run_t, since I just know the mapping information for every page which is present in arena_chunk_t.
+
+Take a close look at the header comments for struct arena_chunk_map_s. &#160;The information is in the chunk's page map, which it sounds like you've already figured out how to access.
+
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140718/11e6ba07/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140718/11e6ba07/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000888.html">Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+</A></li>
+	<LI>Next message: <A HREF="000883.html">network registered memory and pages_purge()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#891">[ date ]</a>
+              <a href="thread.html#891">[ thread ]</a>
+              <a href="subject.html#891">[ subject ]</a>
+              <a href="author.html#891">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

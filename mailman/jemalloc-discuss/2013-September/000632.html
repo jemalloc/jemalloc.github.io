@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] malloc_conf_init: revert errno value when readlink(2) fail.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20malloc_conf_init%3A%20revert%20errno%20value%20when%20readlink%282%29%20fail.&In-Reply-To=%3C523C983E.4020104%40kaworu.ch%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000631.html">
+   <LINK REL="Next"  HREF="000633.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] malloc_conf_init: revert errno value when readlink(2) fail.</H1>
+    <B>Alex</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20malloc_conf_init%3A%20revert%20errno%20value%20when%20readlink%282%29%20fail.&In-Reply-To=%3C523C983E.4020104%40kaworu.ch%3E"
+       TITLE="[PATCH] malloc_conf_init: revert errno value when readlink(2) fail.">alex at kaworu.ch
+       </A><BR>
+    <I>Fri Sep 20 11:47:26 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000631.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+        <LI>Next message: <A HREF="000633.html">double allocations:
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#632">[ date ]</a>
+              <a href="thread.html#632">[ thread ]</a>
+              <a href="subject.html#632">[ subject ]</a>
+              <a href="author.html#632">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+In malloc_conf_init(), readlink(2) is called in order to read 
+&quot;/etc/malloc.conf&quot;. When readlink(2) fail (which is a common case, for 
+exemple when &quot;/etc/malloc.conf&quot; does not exists) errno is set. This can 
+lead to unexpected behaviour of malloc(), in my case malloc() set 
+errno=2 (ENOENT) because &quot;/etc/malloc.conf&quot; does not exist (see test.c 
+attached).
+
+I wrote a patch that fixed the issue (against the dev branch). At first 
+I didn't catch the !_WIN32 condition, so review is welcome (I could not 
+test it under Windows). Also I thought it might be better to save &amp; 
+restore errno in malloc_init(), because it could catch other function 
+call modifying errno. Does this make sens ?
+
+Patch attached :)
+
+Regards,
+Alex.
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-malloc_conf_init-revert-errno-value-when-readlink-2-.patch
+Type: text/x-patch
+Size: 1465 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130920/887e7139/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130920/887e7139/attachment.bin</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: test.c
+Type: text/x-csrc
+Size: 267 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130920/887e7139/attachment.c">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130920/887e7139/attachment.c</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000631.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+	<LI>Next message: <A HREF="000633.html">double allocations:
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#632">[ date ]</a>
+              <a href="thread.html#632">[ thread ]</a>
+              <a href="subject.html#632">[ subject ]</a>
+              <a href="author.html#632">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> How to adjust parameters for jemalloc profiling
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20adjust%20parameters%20for%20jemalloc%20profiling&In-Reply-To=%3CCAE0%2B06kiqi%2Byb0VnWLUWEsr7CJsLrq_%2BxT19U-vU%3DgHFTS1NEw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000561.html">
+   <LINK REL="Next"  HREF="000563.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>How to adjust parameters for jemalloc profiling</H1>
+    <B>Yingfeng Zhang</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20adjust%20parameters%20for%20jemalloc%20profiling&In-Reply-To=%3CCAE0%2B06kiqi%2Byb0VnWLUWEsr7CJsLrq_%2BxT19U-vU%3DgHFTS1NEw%40mail.gmail.com%3E"
+       TITLE="How to adjust parameters for jemalloc profiling">yingfeng.zhang at gmail.com
+       </A><BR>
+    <I>Mon Feb 25 06:53:47 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000561.html">2MB (hugetlb) page support on Linux
+</A></li>
+        <LI>Next message: <A HREF="000563.html">How to adjust parameters for jemalloc profiling
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#562">[ date ]</a>
+              <a href="thread.html#562">[ thread ]</a>
+              <a href="subject.html#562">[ subject ]</a>
+              <a href="author.html#562">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+Recently I've met a profiling challenge that has something to do with
+jemalloc:
+There are two threads, one of which runs the following index() function
+while the other runs search() below. Within each thread, memory allocation
+is frequently called especially within the index() function.  Although
+there does not exist any race condition between the two threads, I could
+see that the performance of search() has been seriously affected---maybe
+downgraded to tens of times than the situation no index thread is running.
+&gt;<i>From some profiling tools could I conclude that the performance downgrading
+</I>has something to do with the memory allocation. Suppose within search(),
+over 2k malloc/free is called, and the overall time could be lowered from
+3ms to 0.4s if index thread is started, but search() will never be affected
+if it runs within a forked process instead of thread.
+
+void index()
+{
+}
+
+void search()
+{
+}
+
+
+I believe it has something to do with the parameter tuning for jemalloc,
+could anybody help me in figuring out such configuration?
+Very grateful!
+
+-- 
+Best Regards
+Yingfeng
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130225/cfbcaa9c/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130225/cfbcaa9c/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000561.html">2MB (hugetlb) page support on Linux
+</A></li>
+	<LI>Next message: <A HREF="000563.html">How to adjust parameters for jemalloc profiling
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#562">[ date ]</a>
+              <a href="thread.html#562">[ thread ]</a>
+              <a href="subject.html#562">[ subject ]</a>
+              <a href="author.html#562">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

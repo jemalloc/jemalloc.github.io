@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C54D9943D.5010300%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001031.html">
+   <LINK REL="Next"  HREF="001033.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C54D9943D.5010300%40gmail.com%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">danielmicay at gmail.com
+       </A><BR>
+    <I>Mon Feb  9 21:16:45 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001031.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001033.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1032">[ date ]</a>
+              <a href="thread.html#1032">[ thread ]</a>
+              <a href="subject.html#1032">[ subject ]</a>
+              <a href="author.html#1032">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+
+On 09/02/15 11:32 PM, Mike Hommey wrote:
+&gt;<i> On Wed, Feb 04, 2015 at 10:15:37AM -0800, Jason Evans wrote:
+</I>&gt;&gt;<i> On Feb 3, 2015, at 4:40 PM, Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> On Tue, Feb 03, 2015 at 04:19:00PM -0800, Jason Evans wrote:
+</I>&gt;&gt;&gt;&gt;<i> On Feb 3, 2015, at 2:51 PM, Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt; wrote:
+</I>&gt;&gt;&gt;&gt;&gt;<i> I've been tracking a startup time regression in Firefox for
+</I>&gt;&gt;&gt;&gt;&gt;<i> Android when we tried to switch from mozjemalloc (memory
+</I>&gt;&gt;&gt;&gt;&gt;<i> refresher: it's derived from jemalloc 0.9) to mostly current
+</I>&gt;&gt;&gt;&gt;&gt;<i> jemalloc dev.
+</I>&gt;&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;&gt;<i> It turned out to be <A HREF="https://github.com/jemalloc/jemalloc/pull/192">https://github.com/jemalloc/jemalloc/pull/192</A>
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> I intentionally removed the functionality #192 adds back (in
+</I>&gt;&gt;&gt;&gt;<i> e3d13060c8a04f08764b16b003169eb205fa09eb), but apparently forgot to
+</I>&gt;&gt;&gt;&gt;<i> update the documentation.  Do you have an understanding of why it's
+</I>&gt;&gt;&gt;&gt;<i> hurting performance so much?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> My understanding is that the huge increase in page faults is making
+</I>&gt;&gt;&gt;<i> the difference. On Firefox startup we go from 50k page faults to 35k
+</I>&gt;&gt;&gt;<i> with that patch. I can surely double check whether it's really the
+</I>&gt;&gt;&gt;<i> page faults, or if it's actually the madvising itself that causes
+</I>&gt;&gt;&gt;<i> the regression. Or both.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Is there any chance you can make your test case available so I can
+</I>&gt;&gt;&gt;&gt;<i> dig in further?
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> <A HREF="https://gist.githubusercontent.com/glandium/a42d0265e324688cafc4/raw/gistfile1.c">https://gist.githubusercontent.com/glandium/a42d0265e324688cafc4/raw/gistfile1.c</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I added some logging and determined that ~90% of the dirty page
+</I>&gt;&gt;<i> purging is happening in the first 2% of the allocation trace.  This
+</I>&gt;&gt;<i> appears to be almost entirely due to repeated 32 KiB
+</I>&gt;&gt;<i> allocation/deallocation.
+</I>&gt;<i> 
+</I>&gt;<i> So, interestingly, this appears to be a bug that was intended to have
+</I>&gt;<i> been fixed, but wasn't (the repeated allocation/deallocation of 32kiB
+</I>&gt;<i> buffers). Fixing that, however, still leaves us with a big difference in
+</I>&gt;<i> the number of page faults (but lower than before), but now the dirty
+</I>&gt;<i> page purging threshold patch seems to have less impact than it did...
+</I>
+I think jemalloc now uses FIFO for purging, and that may not play very
+well with the preference for reusing low addresses with some patterns.
+
+FWIW, if you have large spans of memory that you know you are going to
+use, you can greatly reduce the cost of page faults by pre-faulting with
+MADV_WILLNEED instead of the regular lazy commit.
+
+&gt;<i> I haven't analyzed these builds further yet, so I can't really tell much
+</I>&gt;<i> more at the moment.
+</I>&gt;<i> 
+</I>&gt;&gt;<i> I still have vague plans to add time-based hysteresis mechanisms so
+</I>&gt;&gt;<i> that #192 isn't necessary, but until then, #192 it is.
+</I>&gt;<i> 
+</I>&gt;<i> Sadly, #192 also makes the RSS footprint bigger when using more than one
+</I>&gt;<i> arena. With 4 cores, so 16 arenas, and default 4MB chunks, that's 64MB
+</I>&gt;<i> of memory that won't be purged. It's not a problem for us because we use
+</I>&gt;<i> 1MB chunks and 1 arena, but I can see this being a problem with the
+</I>&gt;<i> default settings.
+</I>
+This would be a lot less bad with the per-core arena design, since it
+would be a n_cores multipler instead of n_cores * 4.
+
+&gt;<i> FWIW, I also tried to remove all the bin mutexes, and make them all use
+</I>&gt;<i> the arena mutex, and, counter-intuitively, it made things faster. Not by
+</I>&gt;<i> a very significant margin, though, but it's interesting to note that the
+</I>&gt;<i> synchronization overheads of n locks can make things slower than 1
+</I>&gt;<i> lock with more contention.
+</I>
+It's not really surprising. A LOCK prefix on x86 is extremely expensive
+so locks without contention still have an enormous cost, as do many of
+the atomic operations. An atomic_load() with acquire semantics or an
+atomic_store() with release semantics are fast since no LOCK is needed.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/5959c8d7/attachment-0001.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/5959c8d7/attachment-0001.sig</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001031.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001033.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1032">[ date ]</a>
+              <a href="thread.html#1032">[ thread ]</a>
+              <a href="subject.html#1032">[ subject ]</a>
+              <a href="author.html#1032">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

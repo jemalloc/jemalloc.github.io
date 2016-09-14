@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [7ca0fdf] Disable munmap() if it causes VM map holes
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5B7ca0fdf%5D%20Disable%20munmap%28%29%20if%20it%20causes%20VM%20map%20holes&In-Reply-To=%3C20120417060309.GA31907%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000292.html">
+   <LINK REL="Next"  HREF="000296.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[7ca0fdf] Disable munmap() if it causes VM map holes</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5B7ca0fdf%5D%20Disable%20munmap%28%29%20if%20it%20causes%20VM%20map%20holes&In-Reply-To=%3C20120417060309.GA31907%40glandium.org%3E"
+       TITLE="[7ca0fdf] Disable munmap() if it causes VM map holes">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 16 23:03:09 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000292.html">[7ca0fdf] Disable munmap() if it causes VM map holes
+</A></li>
+        <LI>Next message: <A HREF="000296.html">[PATCH] Make versioned shared library suffix configurable
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#294">[ date ]</a>
+              <a href="thread.html#294">[ thread ]</a>
+              <a href="subject.html#294">[ subject ]</a>
+              <a href="author.html#294">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Apr 16, 2012 at 02:40:52PM -0700, Jason Evans wrote:
+&gt;<i> On Apr 16, 2012, at 2:19 PM, Mike Hommey wrote:
+</I>&gt;<i> &gt; Hoped for 0x7f82e5237000, got 0x7f82e5237000
+</I>&gt;<i> &gt; 0x7f82e5637000..0x7f82e5237000..0x7f82e4e37000..0x7f82e4637000..0x7f82e5237000
+</I>&gt;<i> 
+</I>&gt;<i> Huh.  The only explanation I can think of is that the dynamic loader
+</I>&gt;<i> is calling mmap in the midst of the mmap/munmap calls, thus resetting
+</I>&gt;<i> the &quot;start from&quot; address to use for address scanning.
+</I>
+It's not even that. The only mmaps happening are these ones. The dynamic
+linker is done when main is entered.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000292.html">[7ca0fdf] Disable munmap() if it causes VM map holes
+</A></li>
+	<LI>Next message: <A HREF="000296.html">[PATCH] Make versioned shared library suffix configurable
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#294">[ date ]</a>
+              <a href="thread.html#294">[ thread ]</a>
+              <a href="subject.html#294">[ subject ]</a>
+              <a href="author.html#294">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

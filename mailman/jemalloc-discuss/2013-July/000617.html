@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Using jemalloc with static link
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Using%20jemalloc%20with%20static%20link&In-Reply-To=%3CAB5DE35C-211E-439A-AFC0-65EA0B2D1EC5%40cleversafe.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000616.html">
+   <LINK REL="Next"  HREF="000618.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Using jemalloc with static link</H1>
+    <B>Greg Dhuse</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Using%20jemalloc%20with%20static%20link&In-Reply-To=%3CAB5DE35C-211E-439A-AFC0-65EA0B2D1EC5%40cleversafe.com%3E"
+       TITLE="Using jemalloc with static link">gdhuse at cleversafe.com
+       </A><BR>
+    <I>Fri Jul 19 08:23:33 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000616.html">Using jemalloc with static link
+</A></li>
+        <LI>Next message: <A HREF="000618.html">Using jemalloc with static link
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#617">[ date ]</a>
+              <a href="thread.html#617">[ thread ]</a>
+              <a href="subject.html#617">[ subject ]</a>
+              <a href="author.html#617">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Colin,
+
+
+On Jul 19, 2013, at 2:41 AM, Colin Hercus &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">colin at novocraft.com</A>&gt; wrote:
+
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> I am trying to test a HPC appl'n with jemalloc to see if it can reduce memory fragmentation and slow memory growth of a long running multi-threaded app.
+</I>&gt;<i> 
+</I>&gt;<i> This application is statically linked as it's not open source and we need one binary distribution to run on multiple Linux versions.
+</I>&gt;<i> 
+</I>&gt;<i> If I configure jemalloc without a jemalloc prefix (je_) and link with -static -ljemalloc I get linker errors for multiply defined symbols
+</I>&gt;<i> 
+</I>&gt;<i> g++  -m64 -Wl,--eh-frame-hdr -o ./bin/xxxx ./obj/xxxx.o  .....   -static -pthread -lcrypto -lz -lbz2 -ldl  -ljemalloc -lunwind -Wl,-Map=gccmaps/xxxx.map
+</I>&gt;<i> /usr/lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu/libcrypto.a(dso_dlfcn.o): In function `dlfcn_globallookup':
+</I>&gt;<i> /usr/lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu/libc.a(malloc.o): In function `__libc_free':
+</I>&gt;<i> (.text+0x56b0): multiple definition of `free'
+</I>&gt;<i> jemalloc.o:/wd5/downloads/malloc/jemalloc-3.4.0/src/jemalloc.c:1254: first defined here
+</I>&gt;<i> /usr/lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu/libc.a(malloc.o): In function `__libc_malloc':
+</I>&gt;<i> (.text+0x50d0): multiple definition of `malloc'
+</I>&gt;<i> jemalloc.o:/wd5/downloads/malloc/jemalloc-3.4.0/src/jemalloc.c:857: first defined here
+</I>&gt;<i> /usr/lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu/libc.a(malloc.o): In function `__libc_realloc':
+</I>&gt;<i> (.text+0x57a0): multiple definition of `realloc'
+</I>&gt;<i> jemalloc.o:/wd5/downloads/malloc/jemalloc-3.4.0/src/jemalloc.c:1105: first defined here
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> If I build with a prefix of je_ then linking is okay but memory allocation is via glibc malloc. The same is true if I dynamically link without a prefix.
+</I>&gt;<i> 
+</I>&gt;<i> Is there any simple easy way to get je_malloc to hook itself in as a replacement for malloc the way tcmalloc does?
+</I>&gt;<i> 
+</I>
+One option is to use glibc's mallloc hooks: 
+<A HREF="http://www.gnu.org/software/libc/manual/html_node/Hooks-for-Malloc.html">http://www.gnu.org/software/libc/manual/html_node/Hooks-for-Malloc.html</A>
+
+Here's a small example program that hooks malloc and free, calling jemalloc's implementation built with &quot;--with-jemalloc-prefix=je_&quot;:
+
+#include &lt;stdlib.h&gt;
+#include &lt;jemalloc/jemalloc.h&gt;
+
+/* Prototypes for __malloc_hook, __free_hook */
+#include &lt;malloc.h&gt;
+
+/* Prototypes for our hooks.  */
+static void my_init_hook (void);
+static void *my_malloc_hook (size_t, const void *);
+static void my_free_hook (void*, const void *);
+     
+/* Override initializing hook from the C library. */
+void (*__malloc_initialize_hook) (void) = my_init_hook;
+
+
+static void
+my_init_hook (void)
+{
+	__malloc_hook = my_malloc_hook;
+	__free_hook = my_free_hook;
+}
+     
+static void *
+my_malloc_hook (size_t size, const void *caller)
+{
+	return je_malloc(size);
+}
+
+static void
+my_free_hook (void *ptr, const void *caller) 
+{
+	je_free(ptr);
+}
+
+
+int main() 
+{
+	je_malloc_stats_print(NULL, NULL, NULL);
+
+	void *foo = malloc(123);
+	je_malloc_stats_print(NULL, NULL, NULL);
+	free(foo);
+
+	return 0;
+}
+
+
+Cheers,
+ Greg
+
+
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000616.html">Using jemalloc with static link
+</A></li>
+	<LI>Next message: <A HREF="000618.html">Using jemalloc with static link
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#617">[ date ]</a>
+              <a href="thread.html#617">[ thread ]</a>
+              <a href="subject.html#617">[ subject ]</a>
+              <a href="author.html#617">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1247 @@
+From antirez at gmail.com  Fri Jul  4 02:02:34 2014
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Fri, 4 Jul 2014 11:02:34 +0200
+Subject: Allocation latency during fork
+Message-ID: <CA+XzkVczWbQrqhxB4uNpWSOOP3mm57jTfZg4sjfdC-84Nn9iHA@mail.gmail.com>
+
+Hello,
+
+while trying to profile my application for sources of latency, I
+noticed that after the fork() call, if there are an high number of
+allocations ongoing, one of the next allocations (the first maybe?)
+after fork()  shows very high latency (~400 milliseconds) in a process
+using 2GB of memory.
+
+The problem exists both in jemalloc 3.2.0 and 3.6.0 so it does not
+look like a regression.
+I tried with the glibc standard allocator and I can't reproduce the
+issue, so looks like allocator-specific.
+
+There is some way I can mitigate ore remove this issue?
+
+Thanks,
+Salvatore
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - GoPivotal
+http://invece.org
+
+"One would never undertake such a thing if one were not driven on by
+some demon whom one can neither resist nor understand."
+       ? George Orwell
+
+From jasone at canonware.com  Tue Jul  8 10:27:55 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 8 Jul 2014 10:27:55 -0700
+Subject: Allocation latency during fork
+In-Reply-To: <CA+XzkVczWbQrqhxB4uNpWSOOP3mm57jTfZg4sjfdC-84Nn9iHA@mail.gmail.com>
+References: <CA+XzkVczWbQrqhxB4uNpWSOOP3mm57jTfZg4sjfdC-84Nn9iHA@mail.gmail.com>
+Message-ID: <D658C315-4333-410C-B5A1-5A409BE38516@canonware.com>
+
+On Jul 4, 2014, at 2:02 AM, Salvatore Sanfilippo <antirez at gmail.com> wrote:
+> while trying to profile my application for sources of latency, I
+> noticed that after the fork() call, if there are an high number of
+> allocations ongoing, one of the next allocations (the first maybe?)
+> after fork()  shows very high latency (~400 milliseconds) in a process
+> using 2GB of memory.
+> 
+> The problem exists both in jemalloc 3.2.0 and 3.6.0 so it does not
+> look like a regression.
+> I tried with the glibc standard allocator and I can't reproduce the
+> issue, so looks like allocator-specific.
+> 
+> There is some way I can mitigate ore remove this issue?
+
+I'm guessing that jemalloc is accessing a lot of pages (dirty page purging?), and copy-on-write overhead due to the fork is hurting a lot.    The best way I know of to avoid this overhead is to "pre-fork" one or more processes early during application startup (before memory usage grows large), and communicate with these via pipes to fork+exec processes.  This avoids marking the 2 GB of pages in your main process as copy-on-write during fork, which reduces fork overhead as well as page fault rate.  You can take a look at hhvm's LightProcess class for an example implementation:
+
+	https://github.com/facebook/hhvm/blob/master/hphp/util/light-process.h
+	https://github.com/facebook/hhvm/blob/master/hphp/util/light-process.cpp
+
+Jason
+
+From edsiper at gmail.com  Tue Jul  8 13:28:03 2014
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Tue, 8 Jul 2014 14:28:03 -0600
+Subject: crash on je_arena_dalloc_bin_locked
+Message-ID: <CAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK+2STu-9w+=rV3A2jQ@mail.gmail.com>
+
+Hi All,
+
+i am using jemalloc as part of our web services framework stack and
+running on high loads (after every 6 hours of work) i find common
+segfaults like the one described here.
+
+It was triggered on je_arena_dalloc_bin_locked(..). Do you have some
+idea that what can be causing the problem ?
+
+(gdb) bt
+#0  0x00007f50eab23425 in __GI_raise (sig=<optimized out>) at
+../nptl/sysdeps/unix/sysv/linux/raise.c:64
+#1  0x00007f50eab26b8b in __GI_abort () at abort.c:91
+#2  0x000000000040d232 in mk_signal_handler (signo=11,
+si=0x7f50de7f96f0, context=0x7f50de7f95c0) at mk_signals.c:108
+#3  <signal handler called>
+#4  je_arena_dalloc_bin_locked (arena=0x7f50ea409240,
+chunk=0x7f50e4c00000, ptr=<optimized out>, mapelm=<optimized out>) at
+src/arena.c:1897
+#5  0x000000000043fd55 in je_tcache_bin_flush_small
+(tbin=0x7f50dac06248, binind=17, rem=0, tcache=0x7f50dac06000) at
+src/tcache.c:127
+#6  0x000000000044052d in je_tcache_event_hard (tcache=0x7f50dac06000)
+at src/tcache.c:39
+#7  0x000000000041a61f in je_tcache_event (tcache=0x7f50dac06000) at
+include/jemalloc/internal/tcache.h:271
+#8  je_tcache_alloc_large (size=<optimized out>, tcache=<optimized
+out>, zero=<optimized out>) at include/jemalloc/internal/tcache.h:384
+#9  je_arena_malloc (zero=false, size=<optimized out>, arena=0x0,
+try_tcache=true) at include/jemalloc/internal/arena.h:969
+#10 je_imalloct (arena=0x0, try_tcache=true, size=<optimized out>) at
+include/jemalloc/internal/jemalloc_internal.h:771
+#11 je_imalloc (size=<optimized out>) at
+include/jemalloc/internal/jemalloc_internal.h:780
+#12 je_malloc (size=<optimized out>) at src/jemalloc.c:929
+#13 0x00000000004161bc in mk_mem_malloc (size=24) at ./include/mk_memory.h:49
+#14 0x00007f50e8d251fc in cb_dashboard (dr=0x7f50d86e8800) at main.c:340
+#15 0x00007f50ea8e1c90 in duda_map_static_check (dr=0x7f50d86e8800) at
+duda_map.c:111
+#16 0x00007f50ea8de6e7 in duda_service_run (plugin=0x7f50ea00e280,
+cs=0x7f50d8740000, sr=0x7f50d8741058, web_service=0x7f50ea03d100) at
+duda.c:934
+#17 0x00007f50ea8dead7 in _mkp_stage_30 (plugin=0x7f50ea00e280,
+cs=0x7f50d8740000, sr=0x7f50d8741058) at duda.c:1072
+#18 0x0000000000417739 in mk_plugin_stage_run (hook=16, socket=505,
+conx=0x0, cs=0x7f50d8740000, sr=0x7f50d8741058) at mk_plugin.c:627
+#19 0x0000000000412c0a in mk_http_init (cs=0x7f50d8740000,
+sr=0x7f50d8741058) at mk_http.c:388
+#20 0x0000000000409f1d in mk_request_process (cs=0x7f50d8740000,
+sr=0x7f50d8741058) at mk_request.c:589
+#21 0x000000000040a25c in mk_handler_write (socket=505,
+cs=0x7f50d8740000) at mk_request.c:709
+#22 0x000000000041180e in mk_conn_write (socket=505) at mk_connection.c:150
+#23 0x000000000040f441 in mk_epoll_init (efd=23, max_events=249996) at
+mk_epoll.c:263
+#24 0x0000000000410129 in mk_sched_launch_worker_loop
+(thread_conf=0x7f50ea013370) at mk_scheduler.c:407
+#25 0x00007f50eaeb3e9a in start_thread (arg=0x7f50de7fe700) at
+pthread_create.c:308
+#26 0x00007f50eabe0ccd in clone () at
+../sysdeps/unix/sysv/linux/x86_64/clone.S:112
+#27 0x0000000000000000 in ?? ()
+
+we are using Jemalloc 3.6.0 (stable) on Linux.
+
+best
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+
+From rnsanchez at wait4.org  Wed Jul  9 05:05:46 2014
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Wed, 9 Jul 2014 09:05:46 -0300
+Subject: crash on je_arena_dalloc_bin_locked
+In-Reply-To: <CAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK+2STu-9w+=rV3A2jQ@mail.gmail.com>
+References: <CAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK+2STu-9w+=rV3A2jQ@mail.gmail.com>
+Message-ID: <20140709090546.34ffd2e9@darkbook.lan.box>
+
+On Tue, 8 Jul 2014 14:28:03 -0600
+Eduardo Silva <edsiper at gmail.com> wrote:
+
+> #10 je_imalloct (arena=0x0, try_tcache=true, size=<optimized out>) at
+> include/jemalloc/internal/jemalloc_internal.h:771
+> #11 je_imalloc (size=<optimized out>) at
+> include/jemalloc/internal/jemalloc_internal.h:780
+> #12 je_malloc (size=<optimized out>) at src/jemalloc.c:929
+> #13 0x00000000004161bc in mk_mem_malloc (size=24) at ./include/mk_memory.h:49
+> #14 0x00007f50e8d251fc in cb_dashboard (dr=0x7f50d86e8800) at main.c:340
+
+Any chance you ran out of memory?
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+From jasone at canonware.com  Wed Jul  9 07:44:14 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 9 Jul 2014 07:44:14 -0700
+Subject: crash on je_arena_dalloc_bin_locked
+In-Reply-To: <CAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK+2STu-9w+=rV3A2jQ@mail.gmail.com>
+References: <CAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK+2STu-9w+=rV3A2jQ@mail.gmail.com>
+Message-ID: <6D6C00CE-19FF-4145-8E10-877F18384E40@canonware.com>
+
+On Jul 8, 2014, at 1:28 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> i am using jemalloc as part of our web services framework stack and
+> running on high loads (after every 6 hours of work) i find common
+> segfaults like the one described here.
+> 
+> It was triggered on je_arena_dalloc_bin_locked(..). Do you have some
+> idea that what can be causing the problem ?
+> 
+> (gdb) bt
+> #0  0x00007f50eab23425 in __GI_raise (sig=<optimized out>) at
+> ../nptl/sysdeps/unix/sysv/linux/raise.c:64
+> #1  0x00007f50eab26b8b in __GI_abort () at abort.c:91
+> #2  0x000000000040d232 in mk_signal_handler (signo=11,
+> si=0x7f50de7f96f0, context=0x7f50de7f95c0) at mk_signals.c:108
+> #3  <signal handler called>
+> #4  je_arena_dalloc_bin_locked (arena=0x7f50ea409240,
+> chunk=0x7f50e4c00000, ptr=<optimized out>, mapelm=<optimized out>) at
+> src/arena.c:1897
+
+This looks like a crash due to a double-freed region being flushed from the thread cache.  You may be able to find the actual source of the problem if you use a debug build of jemalloc and disable thread caching (MALLOC_CONF=tcache:false).
+
+Jason
+
+
+From shireeshbhat at yahoo.co.in  Wed Jul  9 09:07:28 2014
+From: shireeshbhat at yahoo.co.in (shireesh bhat)
+Date: Thu, 10 Jul 2014 00:07:28 +0800
+Subject: GDB Python Scripts for jemalloc(3.5)
+Message-ID: <1404922048.4473.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+
+I need some help in debugging a piece of code which uses jemalloc. I am looking for gdb python scripts which have been integrated with jemalloc 3.5+
+
+Regards,
+Shireesh
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140710/88b92eed/attachment.html>
+
+From edsiper at gmail.com  Wed Jul  9 09:19:33 2014
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Wed, 9 Jul 2014 10:19:33 -0600
+Subject: crash on je_arena_dalloc_bin_locked
+In-Reply-To: <6D6C00CE-19FF-4145-8E10-877F18384E40@canonware.com>
+References: <CAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK+2STu-9w+=rV3A2jQ@mail.gmail.com>
+	<6D6C00CE-19FF-4145-8E10-877F18384E40@canonware.com>
+Message-ID: <CAMAQheN+0RtWJh0OPJDNjWC39=2gCYz7M5JBLLbrzpFXugJSiA@mail.gmail.com>
+
+On Wed, Jul 9, 2014 at 8:44 AM, Jason Evans <jasone at canonware.com> wrote:
+> On Jul 8, 2014, at 1:28 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+>> i am using jemalloc as part of our web services framework stack and
+>> running on high loads (after every 6 hours of work) i find common
+>> segfaults like the one described here.
+>>
+>> It was triggered on je_arena_dalloc_bin_locked(..). Do you have some
+>> idea that what can be causing the problem ?
+>>
+>> (gdb) bt
+>> #0  0x00007f50eab23425 in __GI_raise (sig=<optimized out>) at
+>> ../nptl/sysdeps/unix/sysv/linux/raise.c:64
+>> #1  0x00007f50eab26b8b in __GI_abort () at abort.c:91
+>> #2  0x000000000040d232 in mk_signal_handler (signo=11,
+>> si=0x7f50de7f96f0, context=0x7f50de7f95c0) at mk_signals.c:108
+>> #3  <signal handler called>
+>> #4  je_arena_dalloc_bin_locked (arena=0x7f50ea409240,
+>> chunk=0x7f50e4c00000, ptr=<optimized out>, mapelm=<optimized out>) at
+>> src/arena.c:1897
+>
+> This looks like a crash due to a double-freed region being flushed from the thread cache.  You may be able to find the actual source of the problem if you use a debug build of jemalloc and disable thread caching (MALLOC_CONF=tcache:false).
+
+thanks, working on that.
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+
+From edsiper at gmail.com  Wed Jul  9 18:52:14 2014
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Wed, 9 Jul 2014 19:52:14 -0600
+Subject: crash on je_arena_dalloc_bin_locked
+In-Reply-To: <CAMAQheN+0RtWJh0OPJDNjWC39=2gCYz7M5JBLLbrzpFXugJSiA@mail.gmail.com>
+References: <CAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK+2STu-9w+=rV3A2jQ@mail.gmail.com>
+	<6D6C00CE-19FF-4145-8E10-877F18384E40@canonware.com>
+	<CAMAQheN+0RtWJh0OPJDNjWC39=2gCYz7M5JBLLbrzpFXugJSiA@mail.gmail.com>
+Message-ID: <CAMAQhePvLYOpWQFPMUsTnZ3vY4aUgdh-bTE-hiTd+ht3x9qBwA@mail.gmail.com>
+
+On Wed, Jul 9, 2014 at 10:19 AM, Eduardo Silva <edsiper at gmail.com> wrote:
+> On Wed, Jul 9, 2014 at 8:44 AM, Jason Evans <jasone at canonware.com> wrote:
+>> On Jul 8, 2014, at 1:28 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+>>> i am using jemalloc as part of our web services framework stack and
+>>> running on high loads (after every 6 hours of work) i find common
+>>> segfaults like the one described here.
+>>>
+>>> It was triggered on je_arena_dalloc_bin_locked(..). Do you have some
+>>> idea that what can be causing the problem ?
+>>>
+>>> (gdb) bt
+>>> #0  0x00007f50eab23425 in __GI_raise (sig=<optimized out>) at
+>>> ../nptl/sysdeps/unix/sysv/linux/raise.c:64
+>>> #1  0x00007f50eab26b8b in __GI_abort () at abort.c:91
+>>> #2  0x000000000040d232 in mk_signal_handler (signo=11,
+>>> si=0x7f50de7f96f0, context=0x7f50de7f95c0) at mk_signals.c:108
+>>> #3  <signal handler called>
+>>> #4  je_arena_dalloc_bin_locked (arena=0x7f50ea409240,
+>>> chunk=0x7f50e4c00000, ptr=<optimized out>, mapelm=<optimized out>) at
+>>> src/arena.c:1897
+>>
+>> This looks like a crash due to a double-freed region being flushed from the thread cache.  You may be able to find the actual source of the problem if you use a debug build of jemalloc and disable thread caching (MALLOC_CONF=tcache:false).
+>
+> thanks, working on that.
+
+I saw in the program output the following:
+
+<jemalloc>: include/jemalloc/internal/arena.h:776: Failed assertion:
+"binind == actual_binind"
+
+looking at the backtrace:
+
+#0  0x00007fc1031aa425 in __GI_raise (sig=<optimized out>) at
+../nptl/sysdeps/unix/sysv/linux/raise.c:64
+#1  0x00007fc1031adb8b in __GI_abort () at abort.c:91
+#2  0x00000000004256ca in je_arena_ptr_small_binind_get
+(ptr=<optimized out>, mapbits=<optimized out>) at
+include/jemalloc/internal/arena.h:764
+#3  0x00000000004259f5 in je_arena_salloc (ptr=<optimized out>,
+demote=<optimized out>) at include/jemalloc/internal/arena.h:1015
+#4  0x000000000041947d in je_isalloc (demote=false,
+ptr=0x7fc0fd4173d0) at
+include/jemalloc/internal/jemalloc_internal.h:849
+#5  ifree (ptr=0x7fc0fd4173d0) at src/jemalloc.c:1228
+#6  0x00007fc1025f1f6f in mk_mem_free (ptr=0x7fc0fd4173d0) at
+../../../src/include/mk_memory.h:98
+
+it happened when releasing some memory...
+
+best
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+
+From jasone at canonware.com  Wed Jul  9 21:07:41 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 9 Jul 2014 21:07:41 -0700
+Subject: crash on je_arena_dalloc_bin_locked
+In-Reply-To: <CAMAQhePvLYOpWQFPMUsTnZ3vY4aUgdh-bTE-hiTd+ht3x9qBwA@mail.gmail.com>
+References: <CAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK+2STu-9w+=rV3A2jQ@mail.gmail.com>
+	<6D6C00CE-19FF-4145-8E10-877F18384E40@canonware.com>
+	<CAMAQheN+0RtWJh0OPJDNjWC39=2gCYz7M5JBLLbrzpFXugJSiA@mail.gmail.com>
+	<CAMAQhePvLYOpWQFPMUsTnZ3vY4aUgdh-bTE-hiTd+ht3x9qBwA@mail.gmail.com>
+Message-ID: <308F62F1-1D68-4D4E-A93F-DCDEBC07308F@canonware.com>
+
+On Jul 9, 2014, at 6:52 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> On Wed, Jul 9, 2014 at 10:19 AM, Eduardo Silva <edsiper at gmail.com> wrote:
+>> On Wed, Jul 9, 2014 at 8:44 AM, Jason Evans <jasone at canonware.com> wrote:
+>>> On Jul 8, 2014, at 1:28 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+>>>> i am using jemalloc as part of our web services framework stack and
+>>>> running on high loads (after every 6 hours of work) i find common
+>>>> segfaults like the one described here.
+>>>> 
+>>>> It was triggered on je_arena_dalloc_bin_locked(..). Do you have some
+>>>> idea that what can be causing the problem ?
+>>>> 
+>>>> (gdb) bt
+>>>> #0  0x00007f50eab23425 in __GI_raise (sig=<optimized out>) at
+>>>> ../nptl/sysdeps/unix/sysv/linux/raise.c:64
+>>>> #1  0x00007f50eab26b8b in __GI_abort () at abort.c:91
+>>>> #2  0x000000000040d232 in mk_signal_handler (signo=11,
+>>>> si=0x7f50de7f96f0, context=0x7f50de7f95c0) at mk_signals.c:108
+>>>> #3  <signal handler called>
+>>>> #4  je_arena_dalloc_bin_locked (arena=0x7f50ea409240,
+>>>> chunk=0x7f50e4c00000, ptr=<optimized out>, mapelm=<optimized out>) at
+>>>> src/arena.c:1897
+>>> 
+>>> This looks like a crash due to a double-freed region being flushed from the thread cache.  You may be able to find the actual source of the problem if you use a debug build of jemalloc and disable thread caching (MALLOC_CONF=tcache:false).
+>> 
+>> thanks, working on that.
+> 
+> I saw in the program output the following:
+> 
+> <jemalloc>: include/jemalloc/internal/arena.h:776: Failed assertion:
+> "binind == actual_binind"
+> 
+> looking at the backtrace:
+> 
+> #0  0x00007fc1031aa425 in __GI_raise (sig=<optimized out>) at
+> ../nptl/sysdeps/unix/sysv/linux/raise.c:64
+> #1  0x00007fc1031adb8b in __GI_abort () at abort.c:91
+> #2  0x00000000004256ca in je_arena_ptr_small_binind_get
+> (ptr=<optimized out>, mapbits=<optimized out>) at
+> include/jemalloc/internal/arena.h:764
+> #3  0x00000000004259f5 in je_arena_salloc (ptr=<optimized out>,
+> demote=<optimized out>) at include/jemalloc/internal/arena.h:1015
+> #4  0x000000000041947d in je_isalloc (demote=false,
+> ptr=0x7fc0fd4173d0) at
+> include/jemalloc/internal/jemalloc_internal.h:849
+> #5  ifree (ptr=0x7fc0fd4173d0) at src/jemalloc.c:1228
+> #6  0x00007fc1025f1f6f in mk_mem_free (ptr=0x7fc0fd4173d0) at
+> ../../../src/include/mk_memory.h:98
+> 
+> it happened when releasing some memory...
+
+A double free is still a possibility, but that particular failure mode moves buffer overflow further up on the list of possibilities.  If actual_binind seems plausible but binind does not, then somehow the chunk?s page map got corrupted, for example by double-freeing a large object.  If on the other hand binind seems plausible but actual_binind does not, then a buffer overflow may have corrupted the run header.
+
+Jason
+
+From komald at gmail.com  Wed Jul 16 10:45:07 2014
+From: komald at gmail.com (Komal Desai)
+Date: Wed, 16 Jul 2014 10:45:07 -0700
+Subject: NVM and jemalloc
+Message-ID: <CAPHCZz+wObLQrNw=2_4p-BwUzRoK5cdfSG05zKMzTKfCSX-Tcg@mail.gmail.com>
+
+Has anyone thought about how jemalloc can use NVM?
+
+Application like redis uses jemalloc and they have special persistent
+related code-base which can be completely avoided.
+
+any thoughts?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140716/77a6d1a5/attachment.html>
+
+From shireeshbhat at yahoo.co.in  Thu Jul 17 08:54:23 2014
+From: shireeshbhat at yahoo.co.in (shireesh bhat)
+Date: Thu, 17 Jul 2014 23:54:23 +0800
+Subject: Extracting the starting address of the arena_run_t from the mapping
+	information present in arena_chunk_t for each page
+Message-ID: <1405612463.95116.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+
+Hi,
+
+I want to extract the starting address of the arena_run_t from the mapping information present in arena_chunk_t for each page.
+Suppose I know the starting address of one of the chunks and have retrieved the mapping information for a particular page from the 'map' structure inside arena_chunk_t, is it possible for me to retrieve the address of arena_run_t to which the page belongs?
+
+Regards,
+Shireesh
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140717/aa0e8a4f/attachment.html>
+
+From ldalessa at indiana.edu  Thu Jul 17 10:29:17 2014
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 17 Jul 2014 17:29:17 +0000
+Subject: network registered memory and pages_purge()
+Message-ID: <3E99DB95-A42D-4874-B3E6-FAB4A929985D@indiana.edu>
+
+Hi everyone,
+
+We?re using jemalloc to manage network pinned memory using the custom chunk allocator/deallocator functionality. Essentially we decorate the default chunk allocator with memory registration calls. This mostly works great.
+
+We just discovered though, that sometimes jemalloc will call pages_purge() on our chunks without telling us, which calls madvise().
+
+#0  0x00007ffff6de8890 in madvise () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff719498a in je_pages_purge (addr=0x7ff6ecc06000, length=4096) at ../src/chunk_mmap.c:134
+#2  0x00007ffff7173218 in arena_chunk_purge_stashed (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, mapelms=0x7ffff5bfc3f0) at ../src/arena.c:999
+#3  0x00007ffff71738c3 in arena_chunk_purge (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, all=false) at ../src/arena.c:1088
+#4  0x00007ffff7173bc1 in arena_purge (arena=0x7ffff5e390c0, all=false) at ../src/arena.c:1168
+#5  0x00007ffff7171ed6 in arena_maybe_purge (arena=0x7ffff5e390c0) at ../src/arena.c:888
+#6  0x00007ffff717738b in arena_run_dalloc (arena=0x7ffff5e390c0, run=0x7ff6ecc06000, dirty=true, cleaned=false) at ../src/arena.c:1325
+#7  0x00007ffff718266c in arena_dalloc_bin_run (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, run=0x7ff6ecc06000, bin=0x7ffff5e396d0) at ../src/arena.c:1934
+#8  0x00007ffff7183223 in je_arena_dalloc_bin_locked (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, ptr=0x7ff6ecc06080, mapelm=0x7ff6ecc00030) at ../src/arena.c:1988
+#9  0x00007ffff718346d in je_arena_dalloc_bin (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, ptr=0x7ff6ecc06080, pageind=6, mapelm=0x7ff6ecc00030) at ../src/arena.c:2009
+#10 0x00007ffff7183da6 in je_arena_dalloc_small (arena=0x7ffff5e390c0, chunk=0x7ff6ecc00000, ptr=0x7ff6ecc06080, pageind=6) at ../src/arena.c:2025
+#11 0x00007ffff715c084 in je_arena_dalloc (try_tcache=false, ptr=0x7ff6ecc06080, chunk=0x7ff6ecc00000) at ../include/jemalloc/internal/arena.h:1158
+#12 je_idalloct (try_tcache=false, ptr=0x7ff6ecc06080) at ../include/jemalloc/internal/jemalloc_internal.h:774
+#13 je_iqalloct (try_tcache=false, ptr=0x7ff6ecc06080) at ../include/jemalloc/internal/jemalloc_internal.h:793
+#14 dallocx (ptr=0x7ff6ecc06080, flags=16640) at ../src/jemalloc.c:1781
+
+This break our network registration, because the network card has already captured the virtual->physical mapping for the pages, and we?re not able to (nor do we want to) reregister mappings?it?s expensive and complex to keep track of.
+
+We can mlock()/munlock() on some systems, but many of the systems we run on aren?t under our control and don?t like it when you mlock().
+
+How important is this functionality? Can it be disabled at configure time? Would it make sense to add a dynamic configuration string to turn this off on a per-arena basis?
+
+Thanks in advance,
+Luke
+
+From jasone at canonware.com  Thu Jul 17 10:33:01 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 17 Jul 2014 10:33:01 -0700
+Subject: Extracting the starting address of the arena_run_t from the
+	mapping information present in arena_chunk_t for each page
+In-Reply-To: <1405612463.95116.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+References: <1405612463.95116.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+Message-ID: <13DD7877-DA02-4510-9C45-40542A9CA915@canonware.com>
+
+On Jul 17, 2014, at 8:54 AM, shireesh bhat <shireeshbhat at yahoo.co.in> wrote:
+> I want to extract the starting address of the arena_run_t from the mapping information present in arena_chunk_t for each page.
+> Suppose I know the starting address of one of the chunks and have retrieved the mapping information for a particular page from the 'map' structure inside arena_chunk_t, is it possible for me to retrieve the address of arena_run_t to which the page belongs?
+
+As currently implemented, the arena_run_t data structure is embedded at offset 0 within the run itself, so as long as you know the page's offset from the beginning of the run (which is recorded in the chunk's page map), you can directly compute the (arena_run_t *).
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140717/8c14eec5/attachment.html>
+
+From jasone at canonware.com  Thu Jul 17 10:40:18 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 17 Jul 2014 10:40:18 -0700
+Subject: network registered memory and pages_purge()
+In-Reply-To: <3E99DB95-A42D-4874-B3E6-FAB4A929985D@indiana.edu>
+References: <3E99DB95-A42D-4874-B3E6-FAB4A929985D@indiana.edu>
+Message-ID: <1021CDE6-BFE2-4E7E-8FBD-43FF638FF1B7@canonware.com>
+
+On Jul 17, 2014, at 10:29 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> We?re using jemalloc to manage network pinned memory using the custom chunk allocator/deallocator functionality. Essentially we decorate the default chunk allocator with memory registration calls. This mostly works great.
+> 
+> We just discovered though, that sometimes jemalloc will call pages_purge() on our chunks without telling us, which calls madvise().
+> 
+> [...]
+> 
+> This break our network registration, because the network card has already captured the virtual->physical mapping for the pages, and we?re not able to (nor do we want to) reregister mappings?it?s expensive and complex to keep track of.
+> 
+> We can mlock()/munlock() on some systems, but many of the systems we run on aren?t under our control and don?t like it when you mlock().
+> 
+> How important is this functionality? Can it be disabled at configure time? Would it make sense to add a dynamic configuration string to turn this off on a per-arena basis?
+
+Assuming you're using jemalloc exclusively for managing the pinned memory, there's no problem at all with disabling the purging.  You can do the with MALLOC_CONF=lg_dirty_mult:-1 (or just change LG_DIRTY_MULT_DEFAULT in the source code, given that you already have other changes in place).
+
+I'm planning to change dirty page purging quite a bit for jemalloc 4, in order to add more effective hysteresis.  The tuning mechanisms will change, but I expect it will still be possible to turn purging off completely.
+
+Jason
+
+From ldalessa at indiana.edu  Thu Jul 17 11:13:37 2014
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 17 Jul 2014 18:13:37 +0000
+Subject: network registered memory and pages_purge()
+In-Reply-To: <1021CDE6-BFE2-4E7E-8FBD-43FF638FF1B7@canonware.com>
+References: <3E99DB95-A42D-4874-B3E6-FAB4A929985D@indiana.edu>
+	<1021CDE6-BFE2-4E7E-8FBD-43FF638FF1B7@canonware.com>
+Message-ID: <E2655E99-48B1-4C5E-9C75-8AA6BCF17159@indiana.edu>
+
+
+On Jul 17, 2014, at 1:40 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jul 17, 2014, at 10:29 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> We?re using jemalloc to manage network pinned memory using the custom chunk allocator/deallocator functionality. Essentially we decorate the default chunk allocator with memory registration calls. This mostly works great.
+>> 
+>> We just discovered though, that sometimes jemalloc will call pages_purge() on our chunks without telling us, which calls madvise().
+>> 
+>> [...]
+>> 
+>> This break our network registration, because the network card has already captured the virtual->physical mapping for the pages, and we?re not able to (nor do we want to) reregister mappings?it?s expensive and complex to keep track of.
+>> 
+>> We can mlock()/munlock() on some systems, but many of the systems we run on aren?t under our control and don?t like it when you mlock().
+>> 
+>> How important is this functionality? Can it be disabled at configure time? Would it make sense to add a dynamic configuration string to turn this off on a per-arena basis?
+> 
+> Assuming you're using jemalloc exclusively for managing the pinned memory, there's no problem at all with disabling the purging.  You can do the with MALLOC_CONF=lg_dirty_mult:-1 (or just change LG_DIRTY_MULT_DEFAULT in the source code, given that you already have other changes in place).
+
+Thanks Jason, the environment variable works great. 
+
+I don?t have any other changes in place, just using git master and the `arena.*.chunk.{alloc,dealloc}` functionality to register a function that forwards to the original {alloc,dalloc} and then uses IB verbs registration/deregistration on the returned chunks.
+
+I don?t really want to to use jemalloc exclusively for managing the pinned memory?in fact, it gets used to back all of the normal malloc/free calls in the code. We use allocx() dallocx() with the pinned arena directly for network managed memory. Will the MALLOC_CONF cause us problems with the rest of the our runtime? I could link something else first, to deal with those routines if this is a bad thing to disable in general (-lc?).
+
+> I'm planning to change dirty page purging quite a bit for jemalloc 4, in order to add more effective hysteresis.  The tuning mechanisms will change, but I expect it will still be possible to turn purging off completely.
+
+Cool. It would be nice to have allocx() dallocx() take a ?cache? reference instead of an arena reference, with the cache configured with arenas to handle cache misses or something to deal with multithreaded-accesses. Other than that we really like using the library and as long as our network memory doesn?t move between cores frequently, this works well.
+
+Luke
+
+
+From shireeshbhat at yahoo.co.in  Thu Jul 17 11:28:11 2014
+From: shireeshbhat at yahoo.co.in (shireesh bhat)
+Date: Fri, 18 Jul 2014 02:28:11 +0800
+Subject: Extracting the starting address of the arena_run_t from the
+	mapping information present in arena_chunk_t for each page
+In-Reply-To: <13DD7877-DA02-4510-9C45-40542A9CA915@canonware.com>
+References: <1405612463.95116.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+	<13DD7877-DA02-4510-9C45-40542A9CA915@canonware.com>
+Message-ID: <1405621691.74435.YahooMailNeo@web193404.mail.sg3.yahoo.com>
+
+Hi Jason,
+
+Even if I find out the page's offset how do I find the address of arena_run_t, since I just know the mapping information for every page which is present in arena_chunk_t.
+
+
+Regards,
+Shireesh
+
+
+
+On Thursday, 17 July 2014 1:33 PM, Jason Evans <jasone at canonware.com> wrote:
+ 
+
+
+On Jul 17, 2014, at 8:54 AM, shireesh bhat <shireeshbhat at yahoo.co.in> wrote:
+I want to extract the starting address of the arena_run_t from the mapping information present in arena_chunk_t for each page.
+>Suppose I know the starting address of one of the chunks and have retrieved the mapping information for a particular page from the 'map' structure inside arena_chunk_t, is it possible for me to retrieve the address of arena_run_t to which the page belongs?
+
+As currently implemented, the arena_run_t data structure is embedded at offset 0 within the run itself, so as long as you know the page's offset from the beginning of the run (which is recorded in the chunk's page map), you can directly compute the (arena_run_t *).
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140718/892b2ce2/attachment-0001.html>
+
+From jasone at canonware.com  Thu Jul 17 12:31:05 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 17 Jul 2014 12:31:05 -0700
+Subject: Extracting the starting address of the arena_run_t from the
+	mapping information present in arena_chunk_t for each page
+In-Reply-To: <1405621691.74435.YahooMailNeo@web193404.mail.sg3.yahoo.com>
+References: <1405612463.95116.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+	<13DD7877-DA02-4510-9C45-40542A9CA915@canonware.com>
+	<1405621691.74435.YahooMailNeo@web193404.mail.sg3.yahoo.com>
+Message-ID: <F936BE66-6B00-43F1-AD8E-2CD044CA5499@canonware.com>
+
+On Jul 17, 2014, at 11:28 AM, shireesh bhat <shireeshbhat at yahoo.co.in> wrote:
+> Even if I find out the page's offset how do I find the address of arena_run_t, since I just know the mapping information for every page which is present in arena_chunk_t.
+
+Take a close look at the header comments for struct arena_chunk_map_s.  The information is in the chunk's page map, which it sounds like you've already figured out how to access.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140717/35015533/attachment.html>
+
+From jasone at canonware.com  Thu Jul 17 12:52:04 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 17 Jul 2014 12:52:04 -0700
+Subject: network registered memory and pages_purge()
+In-Reply-To: <E2655E99-48B1-4C5E-9C75-8AA6BCF17159@indiana.edu>
+References: <3E99DB95-A42D-4874-B3E6-FAB4A929985D@indiana.edu>
+	<1021CDE6-BFE2-4E7E-8FBD-43FF638FF1B7@canonware.com>
+	<E2655E99-48B1-4C5E-9C75-8AA6BCF17159@indiana.edu>
+Message-ID: <1F816C01-314A-4FFB-9B07-B43455A35983@canonware.com>
+
+On Jul 17, 2014, at 11:13 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> I don?t have any other changes in place, just using git master and the `arena.*.chunk.{alloc,dealloc}` functionality to register a function that forwards to the original {alloc,dalloc} and then uses IB verbs registration/deregistration on the returned chunks.
+
+Ah, I'd incorrectly assumed you were using a version of jemalloc without that functionality. =)
+
+> I don?t really want to to use jemalloc exclusively for managing the pinned memory?in fact, it gets used to back all of the normal malloc/free calls in the code. We use allocx() dallocx() with the pinned arena directly for network managed memory. Will the MALLOC_CONF cause us problems with the rest of the our runtime? I could link something else first, to deal with those routines if this is a bad thing to disable in general (-lc?).
+
+The MALLOC_CONF setting will impact the application as a whole, so until there's a mechanism in jemalloc for controlling purging on a per arena basis, you're going to potentially suffer increased physical memory usage, depending on application behavior, because jemalloc won't be discarding the dirty pages in all the other arenas.  I just created an issue on github to make sure this use case isn't forgotten in jemalloc 4:
+
+	https://github.com/jemalloc/jemalloc/issues/93
+
+> It would be nice to have allocx() dallocx() take a ?cache? reference instead of an arena reference, with the cache configured with arenas to handle cache misses or something to deal with multithreaded-accesses. Other than that we really like using the library and as long as our network memory doesn?t move between cores frequently, this works well.
+
+Are you suggesting a system in which each cache is uniquely identified, or one in which every thread potentially has indexable caches [0, 1, 2, ...]?  I've given some thought to something similar to the latter: each thread invisibly has a cache layered on top of any arena which is explicitly used for allocation.  I'm still in the idea phase on this, so I'm really interested to hear any insights you have.
+
+Thanks,
+Jason
+
+From ldalessa at indiana.edu  Thu Jul 17 13:27:36 2014
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 17 Jul 2014 20:27:36 +0000
+Subject: network registered memory and pages_purge()
+In-Reply-To: <1F816C01-314A-4FFB-9B07-B43455A35983@canonware.com>
+References: <3E99DB95-A42D-4874-B3E6-FAB4A929985D@indiana.edu>
+	<1021CDE6-BFE2-4E7E-8FBD-43FF638FF1B7@canonware.com>
+	<E2655E99-48B1-4C5E-9C75-8AA6BCF17159@indiana.edu>
+	<1F816C01-314A-4FFB-9B07-B43455A35983@canonware.com>
+Message-ID: <23ADB05E-D4CB-405C-BECD-7D61F4F9BEC8@indiana.edu>
+
+
+On Jul 17, 2014, at 3:52 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jul 17, 2014, at 11:13 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> 
+>> I don?t really want to to use jemalloc exclusively for managing the pinned memory?in fact, it gets used to back all of the normal malloc/free calls in the code. We use allocx() dallocx() with the pinned arena directly for network managed memory. Will the MALLOC_CONF cause us problems with the rest of the our runtime? I could link something else first, to deal with those routines if this is a bad thing to disable in general (-lc?).
+> 
+> The MALLOC_CONF setting will impact the application as a whole, so until there's a mechanism in jemalloc for controlling purging on a per arena basis, you're going to potentially suffer increased physical memory usage, depending on application behavior, because jemalloc won't be discarding the dirty pages in all the other arenas.  I just created an issue on github to make sure this use case isn't forgotten in jemalloc 4:
+> 
+> 	https://github.com/jemalloc/jemalloc/issues/93
+
+Ok, great. I can live with memory pressure for now.
+
+>> It would be nice to have allocx() dallocx() take a ?cache? reference instead of an arena reference, with the cache configured with arenas to handle cache misses or something to deal with multithreaded-accesses. Other than that we really like using the library and as long as our network memory doesn?t move between cores frequently, this works well.
+> 
+> Are you suggesting a system in which each cache is uniquely identified, or one in which every thread potentially has indexable caches [0, 1, 2, ...]?  I've given some thought to something similar to the latter: each thread invisibly has a cache layered on top of any arena which is explicitly used for allocation.  I'm still in the idea phase on this, so I'm really interested to hear any insights you have.
+
+I haven?t thought it through very hard. :-)
+
+The problem I?m trying to deal with is that we have arenas associated with different memories?call them address spaces for now. I want to be able to allocate and free from address spaces independently (with the extended interface), and have caching work. There may be more than one arena per address space, in fact, I?d guess that each thread would have at least one arena for each address space. Having to bypass the cache right now is bad for us because we start to thrash the allocator with allocx/dallocx from different places, so I?d like to be able to cache based on address space.
+
+I think that corresponds to your indexable cache?
+
+Luke
+
+From shireeshbhat at yahoo.co.in  Thu Jul 17 13:47:59 2014
+From: shireeshbhat at yahoo.co.in (shireesh bhat)
+Date: Fri, 18 Jul 2014 04:47:59 +0800
+Subject: Extracting the starting address of the arena_run_t from the
+	mapping information present in arena_chunk_t for each page
+In-Reply-To: <1405628947.1901.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+References: <1405612463.95116.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+	<13DD7877-DA02-4510-9C45-40542A9CA915@canonware.com>
+	<1405621691.74435.YahooMailNeo@web193404.mail.sg3.yahoo.com>
+	<F936BE66-6B00-43F1-AD8E-2CD044CA5499@canonware.com>
+	<1405628947.1901.YahooMailNeo@web193401.mail.sg3.yahoo.com>
+Message-ID: <1405630079.49264.YahooMailNeo@web193405.mail.sg3.yahoo.com>
+
+[Adding jemalloc-discuss group]
+
+
+
+On Thursday, 17 July 2014 4:29 PM, shireesh bhat <shireeshbhat at yahoo.co.in> wrote:
+ 
+
+
+Hi Jason,
+Suppose I have an arena_chunk and the map has the following information
+map[0].bits = 0x3ff8
+map[1].bits = 0x2ff8
+map[2].bits = 0x3ff8
+map[3].bits = 0x149
+
+0x149 = 101001001
+
+In this example
+
+Only map[3] points to an allocated page and it is a small allocation and the bin index is 0x14 but I don't have any page offset. This is the case with many small allocations and I don't have any page offset.
+
+Since I am running on a 32 bit machine, I use the following layout mentioned in the explanation of arena_chunk_map_s
+???????? ???????? ????nnnn nnnndula
+
+Can you please tell me If I am missing something very basic.
+
+Regards,
+Shireesh
+
+
+On Thursday, 17 July 2014 3:31 PM, Jason Evans <jasone at canonware.com> wrote:
+ 
+
+
+On Jul 17, 2014, at 11:28 AM, shireesh bhat <shireeshbhat at yahoo.co.in> wrote:
+Even if I find out the page's offset how do I find the address of arena_run_t, since I just know the mapping information for every page which is present in arena_chunk_t.
+
+Take a close look at the header comments for struct arena_chunk_map_s. ?The information is in the chunk's page map, which it sounds like you've already figured out how to access.
+
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140718/11e6ba07/attachment.html>
+
+From xqmeng at gmail.com  Mon Jul 28 14:17:57 2014
+From: xqmeng at gmail.com (meng)
+Date: Mon, 28 Jul 2014 17:17:57 -0400
+Subject: Segmentation fault when a custom chunk allocator returns a memory
+	block larger than the chunk size
+Message-ID: <CABmGYHgf4Y5ZOUCuu_M7RQhh_4DdBPAM9U4j-CC2Re2dMEfXTA@mail.gmail.com>
+
+Hi All,
+I used the new chunk allocator feature to allocate memory from a fixed 2G
+memory region. Nevertheless, I got a seg. fault.
+
+The flow of my code is as following:  I first use "arenas.extend" mallctl
+to create a custom arena. Then I defined custom chunk_alloc() and
+chunk_dalloc() on this arena. In the initialization phase of my code, I use
+mmap() to reserve a memory region of size 2^32. In the custom
+chunk_alloc(), I return the pointer of the 2^32B memory region. Because
+lg_chunk is 2^22, I thought this should be fine. But the program ran into
+seg. fault within  arena_mapbits_unzeroed_set() called
+by arena_chunk_init_hard().  On the other hand, if the mmap() reserved a
+memory region of size 2^22, everything works fine.
+
+My question is: why does the custom chunk_alloc() always expect a memory
+block returned from mmap()/malloc() with the requested size equal to
+lg_chunk? I can't figure out what wrong it could be if the returned block
+is a multiple of lg_chunk
+
+B.T.W. My code only uses mallocx() for a single 1024B buffer from the
+custom. Memory alignment problem shouldn't exist.
+
+Thanks for your help!
+
+George Meng
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140728/435b99a8/attachment.html>
+
+From jasone at canonware.com  Mon Jul 28 14:52:30 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 28 Jul 2014 14:52:30 -0700
+Subject: Segmentation fault when a custom chunk allocator returns a memory
+	block larger than the chunk size
+In-Reply-To: <CABmGYHgf4Y5ZOUCuu_M7RQhh_4DdBPAM9U4j-CC2Re2dMEfXTA@mail.gmail.com>
+References: <CABmGYHgf4Y5ZOUCuu_M7RQhh_4DdBPAM9U4j-CC2Re2dMEfXTA@mail.gmail.com>
+Message-ID: <FDD3CDBE-D80F-40B0-9A70-EC17A0D929BD@canonware.com>
+
+On Jul 28, 2014, at 2:17 PM, meng <xqmeng at gmail.com> wrote:
+> I used the new chunk allocator feature to allocate memory from a fixed 2G memory region. Nevertheless, I got a seg. fault. 
+> 
+> The flow of my code is as following:  I first use "arenas.extend" mallctl to create a custom arena. Then I defined custom chunk_alloc() and chunk_dalloc() on this arena. In the initialization phase of my code, I use mmap() to reserve a memory region of size 2^32. In the custom chunk_alloc(), I return the pointer of the 2^32B memory region. Because lg_chunk is 2^22, I thought this should be fine. But the program ran into seg. fault within  arena_mapbits_unzeroed_set() called by arena_chunk_init_hard().  On the other hand, if the mmap() reserved a memory region of size 2^22, everything works fine. 
+> 
+> My question is: why does the custom chunk_alloc() always expect a memory block returned from mmap()/malloc() with the requested size equal to lg_chunk? I can't figure out what wrong it could be if the returned block is a multiple of lg_chunk
+> 
+> B.T.W. My code only uses mallocx() for a single 1024B buffer from the custom. Memory alignment problem shouldn't exist.
+
+Is the address you're returning from the custom chunk_alloc() aligned at a multiple of the chunk size?
+
+Jason
+
+From xqmeng at gmail.com  Mon Jul 28 16:04:35 2014
+From: xqmeng at gmail.com (meng)
+Date: Mon, 28 Jul 2014 19:04:35 -0400
+Subject: Segmentation fault when a custom chunk allocator returns a memory
+	block larger than the chunk size
+In-Reply-To: <FDD3CDBE-D80F-40B0-9A70-EC17A0D929BD@canonware.com>
+References: <CABmGYHgf4Y5ZOUCuu_M7RQhh_4DdBPAM9U4j-CC2Re2dMEfXTA@mail.gmail.com>
+	<FDD3CDBE-D80F-40B0-9A70-EC17A0D929BD@canonware.com>
+Message-ID: <CABmGYHh=yfw4QFffAXAx-B=55YfzxPT7NKExw8UykrfdPD9S1g@mail.gmail.com>
+
+Yes, the address returned from the custom chunk_alloc() is got from
+mmap(0,2^31,...). Because 2^31 is a multiple of 2^22 (the default chunk
+size), it must be aligned with the chunk size.
+
+Below is a simplified version of my test program:
+
+void *space = NULL;
+static  unsigned              _arena;
+static  chunk_alloc_t        *_alloc;
+static  chunk_dalloc_t      *_dalloc;
+
+static void *_chunk_alloc(size_t, size_t, bool *, unsigned);
+static bool _chunk_dalloc(void *, size_t, unsigned);
+
+void * _chunk_alloc(size_t size, size_t alignment, bool *zero, unsigned
+arena_ind)
+{
+  return space;
+}
+
+bool _chunk_dalloc(void *chunk, size_t size, unsigned arena_ind)
+{
+  return true;
+}
+
+int main(void)
+{
+  space = mmap (NULL, 2^31, PROT_READ | PROT_WRITE, MAP_SHARED |
+MAP_ANONYMOUS, -1, 0);
+  assert (space != (void *) -1);
+
+  size_t sz = sizeof(_arena);
+  int ret = mallctl("arenas.extend", &_arena, &sz, NULL, 0);
+  assert (ret == 0);
+
+  sz = sizeof(_alloc);
+  char path[128];
+  snprintf(path, sizeof(path), "arena.%u.chunk.alloc", _arena);
+  chunk_alloc_t *alloc = _chunk_alloc;
+  ret = mallctl(path, (void*)&_alloc, &sz, (void*)&alloc, sizeof(alloc));
+  assert (ret == 0);
+
+  snprintf(path, sizeof(path), "arena.%u.chunk.dalloc", _arena);
+  chunk_dalloc_t *dalloc = _chunk_dalloc;
+  ret = mallctl(path, (void*)&_dalloc, &sz, (void*)&dalloc, sizeof(dalloc));
+  assert (ret == 0);
+
+  void *p = mallocx(1024, MALLOCX_ARENA(_arena));
+  assert (p != 0);
+  dallocx(p, MALLOCX_ARENA(_arena));
+
+  //unmap space
+  return 1;
+}
+
+The seg. fault occurs in mallocx, and here is the stack frame in GDB:
+#0  0x00007ffff7d6b7a2 in je_arena_mapbitsp_write (mapbits=4,
+mapbitsp=0x7ffff7cb0008) at include/jemalloc/internal/arena.h:774
+#1  je_arena_mapbits_unzeroed_set (unzeroed=4, pageind=345,
+chunk=0x7ffff7cae000) at include/jemalloc/internal/arena.h:852
+#2  arena_chunk_init_hard (arena=0x7ffff7822140) at src/arena.c:662
+#3  0x00007ffff7d6bea8 in arena_chunk_alloc (arena=0x7ffff7822140) at
+src/arena.c:689
+#4  0x00007ffff7d6ce9b in arena_run_alloc_small (arena=0x7ffff7822140,
+size=65536, binind=20) at src/arena.c:854
+#5  0x00007ffff7d74852 in arena_bin_nonfull_run_get (arena=0x7ffff7822140,
+bin=0x7ffff7822e70) at src/arena.c:1470
+#6  0x00007ffff7d749aa in arena_bin_malloc_hard (arena=0x7ffff7822140,
+bin=0x7ffff7822e70) at src/arena.c:1516
+#7  0x00007ffff7d7558a in je_arena_malloc_small (arena=0x7ffff7822140,
+size=1024, zero=false) at src/arena.c:1713
+#8  0x00007ffff7d17121 in je_arena_malloc (try_tcache=false, zero=false,
+size=1024, arena=0x7ffff7822140) at include/jemalloc/internal/arena.h:1076
+#9  je_imalloct (arena=0x7ffff7822140, try_tcache=false, size=1024) at
+include/jemalloc/internal/jemalloc_internal.h:647
+#10 imallocx (arena=0x7ffff7822140, try_tcache=false, zero=false,
+alignment=0, usize=1024) at src/jemalloc.c:1377
+#11 mallocx (size=1024, flags=512) at src/jemalloc.c:1456
+#12 0x0000000000400c06 in main () at test_jemalloc.c:102
+
+
+
+
+
+On Mon, Jul 28, 2014 at 5:52 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jul 28, 2014, at 2:17 PM, meng <xqmeng at gmail.com> wrote:
+> > I used the new chunk allocator feature to allocate memory from a fixed
+> 2G memory region. Nevertheless, I got a seg. fault.
+> >
+> > The flow of my code is as following:  I first use "arenas.extend"
+> mallctl to create a custom arena. Then I defined custom chunk_alloc() and
+> chunk_dalloc() on this arena. In the initialization phase of my code, I use
+> mmap() to reserve a memory region of size 2^32. In the custom
+> chunk_alloc(), I return the pointer of the 2^32B memory region. Because
+> lg_chunk is 2^22, I thought this should be fine. But the program ran into
+> seg. fault within  arena_mapbits_unzeroed_set() called by
+> arena_chunk_init_hard().  On the other hand, if the mmap() reserved a
+> memory region of size 2^22, everything works fine.
+> >
+> > My question is: why does the custom chunk_alloc() always expect a memory
+> block returned from mmap()/malloc() with the requested size equal to
+> lg_chunk? I can't figure out what wrong it could be if the returned block
+> is a multiple of lg_chunk
+> >
+> > B.T.W. My code only uses mallocx() for a single 1024B buffer from the
+> custom. Memory alignment problem shouldn't exist.
+>
+> Is the address you're returning from the custom chunk_alloc() aligned at a
+> multiple of the chunk size?
+>
+> Jason
+
+
+
+
+-- 
+Best
+-Xiaoqiao
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140728/e0d8b699/attachment.html>
+
+From jasone at canonware.com  Mon Jul 28 18:40:06 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 28 Jul 2014 18:40:06 -0700
+Subject: Segmentation fault when a custom chunk allocator returns a memory
+	block larger than the chunk size
+In-Reply-To: <CABmGYHh=yfw4QFffAXAx-B=55YfzxPT7NKExw8UykrfdPD9S1g@mail.gmail.com>
+References: <CABmGYHgf4Y5ZOUCuu_M7RQhh_4DdBPAM9U4j-CC2Re2dMEfXTA@mail.gmail.com>
+	<FDD3CDBE-D80F-40B0-9A70-EC17A0D929BD@canonware.com>
+	<CABmGYHh=yfw4QFffAXAx-B=55YfzxPT7NKExw8UykrfdPD9S1g@mail.gmail.com>
+Message-ID: <5F942C59-56D2-49A6-9349-98875C9B451D@canonware.com>
+
+On Jul 28, 2014, at 4:04 PM, meng <xqmeng at gmail.com> wrote:
+> Yes, the address returned from the custom chunk_alloc() is got from mmap(0,2^31,...). Because 2^31 is a multiple of 2^22 (the default chunk size), it must be aligned with the chunk size.
+
+mmap() makes no guarantees about alignment other than that the returned memory starts at a page boundary.
+
+Jason
+
+
+From bradley at mit.edu  Mon Jul 28 19:02:15 2014
+From: bradley at mit.edu (Bradley C. Kuszmaul)
+Date: Mon, 28 Jul 2014 22:02:15 -0400
+Subject: Segmentation fault when a custom chunk allocator returns a memory
+	block larger than the chunk size
+In-Reply-To: <CABmGYHh=yfw4QFffAXAx-B=55YfzxPT7NKExw8UykrfdPD9S1g@mail.gmail.com>
+References: <CABmGYHgf4Y5ZOUCuu_M7RQhh_4DdBPAM9U4j-CC2Re2dMEfXTA@mail.gmail.com>
+	<FDD3CDBE-D80F-40B0-9A70-EC17A0D929BD@canonware.com>
+	<CABmGYHh=yfw4QFffAXAx-B=55YfzxPT7NKExw8UykrfdPD9S1g@mail.gmail.com>
+Message-ID: <CAKSyJXfbGD+qR4_ew=ch9cRd8vRxj+bJrUnyfy4g=g6oEeojnw@mail.gmail.com>
+
+Also 2^31 == 29, not 1<<31
+
+Bradley C Kuszmaul - via snartphone
+On Jul 28, 2014 7:04 PM, "meng" <xqmeng at gmail.com> wrote:
+
+> Yes, the address returned from the custom chunk_alloc() is got from
+> mmap(0,2^31,...). Because 2^31 is a multiple of 2^22 (the default chunk
+> size), it must be aligned with the chunk size.
+>
+> Below is a simplified version of my test program:
+>
+> void *space = NULL;
+> static  unsigned              _arena;
+> static  chunk_alloc_t        *_alloc;
+> static  chunk_dalloc_t      *_dalloc;
+>
+> static void *_chunk_alloc(size_t, size_t, bool *, unsigned);
+> static bool _chunk_dalloc(void *, size_t, unsigned);
+>
+> void * _chunk_alloc(size_t size, size_t alignment, bool *zero, unsigned
+> arena_ind)
+> {
+>   return space;
+> }
+>
+> bool _chunk_dalloc(void *chunk, size_t size, unsigned arena_ind)
+> {
+>   return true;
+> }
+>
+> int main(void)
+> {
+>   space = mmap (NULL, 2^31, PROT_READ | PROT_WRITE, MAP_SHARED |
+> MAP_ANONYMOUS, -1, 0);
+>   assert (space != (void *) -1);
+>
+>   size_t sz = sizeof(_arena);
+>   int ret = mallctl("arenas.extend", &_arena, &sz, NULL, 0);
+>   assert (ret == 0);
+>
+>   sz = sizeof(_alloc);
+>   char path[128];
+>   snprintf(path, sizeof(path), "arena.%u.chunk.alloc", _arena);
+>   chunk_alloc_t *alloc = _chunk_alloc;
+>   ret = mallctl(path, (void*)&_alloc, &sz, (void*)&alloc, sizeof(alloc));
+>   assert (ret == 0);
+>
+>   snprintf(path, sizeof(path), "arena.%u.chunk.dalloc", _arena);
+>   chunk_dalloc_t *dalloc = _chunk_dalloc;
+>   ret = mallctl(path, (void*)&_dalloc, &sz, (void*)&dalloc,
+> sizeof(dalloc));
+>   assert (ret == 0);
+>
+>   void *p = mallocx(1024, MALLOCX_ARENA(_arena));
+>   assert (p != 0);
+>   dallocx(p, MALLOCX_ARENA(_arena));
+>
+>   //unmap space
+>   return 1;
+> }
+>
+> The seg. fault occurs in mallocx, and here is the stack frame in GDB:
+> #0  0x00007ffff7d6b7a2 in je_arena_mapbitsp_write (mapbits=4,
+> mapbitsp=0x7ffff7cb0008) at include/jemalloc/internal/arena.h:774
+> #1  je_arena_mapbits_unzeroed_set (unzeroed=4, pageind=345,
+> chunk=0x7ffff7cae000) at include/jemalloc/internal/arena.h:852
+> #2  arena_chunk_init_hard (arena=0x7ffff7822140) at src/arena.c:662
+> #3  0x00007ffff7d6bea8 in arena_chunk_alloc (arena=0x7ffff7822140) at
+> src/arena.c:689
+> #4  0x00007ffff7d6ce9b in arena_run_alloc_small (arena=0x7ffff7822140,
+> size=65536, binind=20) at src/arena.c:854
+> #5  0x00007ffff7d74852 in arena_bin_nonfull_run_get (arena=0x7ffff7822140,
+> bin=0x7ffff7822e70) at src/arena.c:1470
+> #6  0x00007ffff7d749aa in arena_bin_malloc_hard (arena=0x7ffff7822140,
+> bin=0x7ffff7822e70) at src/arena.c:1516
+> #7  0x00007ffff7d7558a in je_arena_malloc_small (arena=0x7ffff7822140,
+> size=1024, zero=false) at src/arena.c:1713
+> #8  0x00007ffff7d17121 in je_arena_malloc (try_tcache=false, zero=false,
+> size=1024, arena=0x7ffff7822140) at include/jemalloc/internal/arena.h:1076
+> #9  je_imalloct (arena=0x7ffff7822140, try_tcache=false, size=1024) at
+> include/jemalloc/internal/jemalloc_internal.h:647
+> #10 imallocx (arena=0x7ffff7822140, try_tcache=false, zero=false,
+> alignment=0, usize=1024) at src/jemalloc.c:1377
+> #11 mallocx (size=1024, flags=512) at src/jemalloc.c:1456
+> #12 0x0000000000400c06 in main () at test_jemalloc.c:102
+>
+>
+>
+>
+>
+> On Mon, Jul 28, 2014 at 5:52 PM, Jason Evans <jasone at canonware.com> wrote:
+>
+>> On Jul 28, 2014, at 2:17 PM, meng <xqmeng at gmail.com> wrote:
+>> > I used the new chunk allocator feature to allocate memory from a fixed
+>> 2G memory region. Nevertheless, I got a seg. fault.
+>> >
+>> > The flow of my code is as following:  I first use "arenas.extend"
+>> mallctl to create a custom arena. Then I defined custom chunk_alloc() and
+>> chunk_dalloc() on this arena. In the initialization phase of my code, I use
+>> mmap() to reserve a memory region of size 2^32. In the custom
+>> chunk_alloc(), I return the pointer of the 2^32B memory region. Because
+>> lg_chunk is 2^22, I thought this should be fine. But the program ran into
+>> seg. fault within  arena_mapbits_unzeroed_set() called by
+>> arena_chunk_init_hard().  On the other hand, if the mmap() reserved a
+>> memory region of size 2^22, everything works fine.
+>> >
+>> > My question is: why does the custom chunk_alloc() always expect a
+>> memory block returned from mmap()/malloc() with the requested size equal to
+>> lg_chunk? I can't figure out what wrong it could be if the returned block
+>> is a multiple of lg_chunk
+>> >
+>> > B.T.W. My code only uses mallocx() for a single 1024B buffer from the
+>> custom. Memory alignment problem shouldn't exist.
+>>
+>> Is the address you're returning from the custom chunk_alloc() aligned at
+>> a multiple of the chunk size?
+>>
+>> Jason
+>
+>
+>
+>
+> --
+> Best
+> -Xiaoqiao
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140728/72c4c1c6/attachment-0001.html>
+
+From mh+jemalloc at glandium.org  Wed Jul 30 02:16:13 2014
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 30 Jul 2014 18:16:13 +0900
+Subject: [PATCH] Remove ${srcroot} from cfghdrs_in,
+	cfgoutputs_in and cfghdrs_tup in configure
+Message-ID: <1406711773-11731-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+On Windows, srcroot may start with "drive:", which confuses autoconf's
+AC_CONFIG_* macros. The macros works equally well without ${srcroot},
+provided some adjustment to Makefile.in.
+---
+ Makefile.in  |  4 ++--
+ configure.ac | 46 +++++++++++++++++++++++-----------------------
+ 2 files changed, 25 insertions(+), 25 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 839bb08..a21acd4 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -42,9 +42,9 @@ XSLTPROC := @XSLTPROC@
+ AUTOCONF := @AUTOCONF@
+ _RPATH = @RPATH@
+ RPATH = $(if $(1),$(call _RPATH,$(1)))
+-cfghdrs_in := @cfghdrs_in@
++cfghdrs_in := $(addprefix $(srcroot), at cfghdrs_in@)
+ cfghdrs_out := @cfghdrs_out@
+-cfgoutputs_in := @cfgoutputs_in@
++cfgoutputs_in := $(addprefix $(srcroot), at cfgoutputs_in@)
+ cfgoutputs_out := @cfgoutputs_out@
+ enable_autogen := @enable_autogen@
+ enable_code_coverage := @enable_code_coverage@
+diff --git a/configure.ac b/configure.ac
+index 645bd46..bc3464f 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -534,15 +534,15 @@ dnl jemalloc_protos_jet.h easy.
+ je_="je_"
+ AC_SUBST([je_])
+ 
+-cfgoutputs_in="${srcroot}Makefile.in"
+-cfgoutputs_in="${cfgoutputs_in} ${srcroot}doc/html.xsl.in"
+-cfgoutputs_in="${cfgoutputs_in} ${srcroot}doc/manpages.xsl.in"
+-cfgoutputs_in="${cfgoutputs_in} ${srcroot}doc/jemalloc.xml.in"
+-cfgoutputs_in="${cfgoutputs_in} ${srcroot}include/jemalloc/jemalloc_macros.h.in"
+-cfgoutputs_in="${cfgoutputs_in} ${srcroot}include/jemalloc/jemalloc_protos.h.in"
+-cfgoutputs_in="${cfgoutputs_in} ${srcroot}include/jemalloc/internal/jemalloc_internal.h.in"
+-cfgoutputs_in="${cfgoutputs_in} ${srcroot}test/test.sh.in"
+-cfgoutputs_in="${cfgoutputs_in} ${srcroot}test/include/test/jemalloc_test.h.in"
++cfgoutputs_in="Makefile.in"
++cfgoutputs_in="${cfgoutputs_in} doc/html.xsl.in"
++cfgoutputs_in="${cfgoutputs_in} doc/manpages.xsl.in"
++cfgoutputs_in="${cfgoutputs_in} doc/jemalloc.xml.in"
++cfgoutputs_in="${cfgoutputs_in} include/jemalloc/jemalloc_macros.h.in"
++cfgoutputs_in="${cfgoutputs_in} include/jemalloc/jemalloc_protos.h.in"
++cfgoutputs_in="${cfgoutputs_in} include/jemalloc/internal/jemalloc_internal.h.in"
++cfgoutputs_in="${cfgoutputs_in} test/test.sh.in"
++cfgoutputs_in="${cfgoutputs_in} test/include/test/jemalloc_test.h.in"
+ 
+ cfgoutputs_out="Makefile"
+ cfgoutputs_out="${cfgoutputs_out} doc/html.xsl"
+@@ -564,18 +564,18 @@ cfgoutputs_tup="${cfgoutputs_tup} include/jemalloc/internal/jemalloc_internal.h"
+ cfgoutputs_tup="${cfgoutputs_tup} test/test.sh:test/test.sh.in"
+ cfgoutputs_tup="${cfgoutputs_tup} test/include/test/jemalloc_test.h:test/include/test/jemalloc_test.h.in"
+ 
+-cfghdrs_in="${srcroot}include/jemalloc/jemalloc_defs.h.in"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/internal/jemalloc_internal_defs.h.in"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/internal/private_namespace.sh"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/internal/private_unnamespace.sh"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/internal/private_symbols.txt"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/internal/public_namespace.sh"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/internal/public_unnamespace.sh"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/internal/size_classes.sh"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/jemalloc_rename.sh"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/jemalloc_mangle.sh"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}include/jemalloc/jemalloc.sh"
+-cfghdrs_in="${cfghdrs_in} ${srcroot}test/include/test/jemalloc_test_defs.h.in"
++cfghdrs_in="include/jemalloc/jemalloc_defs.h.in"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/internal/jemalloc_internal_defs.h.in"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/internal/private_namespace.sh"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/internal/private_unnamespace.sh"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/internal/private_symbols.txt"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/internal/public_namespace.sh"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/internal/public_unnamespace.sh"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/internal/size_classes.sh"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/jemalloc_rename.sh"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/jemalloc_mangle.sh"
++cfghdrs_in="${cfghdrs_in} include/jemalloc/jemalloc.sh"
++cfghdrs_in="${cfghdrs_in} test/include/test/jemalloc_test_defs.h.in"
+ 
+ cfghdrs_out="include/jemalloc/jemalloc_defs.h"
+ cfghdrs_out="${cfghdrs_out} include/jemalloc/jemalloc${install_suffix}.h"
+@@ -593,8 +593,8 @@ cfghdrs_out="${cfghdrs_out} include/jemalloc/internal/jemalloc_internal_defs.h"
+ cfghdrs_out="${cfghdrs_out} test/include/test/jemalloc_test_defs.h"
+ 
+ cfghdrs_tup="include/jemalloc/jemalloc_defs.h:include/jemalloc/jemalloc_defs.h.in"
+-cfghdrs_tup="${cfghdrs_tup} include/jemalloc/internal/jemalloc_internal_defs.h:${srcroot}include/jemalloc/internal/jemalloc_internal_defs.h.in"
+-cfghdrs_tup="${cfghdrs_tup} test/include/test/jemalloc_test_defs.h:${srcroot}test/include/test/jemalloc_test_defs.h.in"
++cfghdrs_tup="${cfghdrs_tup} include/jemalloc/internal/jemalloc_internal_defs.h:include/jemalloc/internal/jemalloc_internal_defs.h.in"
++cfghdrs_tup="${cfghdrs_tup} test/include/test/jemalloc_test_defs.h:test/include/test/jemalloc_test_defs.h.in"
+ 
+ dnl Silence irrelevant compiler warnings by default.
+ AC_ARG_ENABLE([cc-silence],
+-- 
+2.0.1
+
+
+From rogier+jemalloc at fastly.com  Wed Jul 30 17:03:25 2014
+From: rogier+jemalloc at fastly.com (Rogier 'DocWilco' Mulhuijzen)
+Date: Wed, 30 Jul 2014 17:03:25 -0700
+Subject: Segmentation fault when a custom chunk allocator returns a memory
+	block larger than the chunk size
+In-Reply-To: <CAKSyJXfbGD+qR4_ew=ch9cRd8vRxj+bJrUnyfy4g=g6oEeojnw@mail.gmail.com>
+References: <CABmGYHgf4Y5ZOUCuu_M7RQhh_4DdBPAM9U4j-CC2Re2dMEfXTA@mail.gmail.com>
+	<FDD3CDBE-D80F-40B0-9A70-EC17A0D929BD@canonware.com>
+	<CABmGYHh=yfw4QFffAXAx-B=55YfzxPT7NKExw8UykrfdPD9S1g@mail.gmail.com>
+	<CAKSyJXfbGD+qR4_ew=ch9cRd8vRxj+bJrUnyfy4g=g6oEeojnw@mail.gmail.com>
+Message-ID: <CAF05Cc9bXdR+18OeNk7kbwmh4oQH-rwuW-DHnhCd+emOwH-iCw@mail.gmail.com>
+
+Yeah, ^ is bitwise XOR, not power. :)
+
+On Mon, Jul 28, 2014 at 7:02 PM, Bradley C. Kuszmaul <bradley at mit.edu>
+wrote:
+
+> Also 2^31 == 29, not 1<<31
+>
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140730/af4832db/attachment.html>
+
+From xqmeng at gmail.com  Wed Jul 30 18:14:41 2014
+From: xqmeng at gmail.com (meng)
+Date: Wed, 30 Jul 2014 21:14:41 -0400
+Subject: Segmentation fault when a custom chunk allocator returns a memory
+	block larger than the chunk size
+In-Reply-To: <CAF05Cc9bXdR+18OeNk7kbwmh4oQH-rwuW-DHnhCd+emOwH-iCw@mail.gmail.com>
+References: <CABmGYHgf4Y5ZOUCuu_M7RQhh_4DdBPAM9U4j-CC2Re2dMEfXTA@mail.gmail.com>
+	<FDD3CDBE-D80F-40B0-9A70-EC17A0D929BD@canonware.com>
+	<CABmGYHh=yfw4QFffAXAx-B=55YfzxPT7NKExw8UykrfdPD9S1g@mail.gmail.com>
+	<CAKSyJXfbGD+qR4_ew=ch9cRd8vRxj+bJrUnyfy4g=g6oEeojnw@mail.gmail.com>
+	<CAF05Cc9bXdR+18OeNk7kbwmh4oQH-rwuW-DHnhCd+emOwH-iCw@mail.gmail.com>
+Message-ID: <CABmGYHje-cM_Bh=X4oSB7wgU05mgmKdyNNiLJCjgXrrPL2gt=w@mail.gmail.com>
+
+Hi, guys, I verified that silly bug is the cause. Replacing it with 1<<22
+makes everything fine :)
+
+
+On Wed, Jul 30, 2014 at 8:03 PM, Rogier 'DocWilco' Mulhuijzen <
+rogier+jemalloc at fastly.com> wrote:
+
+> Yeah, ^ is bitwise XOR, not power. :)
+>
+> On Mon, Jul 28, 2014 at 7:02 PM, Bradley C. Kuszmaul <bradley at mit.edu>
+> wrote:
+>
+>> Also 2^31 == 29, not 1<<31
+>>
+>>
+>>
+
+
+-- 
+Best
+-Xiaoqiao
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140730/2db88678/attachment.html>
+

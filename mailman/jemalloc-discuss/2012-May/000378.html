@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Allow je_malloc_message to be overridden when linking statically
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Allow%20je_malloc_message%20to%20be%20overridden%20when%20linking%20statically&In-Reply-To=%3C20120502111720.GA18850%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000377.html">
+   <LINK REL="Next"  HREF="000380.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Allow je_malloc_message to be overridden when linking statically</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Allow%20je_malloc_message%20to%20be%20overridden%20when%20linking%20statically&In-Reply-To=%3C20120502111720.GA18850%40glandium.org%3E"
+       TITLE="Allow je_malloc_message to be overridden when linking statically">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May  2 04:17:20 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000377.html">Allow je_malloc_message to be overridden when linking statically
+</A></li>
+        <LI>Next message: <A HREF="000380.html">[PATCH 1/3] Use &quot;hardcoded&quot; dependencies when compiler doesn't	support -MM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#378">[ date ]</a>
+              <a href="thread.html#378">[ thread ]</a>
+              <a href="subject.html#378">[ subject ]</a>
+              <a href="author.html#378">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, May 02, 2012 at 01:15:00PM +0200, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> If an application wants to override je_malloc_message, it is better to define
+</I>&gt;<i> the symbol locally than to change its value in main(), which might be too late
+</I>&gt;<i> for various reasons.
+</I>&gt;<i> 
+</I>&gt;<i> Due to je_malloc_message being initialized in util.c, statically linking
+</I>&gt;<i> jemalloc with an application defining je_malloc_message fails due to
+</I>&gt;<i> &quot;multiple definition of&quot; the symbol.
+</I>&gt;<i> 
+</I>&gt;<i> Defining it without a value (like je_malloc_conf) makes it more easily
+</I>&gt;<i> overridable.
+</I>
+Also, I wonder what is the added value of having the cbopaque value
+passed down to je_malloc_message. It would seem better to drop that
+argument, and use a wrapper to call it.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000377.html">Allow je_malloc_message to be overridden when linking statically
+</A></li>
+	<LI>Next message: <A HREF="000380.html">[PATCH 1/3] Use &quot;hardcoded&quot; dependencies when compiler doesn't	support -MM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#378">[ date ]</a>
+              <a href="thread.html#378">[ thread ]</a>
+              <a href="subject.html#378">[ subject ]</a>
+              <a href="author.html#378">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Upstreaming mozilla changes
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Upstreaming%20mozilla%20changes&In-Reply-To=%3C4E398263.8010308%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000030.html">
+   <LINK REL="Next"  HREF="000032.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Upstreaming mozilla changes</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Upstreaming%20mozilla%20changes&In-Reply-To=%3C4E398263.8010308%40canonware.com%3E"
+       TITLE="Upstreaming mozilla changes">jasone at canonware.com
+       </A><BR>
+    <I>Wed Aug  3 10:16:19 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000030.html">Upstreaming mozilla changes
+</A></li>
+        <LI>Next message: <A HREF="000032.html">I made a jemalloc patch for solaris 5.8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#31">[ date ]</a>
+              <a href="thread.html#31">[ thread ]</a>
+              <a href="subject.html#31">[ subject ]</a>
+              <a href="author.html#31">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 08/01/2011 12:04 PM, Paul Biggar wrote:
+&gt;<i> We're in the process of updating the Mozilla codebase to use the
+</I>&gt;<i> latest version of jemalloc. Unfortunately, there are a number of
+</I>&gt;<i> features in the Mozilla version which we never upstreamed:
+</I>&gt;<i>
+</I>&gt;<i>    - windows support
+</I>&gt;<i>    - decommit support (for windows)
+</I>&gt;<i>    - recent OSX changes
+</I>&gt;<i>
+</I>&gt;<i> We want to upstream these changes. Would you have a problem accepting
+</I>&gt;<i> patches for these features? Some of the more odious changes we forsee
+</I>&gt;<i> remove the use of the advanced C99 features (not available in Visual
+</I>&gt;<i> Studio), and some light build system hacking.
+</I>
+Yes, I'm definitely willing to take patches for those features!  I want 
+the stand-alone jemalloc to work on all the major platforms so that 
+there's only one version of jemalloc to maintain, but I don't use 
+Windows myself, so haven't had the time or motive to get it done.
+
+&gt;<i> Finally, how do you take code? Do we send patches to this list, or do
+</I>&gt;<i> you have a way to review pull requests a-la-github?
+</I>
+'git format-patch' seems to work pretty well for sending patches via 
+email.  Alternatively, I can pull from a git repo that you make public. 
+  The latter may work better if you expect there may be non-trivial 
+changes necessary after review feedback.
+
+Thanks,
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000030.html">Upstreaming mozilla changes
+</A></li>
+	<LI>Next message: <A HREF="000032.html">I made a jemalloc patch for solaris 5.8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#31">[ date ]</a>
+              <a href="thread.html#31">[ thread ]</a>
+              <a href="subject.html#31">[ subject ]</a>
+              <a href="author.html#31">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

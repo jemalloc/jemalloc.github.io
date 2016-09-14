@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Managing pinned memory
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Managing%20pinned%20memory&In-Reply-To=%3C1E775AE2-465E-4083-8CF3-4DEFA8C87103%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000777.html">
+   <LINK REL="Next"  HREF="000779.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Managing pinned memory</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Managing%20pinned%20memory&In-Reply-To=%3C1E775AE2-465E-4083-8CF3-4DEFA8C87103%40indiana.edu%3E"
+       TITLE="Managing pinned memory">ldalessa at indiana.edu
+       </A><BR>
+    <I>Thu May  8 09:42:12 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000777.html">Managing pinned memory
+</A></li>
+        <LI>Next message: <A HREF="000779.html">Managing pinned memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#778">[ date ]</a>
+              <a href="thread.html#778">[ thread ]</a>
+              <a href="subject.html#778">[ subject ]</a>
+              <a href="author.html#778">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+On May 8, 2014, at 12:04 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On May 8, 2014, at 9:00 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;<i> I&#8217;m in the market for a good concurrent allocator to manage a memory region corresponding to pinned network memory for a multithreaded and distributed HPC application. Basically, I&#8217;m going to want to do RDMA to objects that are often malloced and freed. The pinning operation is expensive so it is important to amortize it over lots of uses. I&#8217;ve written a simple thread-local caching allocator that allows me to pin contiguous blocks when they&#8217;re first allocated, and then just use TLS free listing to reuse space, however I don&#8217;t really have the resources needed to implement this in a robust way.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Is there any natural way to do this in jemalloc at this time? My gut feeling is that there isn&#8217;t, explicitly specifying an arena breaks its caching and there&#8217;s not an obvious way to register a callback to run on internal block allocation and freeing (where I could pin/unpin the underlying memory).
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> If jemalloc doesn&#8217;t really support this use case, does anyone know of an efficient, scalable, robust allocator that does?
+</I>&gt;<i> 
+</I>&gt;<i> This pending change may be relevant to your needs:
+</I>&gt;<i> 
+</I>&gt;<i> 	<A HREF="https://github.com/jemalloc/jemalloc/pull/80">https://github.com/jemalloc/jemalloc/pull/80</A>
+</I>&gt;<i> 
+</I>&gt;<i> I&#8217;m imagining that you would implement a custom chunk allocator that pins entire chunks, and then specifically use that arena for allocations that you require to be pinned.  This approach has some shortcomings, but perhaps they don&#8217;t matter to your specific application.
+</I>
+Thanks Jason,
+
+This patch appears to address half the battle, though I&#8217;m not 100% sure how to implement the chunk allocator without calling back into jemalloc recursively. I guess that I either use mmap() directly or jemalloc.h has a way to get &#8220;raw&#8221; memory already. Although chunk_alloc_core doesn&#8217;t seem like a name that&#8217;s going to be exposed, so maybe mmap() is the way to go&#8212;not a big deal.
+
+Based on the proposed patch, it looks like MALLOCX_ARENA(a) /will/ have an effect for huge regions for both huge_palloc() and huge_dalloc() as well, which is exactly what I need.
+
+The caching is an issue. Certain applications have threads that churn through this memory at nearly the rate they do function calls, and they (hopefully) use it with high temporal locality. It&#8217;s also used for inter-thread communication sometimes, in addition to its role in distributed communication. It may be enough though to use one arena per thread for pinned memory, which might cause problems for deallocation if it&#8217;s often remote. As always, no way to know if this will work without trying though.
+
+Do you have any sense of the likelihood that this patch will be accepted going forward?
+
+Thanks,
+Luke
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000777.html">Managing pinned memory
+</A></li>
+	<LI>Next message: <A HREF="000779.html">Managing pinned memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#778">[ date ]</a>
+              <a href="thread.html#778">[ thread ]</a>
+              <a href="subject.html#778">[ subject ]</a>
+              <a href="author.html#778">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

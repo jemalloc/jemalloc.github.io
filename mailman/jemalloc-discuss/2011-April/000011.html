@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Configuring jemalloc on FreeBSD.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Configuring%20jemalloc%20on%20FreeBSD.&In-Reply-To=%3C4DAA57B5.3060902%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000010.html">
+   <LINK REL="Next"  HREF="000012.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Configuring jemalloc on FreeBSD.</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Configuring%20jemalloc%20on%20FreeBSD.&In-Reply-To=%3C4DAA57B5.3060902%40canonware.com%3E"
+       TITLE="Configuring jemalloc on FreeBSD.">jasone at canonware.com
+       </A><BR>
+    <I>Sat Apr 16 20:00:05 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000010.html">Configuring jemalloc on FreeBSD.
+</A></li>
+        <LI>Next message: <A HREF="000012.html">Crash with jemalloc 2.2.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#11">[ date ]</a>
+              <a href="thread.html#11">[ thread ]</a>
+              <a href="subject.html#11">[ subject ]</a>
+              <a href="author.html#11">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 04/16/2011 09:10 AM, Mahadevan R wrote:
+&gt;<i> jemalloc 2.2.1 tarball fails to ./configure on FreeBSD 8.2 (!),
+</I>&gt;<i> because of attempting to check for dlopen() in libdl (this is in libc
+</I>&gt;<i> for FreeBSD). The patch below fixes this.
+</I>
+The situation is actually quite a bit worse than this for the 
+stand-alone jemalloc on FreeBSD, mainly because the pthreads 
+implementation dynamically allocates many data structures, which makes 
+allocator bootstrapping hard.  I recently spent a weekend working 
+through porting issues for FreeBSD, and tentatively came to the 
+conclusion that the best solution is to add a simple bootstrap allocator 
+facility to jemalloc.  I haven't gotten as far as implementing that 
+though, so right now my development branch for FreeBSD still deadlocks 
+when calling pthread_key_create().
+
+By the way, my general plan is to make it so that the stand-alone 
+jemalloc can be used via FreeBSD ports with no modifications, and can be 
+embedded in libc with only minimal glue.  The stand-alone jemalloc is so 
+divergent from what is currently in FreeBSD's libc that I can't stomach 
+the prospect of back-porting optimizations, of which there are many at 
+this point.
+
+Thanks,
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000010.html">Configuring jemalloc on FreeBSD.
+</A></li>
+	<LI>Next message: <A HREF="000012.html">Crash with jemalloc 2.2.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#11">[ date ]</a>
+              <a href="thread.html#11">[ thread ]</a>
+              <a href="subject.html#11">[ subject ]</a>
+              <a href="author.html#11">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

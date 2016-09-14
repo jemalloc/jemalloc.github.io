@@ -1,0 +1,21 @@
+# build jemalloc with stats enabled
+# ./autogen.sh; ./configure --enable-stats; make
+
+check: test_preload
+	./test_preload
+
+check_preload_jemalloc: test_preload
+	LD_PRELOAD=../jemalloc-2.2.3/lib/libjemalloc.so ./test_preload
+
+check_usable: test_usable
+	./test_usable
+	LD_PRELOAD=../jemalloc-2.2.3/lib/libjemalloc.so ./test_usable
+
+test_arena_key: LDFLAGS=-lpthread
+
+check_arena_key: test_arena_key
+	./test_arena_key
+	LD_PRELOAD=../jemalloc-2.2.3/lib/libjemalloc.so ./test_arena_key
+
+clean:
+	rm -f test_preload test_usable test_usable_null test_arena_key

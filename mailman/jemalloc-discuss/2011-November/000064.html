@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 2.2.5 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%202.2.5%20released&In-Reply-To=%3Cf45bac3d-7d01-4d24-a59a-629fe7172a21%40claudius.linpro.no%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000063.html">
+   <LINK REL="Next"  HREF="000065.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 2.2.5 released</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%202.2.5%20released&In-Reply-To=%3Cf45bac3d-7d01-4d24-a59a-629fe7172a21%40claudius.linpro.no%3E"
+       TITLE="jemalloc 2.2.5 released">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Mon Nov 21 04:01:40 PST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000063.html">huge realloc problem with multiple threads
+</A></li>
+        <LI>Next message: <A HREF="000065.html">jemalloc on ppc32: Missing implementation for 32-bit	atomic	operations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#64">[ date ]</a>
+              <a href="thread.html#64">[ thread ]</a>
+              <a href="subject.html#64">[ subject ]</a>
+              <a href="author.html#64">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I recently submitted jemalloc-2.2.5 for fedora and epel6.
+
+Because of som ppc specific lacking functionality, jemalloc is still
+not updated for for epel5. epel5 supports ppc/ppc64 and needs those
+fixed to get a working update. For details, see Jason's answer at
+<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2011-April/000015.html">http://www.canonware.com/pipermail/jemalloc-discuss/2011-April/000015.html</A>
+As stated before, I have access to 32 and 64 bit ppc hardware, and
+would be happy to test that if the code appears.
+
+Because of this, I have compiled x86_64 and i386 packages of
+jemalloc-2.2.5 for rhel5 and clones. The packages are available here:
+
+<A HREF="http://users.linpro.no/ingvar/jemalloc/2.2.5/el5/">http://users.linpro.no/ingvar/jemalloc/2.2.5/el5/</A>
+
+Updated packages for epel6 and fedora 14-16 and rawhide are built in
+fedora koji. They are submitted to bodhi, and will trickle down to
+their respective test (and later stable) repos in a few days.
+
+Ingvar
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000063.html">huge realloc problem with multiple threads
+</A></li>
+	<LI>Next message: <A HREF="000065.html">jemalloc on ppc32: Missing implementation for 32-bit	atomic	operations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#64">[ date ]</a>
+              <a href="thread.html#64">[ thread ]</a>
+              <a href="subject.html#64">[ subject ]</a>
+              <a href="author.html#64">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

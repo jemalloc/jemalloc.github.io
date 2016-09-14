@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/2] Move zone registration to zone.c
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Move%20zone%20registration%20to%20zone.c&In-Reply-To=%3C1332850813-10182-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000185.html">
+   <LINK REL="Next"  HREF="000190.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/2] Move zone registration to zone.c</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Move%20zone%20registration%20to%20zone.c&In-Reply-To=%3C1332850813-10182-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 1/2] Move zone registration to zone.c">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Mar 27 05:20:12 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000185.html">[PATCH] Make zone_{free, realloc, free_definite_size} fallback	to the system allocator if they are called with a pointer that jemalloc	didn't allocate
+</A></li>
+        <LI>Next message: <A HREF="000190.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#189">[ date ]</a>
+              <a href="thread.html#189">[ thread ]</a>
+              <a href="subject.html#189">[ subject ]</a>
+              <a href="author.html#189">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ include/jemalloc/internal/private_namespace.h |    2 +-
+ include/jemalloc/internal/zone.h              |    3 +--
+ src/jemalloc.c                                |   24 ++----------------------
+ src/zone.c                                    |   22 +++++++++++++++++++---
+ 4 files changed, 23 insertions(+), 28 deletions(-)
+
+diff --git a/include/jemalloc/internal/private_namespace.h b/include/jemalloc/internal/private_namespace.h
+index 7103e68..ed34e32 100644
+--- a/include/jemalloc/internal/private_namespace.h
++++ b/include/jemalloc/internal/private_namespace.h
+@@ -82,7 +82,6 @@
+ #define	ckh_string_keycomp JEMALLOC_N(ckh_string_keycomp)
+ #define	ckh_try_bucket_insert JEMALLOC_N(ckh_try_bucket_insert)
+ #define	ckh_try_insert JEMALLOC_N(ckh_try_insert)
+-#define	create_zone JEMALLOC_N(create_zone)
+ #define	ctl_boot JEMALLOC_N(ctl_boot)
+ #define	ctl_bymib JEMALLOC_N(ctl_bymib)
+ #define	ctl_byname JEMALLOC_N(ctl_byname)
+@@ -195,6 +194,7 @@
+ #define	prof_tdata_init JEMALLOC_N(prof_tdata_init)
+ #define	prof_tdata_tls JEMALLOC_N(prof_tdata_tls)
+ #define	pthread_create JEMALLOC_N(pthread_create)
++#define	register_zone JEMALLOC_N(register_zone)
+ #define	rtree_get JEMALLOC_N(rtree_get)
+ #define	rtree_get_locked JEMALLOC_N(rtree_get_locked)
+ #define	rtree_new JEMALLOC_N(rtree_new)
+diff --git a/include/jemalloc/internal/zone.h b/include/jemalloc/internal/zone.h
+index 859b529..9eb4252 100644
+--- a/include/jemalloc/internal/zone.h
++++ b/include/jemalloc/internal/zone.h
+@@ -12,8 +12,7 @@
+ /******************************************************************************/
+ #ifdef JEMALLOC_H_EXTERNS
+ 
+-malloc_zone_t *create_zone(void);
+-void	szone2ozone(malloc_zone_t *zone);
++void register_zone(void);
+ 
+ #endif /* JEMALLOC_H_EXTERNS */
+ /******************************************************************************/
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index ee771c7..38a511d 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -712,26 +712,6 @@ malloc_init_hard(void)
+ 	/* Copy the pointer to the one arena that was already initialized. */
+ 	arenas[0] = init_arenas[0];
+ 
+-#ifdef JEMALLOC_ZONE
+-	/* Register the custom zone. At this point it won't be the default. */
+-	malloc_zone_t *jemalloc_zone = create_zone();
+-	malloc_zone_register(jemalloc_zone);
+-
+-	/*
+-	 * Unregister and reregister the default zone. On OSX &gt;= 10.6,
+-	 * unregistering takes the last registered zone and places it at the
+-	 * location of the specified zone. Unregistering the default zone thus
+-	 * makes the last registered one the default. On OSX &lt; 10.6,
+-	 * unregistering shifts all registered zones. The first registered zone
+-	 * then becomes the default.
+-	 */
+-	do {
+-		malloc_zone_t *default_zone = malloc_default_zone();
+-		malloc_zone_unregister(default_zone);
+-		malloc_zone_register(default_zone);
+-	} while (malloc_default_zone() != jemalloc_zone);
+-#endif
+-
+ 	malloc_initialized = true;
+ 	malloc_mutex_unlock(&amp;init_lock);
+ 	return (false);
+@@ -743,8 +723,8 @@ void
+ jemalloc_darwin_init(void)
+ {
+ 
+-	if (malloc_init_hard())
+-		abort();
++	if (!malloc_init_hard())
++		register_zone();
+ }
+ #endif
+ 
+diff --git a/src/zone.c b/src/zone.c
+index d3107f8..4b6c75e 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -159,8 +159,8 @@ zone_force_unlock(malloc_zone_t *zone)
+ 		jemalloc_postfork_parent();
+ }
+ 
+-malloc_zone_t *
+-create_zone(void)
++void
++register_zone(void)
+ {
+ 
+ 	zone.size = (void *)zone_size;
+@@ -206,5 +206,21 @@ create_zone(void)
+ 	zone_introspect.enumerate_unavailable_without_blocks = NULL;
+ #endif
+ #endif
+-	return (&amp;zone);
++
++	/* Register the custom zone. At this point it won't be the default. */
++	malloc_zone_register(&amp;zone);
++
++	/*
++	 * Unregister and reregister the default zone. On OSX &gt;= 10.6,
++	 * unregistering takes the last registered zone and places it at the
++	 * location of the specified zone. Unregistering the default zone thus
++	 * makes the last registered one the default. On OSX &lt; 10.6,
++	 * unregistering shifts all registered zones. The first registered zone
++	 * then becomes the default.
++	 */
++	do {
++		malloc_zone_t *default_zone = malloc_default_zone();
++		malloc_zone_unregister(default_zone);
++		malloc_zone_register(default_zone);
++	} while (malloc_default_zone() != &amp;zone);
+ }
+-- 
+1.7.9.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000185.html">[PATCH] Make zone_{free, realloc, free_definite_size} fallback	to the system allocator if they are called with a pointer that jemalloc	didn't allocate
+</A></li>
+	<LI>Next message: <A HREF="000190.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#189">[ date ]</a>
+              <a href="thread.html#189">[ thread ]</a>
+              <a href="subject.html#189">[ subject ]</a>
+              <a href="author.html#189">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

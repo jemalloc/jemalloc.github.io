@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/2] Delay pthread_atfork registering.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Delay%20pthread_atfork%20registering.&In-Reply-To=%3CF57F9E3F-8988-400C-8B40-C1F115A2DE8A%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000653.html">
+   <LINK REL="Next"  HREF="000658.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/2] Delay pthread_atfork registering.</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Delay%20pthread_atfork%20registering.&In-Reply-To=%3CF57F9E3F-8988-400C-8B40-C1F115A2DE8A%40canonware.com%3E"
+       TITLE="[PATCH 1/2] Delay pthread_atfork registering.">jasone at canonware.com
+       </A><BR>
+    <I>Wed Oct 23 13:00:36 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000653.html">[PATCH 1/2] Delay pthread_atfork registering.
+</A></li>
+        <LI>Next message: <A HREF="000658.html">[PATCH 1/2] Delay pthread_atfork registering.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#654">[ date ]</a>
+              <a href="thread.html#654">[ thread ]</a>
+              <a href="subject.html#654">[ subject ]</a>
+              <a href="author.html#654">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 23, 2013, at 9:20 AM, Leonard Crestez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">lcrestez at ixiacom.com</A>&gt; wrote:
+&gt;<i> You mean between the &quot;malloc_initialized = true;&quot; and &quot;malloc_mutex_unlock(&amp;init_lock);&quot;?
+</I>
+Yes.
+
+&gt;<i> It's not clear what this protects against. malloc_init_hard should complete during the first malloc in the process. As long as nobody forks during the first malloc delaying pthread_atfork should be safe, right?
+</I>
+Consider this comment above jemalloc_constructor() in src/jemalloc.c:
+
+/*
+ * If an application creates a thread before doing any allocation in the main
+ * thread, then calls fork(2) in the main thread followed by memory allocation
+ * in the child process, a race can occur that results in deadlock within the
+ * child: the main thread may have forked while the created thread had
+ * partially initialized the allocator.  Ordinarily jemalloc prevents
+ * fork/malloc races via the following functions it registers during
+ * initialization using pthread_atfork(), but of course that does no good if
+ * the allocator isn't fully initialized at fork time.  The following library
+ * constructor is a partial solution to this problem.  It may still possible to
+ * trigger the deadlock described above, but doing so would involve forking via
+ * a library constructor that runs before jemalloc's runs.
+ */
+
+After your change, there are additional failure modes.  For example, the main thread can create a new thread, malloc, then fork, and if the other thread makes it through malloc initialization (but not to the pthread_atfork() call) prior to the main thread's malloc and fork, then deadlock can occur.  In practice jemalloc_constructor() should make it really hard to hit such races, but I remain paranoid about relaxing the initialization sequence.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000653.html">[PATCH 1/2] Delay pthread_atfork registering.
+</A></li>
+	<LI>Next message: <A HREF="000658.html">[PATCH 1/2] Delay pthread_atfork registering.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#654">[ date ]</a>
+              <a href="thread.html#654">[ thread ]</a>
+              <a href="subject.html#654">[ subject ]</a>
+              <a href="author.html#654">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

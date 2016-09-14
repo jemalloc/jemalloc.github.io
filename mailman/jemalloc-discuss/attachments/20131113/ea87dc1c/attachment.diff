@@ -1,0 +1,14 @@
+diff --git a/src/arena.c b/src/arena.c
+index 145de86..aad1a02 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -1402,8 +1402,7 @@ arena_tcache_fill_small(arena_t *arena, tcache_bin_t *tbin, size_t binind,
+ 			arena_alloc_junk_small(ptr, &arena_bin_info[binind],
+ 			    true);
+ 		}
+-		/* Insert such that low regions get used first. */
+-		tbin->avail[nfill - 1 - i] = ptr;
++		tbin->avail[i] = ptr;
+ 	}
+ 	if (config_stats) {
+ 		bin->stats.allocated += i * arena_bin_info[binind].reg_size;

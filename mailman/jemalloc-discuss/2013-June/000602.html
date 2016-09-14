@@ -1,0 +1,237 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> High amount of private clean data in smaps
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3COF4C8F9C2F.239D7C32-ON85257B80.00706828-85257B80.0070CC83%40us.ibm.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000598.html">
+   <LINK REL="Next"  HREF="000604.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>High amount of private clean data in smaps</H1>
+    <B>Kurtis Martin</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3COF4C8F9C2F.239D7C32-ON85257B80.00706828-85257B80.0070CC83%40us.ibm.com%3E"
+       TITLE="High amount of private clean data in smaps">kurtism at us.ibm.com
+       </A><BR>
+    <I>Tue Jun  4 13:32:00 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000598.html">High amount of private clean data in smaps
+</A></li>
+        <LI>Next message: <A HREF="000604.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#602">[ date ]</a>
+              <a href="thread.html#602">[ thread ]</a>
+              <a href="subject.html#602">[ subject ]</a>
+              <a href="author.html#602">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jason,
+
+Thx for taking the time to look into this !
+
+Below is the requested information.  When I originally observed this 
+behavior I was running with munmap disabled.  We are currently running 
+with it enabled, to see how much it helps or hurts us.  Private_Clean is 
+still high with munmap enabled, however our processes RSS seems to be 
+growing slower.
+
+Also, we have swapping disabled.  Mainly because we are running a bunch of 
+java processes for which we don't want any of the JVM to ever be swapped. 
+It's unclear if enabling swap will help us avoid the OS OOM killer, 
+however we will soon be running some experiments with swap enabled.
+
+I've been try to catch strace when the Private_Clean is growing.  Not sure 
+if you are asking for a full strace or whether the summary is good enough. 
+ A full strace would be way too large as our server is under full load 
+with tens of thousands of allocations every second.  The summary is 
+attached below for a 30 minute duration, during which time I observed a 
+single smap grow by 100MB of private clean pages.  Over the next couple of 
+hours it didn't grow at all, rather it shrunk by a couple of hundred MBs.
+
+Please let me know if anything else is needed, or if you have any 
+suggestions with other jemalloc config options or Linux tuning we maybe 
+able to do to help.  THX !
+
+1) Linux version:
+
+Linux 10.42.229.68 2.6.32-131.21.1.89.br5_0.x86_64 #1 SMP Tue Mar 19 
+15:05:57 CDT 2013 x86_64 GNU/Linux
+
+2) config options for jemalloc:
+
+===============================================================================
+jemalloc version   : 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+library revision   : 1
+
+CC                 : gcc
+CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+CFLAGS             : -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 
+-funroll-loops
+LDFLAGS            : 
+LIBS               :  -lm -lpthread
+RPATH_EXTRA        : 
+
+XSLTPROC           : /usr/bin/xsltproc
+XSLROOT            : /usr/share/sgml/docbook/xsl-stylesheets
+
+PREFIX             : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc
+BINDIR             : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/bin
+INCLUDEDIR         : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/include
+LIBDIR             : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/lib
+DATADIR            : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/share
+MANDIR             : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/share/man
+
+srcroot            : 
+abs_srcroot        : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/src/jemalloc-3.3.1/
+objroot            : 
+abs_objroot        : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/src/jemalloc-3.3.1/
+
+JEMALLOC_PREFIX    : je
+JEMALLOC_PRIVATE_NAMESPACE
+                   : 
+install_suffix     : 
+autogen            : 0
+experimental       : 1
+cc-silence         : 0
+debug              : 0
+stats              : 1
+prof               : 0
+prof-libunwind     : 0
+prof-libgcc        : 0
+prof-gcc           : 0
+tcache             : 0
+fill               : 1
+utrace             : 0
+valgrind           : 0
+xmalloc            : 0
+mremap             : 0
+munmap             : 1
+dss                : 0
+lazy_lock          : 0
+tls                : 1
+===============================================================================
+
+3) jemalloc runtime:
+
+Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+Assertions disabled
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 21
+  opt.dss: &quot;secondary&quot;
+  opt.narenas: 96
+  opt.lg_dirty_mult: 6
+  opt.stats_print: false
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+CPUs: 24
+Arenas: 96
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 64:1
+Chunk size: 2097152 (2^21)
+
+4) strace summary
+
+
+
+        bye,
+                kMartin
+.
+
+
+
+
+From:
+Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;
+To:
+Kurtis Martin/Raleigh/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">IBM at IBMUS</A>, 
+Cc:
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+Date:
+06/03/2013 07:23 PM
+Subject:
+Re: High amount of private clean data in smaps
+
+
+
+On May 30, 2013, at 4:06 PM, Kurtis Martin wrote:
+1) Why does jemalloc have smaps with such large Private_Clean size?  I'm 
+actually surprised jemalloc has such large smaps in general.  I would 
+expect a bunch of smaller smaps that match the configured chunk size. 
+
+I've been trying to figure this out for quite a while now, and I have yet 
+to come up a way to transition pages that were mapped as 
+MAP_PRIVATE|MAP_ANON to the Private_Clean state.  My experiments included 
+fork(2) abuse, mmap'ed files, shared anonymous memory, etc., and I'm 
+currently out of ideas.  If you're able to observe a process as its 
+Private_Clean page count is increasing, can you capture an strace log to 
+see what system calls are occurring?  Also, can you tell me the Linux 
+kernel version you're using, jemalloc configuration (e.g. whether munmap 
+is disabled), and jemalloc run-time options specified?
+
+Regarding large smaps, all the Unix operating systems I've dealt with 
+coalesce mappings that have identical attributes.  If jemalloc maps two 
+chunks that happen to be adjacent to each other, the kernel tracks them as 
+a single mapping.  jemalloc goes to some effort to make coalescing 
+possible, because Linux unfortunately does linear map scans that severely 
+degrade performance if the number of map entries isn't kept low.
+
+Thanks,
+Jason
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130604/27c1edd5/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130604/27c1edd5/attachment.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: strace.348821.100MB_30m.log
+Type: application/octet-stream
+Size: 3483 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130604/27c1edd5/attachment.obj">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130604/27c1edd5/attachment.obj</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000598.html">High amount of private clean data in smaps
+</A></li>
+	<LI>Next message: <A HREF="000604.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#602">[ date ]</a>
+              <a href="thread.html#602">[ thread ]</a>
+              <a href="subject.html#602">[ subject ]</a>
+              <a href="author.html#602">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

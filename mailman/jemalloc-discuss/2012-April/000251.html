@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Making sense of TSD
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Making%20sense%20of%20TSD&In-Reply-To=%3C20120411190842.GA8404%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000250.html">
+   <LINK REL="Next"  HREF="000252.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Making sense of TSD</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Making%20sense%20of%20TSD&In-Reply-To=%3C20120411190842.GA8404%40glandium.org%3E"
+       TITLE="Making sense of TSD">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Apr 11 12:08:42 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000250.html">Making sense of TSD
+</A></li>
+        <LI>Next message: <A HREF="000252.html">Making sense of TSD
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#251">[ date ]</a>
+              <a href="thread.html#251">[ thread ]</a>
+              <a href="subject.html#251">[ subject ]</a>
+              <a href="author.html#251">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Apr 11, 2012 at 12:05:05PM -0700, Jason Evans wrote:
+&gt;<i> On Apr 11, 2012, at 10:22 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt; I'm trying to make sense of the tsd implementation without __thread,
+</I>&gt;<i> &gt; which would seem to fit the tls model on windows. But I don't see
+</I>&gt;<i> &gt; why the wrapper struct is needed at all. The first thing that
+</I>&gt;<i> &gt; bothers me is that the isstatic == true case is set to abort on
+</I>&gt;<i> &gt; opt_abort, yet is supported. And it doesn't seem very obvious why
+</I>&gt;<i> &gt; initialized is needed.
+</I>&gt;<i> 
+</I>&gt;<i> The wrapper struct is needed with pthreads TSD because
+</I>&gt;<i> pthread_[gs]etspecific() only operate on (void *) pointers.  Thus it's
+</I>&gt;<i> impossible to store more than a pointer-sized item with pthreads TSD
+</I>&gt;<i> unless that pointer refers to an allocated structure.  I don't
+</I>&gt;<i> remember the details of Windows's TLS/TSD API; if it can store any
+</I>&gt;<i> type/structure, then no wrapper struct is needed.
+</I>
+Well, the void* pointer could just point to whatever structure you want
+to store, instead of having a struct containing two bools which
+usefulness I'm doubtful about, and a pointer to that allocated structure.
+At least it seems so. That was my question.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000250.html">Making sense of TSD
+</A></li>
+	<LI>Next message: <A HREF="000252.html">Making sense of TSD
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#251">[ date ]</a>
+              <a href="thread.html#251">[ thread ]</a>
+              <a href="subject.html#251">[ subject ]</a>
+              <a href="author.html#251">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

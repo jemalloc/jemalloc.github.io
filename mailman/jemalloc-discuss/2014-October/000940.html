@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> arenas.extend + thread.arena confusion
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20arenas.extend%20%2B%20thread.arena%20confusion&In-Reply-To=%3C4F34B83B-F940-4635-BAAD-24BE60C614C6%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000939.html">
+   <LINK REL="Next"  HREF="000955.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>arenas.extend + thread.arena confusion</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20arenas.extend%20%2B%20thread.arena%20confusion&In-Reply-To=%3C4F34B83B-F940-4635-BAAD-24BE60C614C6%40indiana.edu%3E"
+       TITLE="arenas.extend + thread.arena confusion">ldalessa at indiana.edu
+       </A><BR>
+    <I>Wed Oct  1 17:45:10 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000939.html">arenas.extend + thread.arena confusion
+</A></li>
+        <LI>Next message: <A HREF="000955.html">arenas.extend + thread.arena confusion
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#940">[ date ]</a>
+              <a href="thread.html#940">[ thread ]</a>
+              <a href="subject.html#940">[ subject ]</a>
+              <a href="author.html#940">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+On Oct 1, 2014, at 7:37 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Sep 30, 2014, at 11:08 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;<i> I have an application where I want every thread to have two arenas. One is use for default allocations and has access to the cache, and the other is used for private allocations through malllocx().
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> I do this by doing an arena.extend + thread.arena in each thread. The problem that I have is that jemalloc seems to reuse arena ids in this context. Essentially I get a trace that looks something like:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> t1: t2 = pthread_create()
+</I>&gt;&gt;<i> t1: new1 = arenas.extend
+</I>&gt;&gt;<i> t1: old1 = thread.arena(new1)
+</I>&gt;&gt;<i> t2: new2 = arenas.extend
+</I>&gt;&gt;<i> t2: old2 = thread.arena(new2)
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> : old1 == old2 == 0
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Is this behavior expected? Shouldn&#8217;t jemalloc use a fresh arena for each new thread?
+</I>&gt;<i> 
+</I>&gt;<i> When jemalloc assigns an arena to a thread, it finds the set of default (non-&quot;extend&quot;) arenas that have the fewest assigned threads, and assigns the lowest-numbered arena in that set to the thread.  If you were to remove the &quot;thread.arena&quot; assignment from your test program (which is consistent with your stated purpose), you would end up with your threads assigned to arenas 0 and 1, and you would additionally have two arenas that jemalloc uses only if you specify MALLOCX_ARENA() to one of the *allocx() functions.  As it is, the test program is racey; you could end up with the created thread initially assigned to arena 1, if a context switch happened at the right time.
+</I>
+I can&#8217;t use the default arenas because I&#8217;m using a custom chunk allocator and I couldn't figure out a way to get jemalloc to release all of the chunks associated with an arena after setting the chunk allocator&#8212;I don&#8217;t even know what&#8217;s been allocated prior to that so I&#8217;m not sure it&#8217;s even feasible. I&#8217;d have to shift them to a different arena or something, and that seems like a lot of work.
+
+I need fast concurrent access to the arenas managing my network-registered address space, so I&#8217;m extending the arena space, binding the chunk allocator, and then swapping to it. I wanted to use the existing arena for slower access to mostly-private, system mmap()ed data, and I don&#8217;t want these arenas shared since I&#8217;m bypassing the cache when using them.
+
+I am working around my issue by using two extended arenas for each thread, one for the private allocations and one for the shared registered memory regions, and just leaving the &#8220;primordial&#8221; arenas to rot, which sees fine since arenas have such low overhead.
+
+As you might imagine, I&#8217;m running into an issue where dallocx with MALLOCX_ARENA() set is caching allocations when I don&#8217;t want them to be cached. I have to embed and distribute a slightly modified jemalloc where I comment out the optimistic caching in dallocx and rallocx. A different BYPASS_CACHE flag would be useful here, but it&#8217;s not an urgent issue.
+
+Thanks for your help. It&#8217;s a huge help to us.
+
+Luke
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000939.html">arenas.extend + thread.arena confusion
+</A></li>
+	<LI>Next message: <A HREF="000955.html">arenas.extend + thread.arena confusion
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#940">[ date ]</a>
+              <a href="thread.html#940">[ thread ]</a>
+              <a href="subject.html#940">[ subject ]</a>
+              <a href="author.html#940">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

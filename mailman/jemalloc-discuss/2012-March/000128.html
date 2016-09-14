@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Remove extra } in malloc_vsnprintf
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20extra%20%7D%20in%20malloc_vsnprintf&In-Reply-To=%3CDF771133-4965-489F-8016-8F0AFC6838F2%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000123.html">
+   <LINK REL="Next"  HREF="000136.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Remove extra } in malloc_vsnprintf</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20extra%20%7D%20in%20malloc_vsnprintf&In-Reply-To=%3CDF771133-4965-489F-8016-8F0AFC6838F2%40canonware.com%3E"
+       TITLE="[PATCH] Remove extra } in malloc_vsnprintf">jasone at canonware.com
+       </A><BR>
+    <I>Mon Mar 12 11:36:31 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000123.html">[PATCH] Remove extra } in malloc_vsnprintf
+</A></li>
+        <LI>Next message: <A HREF="000136.html">[PATCH] atomic operations for ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#128">[ date ]</a>
+              <a href="thread.html#128">[ thread ]</a>
+              <a href="subject.html#128">[ subject ]</a>
+              <a href="author.html#128">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 12, 2012, at 2:27 AM, <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh+jemalloc at glandium.org</A> wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> ---
+</I>&gt;<i> src/util.c |    1 -
+</I>&gt;<i> 1 files changed, 0 insertions(+), 1 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> diff --git a/src/util.c b/src/util.c
+</I>&gt;<i> index 7c4c0d4..7d658aa 100644
+</I>&gt;<i> --- a/src/util.c
+</I>&gt;<i> +++ b/src/util.c
+</I>&gt;<i> @@ -443,7 +443,6 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+</I>&gt;<i> 		tret = vsnprintf(buf, sizeof(buf), format, tap);
+</I>&gt;<i> 		assert(tret == ret);
+</I>&gt;<i> 		assert(memcmp(str, buf, ret + 1) == 0);
+</I>&gt;<i> -		}
+</I>&gt;<i> 	}
+</I>
+Fixed.  I have no idea how that slipped in&#8230;
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000123.html">[PATCH] Remove extra } in malloc_vsnprintf
+</A></li>
+	<LI>Next message: <A HREF="000136.html">[PATCH] atomic operations for ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#128">[ date ]</a>
+              <a href="thread.html#128">[ thread ]</a>
+              <a href="subject.html#128">[ subject ]</a>
+              <a href="author.html#128">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

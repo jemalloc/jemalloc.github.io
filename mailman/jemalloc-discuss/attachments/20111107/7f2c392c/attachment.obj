@@ -1,0 +1,15 @@
+# jemalloc build:  ./configure --enable-debug
+
+CFLAGS = -std=c99
+LDFLAGS = -lpthread
+
+realloctest: realloctest.c
+
+check: realloctest
+	./realloctest
+
+check_jemalloc: realloctest
+	LD_PRELOAD=../../jemalloc-2.2.3/lib/libjemalloc.so ./realloctest
+
+clean:
+	rm realloctest

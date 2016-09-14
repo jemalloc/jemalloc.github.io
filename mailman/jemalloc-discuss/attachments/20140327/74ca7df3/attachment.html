@@ -1,0 +1,64 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;I&nbsp;believe&nbsp;that&nbsp;is&nbsp;the&nbsp;same&nbsp;crash&nbsp;if&nbsp;you&nbsp;have&nbsp;the&nbsp;debugging&nbsp;asserts&nbsp;turned&nbsp;on.&nbsp;With&nbsp;the&nbsp;debugging&nbsp;asserts&nbsp;turned&nbsp;off&nbsp;it&nbsp;will&nbsp;crash&nbsp;on&nbsp;the&nbsp;next&nbsp;line&nbsp;with&nbsp;code&nbsp;in &lt;span&nbsp;style=&quot;font-family:arial,sans-serif;font-size:13px&quot;&gt;arena_avail_insert.&lt;/span&gt;&lt;div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Chris&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Thu,&nbsp;Mar&nbsp;27,&nbsp;2014&nbsp;at&nbsp;6:35&nbsp;PM,&nbsp;Ricardo&nbsp;Nabinger&nbsp;Sanchez&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:rnsanchez@wait4.org&quot;&nbsp;target=&quot;_blank&quot;&gt;rnsanchez@wait4.org&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;Hello&nbsp;Christopher,&lt;br&gt;<br>
+&lt;div&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;&lt;br&gt;<br>
+On&nbsp;Thu,&nbsp;27&nbsp;Mar&nbsp;2014&nbsp;12:42:01&nbsp;-0700&lt;br&gt;<br>
+Christopher&nbsp;Pride&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:cpride@cpride.net&quot;&gt;cpride@cpride.net&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&lt;br&gt;<br>
+&gt;&nbsp;We&nbsp;hit&nbsp;a&nbsp;jemalloc&nbsp;out&nbsp;of&nbsp;memory&nbsp;crash&nbsp;in&nbsp;the&nbsp;3.5.*&nbsp;line.&nbsp;It&nbsp;looks&nbsp;like&nbsp;a&lt;br&gt;<br>
+&gt;&nbsp;simple&nbsp;NULL&nbsp;check&nbsp;is&nbsp;missing&nbsp;from&nbsp;a&nbsp;refactor.&nbsp;More&nbsp;information&nbsp;is&lt;br&gt;<br>
+&gt;&nbsp;documented&nbsp;in&nbsp;the&nbsp;pull&nbsp;request&nbsp;for&nbsp;a&nbsp;fix&nbsp;on&nbsp;github&nbsp;here:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;&lt;a&nbsp;href=&quot;https://github.com/jemalloc/jemalloc/pull/60&quot;&nbsp;target=&quot;_blank&quot;&gt;https://github.com/jemalloc/jemalloc/pull/60&lt;/a&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;&lt;/div&gt;Any&nbsp;chance&nbsp;this&nbsp;crash&nbsp;looks&nbsp;like&nbsp;this&nbsp;one?&lt;br&gt;<br>
+&lt;br&gt;<br>
+Program&nbsp;received&nbsp;signal&nbsp;SIGSEGV,&nbsp;Segmentation&nbsp;fault.&lt;br&gt;<br>
+[Switching&nbsp;to&nbsp;Thread&nbsp;0x7ffff68ed700&nbsp;(LWP&nbsp;2213)]&lt;br&gt;<br>
+0x00007ffff7258498&nbsp;in&nbsp;je_arena_mapbitsp_read&nbsp;(mapbitsp=0x48)&nbsp;at&nbsp;include/jemalloc/internal/arena.h:525&lt;br&gt;<br>
+525&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;return&nbsp;(*mapbitsp);&lt;br&gt;<br>
+(gdb)&nbsp;bt&nbsp;f&lt;br&gt;<br>
+#0&nbsp; 0x00007ffff7258498&nbsp;in&nbsp;je_arena_mapbitsp_read&nbsp;(mapbitsp=0x48)&nbsp;at&nbsp;include/jemalloc/internal/arena.h:525&lt;br&gt;<br>
+No&nbsp;locals.&lt;br&gt;<br>
+#1&nbsp; 0x00007ffff72584c8&nbsp;in&nbsp;je_arena_mapbits_get&nbsp;(chunk=0x0,&nbsp;pageind=8)&nbsp;at&nbsp;include/jemalloc/internal/arena.h:532&lt;br&gt;<br>
+No&nbsp;locals.&lt;br&gt;<br>
+#2&nbsp; 0x00007ffff72584ed&nbsp;in&nbsp;je_arena_mapbits_unallocated_size_get&nbsp;(chunk=0x0,&nbsp;pageind=8)&nbsp;at&nbsp;include/jemalloc/internal/arena.h:540&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;mapbits&nbsp;=&nbsp;140737339856325&lt;br&gt;<br>
+#3&nbsp; 0x00007ffff72601fe&nbsp;in&nbsp;arena_avail_insert&nbsp;(arena=0x7ffff64a4d40,&nbsp;chunk=0x0,&nbsp;pageind=8,&nbsp;npages=1016,&nbsp;maybe_adjac_pred=false, &lt;br&gt;<br>
+ &nbsp; &nbsp;maybe_adjac_succ=false)&nbsp;at&nbsp;src/arena.c:218&lt;br&gt;<br>
+No&nbsp;locals.&lt;br&gt;<br>
+#4&nbsp; 0x00007ffff72617fd&nbsp;in&nbsp;arena_chunk_alloc&nbsp;(arena=0x7ffff64a4d40)&nbsp;at&nbsp;src/arena.c:621&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;chunk&nbsp;=&nbsp;0x0&lt;br&gt;<br>
+#5&nbsp; 0x00007ffff7261c8a&nbsp;in&nbsp;arena_run_alloc_large&nbsp;(arena=0x7ffff64a4d40,&nbsp;size=331776,&nbsp;zero=true)&nbsp;at&nbsp;src/arena.c:699&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;chunk&nbsp;=&nbsp;0x7ffff68ec0c0&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;run&nbsp;=&nbsp;0x0&lt;br&gt;<br>
+#6&nbsp; 0x00007ffff7264a83&nbsp;in&nbsp;je_arena_malloc_large&nbsp;(arena=0x7ffff64a4d40,&nbsp;size=331776,&nbsp;zero=true)&nbsp;at&nbsp;src/arena.c:1663&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;ret&nbsp;=&nbsp;0x7fffe264a03c&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;idump&nbsp;=&nbsp;false&lt;br&gt;<br>
+#7&nbsp; 0x00007ffff7259afa&nbsp;in&nbsp;je_arena_malloc&nbsp;(arena=0x0,&nbsp;size=327704,&nbsp;zero=true,&nbsp;try_tcache=true)&nbsp;at&nbsp;include/jemalloc/internal/arena.h:971&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;tcache&nbsp;=&nbsp;0x7fffe264a020&lt;br&gt;<br>
+#8&nbsp; 0x00007ffff7251ec8&nbsp;in&nbsp;je_icalloct&nbsp;(size=327704,&nbsp;try_tcache=true,&nbsp;arena=0x0)&nbsp;at&nbsp;include/jemalloc/internal/jemalloc_internal.h:788&lt;br&gt;<br>
+No&nbsp;locals.&lt;br&gt;<br>
+#9&nbsp; 0x00007ffff7251f04&nbsp;in&nbsp;je_icalloc&nbsp;(size=327704)&nbsp;at&nbsp;include/jemalloc/internal/jemalloc_internal.h:797&lt;br&gt;<br>
+No&nbsp;locals.&lt;br&gt;<br>
+#10&nbsp;0x00007ffff72559e6&nbsp;in&nbsp;calloc&nbsp;(num=1,&nbsp;size=327704)&nbsp;at&nbsp;src/jemalloc.c:1158&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;ret&nbsp;=&nbsp;0x7fffe0c00977&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;num_size&nbsp;=&nbsp;327704&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;usize&nbsp;=&nbsp;331776&lt;br&gt;<br>
+&lt;...&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+I&nbsp;had&nbsp;saved&nbsp;this&nbsp;backtrace&nbsp;for&nbsp;further&nbsp;inspection&nbsp;a&nbsp;few&nbsp;weeks&nbsp;ago,&nbsp;and&nbsp;it&lt;br&gt;<br>
+is&nbsp;reasonably&nbsp;easy&nbsp;to&nbsp;reproduce.&nbsp; My&nbsp;scenario&nbsp;matches&nbsp;the&nbsp;OOM&nbsp;mentioned&nbsp;in&lt;br&gt;<br>
+the&nbsp;pull&nbsp;request.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Cheers,&lt;br&gt;<br>
+&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+--&lt;br&gt;<br>
+Ricardo&nbsp;Nabinger&nbsp;Sanchez&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&lt;a&nbsp;href=&quot;http://rnsanchez.wait4.org/&quot;&nbsp;target=&quot;_blank&quot;&gt;http://rnsanchez.wait4.org/&lt;/a&gt;&lt;br&gt;<br>
+ &nbsp;&quot;Left&nbsp;to&nbsp;themselves,&nbsp;things&nbsp;tend&nbsp;to&nbsp;go&nbsp;from&nbsp;bad&nbsp;to&nbsp;worse.&quot;&lt;br&gt;<br>
+&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

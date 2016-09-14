@@ -1,0 +1,204 @@
+From jasone at canonware.com  Wed Mar  6 11:08:32 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 6 Mar 2013 11:08:32 -0800
+Subject: [PATCH] fix building for s390 systems
+In-Reply-To: <1359404374-18823-1-git-send-email-vapier@gentoo.org>
+References: <1359404374-18823-1-git-send-email-vapier@gentoo.org>
+Message-ID: <485C9FA8-C4B5-4011-B17D-8847A4F8C71F@canonware.com>
+
+On Jan 28, 2013, at 12:19 PM, Mike Frysinger wrote:
+> Checking for __s390x__ means you work on s390x, but not s390 (32bit)
+> systems.  So use __s390__ which works for both.
+
+Applied; thanks.
+
+Jason
+
+
+From riku.voipio at linaro.org  Mon Mar 18 07:40:20 2013
+From: riku.voipio at linaro.org (Riku Voipio)
+Date: Mon, 18 Mar 2013 16:40:20 +0200
+Subject: [PATCH] Add aarch64 LG_QUANTUM size definition
+Message-ID: <1363617620-21976-1-git-send-email-riku.voipio@linaro.org>
+
+
+Signed-off-by: Riku Voipio <riku.voipio at linaro.org>
+---
+ include/jemalloc/internal/jemalloc_internal.h.in |    3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index 50d84ca..e46ac54 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -278,6 +278,9 @@ static const bool config_ivsalloc =
+ #  ifdef __arm__
+ #    define LG_QUANTUM		3
+ #  endif
++#  ifdef __aarch64__
++#    define LG_QUANTUM		4
++#  endif
+ #  ifdef __hppa__
+ #    define LG_QUANTUM		4
+ #  endif
+-- 
+1.7.10.4
+
+
+
+From jemalloc at icosm.net  Wed Mar 20 09:49:16 2013
+From: jemalloc at icosm.net (Adam Fried-Gintis)
+Date: Wed, 20 Mar 2013 09:49:16 -0700
+Subject: Static library usage
+Message-ID: <CAHsRzLJtCevX3BOKDUzhKKcojzp7aX_AjrFK185RCK87Xs6p0g@mail.gmail.com>
+
+Hi,
+
+I've noticed that when linking with the static libjemalloc(_pic).a,
+initialization does not occur unless you make a jemalloc call within your
+code. In other words, I have to call something like malloc_stats_print() or
+malloc_usable_size() to get jemalloc initialized. If I don't do this, the
+normal malloc continues to be used. This is different from the behavior of
+the shared library. Is this a limitation somewhere, or a bug, or even a
+autogen/configure setting that I missed? If it can't be changed/fixed, it
+would be great to see this documented - it's certainly not obvious.
+
+Thanks!
+--
+Adam Fried-Gintis
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130320/6e90ec22/attachment.html>
+
+From jasone at canonware.com  Wed Mar 20 12:11:08 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 20 Mar 2013 12:11:08 -0700
+Subject: Static library usage
+In-Reply-To: <CAHsRzLJtCevX3BOKDUzhKKcojzp7aX_AjrFK185RCK87Xs6p0g@mail.gmail.com>
+References: <CAHsRzLJtCevX3BOKDUzhKKcojzp7aX_AjrFK185RCK87Xs6p0g@mail.gmail.com>
+Message-ID: <A03F47CD-708D-4DEE-8F31-8F5E6A1D1779@canonware.com>
+
+On Mar 20, 2013, at 9:49 AM, Adam Fried-Gintis <jemalloc at icosm.net> wrote:
+> I've noticed that when linking with the static libjemalloc(_pic).a, initialization does not occur unless you make a jemalloc call within your code. In other words, I have to call something like malloc_stats_print() or malloc_usable_size() to get jemalloc initialized. If I don't do this, the normal malloc continues to be used. This is different from the behavior of the shared library. Is this a limitation somewhere, or a bug, or even a autogen/configure setting that I missed? If it can't be changed/fixed, it would be great to see this documented - it's certainly not obvious.
+
+This sounds like a weird side effect of lazy run-time symbol resolution in the operating system's dynamic loader.  What platform is this happening on?
+
+Jason
+
+
+
+From jemalloc at icosm.net  Wed Mar 20 15:10:59 2013
+From: jemalloc at icosm.net (Adam Fried-Gintis)
+Date: Wed, 20 Mar 2013 15:10:59 -0700
+Subject: Static library usage
+In-Reply-To: <A03F47CD-708D-4DEE-8F31-8F5E6A1D1779@canonware.com>
+References: <CAHsRzLJtCevX3BOKDUzhKKcojzp7aX_AjrFK185RCK87Xs6p0g@mail.gmail.com>
+	<A03F47CD-708D-4DEE-8F31-8F5E6A1D1779@canonware.com>
+Message-ID: <CAHsRzLK7WiUhafBuftQj5AUe_Q7B1xgNPHKE+-nko1VBu+K_KA@mail.gmail.com>
+
+Sorry, should have mentioned that. CentOS 5.6.
+
+--
+Adam Fried-Gintis
+
+On Wed, Mar 20, 2013 at 12:11 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Mar 20, 2013, at 9:49 AM, Adam Fried-Gintis <jemalloc at icosm.net> wrote:
+> > I've noticed that when linking with the static libjemalloc(_pic).a,
+> initialization does not occur unless you make a jemalloc call within your
+> code. In other words, I have to call something like malloc_stats_print() or
+> malloc_usable_size() to get jemalloc initialized. If I don't do this, the
+> normal malloc continues to be used. This is different from the behavior of
+> the shared library. Is this a limitation somewhere, or a bug, or even a
+> autogen/configure setting that I missed? If it can't be changed/fixed, it
+> would be great to see this documented - it's certainly not obvious.
+>
+> This sounds like a weird side effect of lazy run-time symbol resolution in
+> the operating system's dynamic loader.  What platform is this happening on?
+>
+> Jason
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130320/1768f624/attachment.html>
+
+From bbazso at gmail.com  Thu Mar 21 07:21:29 2013
+From: bbazso at gmail.com (Benjamin Bazso)
+Date: Thu, 21 Mar 2013 10:21:29 -0400
+Subject: Memory Fragmentation
+Message-ID: <CA+qgMR0RCnFzjG_S-sQjmUOXpMvmOma=f=JBuQWsHnns26y+=A@mail.gmail.com>
+
+Hello,
+
+I am using jemalloc for my server application and I have been monitoring
+the memory (rss) for several days and it continues to rise.  I have
+previously monitored the application using valgrind for several days and it
+reported no memory leaks.
+
+This leads me to believe that the rise in memory consumption (rss) is due
+to memory fragmentation.
+
+With this in mind, I added to my application the call to malloc_stats_print(
+**) function and I poll this function every hour and save the results.
+>From what I see and understand from this report, I do indeed see the memory
+consumption rising and I also noticed that the number of bigger allocations
+increases (~2.5 MB) over time.
+
+I have been reading quite a bit about jemalloc, and what I fail to
+understand how to do yet is how to use this report to support the notion
+that my application is actually experiencing memory fragmentation.
+
+So my questions are:
+
+
+   1. How can I use the malloc_stats_print(**) stats to show that my
+   application is suffering from memory fragmentation?
+   2. Is there a way to help eliminate fragmentation in jemalloc, perhaps
+   by calling an extended facility?
+   3. Will using thread cache flushing and forced dirty page purging help
+   reduce fragmentation? Is it a good idea?
+
+Thanks a lot for the help and have a great day,
+
+Benjamin
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130321/39680dd3/attachment.html>
+
+From jasone at canonware.com  Thu Mar 21 13:41:11 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 21 Mar 2013 13:41:11 -0700
+Subject: Memory Fragmentation
+In-Reply-To: <CA+qgMR0RCnFzjG_S-sQjmUOXpMvmOma=f=JBuQWsHnns26y+=A@mail.gmail.com>
+References: <CA+qgMR0RCnFzjG_S-sQjmUOXpMvmOma=f=JBuQWsHnns26y+=A@mail.gmail.com>
+Message-ID: <5FF484B4-7409-42C1-9946-4CDACA92D331@canonware.com>
+
+On Mar 21, 2013, at 7:21 AM, Benjamin Bazso wrote:
+> I am using jemalloc for my server application and I have been monitoring the memory (rss) for several days and it continues to rise.  I have previously monitored the application using valgrind for several days and it reported no memory leaks.
+
+What version of jemalloc are you using, and on what operating system?
+
+Also, valgrind will report as leaks memory that is unreachable, but your application can bloat its reachable memory usage without valgrind complaining.  You may find jemalloc's heap profiling support useful in understanding where your application is actually using memory, and if allocated memory usage is truly growing, you will be able to tell where that growth is occurring within your application.
+
+> This leads me to believe that the rise in memory consumption (rss) is due to memory fragmentation.
+> 
+> With this in mind, I added to my application the call to malloc_stats_print() function and I poll this function every hour and save the results.  From what I see and understand from this report, I do indeed see the memory consumption rising and I also noticed that the number of bigger allocations increases (~2.5 MB) over time.
+> 
+> [...]
+> How can I use the malloc_stats_print() stats to show that my application is suffering from memory fragmentation?
+For a summary of external fragmentation, look for the line that looks like:
+
+	Allocated: 5352608, active: 5353472, mapped: 285212672
+
+External fragmentation can be computed as 1.0 - (allocated/active).  That doesn't tell the whole RSS picture though; there are internal jemalloc data structures, dirty unused pages, and thread-cached objects that impose additional overhead.
+> Is there a way to help eliminate fragmentation in jemalloc, perhaps by calling an extended facility?
+jemalloc would need to be able to compact active allocations via relocation in order to eliminate fragmentation, and that's simply not generally possible in C/C++.
+> Will using thread cache flushing and forced dirty page purging help reduce fragmentation? Is it a good idea?
+Yes, this may reduce fragmentation, but there are probably easier and more effective methods.  From a fragmentation perspective, the ideal jemalloc configuration is one arena, no thread caching, and  a very high active:dirty ratio (prevents accumulation of unused dirty pages).  You will probably find that you can tune one or more of these parameters in a way that reduces fragmentation without significantly impacting your application's throughput.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130321/6f891d5f/attachment.html>
+

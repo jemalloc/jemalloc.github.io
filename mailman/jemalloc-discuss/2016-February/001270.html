@@ -1,0 +1,241 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc on iMX6 ARM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20on%20iMX6%20ARM&In-Reply-To=%3C9F851937-44CE-4004-BD73-B7E262A88CE8%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001268.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc on iMX6 ARM</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20on%20iMX6%20ARM&In-Reply-To=%3C9F851937-44CE-4004-BD73-B7E262A88CE8%40canonware.com%3E"
+       TITLE="jemalloc on iMX6 ARM">jasone at canonware.com
+       </A><BR>
+    <I>Sat Feb 20 10:41:55 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001268.html">Porting jemalloc to shared memory
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1270">[ date ]</a>
+              <a href="thread.html#1270">[ thread ]</a>
+              <a href="subject.html#1270">[ subject ]</a>
+              <a href="author.html#1270">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>You need to specify target info a bit differently.  See the sh4.cache attachment in the following email for an example:
+
+	<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2011-April/000018.html">http://www.canonware.com/pipermail/jemalloc-discuss/2011-April/000018.html</A>
+
+Jason
+
+&gt;<i> On Jan 30, 2016, at 12:20 AM, Jorge Fernandez Monteagudo &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jorgefm at cirsa.com</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> Another one...
+</I>&gt;<i> 
+</I>&gt;<i> I don't know why the autogen.sh is getting the properties from the building system not the target???
+</I>&gt;<i> 
+</I>&gt;<i> I do
+</I>&gt;<i> 
+</I>&gt;<i> $ source /opt/fsl-imx-fb/3.14.52-1.1.0/environment-setup-cortexa9hf-vfp-neon-poky-linux-gnueabi
+</I>&gt;<i> $ ./autogen.sh --build=x86_64-linux --host=arm-poky-linux-gnueabi --target=arm-poky-linux-gnueabi --enable-debug
+</I>&gt;<i> ...
+</I>&gt;<i> checking whether byte ordering is bigendian... (cached) no
+</I>&gt;<i> checking size of void *... (cached) 8
+</I>&gt;<i> checking size of int... (cached) 4
+</I>&gt;<i> checking size of long... (cached) 8
+</I>&gt;<i> checking size of intmax_t... 8
+</I>&gt;<i> checking build system type... x86_64-pc-linux-gnu
+</I>&gt;<i> checking host system type... arm-poky-linux-gnueabi
+</I>&gt;<i> ...
+</I>&gt;<i> 
+</I>&gt;<i> with this defines the code generated is wrong. The void * is a 32b pointer in the target, but a 64b one in the build machine.
+</I>&gt;<i> There are some warnings compiling too
+</I>&gt;<i> 
+</I>&gt;<i> arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.pic.o src/jemalloc.c
+</I>&gt;<i> src/jemalloc.c:77:2: warning: left shift count &gt;= width of type
+</I>&gt;<i>  SIZE_CLASSES
+</I>&gt;<i>  ^
+</I>&gt;<i> ...
+</I>&gt;<i> arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/util.o src/util.c
+</I>&gt;<i> In file included from include/jemalloc/internal/jemalloc_internal.h:500:0,
+</I>&gt;<i>                 from src/util.c:23:
+</I>&gt;<i> include/jemalloc/internal/util.h: In function &#8216;je_pow2_ceil&#8217;:
+</I>&gt;<i> include/jemalloc/internal/util.h:207:2: warning: right shift count &gt;= width of type
+</I>&gt;<i>  x |= x &gt;&gt; 32;
+</I>&gt;<i>  ^
+</I>&gt;<i> 
+</I>&gt;<i> ________________________________________
+</I>&gt;<i> From: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss-bounces at canonware.com</A> [<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss-bounces at canonware.com</A>] On Behalf Of Jorge Fernandez Monteagudo [<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jorgefm at cirsa.com</A>]
+</I>&gt;<i> Sent: Friday, January 29, 2016 7:56 PM
+</I>&gt;<i> To: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> Subject: RE: jemalloc on iMX6 ARM
+</I>&gt;<i> 
+</I>&gt;<i> Another clue. I've generated the library with
+</I>&gt;<i> 
+</I>&gt;<i> $ ./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --enable-debug
+</I>&gt;<i> 
+</I>&gt;<i> and now I have
+</I>&gt;<i> 
+</I>&gt;<i> # export LD_PRELOAD=/tmp/libjemalloc.so.2
+</I>&gt;<i> # ls
+</I>&gt;<i> &lt;jemalloc&gt;: src/rtree.c:18: Failed assertion: &quot;bits &gt; 0 &amp;&amp; bits &lt;= (sizeof(uintptr_t) &lt;&lt; 3)&quot;
+</I>&gt;<i> Aborted
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> ________________________________________
+</I>&gt;<i> From: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss-bounces at canonware.com</A> [<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss-bounces at canonware.com</A>] On Behalf Of Jorge Fernandez Monteagudo [<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jorgefm at cirsa.com</A>]
+</I>&gt;<i> Sent: Friday, January 29, 2016 7:26 PM
+</I>&gt;<i> To: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> Subject: jemalloc on iMX6 ARM
+</I>&gt;<i> 
+</I>&gt;<i> Hi all, this is my first post to this mailing list.
+</I>&gt;<i> 
+</I>&gt;<i> I'm trying to give a try to jemalloc in a iMX6 ARM board. I've
+</I>&gt;<i> downloaded the current master image from
+</I>&gt;<i> 
+</I>&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/tree/master">https://github.com/jemalloc/jemalloc/tree/master</A>
+</I>&gt;<i> 
+</I>&gt;<i> I've done the cross compilation with no problem and I've deploy
+</I>&gt;<i> the lib to the board. Our iMX6 image is using 3.14 linux kernel.
+</I>&gt;<i> The library generated with
+</I>&gt;<i> 
+</I>&gt;<i> ./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi
+</I>&gt;<i> scp lib/libjemalloc.so.2 root@&lt;imx6_board_ip&gt;:/tmp/
+</I>&gt;<i> 
+</I>&gt;<i> when I tried in the board I get:
+</I>&gt;<i> 
+</I>&gt;<i> # export LD_PRELOAD=/tmp/libjemalloc.so.2
+</I>&gt;<i> # ls
+</I>&gt;<i> Bus error
+</I>&gt;<i> 
+</I>&gt;<i> and in dmesg I can see
+</I>&gt;<i> 
+</I>&gt;<i> Alignment trap: not handling instruction e1b14f9f at [&lt;76f06b14&gt;]
+</I>&gt;<i> Unhandled fault: alignment exception (0x011) at 0x76f2cfe4
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> If I build the library with
+</I>&gt;<i> 
+</I>&gt;<i> ./configure --build=x86_64-linux --host=arm-poky-linux-gnueabi --disable-fill
+</I>&gt;<i> scp lib/libjemalloc.so.2 root@&lt;imx6_board_ip&gt;:/tmp/
+</I>&gt;<i> 
+</I>&gt;<i> when I tried in the board I get:
+</I>&gt;<i> 
+</I>&gt;<i> # export LD_PRELOAD=/tmp/libjemalloc.so.2
+</I>&gt;<i> # ls
+</I>&gt;<i> Segmentation fault
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> I guess the jemalloc is able to work on ARM systems. Where should I start looking to
+</I>&gt;<i> make it work? Any hint is welcome!
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Pd: This is the configuration the 'configure' process prints on screen
+</I>&gt;<i> 
+</I>&gt;<i> ===============================================================================
+</I>&gt;<i> jemalloc version   : 0.0.0-0-g0000000000000000000000000000000000000000
+</I>&gt;<i> library revision   : 2
+</I>&gt;<i> 
+</I>&gt;<i> CONFIG             : --build=x86_64-linux --host=arm-poky-linux-gnueabi build_alias=x86_64-linux host_alias=arm-poky-linux-gnueabi 'CC=arm-poky-linux-gnueabi-gcc -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi' 'CFLAGS= -O2 -pipe -g -feliminate-unused-debug-types' 'LDFLAGS=-Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed' CPPFLAGS= 'CPP=arm-poky-linux-gnueabi-gcc -E -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi'
+</I>&gt;<i> CC                 : arm-poky-linux-gnueabi-gcc  -march=armv7-a -mfloat-abi=hard -mfpu=neon -mtune=cortex-a9 --sysroot=/opt/fsl-imx-fb/3.14.52-1.1.0/sysroots/cortexa9hf-vfp-neon-poky-linux-gnueabi
+</I>&gt;<i> CFLAGS             :  -O2 -pipe -g -feliminate-unused-debug-types -fvisibility=hidden
+</I>&gt;<i> CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+</I>&gt;<i> LDFLAGS            : -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed
+</I>&gt;<i> EXTRA_LDFLAGS      :
+</I>&gt;<i> LIBS               :  -lpthread
+</I>&gt;<i> TESTLIBS           :
+</I>&gt;<i> RPATH_EXTRA        :
+</I>&gt;<i> 
+</I>&gt;<i> XSLTPROC           : false
+</I>&gt;<i> XSLROOT            :
+</I>&gt;<i> 
+</I>&gt;<i> PREFIX             : /usr/local
+</I>&gt;<i> BINDIR             : /usr/local/bin
+</I>&gt;<i> DATADIR            : /usr/local/share
+</I>&gt;<i> INCLUDEDIR         : /usr/local/include
+</I>&gt;<i> LIBDIR             : /usr/local/lib
+</I>&gt;<i> MANDIR             : /usr/local/share/man
+</I>&gt;<i> 
+</I>&gt;<i> srcroot            :
+</I>&gt;<i> abs_srcroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+</I>&gt;<i> objroot            :
+</I>&gt;<i> abs_objroot        : /data/develop/hardware/imx6_work/memory_allocator/jemalloc-4.0.4/
+</I>&gt;<i> 
+</I>&gt;<i> JEMALLOC_PREFIX    :
+</I>&gt;<i> JEMALLOC_PRIVATE_NAMESPACE
+</I>&gt;<i>                   : je_
+</I>&gt;<i> install_suffix     :
+</I>&gt;<i> autogen            : 0
+</I>&gt;<i> cc-silence         : 1
+</I>&gt;<i> debug              : 0
+</I>&gt;<i> code-coverage      : 0
+</I>&gt;<i> stats              : 1
+</I>&gt;<i> prof               : 0
+</I>&gt;<i> prof-libunwind     : 0
+</I>&gt;<i> prof-libgcc        : 0
+</I>&gt;<i> prof-gcc           : 0
+</I>&gt;<i> tcache             : 1
+</I>&gt;<i> fill               : 1
+</I>&gt;<i> utrace             : 0
+</I>&gt;<i> valgrind           : 1
+</I>&gt;<i> xmalloc            : 0
+</I>&gt;<i> munmap             : 0
+</I>&gt;<i> lazy_lock          : 0
+</I>&gt;<i> tls                : 1
+</I>&gt;<i> cache-oblivious    : 1
+</I>&gt;<i> ===============================================================================
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Este mensaje se dirige exclusivamente a su destinatario y puede contener informaci&#243;n privilegiada o CONFIDENCIAL. Si no es vd. el destinatario indicado, queda notificado de que la utilizaci&#243;n, divulgaci&#243;n y/o copia sin autorizaci&#243;n est&#225; prohibida en virtud de la legislaci&#243;n vigente. Si ha recibido este mensaje por error, le rogamos que nos lo comunique inmediatamente por esta misma v&#237;a y proceda a su destrucci&#243;n.
+</I>&gt;<i> 
+</I>&gt;<i> This message is intended exclusively for its addressee and may contain information that is CONFIDENTIAL and protected by professional privilege.
+</I>&gt;<i> If you are not the intended recipient you are hereby notified that any dissemination, copy or disclosure of this communication is strictly prohibited by law. If this message has been received in error, please immediately notify us via e-mail and delete it.
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i> 
+</I>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001268.html">Porting jemalloc to shared memory
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1270">[ date ]</a>
+              <a href="thread.html#1270">[ thread ]</a>
+              <a href="subject.html#1270">[ subject ]</a>
+              <a href="author.html#1270">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

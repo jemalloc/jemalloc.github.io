@@ -1,0 +1,246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 07/11] Disallow *_tsd_get() = value assignments
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2007/11%5D%20Disallow%20%2A_tsd_get%28%29%20%3D%20value%20assignments&In-Reply-To=%3C1334766590-7296-7-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000312.html">
+   <LINK REL="Next"  HREF="000319.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 07/11] Disallow *_tsd_get() = value assignments</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2007/11%5D%20Disallow%20%2A_tsd_get%28%29%20%3D%20value%20assignments&In-Reply-To=%3C1334766590-7296-7-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 07/11] Disallow *_tsd_get() = value assignments">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Apr 18 09:29:46 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000312.html">[PATCH 06/11] Add a test for the TSD system
+</A></li>
+        <LI>Next message: <A HREF="000319.html">[PATCH 08/11] Initialize all members of non-TLS tsd wrapper when	creating it
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#318">[ date ]</a>
+              <a href="thread.html#318">[ thread ]</a>
+              <a href="subject.html#318">[ subject ]</a>
+              <a href="author.html#318">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ include/jemalloc/internal/tsd.h |    8 +++---
+ src/ctl.c                       |    4 +--
+ src/jemalloc.c                  |   51 +++++++++++++++++++++++++++------------
+ 3 files changed, 41 insertions(+), 22 deletions(-)
+
+diff --git a/include/jemalloc/internal/tsd.h b/include/jemalloc/internal/tsd.h
+index 35ae5e3..aee37b1 100644
+--- a/include/jemalloc/internal/tsd.h
++++ b/include/jemalloc/internal/tsd.h
+@@ -62,7 +62,7 @@ struct malloc_tsd_cleanup_s {
+ #define	malloc_tsd_protos(a_attr, a_name, a_type)			\
+ a_attr bool								\
+ a_name##_tsd_boot(void);						\
+-a_attr a_type *								\
++a_attr a_type const *							\
+ a_name##_tsd_get(void);							\
+ a_attr void								\
+ a_name##_tsd_set(a_type *val);
+@@ -132,7 +132,7 @@ a_name##_tsd_boot(void)							\
+ 	return (false);							\
+ }									\
+ /* Get/set. */								\
+-a_attr a_type *								\
++a_attr a_type const *							\
+ a_name##_tsd_get(void)							\
+ {									\
+ 									\
+@@ -164,7 +164,7 @@ a_name##_tsd_boot(void)							\
+ 	return (false);							\
+ }									\
+ /* Get/set. */								\
+-a_attr a_type *								\
++a_attr a_type const *							\
+ a_name##_tsd_get(void)							\
+ {									\
+ 									\
+@@ -265,7 +265,7 @@ a_name##_tsd_get_wrapper(void)						\
+ 	}								\
+ 	return (wrapper);						\
+ }									\
+-a_attr a_type *								\
++a_attr a_type const *							\
+ a_name##_tsd_get(void)							\
+ {									\
+ 	a_name##_tsd_wrapper_t *wrapper;				\
+diff --git a/src/ctl.c b/src/ctl.c
+index 98ea3d1..0c1c8f8 100644
+--- a/src/ctl.c
++++ b/src/ctl.c
+@@ -1079,11 +1079,11 @@ label_return:
+ CTL_RO_NL_CGEN(config_stats, thread_allocated,
+     thread_allocated_tsd_get()-&gt;allocated, uint64_t)
+ CTL_RO_NL_CGEN(config_stats, thread_allocatedp,
+-    &amp;thread_allocated_tsd_get()-&gt;allocated, uint64_t *)
++    &amp;thread_allocated_tsd_get()-&gt;allocated, uint64_t const *)
+ CTL_RO_NL_CGEN(config_stats, thread_deallocated,
+     thread_allocated_tsd_get()-&gt;deallocated, uint64_t)
+ CTL_RO_NL_CGEN(config_stats, thread_deallocatedp,
+-    &amp;thread_allocated_tsd_get()-&gt;deallocated, uint64_t *)
++    &amp;thread_allocated_tsd_get()-&gt;deallocated, uint64_t const *)
+ 
+ /******************************************************************************/
+ 
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index d4b681b..db0b2b5 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -818,8 +818,11 @@ label_oom:
+ 	if (config_prof &amp;&amp; opt_prof &amp;&amp; ret != NULL)
+ 		prof_malloc(ret, usize, cnt);
+ 	if (config_stats &amp;&amp; ret != NULL) {
++		thread_allocated_t ta;
+ 		assert(usize == isalloc(ret, config_prof));
+-		thread_allocated_tsd_get()-&gt;allocated += usize;
++		ta = *thread_allocated_tsd_get();
++		ta.allocated += usize;
++		thread_allocated_tsd_set(&amp;ta);
+ 	}
+ 	UTRACE(0, size, ret);
+ 	JEMALLOC_VALGRIND_MALLOC(ret != NULL, ret, usize, false);
+@@ -911,8 +914,11 @@ imemalign(void **memptr, size_t alignment, size_t size,
+ 
+ label_return:
+ 	if (config_stats &amp;&amp; result != NULL) {
++		thread_allocated_t ta;
+ 		assert(usize == isalloc(result, config_prof));
+-		thread_allocated_tsd_get()-&gt;allocated += usize;
++		ta = *thread_allocated_tsd_get();
++		ta.allocated += usize;
++		thread_allocated_tsd_set(&amp;ta);
+ 	}
+ 	if (config_prof &amp;&amp; opt_prof &amp;&amp; result != NULL)
+ 		prof_malloc(result, usize, cnt);
+@@ -1017,8 +1023,11 @@ label_return:
+ 	if (config_prof &amp;&amp; opt_prof &amp;&amp; ret != NULL)
+ 		prof_malloc(ret, usize, cnt);
+ 	if (config_stats &amp;&amp; ret != NULL) {
++		thread_allocated_t ta;
+ 		assert(usize == isalloc(ret, config_prof));
+-		thread_allocated_tsd_get()-&gt;allocated += usize;
++		ta = *thread_allocated_tsd_get();
++		ta.allocated += usize;
++		thread_allocated_tsd_set(&amp;ta);
+ 	}
+ 	UTRACE(0, num_size, ret);
+ 	JEMALLOC_VALGRIND_MALLOC(ret != NULL, ret, usize, true);
+@@ -1162,11 +1171,12 @@ label_return:
+ 	if (config_prof &amp;&amp; opt_prof)
+ 		prof_realloc(ret, usize, cnt, old_size, old_ctx);
+ 	if (config_stats &amp;&amp; ret != NULL) {
+-		thread_allocated_t *ta;
++		thread_allocated_t ta;
+ 		assert(usize == isalloc(ret, config_prof));
+-		ta = thread_allocated_tsd_get();
+-		ta-&gt;allocated += usize;
+-		ta-&gt;deallocated += old_size;
++		ta = *thread_allocated_tsd_get();
++		ta.allocated += usize;
++		ta.deallocated += old_size;
++		thread_allocated_tsd_set(&amp;ta);
+ 	}
+ 	UTRACE(ptr, size, ret);
+ 	JEMALLOC_VALGRIND_REALLOC(ret, usize, ptr, old_size, old_rzsize, false);
+@@ -1190,8 +1200,11 @@ je_free(void *ptr)
+ 			prof_free(ptr, usize);
+ 		} else if (config_stats || config_valgrind)
+ 			usize = isalloc(ptr, config_prof);
+-		if (config_stats)
+-			thread_allocated_tsd_get()-&gt;deallocated += usize;
++		if (config_stats) {
++			thread_allocated_t ta = *thread_allocated_tsd_get();
++			ta.deallocated += usize;
++			thread_allocated_tsd_set(&amp;ta);
++		}
+ 		if (config_valgrind &amp;&amp; opt_valgrind)
+ 			rzsize = p2rz(ptr);
+ 		iqalloc(ptr);
+@@ -1408,8 +1421,11 @@ je_allocm(void **ptr, size_t *rsize, size_t size, int flags)
+ 
+ 	*ptr = p;
+ 	if (config_stats) {
++		thread_allocated_t ta;
+ 		assert(usize == isalloc(p, config_prof));
+-		thread_allocated_tsd_get()-&gt;allocated += usize;
++		ta = *thread_allocated_tsd_get();
++		ta.allocated += usize;
++		thread_allocated_tsd_set(&amp;ta);
+ 	}
+ 	UTRACE(0, size, p);
+ 	JEMALLOC_VALGRIND_MALLOC(true, p, usize, zero);
+@@ -1512,10 +1528,10 @@ je_rallocm(void **ptr, size_t *rsize, size_t size, size_t extra, int flags)
+ 
+ 	*ptr = q;
+ 	if (config_stats) {
+-		thread_allocated_t *ta;
+-		ta = thread_allocated_tsd_get();
+-		ta-&gt;allocated += usize;
+-		ta-&gt;deallocated += old_size;
++		thread_allocated_t ta = *thread_allocated_tsd_get();
++		ta.allocated += usize;
++		ta.deallocated += old_size;
++		thread_allocated_tsd_set(&amp;ta);
+ 	}
+ 	UTRACE(p, size, q);
+ 	JEMALLOC_VALGRIND_REALLOC(q, usize, p, old_size, old_rzsize, zero);
+@@ -1575,8 +1591,11 @@ je_dallocm(void *ptr, int flags)
+ 			usize = isalloc(ptr, config_prof);
+ 		prof_free(ptr, usize);
+ 	}
+-	if (config_stats)
+-		thread_allocated_tsd_get()-&gt;deallocated += usize;
++	if (config_stats) {
++		thread_allocated_t ta = *thread_allocated_tsd_get();
++		ta.deallocated += usize;
++		thread_allocated_tsd_set(&amp;ta);
++	}
+ 	if (config_valgrind &amp;&amp; opt_valgrind)
+ 		rzsize = p2rz(ptr);
+ 	iqalloc(ptr);
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000312.html">[PATCH 06/11] Add a test for the TSD system
+</A></li>
+	<LI>Next message: <A HREF="000319.html">[PATCH 08/11] Initialize all members of non-TLS tsd wrapper when	creating it
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#318">[ date ]</a>
+              <a href="thread.html#318">[ thread ]</a>
+              <a href="subject.html#318">[ subject ]</a>
+              <a href="author.html#318">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

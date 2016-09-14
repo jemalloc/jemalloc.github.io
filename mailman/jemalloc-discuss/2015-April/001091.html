@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Per thread arenas
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Per%20thread%20arenas&In-Reply-To=%3CCAMwDBHO2H74ieeFR4LxM-GCXHusyWEL-H3x38b%3DpVv5Fzy-WDQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001090.html">
+   <LINK REL="Next"  HREF="001092.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Per thread arenas</H1>
+    <B>Qinfan Wu</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Per%20thread%20arenas&In-Reply-To=%3CCAMwDBHO2H74ieeFR4LxM-GCXHusyWEL-H3x38b%3DpVv5Fzy-WDQ%40mail.gmail.com%3E"
+       TITLE="Per thread arenas">wuqinfan at gmail.com
+       </A><BR>
+    <I>Wed Apr 29 08:47:09 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001090.html">Per thread arenas
+</A></li>
+        <LI>Next message: <A HREF="001092.html">Per thread arenas
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1091">[ date ]</a>
+              <a href="thread.html#1091">[ thread ]</a>
+              <a href="subject.html#1091">[ subject ]</a>
+              <a href="author.html#1091">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Apr 28, 2015 at 10:30 PM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+
+&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> I am planning to assign each thread its own arena, as per my understanding
+</I>&gt;<i> this is akin to having a per thread heap since arena management is
+</I>&gt;<i> completely independent of each other.
+</I>&gt;<i>
+</I>&gt;<i> How this is know to affect performance and memory overheads ? I am sure
+</I>&gt;<i> this would depend a lot on application allocation patterns but are any
+</I>&gt;<i> generic numbers/data from past ?
+</I>&gt;<i>
+</I>If you have a lot of threads, having an arena for each thread could
+potentially increasing memory usage and fragmentation. Usually the default
+setting (4 arenas per cpu) is enough to reduce lock contention, since not
+every allocation needs to acquire the arena lock.
+
+&gt;<i>
+</I>&gt;<i> In cases where allocation done by thread T1 is freed by thread T2, how
+</I>&gt;<i> does jemalloc handles it ? Is there any basic garbage collection or
+</I>&gt;<i> remote-free ( request to free by remote thread which owns the allocation )
+</I>&gt;<i> implementation ? I see that this could lead to memory build up.
+</I>&gt;<i>
+</I>&gt;<i> Any inputs will be appreciated.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/ed9d4d8b/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/ed9d4d8b/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001090.html">Per thread arenas
+</A></li>
+	<LI>Next message: <A HREF="001092.html">Per thread arenas
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1091">[ date ]</a>
+              <a href="thread.html#1091">[ thread ]</a>
+              <a href="subject.html#1091">[ subject ]</a>
+              <a href="author.html#1091">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

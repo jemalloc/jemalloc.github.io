@@ -1,0 +1,40 @@
+From jasone at canonware.com  Thu Oct  3 15:23:02 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 3 Oct 2013 15:23:02 -0700
+Subject: Master git repository moved
+Message-ID: <A306C40D-7D9E-4B70-8F80-981E469A1554@canonware.com>
+
+The master git repository for jemalloc is now on GitHub:
+
+	https://github.com/jemalloc/jemalloc
+
+The primary intention behind this move is to streamline contribution/integration of patches.  Other benefits are likely to surface over time.
+
+From jasone at canonware.com  Sun Oct 20 20:05:56 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 20 Oct 2013 20:05:56 -0700
+Subject: jemalloc 3.4.1 released
+Message-ID: <75EE080D-3DE3-4791-A2BD-3429012BC50F@canonware.com>
+
+jemalloc 3.4.1 is now available.  This version fixes a serious bug in the "arenas.extend" mallctl, as well as several minor issues.
+
+Bug fixes:
+- Fix a race in the "arenas.extend" mallctl that could cause memory corruption of internal data structures and subsequent crashes.
+- Fix Valgrind integration flaws that caused Valgrind warnings about reads of uninitialized memory in:
+  + arena chunk headers
+  + internal zero-initialized data structures (relevant to tcache and prof code)
+- Preserve errno during the first allocation.  A readlink(2) call during initialization fails unless /etc/malloc.conf exists, so errno was typically set during the first allocation prior to this fix.
+- Fix compilation warnings reported by gcc 4.8.1.
+
+For the complete ChangeLog, see:
+	http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+	http://www.canonware.com/download/jemalloc/jemalloc-3.4.1.tar.bz2
+
+Starting point for general information:
+	http://www.canonware.com/jemalloc/
+
+Browsable revision history:
+	https://github.com/jemalloc/jemalloc/tree/3.4.1
+

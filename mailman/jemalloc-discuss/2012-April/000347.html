@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 1kb and 2kb allocation &quot;waste&quot;
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%201kb%20and%202kb%20allocation%20%22waste%22&In-Reply-To=%3CDEBFEC14-9C64-4702-B8A8-A1ECE5AF4438%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000346.html">
+   <LINK REL="Next"  HREF="000348.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>1kb and 2kb allocation &quot;waste&quot;</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%201kb%20and%202kb%20allocation%20%22waste%22&In-Reply-To=%3CDEBFEC14-9C64-4702-B8A8-A1ECE5AF4438%40canonware.com%3E"
+       TITLE="1kb and 2kb allocation &quot;waste&quot;">jasone at canonware.com
+       </A><BR>
+    <I>Fri Apr 20 17:23:59 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000346.html">1kb and 2kb allocation &quot;waste&quot;
+</A></li>
+        <LI>Next message: <A HREF="000348.html">1kb and 2kb allocation &quot;waste&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#347">[ date ]</a>
+              <a href="thread.html#347">[ thread ]</a>
+              <a href="subject.html#347">[ subject ]</a>
+              <a href="author.html#347">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 20, 2012, at 4:55 AM, Justin Lebar wrote:
+&gt;<i> It turns out that 1kb and 2kb allocations are responsible for upwards
+</I>&gt;<i> of 1/3 of all wasted space in Firefox, where by &quot;wasted space&quot;, I
+</I>&gt;<i> mean: Open a bunch of tabs, close them, and call &quot;waste&quot; any heap
+</I>&gt;<i> memory which is committed but not part of an active allocation.
+</I>&gt;<i> (We've been calling this &quot;external fragmentation&quot;, but that doesn't
+</I>&gt;<i> quite match up with the common definition, as I understand it.)
+</I>
+Do 1 and 2 KiB allocations make up substantially less than 1/3 of the memory devoted to small allocations?
+
+&gt;<i> My idea is that we can address this by adding a new allocation method,
+</I>&gt;<i> between small and large.  These &quot;medium&quot; allocations are allocated
+</I>&gt;<i> inside a chunk and don't have a run header, like large allocations.
+</I>&gt;<i> But whereas one large allocation gets one entry in the chunk metadata
+</I>&gt;<i> table, two or four medium allocations will share one entry in the
+</I>&gt;<i> chunk metadata table.  It looks like we have plenty of bits available
+</I>&gt;<i> to express &quot;{first,second,third,fourth} quarter of this page is an
+</I>&gt;<i> active 1kb alloc&quot; and &quot;{first,second} half of this page is an active
+</I>&gt;<i> 2kb alloc&quot;.
+</I>
+There was a period of time that jemalloc had a related strategy.  In 2009 I added medium size classes that went up to 32 KiB, mainly in order to close the 4 KiB .. 8 KiB internal fragmentation gap.  In order to mitigate the increased RSS due to external fragmentation (the same problem you're describing for 1 and 2 KiB objects) I added extra bookkeeping that made it possible to call madvise() for completely unused interspersed pages.  Since these size classes were all &gt;= 4 KiB, even a single free region guaranteed that at least one page could be madvise()d away.  Unfortunately, I had to remove medium size classes when I restructured dirty page purging to happen without any locks held; it wouldn't have been possible to safely madvise() pages within active medium runs without some locking.
+
+As you noted, your suggestion of using the chunk map to store all metadata would work okay for 1 and 2 KiB size classes, but it wouldn't work out very well for the intermediate size classes that newer versions have.
+
+It would be awesome if small runs didn't need an embedded metadata header, and the metadata could all be in the chunk header.  However, there are a few things that get in the way of a clean solution.  First, the worst case requirements for the bitmaps that track which regions are allocated would be 1/64 of arena memory, which is rather a lot.  Second, chunk map overhead would go up some because every page would need an arena_run_t.  Third, heap profiling currently works reasonably well for very high sample rates, and that functionality would have to be sacrificed.  I've toyed with this general direction many times, but I've never been able to convince myself that the tradeoffs are compelling.  I've also tried to come up with solutions to the high bitmap overhead, but it ends up boiling down to a suballocator problem that is a liability under worst case conditions.
+
+&gt;<i> This is a solution which likely makes sense only for systems with 4kb
+</I>&gt;<i> pages, and it looks like jemalloc2 tries hard to be agnostic about
+</I>&gt;<i> things like page size.  I don't know how much this speaks against the
+</I>&gt;<i> solution, partially because I have no idea how these 64kb pages come
+</I>&gt;<i> into play.  Perhaps I'm misunderstanding what LG_PAGE==16 is meant to
+</I>&gt;<i> mean.
+</I>
+Yes, there are some systems that use 64 KiB pages by default, so any solutions need to be pretty pagesize-agnostic.
+
+Today has been a bunch of interleaved fire drills for me, so I'd better send this email before it gets lost forever.  I'm interested to hear your thoughts on the design space.  It's tempting to do an experiment that removes run headers, but the back-of-the-envelope calculations I did earlier weren't encouraging&#8230;
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000346.html">1kb and 2kb allocation &quot;waste&quot;
+</A></li>
+	<LI>Next message: <A HREF="000348.html">1kb and 2kb allocation &quot;waste&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#347">[ date ]</a>
+              <a href="thread.html#347">[ thread ]</a>
+              <a href="subject.html#347">[ subject ]</a>
+              <a href="author.html#347">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc Suitable for embedded environments
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20Suitable%20for%20embedded%20environments&In-Reply-To=%3C9A339C8D-8A5B-45E5-9002-100CC52C1B37%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001101.html">
+   <LINK REL="Next"  HREF="001103.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc Suitable for embedded environments</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20Suitable%20for%20embedded%20environments&In-Reply-To=%3C9A339C8D-8A5B-45E5-9002-100CC52C1B37%40canonware.com%3E"
+       TITLE="jemalloc Suitable for embedded environments">jasone at canonware.com
+       </A><BR>
+    <I>Mon May 11 16:49:10 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001101.html">jemalloc Suitable for embedded environments
+</A></li>
+        <LI>Next message: <A HREF="001103.html">jemalloc Suitable for embedded environments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1102">[ date ]</a>
+              <a href="thread.html#1102">[ thread ]</a>
+              <a href="subject.html#1102">[ subject ]</a>
+              <a href="author.html#1102">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 11, 2015, at 1:19 PM, Mayank Kumar (mayankum) &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mayankum at cisco.com</A>&gt; wrote:
+&gt;<i> -our processes use setrlimit to limit virtual memory usage of processes. Do you think jemalloc in someways could overshoot that limit or it might be doing something funky which is not tracked through setrlimit(like not going through brk/mmap/mremap).  Please excuse my limited understanding here.
+</I>
+jemalloc only uses mmap() and sbrk() to map memory on Unix-like systems.
+
+&gt;<i> -someone pointed this link to me . <A HREF="http://locklessinc.com/benchmarks_allocator.shtml">http://locklessinc.com/benchmarks_allocator.shtml</A>
+</I>&gt;<i> It says the following stuff 
+</I>&gt;<i> 
+</I>&gt;<i> &lt;quote&gt;
+</I>&gt;<i> Jemalloc allocator
+</I>&gt;<i> 
+</I>&gt;<i> This is a very good allocator when there is a large amount of contention, performing similarly to the Lockless memory allocator as the number of threads grows larger than the number of processors. However, when the number of allocating threads is smaller than the total number of cpus, it isn't quite as fast. The disadvantage of the jemalloc allocator is its memory usage. It uses power-of-two sized bins, which leads to a greatly increased memory footprint compared to other allocators. This can affect real-world performance due to excess cache and TLB misses.
+</I>&gt;<i> &lt;/quote&gt;
+</I>&gt;<i> 
+</I>&gt;<i> Do you think it is still true, this might be an old link or just my limited understanding. Off course they are selling here...., but justed wanted your opinion here. For our case, though the allocating threads will be always larger than number of cores.
+</I>
+The above was a combination of incorrect/incomplete information and microbenchmark-based overgeneralization even at the time it was written ~4 years ago.  Specific issues:
+
+- MP-scalable malloc implementations *avoid* contention in order to perform well.  The t-test1 microbenchmark as run did not induce appreciable contention in jemalloc.
+
+- jemalloc's typically low memory usage has been a distinguishing quality since 2006.  To claim otherwise based on one microbenchmark is unjustifiable.
+
+- jemalloc has at various times used power-of-two-*spaced* bins for limited size ranges, e.g. 1024..2048..4096..8192 and 4MiB..8MiB, but it has never done so universally.  I suspect the author misread my BSDcan paper (<A HREF="http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf">http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf</A>), and mistook the binary buddy page management system for size classes.  However, the binary buddy page management system was replaced long before jemalloc 1.0.0.
+
+On the bright side, the benchmarks report actual performance results for a version of jemalloc, unlike a previous version of that page, which erroneously reported glibc results, or an interim update which categorically blamed a memalign() call with questionable alignment and the resulting crashes on jemalloc.
+
+Note that the Lockless malloc implementation has since been open-sourced, so you can conduct your own tests and see how well it works for your use case.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001101.html">jemalloc Suitable for embedded environments
+</A></li>
+	<LI>Next message: <A HREF="001103.html">jemalloc Suitable for embedded environments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1102">[ date ]</a>
+              <a href="thread.html#1102">[ thread ]</a>
+              <a href="subject.html#1102">[ subject ]</a>
+              <a href="author.html#1102">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,213 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20calling%20a%20function%20via%20PLT%20and%20jemalloc%20realloc%20changes%20function%0A%09first%20argument%20%28XMM0%29&In-Reply-To=%3CA77BF5E0-8AA6-4614-A3D7-6786A6295A00%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000662.html">
+   <LINK REL="Next"  HREF="000664.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)</H1>
+    <B>David Abdurachmanov</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20calling%20a%20function%20via%20PLT%20and%20jemalloc%20realloc%20changes%20function%0A%09first%20argument%20%28XMM0%29&In-Reply-To=%3CA77BF5E0-8AA6-4614-A3D7-6786A6295A00%40gmail.com%3E"
+       TITLE="calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)">david.abdurachmanov at gmail.com
+       </A><BR>
+    <I>Sat Nov  9 08:30:34 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000662.html">[Q] Strange stack dump when using jemalloc-3.4.0
+</A></li>
+        <LI>Next message: <A HREF="000664.html">calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#663">[ date ]</a>
+              <a href="thread.html#663">[ thread ]</a>
+              <a href="subject.html#663">[ subject ]</a>
+              <a href="author.html#663">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I am having problems with jemalloc 3.4.1 (currently we use 2.2.2 in production). I found that with jemalloc 3.4.1 function first argument will be changed if first argument is passed by XMM0 register. Compiled with GCC 4.8.1 (tested also with 4.8.2). No problems on Scientific Linux 6 (RHEL6-based), but it fails on Scientific Linux 5 (RHEL5-based). All of this is because _dl_lookup_symbol_x calls _realloc_ in Scientific Linux 5.
+
+This probably makes jemalloc 3.4.1 and the whole 3.X.Y series not recommended for RHEL5 and RHEL5-based distributions.
+
+Original email below.
+
+- - - - - - -
+
+My initial investigations were done on slc6_amd64_gcc481 and the release is available for slc5_amd64_gcc481.
+
+Most of the workflows will fail on this [slc5_amd64_gcc481] architecture, while on slc6_amd64_gcc481 all workflows pass.
+
+If you are interested into the cause and calling conventions continue reading.
+
+Most workflows fails with:
+
+----- Begin Fatal Exception 08-Nov-2013 14:19:25 CET-----------------------
+An exception of category 'InvalidIntervalError' occurred while
+  [0] Processing run: 208307 lumi: 1 event: 643482
+  [1] Running path 'reconstruction_step'
+  [2] Calling event method for module TrackIPProducer/'impactParameterTagInfos'
+Exception Message:
+Upper boundary below lower boundary in histogram integral.
+----- End Fatal Exception -------------------------------------------------
+
+Code triggering exception (CondFormats/PhysicsToolsObjects/interface/Histogram.icc):
+
+244 template&lt;typename Value_t, typename Axis_t&gt;
+245 Value_t Histogram&lt;Value_t, Axis_t&gt;::integral(Axis_t hBound, Axis_t lBound,
+246                                              int mode) const
+247 {
+248         if (hBound &lt; lBound)
+249                 throw cms::Exception(&quot;InvalidIntervalError&quot;)
+250                         &lt;&lt; &quot;Upper boundary below lower boundary in &quot;
+251                         &lt;&lt; &quot;histogram integral.&quot; &lt;&lt; std::endl;
+
+The problem by example (description below):
+
+Dump of assembler code for function PhysicsTools::Calibration::Histogram&lt;float, float&gt;::normalizedIntegral(float, float, int) const:
+  0x00002aaabc67ceb0 &lt;+0&gt;:     push   %rbx
+  0x00002aaabc67ceb1 &lt;+1&gt;:     mov    %rdi,%rbx
+  0x00002aaabc67ceb4 &lt;+4&gt;:     sub    $0x10,%rsp
+  0x00002aaabc67ceb8 &lt;+8&gt;:     callq  0x2aaabc6331e0 &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">_ZNK12PhysicsTools11Calibration9HistogramIffE8integralEffi at plt</A>&gt;
+  0x00002aaabc67cebd &lt;+13&gt;:    mov    %rbx,%rdi
+  0x00002aaabc67cec0 &lt;+16&gt;:    movss  %xmm0,0xc(%rsp)
+  0x00002aaabc67cec6 &lt;+22&gt;:    callq  0x2aaabc632c80 &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">_ZNK12PhysicsTools11Calibration9HistogramIffE13normalizationEv at plt</A>&gt;
+  0x00002aaabc67cecb &lt;+27&gt;:    movss  0xc(%rsp),%xmm1
+  0x00002aaabc67ced1 &lt;+33&gt;:    add    $0x10,%rsp
+  0x00002aaabc67ced5 &lt;+37&gt;:    divss  %xmm0,%xmm1
+  0x00002aaabc67ced9 &lt;+41&gt;:    pop    %rbx
+  0x00002aaabc67ceda &lt;+42&gt;:    movaps %xmm1,%xmm0
+  0x00002aaabc67cedd &lt;+45&gt;:    retq   
+End of assembler dump.
+this = 0x2aab170a9ff0
+hBound = 57.6329994
+lBound = 0
+mode = 1
+
+Breakpoint 1, PhysicsTools::Calibration::Histogram&lt;float, float&gt;::integral (this=0x2aab170a9ff0, hBound=-2.23135843e-10, lBound=0, mode=1)
+   at /build/davidlt/CMSSW_7_0_0_pre8_jemalloc341/src/CondFormats/PhysicsToolsObjects/interface/Histogram.icc:245
+245     Value_t Histogram&lt;Value_t, Axis_t&gt;::integral(Axis_t hBound, Axis_t lBound,
+1: x/i $pc
+=&gt; 0x2aaabc67cbdc &lt;PhysicsTools::Calibration::Histogram&lt;float, float&gt;::integral(float, float, int) const&gt;:      push   %r14
+this = 0x2aab170a9ff0
+hBound = -2.23135843e-10
+lBound = 0
+mode = 1
+
+KA-BOOM! 
+
+_normalizedIntegral_ calls _integral_ with IDENTICAL arguments, yet once we reach _integral_ body our _hBound_ is changed to a different value.
+
+We call _integral_ via PLT and we try to resolve the symbol (/lib64/ld-linux-x86-64.so.2). Between these two functions while we are resolving the symbol the value is modified.
+
+That happens in _dl_lookup_symbol_x (/lib64/ld-linux-x86-64.so.2) as on SLC5 is calls _realloc_, and on SLC6 library calls _malloc_. This is the reason why in works fine under SLC6, the change in dynamic linker/loader.
+
+_hBound_ is stored in $xmm0.v4_float[0]. It happens to be that in _realloc_ (jemalloc) for this (src/jemalloc.c):
+
+1244     ta-&gt;allocated += usize;
+
+1244 line compiler will generate SSE based code (using $xmm0).
+
+  0x00002aaaad381666 &lt;+630&gt;:   mov    %r12,0x28(%rsp)
+  0x00002aaaad38166b &lt;+635&gt;:   movq   0x28(%rsp),%xmm0
+  0x00002aaaad381671 &lt;+641&gt;:   movhps 0x20(%rsp),%xmm0
+  0x00002aaaad381676 &lt;+646&gt;:   paddq  (%rax),%xmm0
+  0x00002aaaad38167a &lt;+650&gt;:   movdqa %xmm0,(%rax)
+  0x00002aaaad38167e &lt;+654&gt;:   add    $0x38,%rsp 
+
+Just a few instructions which modify _hBound_ value.
+
+Old value = 57.6329994
+New value = 6.72623263e-44
+0x00002aaaad381671 in realloc (ptr=&lt;optimized out&gt;, size=&lt;optimized out&gt;) at src/jemalloc.c:1244
+1244	src/jemalloc.c: No such file or directory.
+1: x/i $pc
+=&gt; 0x2aaaad381671 &lt;realloc+641&gt;:	movhps 0x20(%rsp),%xmm0
+Continuing.
+Watchpoint 7: $xmm0.v4_float[0]
+
+Old value = 6.72623263e-44
+New value = -2.22548424e-10
+0x00002aaaad38167a in realloc (ptr=&lt;optimized out&gt;, size=&lt;optimized out&gt;) at src/jemalloc.c:1244
+1244	in src/jemalloc.c
+1: x/i $pc
+=&gt; 0x2aaaad38167a &lt;realloc+650&gt;:	movdqa %xmm0,(%rax)
+Continuing.
+
+If you look into &quot;Calling conventions for different C++ compilers and operating systems&quot;. (I assume should be fine for C also, as they are compatible).
+
+64-bit Linux. Callee-saved registers: RBX, RBP, R12-R15. All fine in jemallo _realloc_:
+
+Dump of assembler code for function realloc:
+  0x00002aaaad3803f0 &lt;+0&gt;:     push   %r15
+  0x00002aaaad3803f2 &lt;+2&gt;:     push   %r14
+  0x00002aaaad3803f4 &lt;+4&gt;:     push   %r13
+  0x00002aaaad3803f6 &lt;+6&gt;:     push   %r12
+  0x00002aaaad3803f8 &lt;+8&gt;:     push   %rbp
+  0x00002aaaad3803f9 &lt;+9&gt;:     mov    %rsi,%rbp
+  0x00002aaaad3803fc &lt;+12&gt;:    push   %rbx
+
+But all other registers are scratch registers.
+
+Also looking into &quot;System V Application Binary Interface AMD64 Architecture Processor Supplement&quot; (October 7, 2013) [3.2.1 section]
+
+Registers %rbp, %rbx and %r12 through %r15 &quot;belong&quot; to the calling function and the called function is required to preserve their values. In other words, a called function must preserve these registers' values for its caller. Remaining registers &quot;belong&quot; to the called function. If a calling function wants to preserve such a register value across a function call, it must save the value in its local stack frame.
+
+Simply put, according to this /lib64/ld-linux-x86-64.so.2 dynamic linker/loader (_dl_lookup_symbol_x) before calling _realloc_ had to take the action to protect xmm0 register value.
+
+You cannot compile jemalloc without SSE:
+
+include/jemalloc/internal/prof.h:349:40: error: SSE register return with SSE disabled
+
+If we cannot jemalloc from using SSE registers, how can we go around the problem?
+
+1240   if (config_stats &amp;&amp; ret != NULL) {
+1241     thread_allocated_t *ta;
+1242     assert(usize == isalloc(ret, config_prof));
+1243     ta = thread_allocated_tsd_get();
+1244     ta-&gt;allocated += usize;
+1245     ta-&gt;deallocated += old_size;
+1246   }
+
+In _realloc_ 1244 line is wrapped around if with config_stats. Compiling jemalloc with --disable-stats options disables statistic collection, should also slightly increase performance.
+
+It's a bit worrisome that arguments can change in between function calls.
+
+david
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131109/b44af851/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131109/b44af851/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000662.html">[Q] Strange stack dump when using jemalloc-3.4.0
+</A></li>
+	<LI>Next message: <A HREF="000664.html">calling a function via PLT and jemalloc realloc changes function	first argument (XMM0)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#663">[ date ]</a>
+              <a href="thread.html#663">[ thread ]</a>
+              <a href="subject.html#663">[ subject ]</a>
+              <a href="author.html#663">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

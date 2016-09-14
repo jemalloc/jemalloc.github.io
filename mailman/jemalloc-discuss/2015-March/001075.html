@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Live allocation iterator
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Live%20allocation%20iterator&In-Reply-To=%3CCAGvmEXjujWPCJ%2Bc62Z%2Bidu_NWOnOs3MP6C2qqdt%3DHmOMnk6k%2BQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001074.html">
+   <LINK REL="Next"  HREF="001076.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Live allocation iterator</H1>
+    <B>SNL</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Live%20allocation%20iterator&In-Reply-To=%3CCAGvmEXjujWPCJ%2Bc62Z%2Bidu_NWOnOs3MP6C2qqdt%3DHmOMnk6k%2BQ%40mail.gmail.com%3E"
+       TITLE="Live allocation iterator">snl20465 at gmail.com
+       </A><BR>
+    <I>Tue Mar 24 22:55:47 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001074.html">Live allocation iterator
+</A></li>
+        <LI>Next message: <A HREF="001076.html">Live allocation iterator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1075">[ date ]</a>
+              <a href="thread.html#1075">[ thread ]</a>
+              <a href="subject.html#1075">[ subject ]</a>
+              <a href="author.html#1075">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Does your use case allow you to wrap the allocator and keep a side table
+which supports iteration, or can you trace allocation activity and
+post-process it?
+
+=&gt; This is what I have implemented currently but this does not scale for
+multithreaded programs due to locking issues. I was pondering over idea of
+not doing any book keeping myself and use jemalloc data structures ( and
+efficient low level locking ) for my purpose.
+
+Is this not possible even when all my metadata objects ( which hold user
+allocation base and extent ) are fixed sized and allocated from a separate
+arena ? I was under the impression that I should be able to mask and find
+out offsets within chunk-&gt;region-&gt;pages and find out objects. As my objects
+are all fixed size, they would be contiguous in memory. Is this valid
+understanding ?
+
+
+On Tue, Mar 24, 2015 at 11:16 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Mar 24, 2015, at 6:53 AM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;<i> If this is not possible ( I see an old post which says jemalloc does not
+</I>&gt;<i> have this infra but that was back in 2012 ). Is it possible to iterate over
+</I>&gt;<i> just an arena and dump all allocations in it  ? Basically, I have memory
+</I>&gt;<i> pool implemented on top of jemalloc which holds metadata about all other
+</I>&gt;<i> allocations jemalloc does, if I can iterate over this arena and get hold of
+</I>&gt;<i> metadata, I can get hold of each allocation as well.
+</I>&gt;<i>
+</I>&gt;<i> Any thoughts would be appreciated.
+</I>&gt;<i>
+</I>&gt;<i> On Tue, Mar 24, 2015 at 5:28 PM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> My use case is to walk through all live allocations ( the ones which are
+</I>&gt;&gt;<i> not freed yet) of all sizes the program ever made and dump it as the end of
+</I>&gt;&gt;<i> the program or on demand. I have looked at stats but I want something with
+</I>&gt;&gt;<i> even more details. Basically, the function should be able to iterate
+</I>&gt;&gt;<i> through all arenas and print details on following lines:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Is there any api in jemalloc which already does subset of this  ? Any
+</I>&gt;&gt;<i> pointers will be helpful.
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> jemalloc doesn't support iteration over live allocations, and it's
+</I>&gt;<i> unlikely to ever directly support iteration, because the feature imposes
+</I>&gt;<i> nontrivial additional complexity for limited benefit.  The closest thing
+</I>&gt;<i> under consideration is <A HREF="https://github.com/jemalloc/jemalloc/issues/203,">https://github.com/jemalloc/jemalloc/issues/203,</A>
+</I>&gt;<i> but I don't plan to work on that until at least next year.
+</I>&gt;<i>
+</I>&gt;<i> Does your use case allow you to wrap the allocator and keep a side table
+</I>&gt;<i> which supports iteration, or can you trace allocation activity and
+</I>&gt;<i> post-process it?
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150325/6fb1810b/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150325/6fb1810b/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001074.html">Live allocation iterator
+</A></li>
+	<LI>Next message: <A HREF="001076.html">Live allocation iterator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1075">[ date ]</a>
+              <a href="thread.html#1075">[ thread ]</a>
+              <a href="subject.html#1075">[ subject ]</a>
+              <a href="author.html#1075">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,133 @@
+From snl20465 at gmail.com  Wed Jul  1 03:57:08 2015
+From: snl20465 at gmail.com (SNL)
+Date: Wed, 01 Jul 2015 10:57:08 -0000
+Subject: Jemalloc 4.0
+Message-ID: <CAGvmEXj3227VYwecakSHzON_MOREgjN0F+Exh3Q=KD_eYkyvQw@mail.gmail.com>
+
+Hi Jason
+
+I am using some of the features present in Dev branch and so far things are
+looking stable, would be good to know if a 4.0 is in the offing. As I see,
+it is nearing but is there a deadline or release by date ?
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150701/4a83f882/attachment.html>
+
+From cferris at google.com  Wed Jul  8 15:42:53 2015
+From: cferris at google.com (Christopher Ferris)
+Date: Wed, 08 Jul 2015 22:42:53 -0000
+Subject: arena cache being reused
+Message-ID: <CANtHk4k+u-S8aKF7pvc4o3bS+EQV5djmhKGMhxpSVSze6oRw7g@mail.gmail.com>
+
+Using the current version of the dev jemalloc, I found a case where
+jemalloc reuses a previously freed pointer. Specifically, the arena cache
+pointer can get freed, but reused.
+
+This can happen when a thread is ending and the key destroy functions are
+being called. If the jemalloc key destroy function is called, the arena
+cache is destroyed. But if another key destroy function is called which
+allocates memory, the old arena cache pointer can be reused, and have the
+arena pointers written to it.
+
+I think the fix is to change the arenas_cache_cleanup function to:
+
+void
+arenas_cache_cleanup(tsd_t *tsd)
+{
+        arena_t **arenas_cache;
+
+        arenas_cache = tsd_arenas_cache_get(tsd);
+        if (arenas_cache != NULL) {
+                bool *arenas_cache_bypassp =
+tsd_arenas_cache_bypassp_get(tsd);
+                *arenas_cache_bypassp = true;
+                tsd_arenas_cache_set(tsd, NULL);
+                a0dalloc(arenas_cache);
+        }
+}
+
+I believe the bypass has to be set so that another arena cache is not
+allocated since that memory would be leaked since there is not going to be
+another call to the arenas_cache_cleanup function. I think this is the only
+possible way something could be reused when an allocation is made after the
+jemalloc key destroy function is called, but I might have missed something.
+
+This might be particular to the fact that my config uses pthread_key_create
+for the tsd data, but it might apply to other configs.
+
+Does this solution seem reasonable?
+
+Christopher
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150708/ae728284/attachment-0001.html>
+
+From jasone at canonware.com  Thu Jul  9 21:44:05 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 10 Jul 2015 04:44:05 -0000
+Subject: Bug in chunk allocation
+In-Reply-To: <CANtHk4=1qyB=MNh0oOeKjD2Gqtzw2=V1xH4eQ4Cv45PMfqn13Q@mail.gmail.com>
+References: <CANtHk4=1qyB=MNh0oOeKjD2Gqtzw2=V1xH4eQ4Cv45PMfqn13Q@mail.gmail.com>
+Message-ID: <0102E9FB-FE28-4163-B079-DDDA5BED2301@canonware.com>
+
+
+> On Jun 8, 2015, at 2:15 PM, Christopher Ferris <cferris at google.com <mailto:cferris at google.com>> wrote:
+> 
+> Recently, it appears that there was a bug introduced in chunk allocation. The bug is exposed by this small snippet of code:
+> 
+>   void* mem = malloc(128*1024*1024);
+>   printf("mem address %p\n", mem);
+>   free(mem);
+>   void* large_alloc = malloc(0x80000081UL);
+>   printf("large mem %p\n", large_alloc);
+>   free(large_alloc);
+> 
+> It looks like the bug is in the chunk_recycle code, in this piece of code:
+> 
+>         if (new_addr != NULL) {
+>                 extent_node_t key;
+>                 extent_node_init(&key, arena, new_addr, alloc_size, false);
+>                 node = extent_tree_ad_search(chunks_ad, &key);
+>         } else {
+>                 node = chunk_first_fit(arena, chunks_szad, chunks_ad,
+>                     alloc_size);
+>         }
+>         if (node == NULL || (new_addr != NULL && extent_node_size_get(node) <
+>             size)) {
+>                 malloc_mutex_unlock(&arena->chunks_mtx);
+>                 return (NULL);
+>         }
+> 
+> The problem is that new_addr == NULL, so the size check is not performed. In my testing, removing the new_addr != NULL check fixes the problem, but I don't know if that's the correct change.
+> 
+> The first allocation after the free shows the problem, if you try and use the whole memory allocation it might segfault, or let you scribble all over someone else's memory.
+
+This was caused by integer overflow in size class computation, and is fixed now:
+
+	https://github.com/jemalloc/jemalloc/commit/dde067264db6b801f7ffae9616a35dba5d2d9ad4 <https://github.com/jemalloc/jemalloc/commit/dde067264db6b801f7ffae9616a35dba5d2d9ad4>
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150710/cefe2713/attachment.html>
+
+From omycle at gmail.com  Mon Jul 27 02:56:33 2015
+From: omycle at gmail.com (LiHaifeng)
+Date: Mon, 27 Jul 2015 09:56:33 -0000
+Subject: How to dump status of jemalloc on Android
+Message-ID: <BAY179-W37147FC5620D8401E10CC5D78E0@phx.gbl>
+
+Hi there,
+It's known that the jemalloc is adopted by Android. Recently I want to dump some jemalloc status information with the thread exit. Fortunately, the function of status dump has been done by jemalloc.
+After tuned the variable of opt_stats_print into true in malloc_init_hard(), the stats_print_atexit() was registered as an hook for atexit(). But, there is nothing status information dumped when the process exit and there is only the warning on the console like below.
+"W/libc    (  859): WARNING: generic atexit() called from legacy shared library"
+So, how to dump the jemalloc status on Android?
+Thanks. 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150727/6c02a911/attachment.html>
+

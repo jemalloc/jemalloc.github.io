@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Profiling memory allocations in run-time in production
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Profiling%20memory%20allocations%20in%20run-time%20in%20production&In-Reply-To=%3C0BF7FDA4-2433-438A-BC4D-E3CF6AE517C2%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000718.html">
+   <LINK REL="Next"  HREF="000703.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Profiling memory allocations in run-time in production</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Profiling%20memory%20allocations%20in%20run-time%20in%20production&In-Reply-To=%3C0BF7FDA4-2433-438A-BC4D-E3CF6AE517C2%40canonware.com%3E"
+       TITLE="Profiling memory allocations in run-time in production">jasone at canonware.com
+       </A><BR>
+    <I>Tue Jan 14 10:22:56 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000718.html">Pthread spinlock support
+</A></li>
+        <LI>Next message: <A HREF="000703.html">Profiling memory allocations in run-time in production
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#702">[ date ]</a>
+              <a href="thread.html#702">[ thread ]</a>
+              <a href="subject.html#702">[ subject ]</a>
+              <a href="author.html#702">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Dec 22, 2013, at 11:41 PM, Evgeniy Ivanov &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">i at eivanov.com</A>&gt; wrote:
+&gt;<i> I need to profile my application running in production. Is it
+</I>&gt;<i> performance safe to build jemalloc with &quot;--enable-prof&quot;, start
+</I>&gt;<i> application with profiling disabled and enable it for short time
+</I>&gt;<i> (probably via mallctl() call), when I need? I'm mostly interested in
+</I>&gt;<i> stacks, i.e. opt.prof_accum. Or are there better alternatives in
+</I>&gt;<i> Linux? I've tried perf, but it just counts stacks and doesn't care
+</I>&gt;<i> about amount of memory allocated. There is also stap, but I haven't
+</I>&gt;<i> try it yet.
+</I>
+Yes, you can use jemalloc's heap profiling as you describe, with essentially no performance impact while heap profiling is inactive.  You may even be able to leave heap profiling active all the time with little performance impact, depending on how heavily your application uses malloc.  At Facebook we leave heap profiling active all the time for a wide variety of server applications; there are only a couple of exceptions I'm aware of for which the performance impact is unacceptable (heavy malloc use, ~2% slowdown when heap profiling is active).
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000718.html">Pthread spinlock support
+</A></li>
+	<LI>Next message: <A HREF="000703.html">Profiling memory allocations in run-time in production
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#702">[ date ]</a>
+              <a href="thread.html#702">[ thread ]</a>
+              <a href="subject.html#702">[ subject ]</a>
+              <a href="author.html#702">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,184 @@
+From edsiper at gmail.com  Tue Dec  3 10:15:13 2013
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Tue, 3 Dec 2013 12:15:13 -0600
+Subject: Custom Arenas ?
+Message-ID: <CAMAQheM3H6UgU4BZt1dim-Th0sRB-7F-jjrcsJq1PmCAwj_=tg@mail.gmail.com>
+
+hi All,
+
+i am wondering if Jemalloc support to have custom arenas, despites the
+arenas it spawn on startup i would like to know if i can create a specific
+arena and force it usage on specific modules of my application, on that way
+i can track and get stats from specific parts of my application. Is that
+possible ?
+
+thanks for your help
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131203/29e05a04/attachment.html>
+
+From jasone at canonware.com  Tue Dec  3 10:54:36 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 3 Dec 2013 10:54:36 -0800
+Subject: Custom Arenas ?
+In-Reply-To: <CAMAQheM3H6UgU4BZt1dim-Th0sRB-7F-jjrcsJq1PmCAwj_=tg@mail.gmail.com>
+References: <CAMAQheM3H6UgU4BZt1dim-Th0sRB-7F-jjrcsJq1PmCAwj_=tg@mail.gmail.com>
+Message-ID: <6C821633-4292-470F-810E-DBDF9A00BEEB@canonware.com>
+
+On Dec 3, 2013, at 10:15 AM, Eduardo Silva <edsiper at gmail.com> wrote:
+> i am wondering if Jemalloc support to have custom arenas, despites the arenas it spawn on startup i would like to know if i can create a specific arena and force it usage on specific modules of my application, on that way i can track and get stats from specific parts of my application. Is that possible ?
+
+Yes, that is possible starting with jemalloc 3.1.0, though there's an important related bugfix in 3.4.1.  You can use the "arenas.extend" mallctl to create an additional arena that is not otherwise used by jemalloc, and then use the *allocm() API with the ALLOCM_ARENA() flag set to refer to your arena.  Two caveats:
+
+- You could use the "thread.arena" mallctl to assign the calling thread to your arena, but I recommend against that for short-term arena selection.  I tentatively plan to change thread<-->arena association logic in 4.0.0 such that arena selection is optionally based on current CPU rather than being a fixed assignment; that functionality may interact poorly with explicit thread<-->arena association.
+- You need to specify ALLOCM_ARENA() to dallocm() in order to bypass thread caching.  If you don't do so, a subsequent malloc() call may end up getting a cached region that came from your arena.
+
+Jason
+
+From nbhatia at vmware.com  Mon Dec  9 17:03:09 2013
+From: nbhatia at vmware.com (Nikhil Bhatia)
+Date: Mon, 9 Dec 2013 17:03:09 -0800 (PST)
+Subject: jemalloc tuning help
+In-Reply-To: <CEAAEA98.51FAB%robert.mowry@netapp.com>
+References: <CEAAEA98.51FAB%robert.mowry@netapp.com>
+Message-ID: <233097884.50903354.1386637389260.JavaMail.root@vmware.com>
+
+Thanks Jason & Robert for your analysis & time. 
+
+>From these results its fairly evident that I have work ahead to reduce the 
+long-lived allocations or use different arenas for long/short lived objects 
+using the new ALLOCM_ARENA API in jemalloc. Shall update once 
+I figure out any one or both of these. 
+
+Best Regards, 
+Nikhil 
+
+----- Original Message -----
+
+From: "Robert Mowry" <Robert.Mowry at netapp.com> 
+To: "Jason Evans" <jasone at canonware.com>, "Nikhil Bhatia" <nbhatia at vmware.com> 
+Cc: jemalloc-discuss at canonware.com 
+Sent: Thursday, November 14, 2013 6:15:46 PM 
+Subject: Re: jemalloc tuning help 
+
+I just want to reiterate what Jason has said below. I recently spent several months trying to reduce the amount of memory used by one of our applications. We were seeing efficiency ratings for the heap in the 50-60% range (in terms of VM use vs outstanding buffers used by the app). 
+
+In our case it was relatively easy to segregate one of the largest offenders (a periodic thread that consumes large amounts of heap and then frees it when finished). This resulted in a very large efficiency gain (now closer to 90%). If you are able to segregate long lived allocations I don't think it matters how many transient arenas you have configured because over time they'll empty themselves. 
+
+Also, another use for arenas we are interested in trying but haven't explored is fault isolation. Again this will depend a bit upon your application, but one idea is to assign a problem thread or module its own arena in order to pinpoint the source of memory corruption issues. In reduced memory environments tools like valgrind aren't always an option so something much lighter weight like thread specific arenas seem likely to be more viable. 
+
+We are using a fairly old version of jemalloc. I'm happy to see that the newer version has official support for this type of segregation. In the version we are using we also had to modify the code that detects when there's contention for a specific arena and allows threads to use alternate arenas. We needed complete isolation of the one arena to see the efficiency gains noted above. 
+
+I also want to apologize to Jason. He's clearly spent a great deal of time optimizing the performance of jemalloc. Those of us operating in limited memory environments start off by disabling much of his hard work :) 
+
+From: Jason Evans < jasone at canonware.com > 
+Date: Thursday, November 14, 2013 8:20 PM 
+To: Nikhil Bhatia < nbhatia at vmware.com > 
+Cc: " jemalloc-discuss at canonware.com " < jemalloc-discuss at canonware.com > 
+Subject: Re: jemalloc tuning help 
+
+
+
+You can potentially mitigate the problem by reducing the number of arenas (only helps if per thread memory usage spikes are uncorrelated). Another possibility is to segregate short- and long-lived objects into different arenas, but this requires that you have reliable (and ideally stable) knowledge of object lifetimes. In practice, segregation is usually very difficult to maintain. If you choose to go this direction, take a look at the "arenas.extend" mallctl (for creating an arena that contains long-lived objects), and the ALLOCM_ARENA(a) macro argument to the [r]allocm() functions. 
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131209/7a034598/attachment.html>
+
+From nbhatia at vmware.com  Mon Dec  9 17:50:15 2013
+From: nbhatia at vmware.com (Nikhil Bhatia)
+Date: Mon, 9 Dec 2013 17:50:15 -0800 (PST)
+Subject: using jemalloc on windows
+In-Reply-To: <1509970904.50924865.1386639655988.JavaMail.root@vmware.com>
+Message-ID: <362956213.50929484.1386640215020.JavaMail.root@vmware.com>
+
+Hi, 
+
+I just configured & compiled jemalloc on windows using
+minGW compiler to create a jemalloc.dll. As I have never 
+dealt with dll injection/interception on windows before 
+I have a couple of basic questions (I searched online & 
+got some pointers about mucking around with Windows CRT,
+so thought I will post here):
+
+(1) How can I make my windows application use jemalloc?
+
+And the second related question:
+
+(2) On Linux, I compiled jemalloc with  prefix (je_) & 
+    used je_malloc_stats_print in my interceptor code to
+    print stats every once in a while. 
+
+    Can I do something similar on windows and if yes then
+    how? 
+
+
+Thanks a lot, 
+Best Regards,
+Nikhil
+
+
+From i at eivanov.com  Sun Dec 22 23:41:01 2013
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Mon, 23 Dec 2013 11:41:01 +0400
+Subject: Profiling memory allocations in run-time in production
+Message-ID: <CAO6Ho0ejkEdj4v82uetNV51gt5a=7L6z0N9u8D3WPMhbTz6spw@mail.gmail.com>
+
+Hi,
+
+I need to profile my application running in production. Is it
+performance safe to build jemalloc with "--enable-prof", start
+application with profiling disabled and enable it for short time
+(probably via mallctl() call), when I need? I'm mostly interested in
+stacks, i.e. opt.prof_accum. Or are there better alternatives in
+Linux? I've tried perf, but it just counts stacks and doesn't care
+about amount of memory allocated. There is also stap, but I haven't
+try it yet.
+
+
+-- 
+Cheers,
+Evgeniy
+
+
+From valtteri at rahkonen.fi  Mon Dec 30 05:23:22 2013
+From: valtteri at rahkonen.fi (valtteri at rahkonen.fi)
+Date: Mon, 30 Dec 2013 15:23:22 +0200 (EET)
+Subject: Pthread spinlock support
+Message-ID: <Pine.LNX.4.64.1312301450060.2564@artemis>
+
+Hi,
+
+I noticed that the OSX version of the jemalloc uses spin locks and decided 
+to implement support for the pthread spin locks that can be used in Linux. 
+At least in my case there is huge benefit because I run a single thread in 
+a specific core that has not that much other activity and pthread mutex 
+lock contention seems to always schedule the thread away from execution, 
+so spin locking seems to give more stable result while adding bit more CPU 
+load. Most likely in more general case this would not be wanted, because 
+there would be more threads/processes running on same core and thus the 
+scheduling might give execution time for some other important threads like 
+the one having the lock taken.
+
+What do you think, is this something that could be merged to the upstream? 
+My patch implements new configure script option --enable-pthread-spinlock 
+that turns on the pthread spin lock i.e. the spin locks are not used by 
+default because of the scheduling benefit with normal use.
+
+Best regards,
+Valtteri
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc-spinlock.diff
+Type: text/x-diff
+Size: 4779 bytes
+Desc: 
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131230/2b0b3041/attachment.diff>
+

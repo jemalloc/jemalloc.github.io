@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Mingw port, status update
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Mingw%20port%2C%20status%20update&In-Reply-To=%3C20120412134753.GA5199%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000272.html">
+   <LINK REL="Next"  HREF="000264.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Mingw port, status update</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Mingw%20port%2C%20status%20update&In-Reply-To=%3C20120412134753.GA5199%40glandium.org%3E"
+       TITLE="Mingw port, status update">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 12 06:47:53 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000272.html">[PATCH] Call base_boot before chunk_boot0
+</A></li>
+        <LI>Next message: <A HREF="000264.html">Mingw port, status update
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#263">[ date ]</a>
+              <a href="thread.html#263">[ thread ]</a>
+              <a href="subject.html#263">[ subject ]</a>
+              <a href="author.html#263">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+Here's where I am standing with the mingw port: it passes the test
+suite, and repeated running of test/thread_arena (which, until mutexes
+were actually implemented, randomly failed :) )
+
+The patches I'm currently using on top of current dev branch (5ff709c)
+are:
+- Replace %z in format strings with configure-time determined printf
+  length modifier.
+- Use a stub replacement and disable dss when sbrk is not supported.
+- Call base_boot before chunk_boot0.
+
+On top of these, I have a patch adding win32 support:
+ configure.ac                                     |   25 ++++++-
+ include/jemalloc/internal/jemalloc_internal.h.in |   11 ++-
+ include/jemalloc/internal/mutex.h                |   16 +++-
+ include/jemalloc/internal/tsd.h                  |   44 +++++++++++
+ src/arena.c                                      |    2 +
+ src/chunk_dss.c                                  |    5 +-
+ src/chunk_mmap.c                                 |   87 +++++++++++++++++-----
+ src/jemalloc.c                                   |   30 +++++++-
+ src/mutex.c                                      |   10 ++-
+ src/util.c                                       |    5 +-
+ test/rallocm.c                                   |    9 +++
+ 11 files changed, 210 insertions(+), 34 deletions(-)
+
+The remaining things to do:
+- Build with the right extensions, the right flags, etc.
+- Replace the madvise calls instead of removing them.
+- Handle thread creation (equivalent to pthread_atfork)
+- Call cleanup functions for tsd.
+
+As mentioned in another message, the latter is tricky, as it basically
+requires that all cleanup functions are called from a single point, so
+we need to decide how to group them.
+
+Equivalent to pthread_atfork is not a given, because while it is &quot;easy&quot;
+to be notified of the creation of a thread through the dllmain entry
+point (which means jemalloc needs to be a shared library, btw, because
+executables don't have that), that only gives one half of the equation:
+in the child, after thread creation. I haven't found a way to run
+something in the parent before thread creation (at least yet).
+
+For the madvise calls, I'm considering writing a &quot;generic&quot; function to
+be used from both places madvise is called, I just need to know where to
+put that (it would kind of make sense in chunk_mmap.h or chunk.h), and
+what to name it.
+
+This will only bring mingw support. MSVC will probably require more
+tweaking, especially in the build system.
+
+Cheers,
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000272.html">[PATCH] Call base_boot before chunk_boot0
+</A></li>
+	<LI>Next message: <A HREF="000264.html">Mingw port, status update
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#263">[ date ]</a>
+              <a href="thread.html#263">[ thread ]</a>
+              <a href="subject.html#263">[ subject ]</a>
+              <a href="author.html#263">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

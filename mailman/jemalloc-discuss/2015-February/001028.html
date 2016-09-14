@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Enabling profiling causes hang?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3CCAKthKi%3DA3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6%2Bg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001027.html">
+   <LINK REL="Next"  HREF="001029.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Enabling profiling causes hang?</H1>
+    <B>Brock Pytlik</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3CCAKthKi%3DA3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6%2Bg%40mail.gmail.com%3E"
+       TITLE="Enabling profiling causes hang?">brock.pytlik at gmail.com
+       </A><BR>
+    <I>Sat Feb  7 12:17:12 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001027.html">Enabling profiling causes hang?
+</A></li>
+        <LI>Next message: <A HREF="001029.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1028">[ date ]</a>
+              <a href="thread.html#1028">[ thread ]</a>
+              <a href="subject.html#1028">[ subject ]</a>
+              <a href="author.html#1028">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Awesome, thanks for getting back to me so quickly. I wasn't understanding
+quite how the lg_prof_interval option was working. That should definitely
+handle what I need!
+
+Brock
+
+On Fri, Feb 6, 2015 at 10:47 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Feb 6, 2015, at 6:40 PM, Brock Pytlik &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">brock.pytlik at gmail.com</A>&gt; wrote:
+</I>&gt;<i> &gt; I'm trying to track down a possible memory leak in ardb, which uses
+</I>&gt;<i> jemalloc, when running on an arm processor.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; The problem I have is that when I set 'MALLOC_CONF=prof_leak:true' and
+</I>&gt;<i> start ardb, the program hangs.
+</I>&gt;<i> &gt; When I strace it, this is the system call it does:
+</I>&gt;<i> &gt; futex(0xb6db3c0c, FUTEX_WAIT_PRIVATE, 2, NULL
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Here's the stack trace gdb reports:
+</I>&gt;<i> &gt; (gdb) bt
+</I>&gt;<i> &gt; #0  0xb6e1af4c in __lll_lock_wait_private () from /lib/libc.so.6
+</I>&gt;<i> &gt; #1  0xb6d79de4 in __new_exitfn () from /lib/libc.so.6
+</I>&gt;<i> &gt; #2  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+</I>&gt;<i> &gt; #3  0x0016d75c in je_prof_boot2 () at src/prof.c:1349
+</I>&gt;<i> &gt; #4  0x00143418 in malloc_init_hard () at src/jemalloc.c:767
+</I>&gt;<i> &gt; #5  0x0014db70 in malloc_init () at src/jemalloc.c:292
+</I>&gt;<i> &gt; #6  calloc (num=1, size=520) at src/jemalloc.c:1123
+</I>&gt;<i> &gt; #7  0xb6d79da4 in __new_exitfn () from /lib/libc.so.6
+</I>&gt;<i> &gt; #8  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+</I>&gt;<i> &gt; #9  0x00013410 in __static_initialization_and_destruction_0 (
+</I>&gt;<i> &gt;     __initialize_p=&lt;optimized out&gt;, __priority=&lt;optimized out&gt;)
+</I>&gt;<i> &gt;     at &lt;&gt;/include/c++/4.7.3/iostream:75
+</I>&gt;<i> &gt; #10 _GLOBAL__sub_I_channel.cpp(void) () at common/channel/channel.cpp:738
+</I>&gt;<i> &gt; #11 0x001786f8 in __libc_csu_init ()
+</I>&gt;<i> &gt; #12 0xb6d61834 in __libc_start_main () from /lib/libc.so.6
+</I>&gt;<i> &gt; #13 0x0001424c in _start ()
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I'll admit at this point I'm kind of stumped as to how to proceed. I
+</I>&gt;<i> thought I'd start by asking here in case anyone had seen similar behavior
+</I>&gt;<i> or knew what the problem was. I checked the issues at the github page and
+</I>&gt;<i> couldn't find anything similar. This is using version 3.6.0 of jemalloc.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; When I looked at the jemalloc.xml user manual in the gate tip (not the
+</I>&gt;<i> 3.6.0 branch I'm using) I saw some discussion of atexit being problematic
+</I>&gt;<i> in the context of prof_final. If that's the problem, is there a way to
+</I>&gt;<i> generate profiling information either while the program is running,
+</I>&gt;<i> avoiding the atexit issue? I didn't quite follow the comment in the user
+</I>&gt;<i> manual that says that an application can register its own atexit parameter
+</I>&gt;<i> with equivalent functionality. Is there an example someplace I could crib
+</I>&gt;<i> from or could someone help me understand that a bit?
+</I>&gt;<i>
+</I>&gt;<i> Yes, it looks like you're hitting the same atexit() issue that caused me
+</I>&gt;<i> to disable prof_final by default in the dev branch of jemalloc.  If you
+</I>&gt;<i> instead use MALLOC_CONF=prof_final:false,lg_prof_interval=20 (see
+</I>&gt;<i> <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval</A>
+</I>&gt;<i> and choose an appropriate dump interval), you should be able to get useful
+</I>&gt;<i> heap profiles without modifying the ardb source code.  The prof_gdump
+</I>&gt;<i> option provides an alternative mechanism for triggering heap dumps.  If you
+</I>&gt;<i> want to go as far as modifying ardb source code, you can call the prof.dump
+</I>&gt;<i> mallctl to trigger a dump.  None of these options will cause jemalloc to
+</I>&gt;<i> print a leak report during exit, but the resulting heap profiles are what
+</I>&gt;<i> you really need anyway.
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150207/c6852d62/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150207/c6852d62/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001027.html">Enabling profiling causes hang?
+</A></li>
+	<LI>Next message: <A HREF="001029.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1028">[ date ]</a>
+              <a href="thread.html#1028">[ thread ]</a>
+              <a href="subject.html#1028">[ subject ]</a>
+              <a href="author.html#1028">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

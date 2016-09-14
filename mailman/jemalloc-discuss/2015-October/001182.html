@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory allocation/release hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3C6CA62DE8-9609-478A-A409-E063C0A27037%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001181.html">
+   <LINK REL="Next"  HREF="001183.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory allocation/release hooks</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3C6CA62DE8-9609-478A-A409-E063C0A27037%40indiana.edu%3E"
+       TITLE="Memory allocation/release hooks">ldalessa at indiana.edu
+       </A><BR>
+    <I>Thu Oct 15 11:44:19 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001181.html">Memory allocation/release hooks
+</A></li>
+        <LI>Next message: <A HREF="001183.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1182">[ date ]</a>
+              <a href="thread.html#1182">[ thread ]</a>
+              <a href="subject.html#1182">[ subject ]</a>
+              <a href="author.html#1182">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On Oct 15, 2015, at 2:26 PM, Shamis, Pavel &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">shamisp at ornl.gov</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> [cut]
+</I>&gt;<i> 
+</I>&gt;&gt;&gt;<i> (b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> We have been using jemalloc for some time to manage, among other things, registered memory regions in HPX-5 (<A HREF="https://hpx.crest.iu.edu/">https://hpx.crest.iu.edu/</A>) for Verbs and uGNI. If you already have a mechanism which manages keys, then you can simply install a set of chunk hooks that can perform the registration/deregistration as necessary. We have found this to work quite well for our purposes.
+</I>&gt;<i> 
+</I>&gt;<i> How do you load jemalloc ? Do you do LD_PRELOAD  or the user is expect to allocate the memory explicitly through HPX runtime ?
+</I>
+We have allocator choice set up as a configuration-time dependency so it&#8217;s relatively straightforward. 
+
+When the user has selected jemalloc as the allocator (it&#8217;s our default but we have a couple of other options) then a libjemalloc.so that supports the version 4 API is a configure-time requirement. We will just -rpath it into libhpx.so, and/or export it through hpx.pc for libhpx.a.
+
+We have made a decision to distribute all of our default dependencies, so we will actually build a libjemalloc.so from source and install that if we can&#8217;t find one at configuration time. We have made the decision to use it without a prefix, which means it will also be used for local allocation, but it mostly performs better than the libc malloc that&#8217;s installed on the systems that we use so that doesn&#8217;t concern us. A more complicated configuration could support prefixing jemalloc and leaving the local allocation alone.
+
+Luke
+
+PS: As an aside, we have [this outstanding issue](<A HREF="https://github.com/jemalloc/jemalloc/issues/203">https://github.com/jemalloc/jemalloc/issues/203</A>) which would be useful to us for key management. Since jemalloc already stores chunk metadata we&#8217;re hoping that we could get 16-64 bytes of &#8220;user&#8221; metadata per chunk so we don&#8217;t need to keep track of our own keys. Hopefully this will become available at some point.
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001181.html">Memory allocation/release hooks
+</A></li>
+	<LI>Next message: <A HREF="001183.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1182">[ date ]</a>
+              <a href="thread.html#1182">[ thread ]</a>
+              <a href="subject.html#1182">[ subject ]</a>
+              <a href="author.html#1182">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc tuning help
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20tuning%20help&In-Reply-To=%3C233097884.50903354.1386637389260.JavaMail.root%40vmware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000694.html">
+   <LINK REL="Next"  HREF="000696.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc tuning help</H1>
+    <B>Nikhil Bhatia</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20tuning%20help&In-Reply-To=%3C233097884.50903354.1386637389260.JavaMail.root%40vmware.com%3E"
+       TITLE="jemalloc tuning help">nbhatia at vmware.com
+       </A><BR>
+    <I>Mon Dec  9 17:03:09 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000694.html">Custom Arenas ?
+</A></li>
+        <LI>Next message: <A HREF="000696.html">using jemalloc on windows
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#695">[ date ]</a>
+              <a href="thread.html#695">[ thread ]</a>
+              <a href="subject.html#695">[ subject ]</a>
+              <a href="author.html#695">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks Jason &amp; Robert for your analysis &amp; time. 
+
+&gt;<i>From these results its fairly evident that I have work ahead to reduce the 
+</I>long-lived allocations or use different arenas for long/short lived objects 
+using the new ALLOCM_ARENA API in jemalloc. Shall update once 
+I figure out any one or both of these. 
+
+Best Regards, 
+Nikhil 
+
+----- Original Message -----
+
+From: &quot;Robert Mowry&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Robert.Mowry at netapp.com</A>&gt; 
+To: &quot;Jason Evans&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;, &quot;Nikhil Bhatia&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">nbhatia at vmware.com</A>&gt; 
+Cc: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A> 
+Sent: Thursday, November 14, 2013 6:15:46 PM 
+Subject: Re: jemalloc tuning help 
+
+I just want to reiterate what Jason has said below. I recently spent several months trying to reduce the amount of memory used by one of our applications. We were seeing efficiency ratings for the heap in the 50-60% range (in terms of VM use vs outstanding buffers used by the app). 
+
+In our case it was relatively easy to segregate one of the largest offenders (a periodic thread that consumes large amounts of heap and then frees it when finished). This resulted in a very large efficiency gain (now closer to 90%). If you are able to segregate long lived allocations I don't think it matters how many transient arenas you have configured because over time they'll empty themselves. 
+
+Also, another use for arenas we are interested in trying but haven't explored is fault isolation. Again this will depend a bit upon your application, but one idea is to assign a problem thread or module its own arena in order to pinpoint the source of memory corruption issues. In reduced memory environments tools like valgrind aren't always an option so something much lighter weight like thread specific arenas seem likely to be more viable. 
+
+We are using a fairly old version of jemalloc. I'm happy to see that the newer version has official support for this type of segregation. In the version we are using we also had to modify the code that detects when there's contention for a specific arena and allows threads to use alternate arenas. We needed complete isolation of the one arena to see the efficiency gains noted above. 
+
+I also want to apologize to Jason. He's clearly spent a great deal of time optimizing the performance of jemalloc. Those of us operating in limited memory environments start off by disabling much of his hard work :) 
+
+From: Jason Evans &lt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A> &gt; 
+Date: Thursday, November 14, 2013 8:20 PM 
+To: Nikhil Bhatia &lt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">nbhatia at vmware.com</A> &gt; 
+Cc: &quot; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A> &quot; &lt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A> &gt; 
+Subject: Re: jemalloc tuning help 
+
+
+
+You can potentially mitigate the problem by reducing the number of arenas (only helps if per thread memory usage spikes are uncorrelated). Another possibility is to segregate short- and long-lived objects into different arenas, but this requires that you have reliable (and ideally stable) knowledge of object lifetimes. In practice, segregation is usually very difficult to maintain. If you choose to go this direction, take a look at the &quot;arenas.extend&quot; mallctl (for creating an arena that contains long-lived objects), and the ALLOCM_ARENA(a) macro argument to the [r]allocm() functions. 
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131209/7a034598/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131209/7a034598/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000694.html">Custom Arenas ?
+</A></li>
+	<LI>Next message: <A HREF="000696.html">using jemalloc on windows
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#695">[ date ]</a>
+              <a href="thread.html#695">[ thread ]</a>
+              <a href="subject.html#695">[ subject ]</a>
+              <a href="author.html#695">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

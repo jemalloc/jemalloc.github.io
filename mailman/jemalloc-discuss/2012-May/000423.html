@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> dead lock in forked child
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20dead%20lock%20in%20forked%20child&In-Reply-To=%3C4FBF4AA6.1000701%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000422.html">
+   <LINK REL="Next"  HREF="000424.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>dead lock in forked child</H1>
+    <B>Jokea</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20dead%20lock%20in%20forked%20child&In-Reply-To=%3C4FBF4AA6.1000701%40gmail.com%3E"
+       TITLE="dead lock in forked child">tfengjun at gmail.com
+       </A><BR>
+    <I>Fri May 25 02:02:30 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000422.html">sge_execd segfaults in ptmalloc_lock_all during fork
+</A></li>
+        <LI>Next message: <A HREF="000424.html">dead lock in forked child
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#423">[ date ]</a>
+              <a href="thread.html#423">[ thread ]</a>
+              <a href="subject.html#423">[ subject ]</a>
+              <a href="author.html#423">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I've found that a forked child runs into dead lock in a multithreaded
+application.
+The test code is:
+
+[<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">root at localhost</A>]# cat a.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pthread.h&gt;
+#include &quot;include/jemalloc/jemalloc.h&quot;
+
+void *worker(void *arg) {
+int j;
+char *p;
+
+while (1) {
+for (j=1; j&lt;5000; ++j) {
+p = je_malloc(j);
+je_free(p);
+}
+}
+return NULL;
+}
+
+int main(int argc, char **argv) {
+int pid;
+int j;
+char *p;
+pthread_t tid;
+int n = 20;
+
+if (argc &gt; 1)
+n = atoi(argv[1]);
+
+for (j=0; j&lt;10; ++j)
+pthread_create(&amp;tid, NULL, worker, NULL);
+
+int i = 0;
+while (i++&lt;n) {
+if ((pid = fork()) == 0) {
+/* child */
+fprintf(stderr, &quot;child %d\n&quot;, i);
+int cnt;
+for (cnt=0; cnt&lt;100; ++cnt) {
+for (j=1; j&lt;5000; ++j) {
+p = je_malloc(j);
+je_free(p);
+}
+}
+exit(0);
+}
+usleep(10000);
+}
+
+sleep(1);
+while (n--) {
+fprintf(stderr, &quot;%d children running...\n&quot;, n+1);
+pid = wait(NULL);
+}
+return 0;
+}
+
+1. jemalloc is configured using:
+# ./configure CFLAGS=-std=gnu99 -Wall -pipe -g3 -O2 -funroll-loops
+--with-jemalloc-prefix=je_ --enable-cc-silence &amp;&amp; make lib/libjemalloc.a
+
+2. compile the test code using:
+# gcc -g -ggdb -o 3.0.0 a.c lib/libjemalloc.a -lpthread -ldl
+
+3. run the test:
+[<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">root at localhost</A>]# ./3.0.0 4
+child 1
+child 2
+child 3
+child 4
+4 children running...
+3 children running...
+2 children running...
+^C
+[<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">root at localhost</A>]#
+
+4. Two children are blocked, backtrace:
+first:
+(gdb) bt
+#0 malloc_init_hard () at src/jemalloc.c:626
+#1 0x0000000000402f75 in malloc_init (size=1) at src/jemalloc.c:282
+#2 je_malloc (size=1) at src/jemalloc.c:804
+#3 0x00000000004011f3 in main (argc=2, argv=0x7fffa509d888) at a.c:40
+
+second:
+(gdb) bt
+#0 0x0000003e4ea0d594 in __lll_lock_wait () from /lib64/libpthread.so.0
+#1 0x0000003e4ea08e8a in _L_lock_1034 () from /lib64/libpthread.so.0
+#2 0x0000003e4ea08d4c in pthread_mutex_lock () from /lib64/libpthread.so.0
+#3 0x000000000040148f in malloc_mutex_lock () at
+include/jemalloc/internal/mutex.h:77
+#4 malloc_init_hard () at src/jemalloc.c:611
+#5 0x0000000000402f75 in malloc_init (size=1) at src/jemalloc.c:282
+#6 je_malloc (size=1) at src/jemalloc.c:804
+#7 0x00000000004011f3 in main (argc=2, argv=0x7fffa509d888) at a.c:40
+
+I've tested the code against jemalloc-2.2.5 and jemalloc-3.0.0, they
+shows the same result.
+The default libc malloc does not have this issue.
+
+System info:
+CentOS-5.4 x86_64,
+
+Regards,
+tfengjun
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120525/63b7bedc/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120525/63b7bedc/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000422.html">sge_execd segfaults in ptmalloc_lock_all during fork
+</A></li>
+	<LI>Next message: <A HREF="000424.html">dead lock in forked child
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#423">[ date ]</a>
+              <a href="thread.html#423">[ thread ]</a>
+              <a href="subject.html#423">[ subject ]</a>
+              <a href="author.html#423">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

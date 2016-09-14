@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> RFC: TCMalloc-style new/delete hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3C9C0A6523-6C0D-4375-B08C-CFADA3F878DB%40couchbase.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000959.html">
+   <LINK REL="Next"  HREF="000956.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>RFC: TCMalloc-style new/delete hooks</H1>
+    <B>David Rigby</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3C9C0A6523-6C0D-4375-B08C-CFADA3F878DB%40couchbase.com%3E"
+       TITLE="RFC: TCMalloc-style new/delete hooks">daver at couchbase.com
+       </A><BR>
+    <I>Wed Oct 15 02:54:24 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000959.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+        <LI>Next message: <A HREF="000956.html">network registered memory and pages_purge()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#960">[ date ]</a>
+              <a href="thread.html#960">[ thread ]</a>
+              <a href="subject.html#960">[ subject ]</a>
+              <a href="author.html#960">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+On 14 Oct 2014, at 18:55, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Oct 14, 2014, at 9:13 AM, David Rigby &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">daver at couchbase.com</A>&gt; wrote:
+</I>&gt;&gt;<i> We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc&#8217;s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application. 
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread&#8217;s current bucket from TLS and increment/decrement the total used as appropriate.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> To allow us to work with jemalloc, I&#8217;ve implemented[1] equivalent functionality in jemalloc.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I&#8217;m proposing setting narenas=1 when we deploy).
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream? 
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> [1]: <A HREF="https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5">https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5</A>
+</I>&gt;<i> 
+</I>&gt;<i> I have some concerns about this functionality that have kept me from adding it so far:
+</I>&gt;<i> 
+</I>&gt;<i> - It adds yet another branch to the fast path, whereas if you create your own wrappers and mangle jemalloc's API, it imposes no cost on applications which don't need hooks.
+</I>&gt;<i> - It's really tricky (and requires a messy API) to support hooks that get called for all allocations from the beginning of program execution.  I don't know of a way to pull this off short of exposing weak function pointer symbols that can be overridden during static linking or dynamic loading.
+</I>&gt;<i> - It can result in really surprising &quot;impossible&quot; behavior if the compiler makes assumptions about globally visible side effects, as does gcc.  In order to make hooks generally safe, the application must be compiled with -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free.  Other compilers potentially have similar issues, possibly without escape hatches.  I worry that hooks add a documentation burden on jemalloc, and that people will repeatedly fail to take note of this requirement, leaving them with the impression that jemalloc is somehow flakey.
+</I>&gt;<i> 
+</I>
+Thanks for the detailed comments - I appreciate the concerns from the jemalloc side of things on adding such a feature.
+
+One complication from my side (which admittedly isn&#8217;t directly related to jemalloc) is that I need to support OS X, Windows and Linux. With TCMalloc this is straightforward: I simply link it in and take advantage of (a) it&#8217;s automatic malloc replacement on every platform (runtime patching, OS X zone replacement or ELF symbol prescience) and (b) callbacks on new/delete.
+
+To deploy jemalloc things get much more complex:
+
+a) No malloc replacement on Windows
+b) No callbacks on new/delete
+
+I&#8217;m still investigating the best way to solve (a) - I don&#8217;t really fancy porting all the C++ runtime patching code to C/jemalloc but if we want to use jemalloc on Windows this might be the best solution.
+
+For (b) if I don&#8217;t add callbacks to jemalloc and instead write my own wrappers, I then need to ensure these are used - trivial on Linux, but on OS X I&#8217;ll need to clone a bunch of the zone code from jemalloc to add my own zone with the wrapper functions.
+
+I&#8217;ll probably go down the wrapper route, but if nothing else this does highlight some integration pain-points which jemalloc has compared to TCmalloc, particularly if people are migrating from TCmalloc to jemalloc.
+
+
+Thanks,
+
+Dave Rigby
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000959.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+	<LI>Next message: <A HREF="000956.html">network registered memory and pages_purge()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#960">[ date ]</a>
+              <a href="thread.html#960">[ thread ]</a>
+              <a href="subject.html#960">[ subject ]</a>
+              <a href="author.html#960">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1444 @@
+From marcin.zalewski at gmail.com  Thu Jan  1 10:44:54 2015
+From: marcin.zalewski at gmail.com (Marcin Zalewski)
+Date: Thu, 1 Jan 2015 13:44:54 -0500
+Subject: Assertion fail question
+Message-ID: <CAB8upq+gBNJTbvw+zd7=k+-e59i3MU3WKSO=WJh-G+p545on-w@mail.gmail.com>
+
+I am using the latest jemalloc dev (9c6a8d) compiled only with
+--enable-debug. I am getting the following two assertions fail in my
+program (16 threads):
+
+src/arena.c:182: Failed assertion: "bitmap_get(run->bitmap,
+&bin_info->bitmap_info, regind)"
+include/jemalloc/internal/tcache.h:212: Failed assertion: "tcache->ev_cnt
+<= TCACHE_GC_INCR"
+
+Is there something obvious that I am doing wrong? I would appreciate any
+help.
+
+Thank you,
+Marcin
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150101/a61b04a4/attachment.html>
+
+From marcin.zalewski at gmail.com  Thu Jan  1 10:47:25 2015
+From: marcin.zalewski at gmail.com (Marcin Zalewski)
+Date: Thu, 1 Jan 2015 13:47:25 -0500
+Subject: Assertion fail question
+In-Reply-To: <CAB8upq+gBNJTbvw+zd7=k+-e59i3MU3WKSO=WJh-G+p545on-w@mail.gmail.com>
+References: <CAB8upq+gBNJTbvw+zd7=k+-e59i3MU3WKSO=WJh-G+p545on-w@mail.gmail.com>
+Message-ID: <CAB8upqJatufBXumRSxz=hi6y9AE+_63cXCY1CS8FdZBw+Nh8pg@mail.gmail.com>
+
+I just got a stack trace on this assertion fail (below), and it seem that
+second assertion is triggered in error processing.
+
+#0  0x00007fffbf9ff3f8 in pthread_once () from
+/lib/x86_64-linux-gnu/libpthread.so.0
+#1  0x00007fffbf73e074 in backtrace () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007fff7a99b0f0 in ipath_sighdlr (sig=<optimized out>, p1=<optimized
+out>, ucv=0x7fff78558380) at ipath_debug.c:116
+#3  <signal handler called>
+#4  0x00007fffbf6690d5 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#5  0x00007fffbf66c83b in abort () from /lib/x86_64-linux-gnu/libc.so.6
+#6  0x00007fffbfc4d9ec in je_tcache_event (tcache=0x7fffbe81a000) at
+include/jemalloc/internal/tcache.h:212
+#7  0x00007fffbfc4dd03 in je_tcache_alloc_small (tcache=0x7fffbe81a000,
+size=36, zero=false) at include/jemalloc/internal/tcache.h:273
+#8  0x00007fffbfc1c7ad in je_arena_malloc (tsd=0x7fffc17e5708, arena=0x0,
+size=36, zero=false, try_tcache=true) at
+include/jemalloc/internal/arena.h:931
+#9  0x00007fffbfc1378c in je_imalloct (tsd=0x7fffc17e5708, size=36,
+try_tcache=true, arena=0x0) at
+include/jemalloc/internal/jemalloc_internal.h:816
+#10 0x00007fffbfc137da in je_imalloc (tsd=0x7fffc17e5708, size=36) at
+include/jemalloc/internal/jemalloc_internal.h:825
+#11 0x00007fffbfc172a8 in imalloc_body (size=36, tsd=0x7fff78558bc0,
+usize=0x7fff78558bb8) at src/jemalloc.c:1331
+#12 0x00007fffbfc172e4 in malloc (size=36) at src/jemalloc.c:1344
+#13 0x00007fffc15e294e in ?? () from /lib64/ld-linux-x86-64.so.2
+#14 0x00007fffc15ed84b in ?? () from /lib64/ld-linux-x86-64.so.2
+#15 0x00007fffc15e9176 in ?? () from /lib64/ld-linux-x86-64.so.2
+#16 0x00007fffc15ed31a in ?? () from /lib64/ld-linux-x86-64.so.2
+#17 0x00007fffbf763c62 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#18 0x00007fffc15e9176 in ?? () from /lib64/ld-linux-x86-64.so.2
+#19 0x00007fffbf763d24 in __libc_dlopen_mode () from
+/lib/x86_64-linux-gnu/libc.so.6
+#20 0x00007fffbf73df55 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#21 0x00007fffbf9ff400 in pthread_once () from
+/lib/x86_64-linux-gnu/libpthread.so.0
+#22 0x00007fffbf73e074 in backtrace () from /lib/x86_64-linux-gnu/libc.so.6
+#23 0x00007fff7a99b0f0 in ipath_sighdlr (sig=<optimized out>, p1=<optimized
+out>, ucv=0x7fff785594c0) at ipath_debug.c:116
+#24 <signal handler called>
+#25 0x00007fffbf6690d5 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#26 0x00007fffbf66c83b in abort () from /lib/x86_64-linux-gnu/libc.so.6
+#27 0x00007fffbfc21acf in arena_run_reg_dalloc (run=0x7fffbe8039e8,
+ptr=0x7fffbe8644d0) at src/arena.c:182
+#28 0x00007fffbfc2711f in arena_dalloc_bin_locked_impl
+(arena=0x7fffbf010140, chunk=0x7fffbe800000, ptr=0x7fffbe8644d0,
+bitselm=0x7fffbe800258, junked=true) at src/arena.c:1854
+#29 0x00007fffbfc27209 in je_arena_dalloc_bin_junked_locked
+(arena=0x7fffbf010140, chunk=0x7fffbe800000, ptr=0x7fffbe8644d0,
+bitselm=0x7fffbe800258) at src/arena.c:1872
+#30 0x00007fffbfc4e842 in je_tcache_bin_flush_small (tbin=0x7fffbe81a0c8,
+binind=5, rem=0, tcache=0x7fffbe81a000) at src/tcache.c:120
+#31 0x00007fffbfc4e40c in je_tcache_event_hard (tcache=0x7fffbe81a000) at
+src/tcache.c:36
+#32 0x00007fffbfc4da0f in je_tcache_event (tcache=0x7fffbe81a000) at
+include/jemalloc/internal/tcache.h:214
+#33 0x00007fffbfc4dd03 in je_tcache_alloc_small (tcache=0x7fffbe81a000,
+size=24, zero=false) at include/jemalloc/internal/tcache.h:273
+#34 0x00007fffbfc1c7ad in je_arena_malloc (tsd=0x7fffc17e5708, arena=0x0,
+size=24, zero=false, try_tcache=true) at
+include/jemalloc/internal/arena.h:931
+#35 0x00007fffbfc1378c in je_imalloct (tsd=0x7fffc17e5708, size=24,
+try_tcache=true, arena=0x0) at
+include/jemalloc/internal/jemalloc_internal.h:816
+#36 0x00007fffbfc137da in je_imalloc (tsd=0x7fffc17e5708, size=24) at
+include/jemalloc/internal/jemalloc_internal.h:825
+#37 0x00007fffbfc172a8 in imalloc_body (size=24, tsd=0x7fff78559ef0,
+usize=0x7fff78559ee8) at src/jemalloc.c:1331
+#38 0x00007fffbfc172e4 in malloc (size=24) at src/jemalloc.c:1344
+#39 0x00000000004082be in sssp_queue_push (q=0x7fffbe865420,
+v=140729942941792, d=5032) at ./include/libpxgl/unlocked_pqueue_wrapper.h:75
+#40 0x0000000000408511 in _sssp_dc_process_vertex_action
+(distance=0x7ffc848478c0) at src/sssp_dc1.c:74
+#41 0x000000000042d751 in _thread_enter (parcel=0x7ffc84847880) at
+worker.c:95
+#42 0x0000000000000000 in ?? ()
+
+On Thu, Jan 1, 2015 at 1:44 PM, Marcin Zalewski <marcin.zalewski at gmail.com>
+wrote:
+
+> I am using the latest jemalloc dev (9c6a8d) compiled only with
+> --enable-debug. I am getting the following two assertions fail in my
+> program (16 threads):
+>
+> src/arena.c:182: Failed assertion: "bitmap_get(run->bitmap,
+> &bin_info->bitmap_info, regind)"
+> include/jemalloc/internal/tcache.h:212: Failed assertion: "tcache->ev_cnt
+> <= TCACHE_GC_INCR"
+>
+> Is there something obvious that I am doing wrong? I would appreciate any
+> help.
+>
+> Thank you,
+> Marcin
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150101/941759d4/attachment.html>
+
+From marcin.zalewski at gmail.com  Thu Jan  1 11:06:25 2015
+From: marcin.zalewski at gmail.com (Marcin Zalewski)
+Date: Thu, 1 Jan 2015 14:06:25 -0500
+Subject: Assertion fail question
+In-Reply-To: <CAB8upqJatufBXumRSxz=hi6y9AE+_63cXCY1CS8FdZBw+Nh8pg@mail.gmail.com>
+References: <CAB8upq+gBNJTbvw+zd7=k+-e59i3MU3WKSO=WJh-G+p545on-w@mail.gmail.com>
+	<CAB8upqJatufBXumRSxz=hi6y9AE+_63cXCY1CS8FdZBw+Nh8pg@mail.gmail.com>
+Message-ID: <CAB8upq+0Ncbfe8VD0EbROcn3FTxZKU3Z3cPqt-BhWw0W+dHCBQ@mail.gmail.com>
+
+OK, I have figured out that this was happening due to double free.
+
+Sorry for the false alarm and 3 emails.
+
+On Thu, Jan 1, 2015 at 1:47 PM, Marcin Zalewski <marcin.zalewski at gmail.com>
+wrote:
+
+> I just got a stack trace on this assertion fail (below), and it seem that
+> second assertion is triggered in error processing.
+>
+> #0  0x00007fffbf9ff3f8 in pthread_once () from
+> /lib/x86_64-linux-gnu/libpthread.so.0
+> #1  0x00007fffbf73e074 in backtrace () from /lib/x86_64-linux-gnu/libc.so.6
+> #2  0x00007fff7a99b0f0 in ipath_sighdlr (sig=<optimized out>,
+> p1=<optimized out>, ucv=0x7fff78558380) at ipath_debug.c:116
+> #3  <signal handler called>
+> #4  0x00007fffbf6690d5 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+> #5  0x00007fffbf66c83b in abort () from /lib/x86_64-linux-gnu/libc.so.6
+> #6  0x00007fffbfc4d9ec in je_tcache_event (tcache=0x7fffbe81a000) at
+> include/jemalloc/internal/tcache.h:212
+> #7  0x00007fffbfc4dd03 in je_tcache_alloc_small (tcache=0x7fffbe81a000,
+> size=36, zero=false) at include/jemalloc/internal/tcache.h:273
+> #8  0x00007fffbfc1c7ad in je_arena_malloc (tsd=0x7fffc17e5708, arena=0x0,
+> size=36, zero=false, try_tcache=true) at
+> include/jemalloc/internal/arena.h:931
+> #9  0x00007fffbfc1378c in je_imalloct (tsd=0x7fffc17e5708, size=36,
+> try_tcache=true, arena=0x0) at
+> include/jemalloc/internal/jemalloc_internal.h:816
+> #10 0x00007fffbfc137da in je_imalloc (tsd=0x7fffc17e5708, size=36) at
+> include/jemalloc/internal/jemalloc_internal.h:825
+> #11 0x00007fffbfc172a8 in imalloc_body (size=36, tsd=0x7fff78558bc0,
+> usize=0x7fff78558bb8) at src/jemalloc.c:1331
+> #12 0x00007fffbfc172e4 in malloc (size=36) at src/jemalloc.c:1344
+> #13 0x00007fffc15e294e in ?? () from /lib64/ld-linux-x86-64.so.2
+> #14 0x00007fffc15ed84b in ?? () from /lib64/ld-linux-x86-64.so.2
+> #15 0x00007fffc15e9176 in ?? () from /lib64/ld-linux-x86-64.so.2
+> #16 0x00007fffc15ed31a in ?? () from /lib64/ld-linux-x86-64.so.2
+> #17 0x00007fffbf763c62 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+> #18 0x00007fffc15e9176 in ?? () from /lib64/ld-linux-x86-64.so.2
+> #19 0x00007fffbf763d24 in __libc_dlopen_mode () from
+> /lib/x86_64-linux-gnu/libc.so.6
+> #20 0x00007fffbf73df55 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+> #21 0x00007fffbf9ff400 in pthread_once () from
+> /lib/x86_64-linux-gnu/libpthread.so.0
+> #22 0x00007fffbf73e074 in backtrace () from /lib/x86_64-linux-gnu/libc.so.6
+> #23 0x00007fff7a99b0f0 in ipath_sighdlr (sig=<optimized out>,
+> p1=<optimized out>, ucv=0x7fff785594c0) at ipath_debug.c:116
+> #24 <signal handler called>
+> #25 0x00007fffbf6690d5 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+> #26 0x00007fffbf66c83b in abort () from /lib/x86_64-linux-gnu/libc.so.6
+> #27 0x00007fffbfc21acf in arena_run_reg_dalloc (run=0x7fffbe8039e8,
+> ptr=0x7fffbe8644d0) at src/arena.c:182
+> #28 0x00007fffbfc2711f in arena_dalloc_bin_locked_impl
+> (arena=0x7fffbf010140, chunk=0x7fffbe800000, ptr=0x7fffbe8644d0,
+> bitselm=0x7fffbe800258, junked=true) at src/arena.c:1854
+> #29 0x00007fffbfc27209 in je_arena_dalloc_bin_junked_locked
+> (arena=0x7fffbf010140, chunk=0x7fffbe800000, ptr=0x7fffbe8644d0,
+> bitselm=0x7fffbe800258) at src/arena.c:1872
+> #30 0x00007fffbfc4e842 in je_tcache_bin_flush_small (tbin=0x7fffbe81a0c8,
+> binind=5, rem=0, tcache=0x7fffbe81a000) at src/tcache.c:120
+> #31 0x00007fffbfc4e40c in je_tcache_event_hard (tcache=0x7fffbe81a000) at
+> src/tcache.c:36
+> #32 0x00007fffbfc4da0f in je_tcache_event (tcache=0x7fffbe81a000) at
+> include/jemalloc/internal/tcache.h:214
+> #33 0x00007fffbfc4dd03 in je_tcache_alloc_small (tcache=0x7fffbe81a000,
+> size=24, zero=false) at include/jemalloc/internal/tcache.h:273
+> #34 0x00007fffbfc1c7ad in je_arena_malloc (tsd=0x7fffc17e5708, arena=0x0,
+> size=24, zero=false, try_tcache=true) at
+> include/jemalloc/internal/arena.h:931
+> #35 0x00007fffbfc1378c in je_imalloct (tsd=0x7fffc17e5708, size=24,
+> try_tcache=true, arena=0x0) at
+> include/jemalloc/internal/jemalloc_internal.h:816
+> #36 0x00007fffbfc137da in je_imalloc (tsd=0x7fffc17e5708, size=24) at
+> include/jemalloc/internal/jemalloc_internal.h:825
+> #37 0x00007fffbfc172a8 in imalloc_body (size=24, tsd=0x7fff78559ef0,
+> usize=0x7fff78559ee8) at src/jemalloc.c:1331
+> #38 0x00007fffbfc172e4 in malloc (size=24) at src/jemalloc.c:1344
+> #39 0x00000000004082be in sssp_queue_push (q=0x7fffbe865420,
+> v=140729942941792, d=5032) at ./include/libpxgl/unlocked_pqueue_wrapper.h:75
+> #40 0x0000000000408511 in _sssp_dc_process_vertex_action
+> (distance=0x7ffc848478c0) at src/sssp_dc1.c:74
+> #41 0x000000000042d751 in _thread_enter (parcel=0x7ffc84847880) at
+> worker.c:95
+> #42 0x0000000000000000 in ?? ()
+>
+> On Thu, Jan 1, 2015 at 1:44 PM, Marcin Zalewski <marcin.zalewski at gmail.com
+> > wrote:
+>
+>> I am using the latest jemalloc dev (9c6a8d) compiled only with
+>> --enable-debug. I am getting the following two assertions fail in my
+>> program (16 threads):
+>>
+>> src/arena.c:182: Failed assertion: "bitmap_get(run->bitmap,
+>> &bin_info->bitmap_info, regind)"
+>> include/jemalloc/internal/tcache.h:212: Failed assertion: "tcache->ev_cnt
+>> <= TCACHE_GC_INCR"
+>>
+>> Is there something obvious that I am doing wrong? I would appreciate any
+>> help.
+>>
+>> Thank you,
+>> Marcin
+>>
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150101/5b69a607/attachment-0001.html>
+
+From jasone at canonware.com  Thu Jan  8 14:48:56 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 8 Jan 2015 14:48:56 -0800
+Subject: adding size class for 24 bytes pool on x86
+In-Reply-To: <CAJQN3N7CiyVsCj4J9Wh0Lo3rQm1PLYZSpCKgmV_4KjfxYvLKSA@mail.gmail.com>
+References: <CAJQN3N7CiyVsCj4J9Wh0Lo3rQm1PLYZSpCKgmV_4KjfxYvLKSA@mail.gmail.com>
+Message-ID: <6548EB10-DB0D-4823-8F51-5A3AAAD84D10@canonware.com>
+
+On Dec 24, 2014, at 1:35 AM, Oran Agra <oran at redislabs.com> wrote:
+> I have an application running on x86 that uses jemalloc which can greatly benefit from an allocation pool of 24 bytes.
+> currently there are pools for 8,16,32...
+
+The dev version of jemalloc has the --with-lg-quantum configure option, which should do what you want if you specify --with-lg-quantum=3 .  See the INSTALL file for details and warnings:
+
+	https://github.com/jemalloc/jemalloc/blob/dev/INSTALL <https://github.com/jemalloc/jemalloc/blob/dev/INSTALL>
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150108/26fe230c/attachment.html>
+
+From jasone at canonware.com  Thu Jan  8 14:50:58 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 8 Jan 2015 14:50:58 -0800
+Subject: ctl_refresh() is never called,
+	je_mallctl("stats.allocated") doesn't work
+In-Reply-To: <CAJQN3N6hQv6m04R6TA8u+MxpzAttWJ+Aoead3yvbjOWy_FnPOg@mail.gmail.com>
+References: <CAJQN3N6hQv6m04R6TA8u+MxpzAttWJ+Aoead3yvbjOWy_FnPOg@mail.gmail.com>
+Message-ID: <6080AF5B-1957-4821-B17A-2493B4FCC1C6@canonware.com>
+
+On Dec 24, 2014, at 1:33 AM, Oran Agra <oran at redislabs.com> wrote:
+> I'm trying to get the stat for total allocated memory.
+> 
+> i'm calling either:
+>     size_t um;
+>     size_t sz = sizeof(size_t);
+>     res = je_mallctl("stats.allocated", &um, &sz, NULL, 0);
+> or 
+>     size_t allocated_mib[2];
+>     size_t allocated_mib_len = 0;
+>     allocated_mib_len = sizeof(allocated_mib);
+>     int res = je_mallctlnametomib("stats.allocated", allocated_mib, &allocated_mib_len);
+>     int res = je_mallctlbymib(allocated_mib, allocated_mib_len, &um, &sz, NULL, 0);
+> both return success (0), but 'um' variable is always set to 0.
+> 
+> digging into the source code of jemalloc, it seems that ctl_refresh() which is suppose to update this stat is never called.
+> p.s. config_stats is set to true, and i confirmed that with a debugger.
+> 
+> is it a bug? or am i missing something?
+
+You need to call the "epoch" mallctl to refresh the stats:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#epoch <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#epoch>
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150108/52bad7ff/attachment.html>
+
+From Kurt.Wampler at asml.com  Fri Jan 16 17:44:43 2015
+From: Kurt.Wampler at asml.com (Kurt Wampler)
+Date: Fri, 16 Jan 2015 17:44:43 -0800
+Subject: memalign() bug found & fixed
+Message-ID: <20150117014443.GD2497@asml.com>
+
+Greetings,
+
+I'm new to this list, so will expect guidance if I violate any conventions.
+
+I'd like to report a bug which we found and fixed in jemalloc-3.6.0.
+
+In the imemalign() function, when the allocation fails, there are
+"goto" statements that end up reaching "label_return:" without ever
+dereferencing memptr (the first argument).  However, je_memalign() is
+written in a way that ignores imemalign()'s function return value, and
+depends instead on imemalign() to communicate the results using memptr.
+
+Our local fix for this problem was to move one line in imemalign() below
+"label_return:".
+
+
+Original code:
+-------------
+
+        *memptr = result;
+        ret = 0;
+label_return:
+
+
+Revised code:
+------------
+
+        ret = 0;
+label_return:
+        *memptr = result;
+
+
+The above seemed like the simplest fix, but maybe it would be clearer
+to change je_memalign() to follow the same convention as je_posix_memalign()?
+
+Regards,
+
+Kurt Wampler  (Kurt.Wampler at asml.com)  408-200-3722
+
+-- The information contained in this communication and any attachments is confidential and may be privileged, and is for the sole use of the intended recipient(s). Any unauthorized review, use, disclosure or distribution is prohibited. Unless explicitly stated otherwise in the body of this communication or the attachment thereto (if any), the information is provided on an AS-IS basis without any express or implied warranties or liabilities. To the extent you are relying on this information, you are doing so at your own risk. If you are not the intended recipient, please notify the sender immediately by replying to this message and destroy all copies of this message and any attachments. The sender nor the company/group of companies he or she represents shall be liable for the proper and complete transmission of the information contained in this communication, or for any delay in its receipt.
+
+From jasone at canonware.com  Fri Jan 16 18:08:56 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 16 Jan 2015 18:08:56 -0800
+Subject: memalign() bug found & fixed
+In-Reply-To: <20150117014443.GD2497@asml.com>
+References: <20150117014443.GD2497@asml.com>
+Message-ID: <95D00586-E414-45AE-A02D-0D5DD1ED0097@canonware.com>
+
+On Jan 16, 2015, at 5:44 PM, Kurt Wampler <Kurt.Wampler at asml.com> wrote:
+> I'd like to report a bug which we found and fixed in jemalloc-3.6.0.
+> 
+> In the imemalign() function, when the allocation fails, there are
+> "goto" statements that end up reaching "label_return:" without ever
+> dereferencing memptr (the first argument).  However, je_memalign() is
+> written in a way that ignores imemalign()'s function return value, and
+> depends instead on imemalign() to communicate the results using memptr.
+> 
+> Our local fix for this problem was to move one line in imemalign() below
+> "label_return:".
+> 
+> 
+> Original code:
+> -------------
+> 
+>        *memptr = result;
+>        ret = 0;
+> label_return:
+> 
+> 
+> Revised code:
+> ------------
+> 
+>        ret = 0;
+> label_return:
+>        *memptr = result;
+> 
+> 
+> The above seemed like the simplest fix, but maybe it would be clearer
+> to change je_memalign() to follow the same convention as je_posix_memalign()?
+
+Yes, imemalign() works as intended, but memalign() and valloc() are wrong to ignore the return value.  Fixed:
+
+	https://github.com/jemalloc/jemalloc/commit/44b57b8e8b25797b94c7cccc0e32705f76fcf03b
+
+Thanks,
+Jason
+
+From Kurt.Wampler at asml.com  Mon Jan 19 13:11:43 2015
+From: Kurt.Wampler at asml.com (Kurt Wampler)
+Date: Mon, 19 Jan 2015 13:11:43 -0800
+Subject: jemalloc-3.6.0 erroneously recycles already-allocated memory
+Message-ID: <20150119211126.GA26747@asml.com>
+
+Hello again, this time with a more complicated problem.
+
+Context:
+
+We have an x86_64 Linux C++ application which installs a "NewHandler" that
+attempts to cope with an out-of-memory situation [malloc() returns NULL
+pointer] in two ways: (1) It performs some amount of garbage collection,
+and if this fails to free enough memory, (2) it attempts to raise the soft
+virtual memory ceiling with a call to setrlimit(RLIMIT_AS,<new_limit>).
+
+Expected Behavior:
+
+When jemalloc's malloc() is called from libstdc++'s "new" operator, but
+mmap() returns a NULL pointer to jemalloc, indicating an out-of-memory
+condition, jemalloc's malloc() is expected to return a NULL pointer to
+its caller, which will in turn trigger our predefined "NewHandler".
+
+Observed Behavior:
+
+We found that jemalloc's malloc() does not immediately return a NULL pointer
+after the first failed mmap().  Instead, it returns a series of pointers
+that it had already given to the application, and only returns a NULL pointer
+after the second mmap() fails.  Reassigning already-in-use chunks of memory is
+of course deadly, and our application eventually segfaults.
+
+As evidence of this behavior, I'm including an strace logging the two mmap()
+calls, the malloc() return values before and after the first failed mmap(),
+and the subsequent NULL return from malloc() after the second failed mmap(),
+finally triggering the invocation of the "NewHandler".  Note that address
+0x2aaade7ffa60 is handed out twice, without ever being freed.  The same
+is true for addresses 0x2aaade7ffab0, 0x2aaade7ffb00, 0x2aaade7ffb50,
+0x2aaade7ffba0, 0x2aaade7ffbf0, 0x2aaade7ffc40, 0x2aaade7ffc9, and
+0x2aaade7ffce0 -- all get handed out twice(!)
+
+I'm also including a partial call stack showing the calls from operator
+new() on down, taken at the moment where the first mmap() fails.
+
+Single-stepping in gdb from that point onward, I find that the NULL returned
+by mmap() is handed up approximately 10 levels before things go awry.  The
+code seems to re-check in several other places for available memory, but
+without finding anything it can dole out.  When it has bubbled up to the
+function je_tcache_alloc_small_hard(), this function calls tcache_alloc_easy().
+In tcache_alloc_easy(), tbin->ncached is 9, and tbin->avail[8..0] contains
+the 9 addresses mentioned above.  It seems to be erroneously handing them
+out again from there.
+
+This test case can be reproduced at will within a few minutes of run time.
+
+We have not yet attempted to devise a fix; it took several days of
+investigation to reach this degree of understanding of the problem.
+
+Regards,
+
+Kurt Wampler  (Kurt.Wampler at asml.com)
+
+
+<Begin call stack>
+
+#0  emit_backtrace () at src/chunk_mmap.c:22
+#1  0x00002b1ca7a5ed75 in pages_map (addr=0x0, size=4194304) at src/chunk_mmap.c:53
+#2  0x00002b1ca7a5f122 in je_chunk_alloc_mmap (size=4194304, alignment=4194304, zero=0x41c8f9ff) at src/chunk_mmap.c:206
+#3  0x00002b1ca7a5de2b in je_chunk_alloc (size=4194304, alignment=4194304, base=false, zero=0x41c8f9ff, dss_prec=dss_prec_disabled) at src/chunk.c:167
+#4  0x00002b1ca7a5704b in arena_chunk_init_hard (arena=0x2b1ca904b900) at src/arena.c:556
+#5  0x00002b1ca7a5722a in arena_chunk_alloc (arena=0x2b1ca904b900) at src/arena.c:618
+#6  0x00002b1ca7a578be in arena_run_alloc_small (arena=0x2b1ca904b900, size=4096, binind=5) at src/arena.c:758
+#7  0x00002b1ca7a593c3 in arena_bin_nonfull_run_get (arena=0x2b1ca904b900, bin=0x2b1ca904bd18) at src/arena.c:1377
+#8  0x00002b1ca7a594d5 in arena_bin_malloc_hard (arena=0x2b1ca904b900, bin=0x2b1ca904bd18) at src/arena.c:1423
+#9  0x00002b1ca7a59740 in je_arena_tcache_fill_small (arena=0x2b1ca904b900, tbin=0x2aaab08060c8, binind=5, prof_accumbytes=0) at src/arena.c:1481
+#10 0x00002b1ca7a74a58 in je_tcache_alloc_small_hard (tcache=0x2aaab0806000, tbin=0x2aaab08060c8, binind=5) at src/tcache.c:72
+#11 0x00002b1ca7a7420b in je_tcache_alloc_small (tcache=0x2aaab0806000, size=80, zero=false) at include/jemalloc/internal/tcache.h:303
+#12 0x00002b1ca7a4fa2a in je_arena_malloc (arena=0x0, size=80, zero=false, try_tcache=true) at include/jemalloc/internal/arena.h:957
+#13 0x00002b1ca7a482a7 in je_imalloct (size=80, try_tcache=true, arena=0x0) at include/jemalloc/internal/jemalloc_internal.h:771
+#14 0x00002b1ca7a482ef in je_imalloc (size=80) at include/jemalloc/internal/jemalloc_internal.h:780
+#15 0x00002b1ca7a4b1e5 in malloc (size=80) at src/jemalloc.c:929
+#16 0x00000034e8caf50a in operator new () from /lib64/libstdc++.so.6
+
+<End call stack>
+
+
+<Begin strace log>
+
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffa60\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffab0\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffb00\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffb50\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffba0\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffbf0\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffc40\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffc90\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffce0\n", 46) = 46
+530413 write(2, "malloc(136) @ 0x34e8caf50a ret: 0x2aaade7ec700\n", 47) = 47
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 mmap(NULL, 4194304, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = -1 ENOMEM (Cannot allocate memory)
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffa60\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffab0\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffb00\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffb50\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffba0\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffbf0\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffc40\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffc90\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffce0\n", 46) = 46
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0833840\n", 40) = 40
+530413 write(2, "malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n", 46) = 46
+530413 mmap(NULL, 4194304, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = -1 ENOMEM (Cannot allocate memory)
+530413 write(2, "malloc(80) @ 0x34e8caf50a ret: 0x0\n", 35) = 35
+530413 write(2, "malloc(568) @ 0x37fee6170a ret: 0x2aaadbd58b00\n", 47) = 47
+530413 open("/proc/530275/statm", O_RDONLY) = 11
+530413 fstat(11, {st_mode=S_IFREG|0444, st_size=0, ...}) = 0
+530413 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x2aaadf000000
+530413 read(11, "255102 201354 4801 15221 0 208421 0\n", 1024) = 36
+530413 close(11)                        = 0
+530413 munmap(0x2aaadf000000, 4096)     = 0
+530413 write(2, "free @ 0x37fee60d5b ptr: 0x2aaadbd58b00\n", 40) = 40
+530413 write(2, "malloc(568) @ 0x37fee6170a ret: 0x2aaadbd58b00\n", 47) = 47
+530413 open("/proc/meminfo", O_RDONLY)  = 11
+530413 fstat(11, {st_mode=S_IFREG|0444, st_size=0, ...}) = 0
+530413 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x2aaade800000
+530413 read(11, "MemTotal:     132057416 kB\nMemFree:      15519972 "..., 2048) = 783
+530413 read(11, "", 1024)               = 0
+530413 close(11)                        = 0
+530413 munmap(0x2aaade800000, 4096)     = 0
+530413 write(2, "free @ 0x37fee60d5b ptr: 0x2aaadbd58b00\n", 40) = 40
+530413 write(2, "NewHandler called, mem 1044897792, free mem 223057"..., 57) = 57
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0ad9510\n", 40) = 40
+530413 write(2, "free @ 0x34e8cae20e ptr: 0x2aaab0ad9600\n", 40) = 40
+
+<End strace log>
+-- The information contained in this communication and any attachments is confidential and may be privileged, and is for the sole use of the intended recipient(s). Any unauthorized review, use, disclosure or distribution is prohibited. Unless explicitly stated otherwise in the body of this communication or the attachment thereto (if any), the information is provided on an AS-IS basis without any express or implied warranties or liabilities. To the extent you are relying on this information, you are doing so at your own risk. If you are not the intended recipient, please notify the sender immediately by replying to this message and destroy all copies of this message and any attachments. The sender nor the company/group of companies he or she represents shall be liable for the proper and complete transmission of the information contained in this communication, or for any delay in its receipt.
+
+From jasone at canonware.com  Mon Jan 19 14:46:48 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 19 Jan 2015 14:46:48 -0800
+Subject: jemalloc-3.6.0 erroneously recycles already-allocated memory
+In-Reply-To: <20150119211126.GA26747@asml.com>
+References: <20150119211126.GA26747@asml.com>
+Message-ID: <62D3DDF9-FF4A-433E-9D5F-ED487C171386@canonware.com>
+
+On Jan 19, 2015, at 1:11 PM, Kurt Wampler <Kurt.Wampler at asml.com> wrote:
+> Context:
+> 
+> We have an x86_64 Linux C++ application which installs a "NewHandler" that
+> attempts to cope with an out-of-memory situation [malloc() returns NULL
+> pointer] in two ways: (1) It performs some amount of garbage collection,
+> and if this fails to free enough memory, (2) it attempts to raise the soft
+> virtual memory ceiling with a call to setrlimit(RLIMIT_AS,<new_limit>).
+> 
+> Expected Behavior:
+> 
+> When jemalloc's malloc() is called from libstdc++'s "new" operator, but
+> mmap() returns a NULL pointer to jemalloc, indicating an out-of-memory
+> condition, jemalloc's malloc() is expected to return a NULL pointer to
+> its caller, which will in turn trigger our predefined "NewHandler".
+> 
+> Observed Behavior:
+> 
+> We found that jemalloc's malloc() does not immediately return a NULL pointer
+> after the first failed mmap().  Instead, it returns a series of pointers
+> that it had already given to the application, and only returns a NULL pointer
+> after the second mmap() fails.  Reassigning already-in-use chunks of memory is
+> of course deadly, and our application eventually segfaults.
+> 
+> As evidence of this behavior, I'm including an strace logging the two mmap()
+> calls, the malloc() return values before and after the first failed mmap(),
+> and the subsequent NULL return from malloc() after the second failed mmap(),
+> finally triggering the invocation of the "NewHandler".  Note that address
+> 0x2aaade7ffa60 is handed out twice, without ever being freed.  The same
+> is true for addresses 0x2aaade7ffab0, 0x2aaade7ffb00, 0x2aaade7ffb50,
+> 0x2aaade7ffba0, 0x2aaade7ffbf0, 0x2aaade7ffc40, 0x2aaade7ffc9, and
+> 0x2aaade7ffce0 -- all get handed out twice(!)
+> 
+> I'm also including a partial call stack showing the calls from operator
+> new() on down, taken at the moment where the first mmap() fails.
+> 
+> Single-stepping in gdb from that point onward, I find that the NULL returned
+> by mmap() is handed up approximately 10 levels before things go awry.  The
+> code seems to re-check in several other places for available memory, but
+> without finding anything it can dole out.  When it has bubbled up to the
+> function je_tcache_alloc_small_hard(), this function calls tcache_alloc_easy().
+> In tcache_alloc_easy(), tbin->ncached is 9, and tbin->avail[8..0] contains
+> the 9 addresses mentioned above.  It seems to be erroneously handing them
+> out again from there.
+> 
+> This test case can be reproduced at will within a few minutes of run time.
+> 
+> We have not yet attempted to devise a fix; it took several days of
+> investigation to reach this degree of understanding of the problem.
+
+This sounds like the regression fixed by this commit:
+
+	https://github.com/jemalloc/jemalloc/commit/f11a6776c78a09059f8418b718c996a065b33fca
+
+Please let me know its effect on your application.
+
+Thanks,
+Jason
+
+From prohaska7 at gmail.com  Tue Jan 20 05:28:14 2015
+From: prohaska7 at gmail.com (Rich Prohaska)
+Date: Tue, 20 Jan 2015 08:28:14 -0500
+Subject: should there be another jemalloc release
+Message-ID: <CAL5sXW7w6zaWJ+fb0ctMxvsOG0Zbb0x8tCRxbQDCTvaheGn-hA@mail.gmail.com>
+
+Hello,
+The last tagged release was 3.6.0 and occurred in March 2014.   There are a
+lot of commits since this release in the github repository.  Should there
+be another jemalloc release?
+Thanks
+Rich Prohaska
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150120/047fa9a5/attachment.html>
+
+From snl20465 at gmail.com  Tue Jan 20 05:17:07 2015
+From: snl20465 at gmail.com (SNL)
+Date: Tue, 20 Jan 2015 18:47:07 +0530
+Subject: Custom allocator on top of jemalloc
+Message-ID: <CAGvmEXhEoiu+90OauPze3SSjyP=5DxHJpYKyKFo3RgL_CspQ2g@mail.gmail.com>
+
+Hi,
+
+Here is what I am doing currently:
+
+1. I am trying to carve out 10 MB memory area at the higher end of process
+address space using mmap (MAP_FIXED..).
+
+
+2. I created a new arena using arenas.extend mallctl
+
+3. I am using mallocx/dallocx with MALLOCX_ARENA(arena) as documented.
+
+The issue is how do I connect the arena to mmaped memory chunk ? I see that
+new arena never gets initialized and all allocations continue to happen
+from arena 0x0.
+I thought thread.arena mallctl will connect the arena to mmapped chunk but
+it just creates a thread <-> arena mapping.
+
+I looked at the sources to see if there is any other mallctl to create this
+association but there does not seem to be any, what am I missing here ?
+
+And older sample program I found on this mailing list, uses following
+mallctl which is not supported in jemalloc 3.6.
+
+
+snprintf(path, sizeof(path), "arena.%u.chunk.alloc", _arena);
+  ret = __svm_mallctl(path, (void*)&_chunk_alloc, &sz,
+(void*)&_chunk_alloc, sizeof(void *));
+  assert (ret == 0);
+
+snprintf(path, sizeof(path), "arena.%u.chunk.dalloc", _arena);
+  ret = __svm_mallctl(path, (void*)&_chunk_dalloc, &sz,
+(void*)&_chunk_dalloc, sizeof(void *));
+  assert (ret == 0);
+
+
+This basically is asking jemalloc to callback user defined functions, is
+this functionality still available in jemalloc ? Any inputs will be
+helpful. Thanks.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150120/10958fe0/attachment.html>
+
+From jasone at canonware.com  Tue Jan 20 08:54:54 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 20 Jan 2015 08:54:54 -0800
+Subject: should there be another jemalloc release
+In-Reply-To: <CAL5sXW7w6zaWJ+fb0ctMxvsOG0Zbb0x8tCRxbQDCTvaheGn-hA@mail.gmail.com>
+References: <CAL5sXW7w6zaWJ+fb0ctMxvsOG0Zbb0x8tCRxbQDCTvaheGn-hA@mail.gmail.com>
+Message-ID: <A70231AC-9ED5-49B2-9AB2-70174BBECBE3@canonware.com>
+
+On Jan 20, 2015, at 5:28 AM, Rich Prohaska <prohaska7 at gmail.com> wrote:
+> The last tagged release was 3.6.0 and occurred in March 2014.   There are a lot of commits since this release in the github repository.  Should there be another jemalloc release?
+
+I am actively working on 4.0.0, and plan to release it by mid-2015.  You can see the remaining issues here:
+
+	https://github.com/jemalloc/jemalloc/milestones/4.0.0
+
+Some of these issues may require API changes, which is why I want to complete all of them before the next release.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Jan 20 09:01:33 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 20 Jan 2015 09:01:33 -0800
+Subject: Custom allocator on top of jemalloc
+In-Reply-To: <CAGvmEXhEoiu+90OauPze3SSjyP=5DxHJpYKyKFo3RgL_CspQ2g@mail.gmail.com>
+References: <CAGvmEXhEoiu+90OauPze3SSjyP=5DxHJpYKyKFo3RgL_CspQ2g@mail.gmail.com>
+Message-ID: <54213791-F66A-442A-A9F9-0AD8AA3648E8@canonware.com>
+
+On Jan 20, 2015, at 5:17 AM, SNL <snl20465 at gmail.com> wrote:
+> Here is what I am doing currently:
+> 
+> 1. I am trying to carve out 10 MB memory area at the higher end of process address space using mmap (MAP_FIXED..). 
+> 
+> 2. I created a new arena using arenas.extend mallctl
+> 
+> 3. I am using mallocx/dallocx with MALLOCX_ARENA(arena) as documented. 
+> 
+> The issue is how do I connect the arena to mmaped memory chunk ? I see that new arena never gets initialized and all allocations continue to happen from arena 0x0.
+> I thought thread.arena mallctl will connect the arena to mmapped chunk but it just creates a thread <-> arena mapping. 
+> 
+> I looked at the sources to see if there is any other mallctl to create this association but there does not seem to be any, what am I missing here ?
+> 
+> And older sample program I found on this mailing list, uses following mallctl which is not supported in jemalloc 3.6.
+> 
+> 
+> snprintf(path, sizeof(path), "arena.%u.chunk.alloc", _arena);
+>   ret = __svm_mallctl(path, (void*)&_chunk_alloc, &sz, (void*)&_chunk_alloc, sizeof(void *));
+>   assert (ret == 0); 
+> 
+> snprintf(path, sizeof(path), "arena.%u.chunk.dalloc", _arena);
+>   ret = __svm_mallctl(path, (void*)&_chunk_dalloc, &sz, (void*)&_chunk_dalloc, sizeof(void *));
+>   assert (ret == 0); 
+> 
+> 
+> This basically is asking jemalloc to callback user defined functions, is this functionality still available in jemalloc ? Any inputs will be helpful. Thanks. 
+
+The features you're trying to use only exist in the dev version of jemalloc so far ("arena.<i>.chunk.alloc" and "arena.<i>.chunk.dalloc" mallctl interfaces).  Note that related control over dirty page purging still needs to be implemented (https://github.com/jemalloc/jemalloc/issues/93).
+
+Jason
+
+From prohaska7 at gmail.com  Tue Jan 20 09:10:50 2015
+From: prohaska7 at gmail.com (Rich Prohaska)
+Date: Tue, 20 Jan 2015 12:10:50 -0500
+Subject: should there be another jemalloc release
+In-Reply-To: <A70231AC-9ED5-49B2-9AB2-70174BBECBE3@canonware.com>
+References: <CAL5sXW7w6zaWJ+fb0ctMxvsOG0Zbb0x8tCRxbQDCTvaheGn-hA@mail.gmail.com>
+	<A70231AC-9ED5-49B2-9AB2-70174BBECBE3@canonware.com>
+Message-ID: <CAL5sXW7A5mRZ517RhmaKBBL4LsKAWkTSpM8Rb3Q-55yOD8EJ+Q@mail.gmail.com>
+
+Hello Jason,
+Is the head of the dev branch good for production?
+Thanks
+Rich Prohaska
+
+On Tue, Jan 20, 2015 at 11:54 AM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jan 20, 2015, at 5:28 AM, Rich Prohaska <prohaska7 at gmail.com> wrote:
+> > The last tagged release was 3.6.0 and occurred in March 2014.   There
+> are a lot of commits since this release in the github repository.  Should
+> there be another jemalloc release?
+>
+> I am actively working on 4.0.0, and plan to release it by mid-2015.  You
+> can see the remaining issues here:
+>
+>         https://github.com/jemalloc/jemalloc/milestones/4.0.0
+>
+> Some of these issues may require API changes, which is why I want to
+> complete all of them before the next release.
+>
+> Thanks,
+> Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150120/7636f249/attachment.html>
+
+From jasone at canonware.com  Tue Jan 20 11:35:08 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 20 Jan 2015 11:35:08 -0800
+Subject: should there be another jemalloc release
+In-Reply-To: <CAL5sXW7A5mRZ517RhmaKBBL4LsKAWkTSpM8Rb3Q-55yOD8EJ+Q@mail.gmail.com>
+References: <CAL5sXW7w6zaWJ+fb0ctMxvsOG0Zbb0x8tCRxbQDCTvaheGn-hA@mail.gmail.com>
+	<A70231AC-9ED5-49B2-9AB2-70174BBECBE3@canonware.com>
+	<CAL5sXW7A5mRZ517RhmaKBBL4LsKAWkTSpM8Rb3Q-55yOD8EJ+Q@mail.gmail.com>
+Message-ID: <59BC1916-067A-48C4-93E0-71D30D2420E8@canonware.com>
+
+On Jan 20, 2015, at 9:10 AM, Rich Prohaska <prohaska7 at gmail.com> wrote:
+> Is the head of the dev branch good for production?
+
+I tested the dev version of jemalloc pretty extensively in a production environment back in November.  My experience (after fixing many regressions) was that it is stable, though it's likely that some subtle regressions have not yet surfaced.  Additionally, I remain somewhat uncertain about the stability of the new heap profiling implementation, but I've fixed all the issues I'm aware of.
+
+Regarding performance, I'm quite happy with the dev version of jemalloc.  It is significantly faster, and its memory layout refinements tend to decrease fragmentation.
+
+Jason
+
+From snl20465 at gmail.com  Tue Jan 20 10:01:26 2015
+From: snl20465 at gmail.com (SNL)
+Date: Tue, 20 Jan 2015 23:31:26 +0530
+Subject: Custom allocator on top of jemalloc
+In-Reply-To: <54213791-F66A-442A-A9F9-0AD8AA3648E8@canonware.com>
+References: <CAGvmEXhEoiu+90OauPze3SSjyP=5DxHJpYKyKFo3RgL_CspQ2g@mail.gmail.com>
+	<54213791-F66A-442A-A9F9-0AD8AA3648E8@canonware.com>
+Message-ID: <CAGvmEXhtY=7Q8DUWwg17o64fk=vPqqW2XTAhaEy-XjVtbBnVWw@mail.gmail.com>
+
+I will upgrade to dev version of jemalloc. Thanks for the quick input.
+
+On Tue, Jan 20, 2015 at 10:31 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jan 20, 2015, at 5:17 AM, SNL <snl20465 at gmail.com> wrote:
+> > Here is what I am doing currently:
+> >
+> > 1. I am trying to carve out 10 MB memory area at the higher end of
+> process address space using mmap (MAP_FIXED..).
+> >
+> > 2. I created a new arena using arenas.extend mallctl
+> >
+> > 3. I am using mallocx/dallocx with MALLOCX_ARENA(arena) as documented.
+> >
+> > The issue is how do I connect the arena to mmaped memory chunk ? I see
+> that new arena never gets initialized and all allocations continue to
+> happen from arena 0x0.
+> > I thought thread.arena mallctl will connect the arena to mmapped chunk
+> but it just creates a thread <-> arena mapping.
+> >
+> > I looked at the sources to see if there is any other mallctl to create
+> this association but there does not seem to be any, what am I missing here ?
+> >
+> > And older sample program I found on this mailing list, uses following
+> mallctl which is not supported in jemalloc 3.6.
+> >
+> >
+> > snprintf(path, sizeof(path), "arena.%u.chunk.alloc", _arena);
+> >   ret = __svm_mallctl(path, (void*)&_chunk_alloc, &sz,
+> (void*)&_chunk_alloc, sizeof(void *));
+> >   assert (ret == 0);
+> >
+> > snprintf(path, sizeof(path), "arena.%u.chunk.dalloc", _arena);
+> >   ret = __svm_mallctl(path, (void*)&_chunk_dalloc, &sz,
+> (void*)&_chunk_dalloc, sizeof(void *));
+> >   assert (ret == 0);
+> >
+> >
+> > This basically is asking jemalloc to callback user defined functions, is
+> this functionality still available in jemalloc ? Any inputs will be
+> helpful. Thanks.
+>
+> The features you're trying to use only exist in the dev version of
+> jemalloc so far ("arena.<i>.chunk.alloc" and "arena.<i>.chunk.dalloc"
+> mallctl interfaces).  Note that related control over dirty page purging
+> still needs to be implemented (
+> https://github.com/jemalloc/jemalloc/issues/93).
+>
+> Jason
+
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150120/ed4207fb/attachment.html>
+
+From Kurt.Wampler at asml.com  Tue Jan 20 13:25:40 2015
+From: Kurt.Wampler at asml.com (Kurt Wampler)
+Date: Tue, 20 Jan 2015 13:25:40 -0800
+Subject: jemalloc-3.6.0 erroneously recycles already-allocated memory
+In-Reply-To: <62D3DDF9-FF4A-433E-9D5F-ED487C171386@canonware.com>
+References: <20150119211126.GA26747@asml.com>
+	<62D3DDF9-FF4A-433E-9D5F-ED487C171386@canonware.com>
+Message-ID: <20150120212540.GA10403@asml.com>
+
+We adopted the fix for "issue 98" as suggested, and confirmed that it fixes
+the problem for our application.
+
+Thank you for the quick analysis and response!
+
+Regards,
+
+Kurt Wampler
+
+============================================================================
+
+On Mon, Jan 19, 2015 at 02:46:48PM -0800, Jason Evans wrote:
+>
+> This sounds like the regression fixed by this commit:
+>
+>       https://github.com/jemalloc/jemalloc/commit/f11a6776c78a09059f8418b718c996a065b33fca
+>
+> Please let me know its effect on your application.
+>
+> Thanks,
+> Jason
+>
+> On Jan 19, 2015, at 1:11 PM, Kurt Wampler <Kurt.Wampler at asml.com> wrote:
+> > Context:
+> >
+> > We have an x86_64 Linux C++ application which installs a "NewHandler" that
+> > attempts to cope with an out-of-memory situation [malloc() returns NULL
+> > pointer] in two ways: (1) It performs some amount of garbage collection,
+> > and if this fails to free enough memory, (2) it attempts to raise the soft
+> > virtual memory ceiling with a call to setrlimit(RLIMIT_AS,<new_limit>).
+> >
+> > Expected Behavior:
+> >
+> > When jemalloc's malloc() is called from libstdc++'s "new" operator, but
+> > mmap() returns a NULL pointer to jemalloc, indicating an out-of-memory
+> > condition, jemalloc's malloc() is expected to return a NULL pointer to
+> > its caller, which will in turn trigger our predefined "NewHandler".
+> >
+> > Observed Behavior:
+> >
+> > We found that jemalloc's malloc() does not immediately return a NULL pointer
+> > after the first failed mmap().  Instead, it returns a series of pointers
+> > that it had already given to the application, and only returns a NULL pointer
+> > after the second mmap() fails.  Reassigning already-in-use chunks of memory is
+> > of course deadly, and our application eventually segfaults.
+> >
+> > As evidence of this behavior, I'm including an strace logging the two mmap()
+> > calls, the malloc() return values before and after the first failed mmap(),
+> > and the subsequent NULL return from malloc() after the second failed mmap(),
+> > finally triggering the invocation of the "NewHandler".  Note that address
+> > 0x2aaade7ffa60 is handed out twice, without ever being freed.  The same
+> > is true for addresses 0x2aaade7ffab0, 0x2aaade7ffb00, 0x2aaade7ffb50,
+> > 0x2aaade7ffba0, 0x2aaade7ffbf0, 0x2aaade7ffc40, 0x2aaade7ffc9, and
+> > 0x2aaade7ffce0 -- all get handed out twice(!)
+> >
+> > I'm also including a partial call stack showing the calls from operator
+> > new() on down, taken at the moment where the first mmap() fails.
+> >
+> > Single-stepping in gdb from that point onward, I find that the NULL returned
+> > by mmap() is handed up approximately 10 levels before things go awry.  The
+> > code seems to re-check in several other places for available memory, but
+> > without finding anything it can dole out.  When it has bubbled up to the
+> > function je_tcache_alloc_small_hard(), this function calls tcache_alloc_easy().
+> > In tcache_alloc_easy(), tbin->ncached is 9, and tbin->avail[8..0] contains
+> > the 9 addresses mentioned above.  It seems to be erroneously handing them
+> > out again from there.
+> >
+> > This test case can be reproduced at will within a few minutes of run time.
+> >
+> > We have not yet attempted to devise a fix; it took several days of
+> > investigation to reach this degree of understanding of the problem.
+-- The information contained in this communication and any attachments is confidential and may be privileged, and is for the sole use of the intended recipient(s). Any unauthorized review, use, disclosure or distribution is prohibited. Unless explicitly stated otherwise in the body of this communication or the attachment thereto (if any), the information is provided on an AS-IS basis without any express or implied warranties or liabilities. To the extent you are relying on this information, you are doing so at your own risk. If you are not the intended recipient, please notify the sender immediately by replying to this message and destroy all copies of this message and any attachments. The sender nor the company/group of companies he or she represents shall be liable for the proper and complete transmission of the information contained in this communication, or for any delay in its receipt.
+
+From Kurt.Wampler at asml.com  Tue Jan 20 15:16:47 2015
+From: Kurt.Wampler at asml.com (Kurt Wampler)
+Date: Tue, 20 Jan 2015 15:16:47 -0800
+Subject: should there be another jemalloc release
+Message-ID: <20150120231628.GA27859@asml.com>
+
+It sounds like there will be some important major changes in 4.0.0.
+
+There might also be value in producing a 3.6.1 which would just incorporate
+all of the bug fixes that are applicable to 3.6.0, assuming that it would be
+possible to integrate them with a low degree effort.
+
+Regards,
+
+Kurt Wampler
+
+============================================================================
+
+>
+> Date: Tue, 20 Jan 2015 08:54:54 -0800
+> From: Jason Evans <jasone at canonware.com>
+> To: Rich Prohaska <prohaska7 at gmail.com>
+> Cc: "jemalloc-discuss at canonware.com" <jemalloc-discuss at canonware.com>
+> Subject: Re: should there be another jemalloc release
+>
+> On Jan 20, 2015, at 5:28 AM, Rich Prohaska <prohaska7 at gmail.com> wrote:
+> >
+> > The last tagged release was 3.6.0 and occurred in March 2014.   There are a lot of commits since this release in the github repository.  Should there be another jemalloc release?
+>
+> I am actively working on 4.0.0, and plan to release it by mid-2015.  You can see the remaining issues here:
+>
+>       https://github.com/jemalloc/jemalloc/milestones/4.0.0
+>
+> Some of these issues may require API changes, which is why I want to complete all of them before the next release.
+>
+> Thanks,
+> Jason
+>
+-- The information contained in this communication and any attachments is confidential and may be privileged, and is for the sole use of the intended recipient(s). Any unauthorized review, use, disclosure or distribution is prohibited. Unless explicitly stated otherwise in the body of this communication or the attachment thereto (if any), the information is provided on an AS-IS basis without any express or implied warranties or liabilities. To the extent you are relying on this information, you are doing so at your own risk. If you are not the intended recipient, please notify the sender immediately by replying to this message and destroy all copies of this message and any attachments. The sender nor the company/group of companies he or she represents shall be liable for the proper and complete transmission of the information contained in this communication, or for any delay in its receipt.
+
+From jasone at canonware.com  Tue Jan 20 16:20:44 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 20 Jan 2015 16:20:44 -0800
+Subject: should there be another jemalloc release
+In-Reply-To: <20150120231628.GA27859@asml.com>
+References: <20150120231628.GA27859@asml.com>
+Message-ID: <D5265043-5EA3-4B5C-A397-617E5940C75F@canonware.com>
+
+On Jan 20, 2015, at 3:16 PM, Kurt Wampler <Kurt.Wampler at asml.com> wrote:
+> There might also be value in producing a 3.6.1 which would just incorporate
+> all of the bug fixes that are applicable to 3.6.0, assuming that it would be
+> possible to integrate them with a low degree effort.
+
+I can only think of two consequential bugs in 3.6.0 off the top of my head, and you hit both of them. ;-)  I agree though that a 3.6.1 release is probably warranted, and the fixes should be easy to integrate.
+
+Jason
+
+From mhall at mhcomputing.net  Tue Jan 20 16:31:56 2015
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Tue, 20 Jan 2015 16:31:56 -0800
+Subject: should there be another jemalloc release
+In-Reply-To: <D5265043-5EA3-4B5C-A397-617E5940C75F@canonware.com>
+References: <20150120231628.GA27859@asml.com>
+	<D5265043-5EA3-4B5C-A397-617E5940C75F@canonware.com>
+Message-ID: <20150121003156.GA20095@mhcomputing.net>
+
+> On Jan 20, 2015, at 3:16 PM, Kurt Wampler <Kurt.Wampler at asml.com> wrote:
+> There might also be value in producing a 3.6.1 which would just incorporate
+> all of the bug fixes that are applicable to 3.6.0, assuming that it would be
+> possible to integrate them with a low degree effort.
+
+This sounds like a good use for git rebase -i and a Github pull request. ;)
+
+Matthew.
+
+From multisample at gmail.com  Tue Jan 20 16:38:12 2015
+From: multisample at gmail.com (Dave Barrett)
+Date: Tue, 20 Jan 2015 19:38:12 -0500
+Subject: should there be another jemalloc release
+In-Reply-To: <59BC1916-067A-48C4-93E0-71D30D2420E8@canonware.com>
+References: <CAL5sXW7w6zaWJ+fb0ctMxvsOG0Zbb0x8tCRxbQDCTvaheGn-hA@mail.gmail.com>
+	<A70231AC-9ED5-49B2-9AB2-70174BBECBE3@canonware.com>
+	<CAL5sXW7A5mRZ517RhmaKBBL4LsKAWkTSpM8Rb3Q-55yOD8EJ+Q@mail.gmail.com>
+	<59BC1916-067A-48C4-93E0-71D30D2420E8@canonware.com>
+Message-ID: <CAMkSfsOJgsn4rG4AMmmV_VF1RivXHKpcoZGtJC3XnXGBC1wwqA@mail.gmail.com>
+
+>Regarding performance, I'm quite happy with the dev version of jemalloc.
+It is significantly faster, and its memory layout refinements tend to
+decrease fragmentation.
+
+
+ Please forgive me if this was covered before, I only check in from time to
+time.   Is there specific commit(s) or a link with a description of the
+changes for that comment above.  Specifically the memory layout refinements
+?
+
+
+Thanks,
+-Dave
+
+
+
+On Tue, Jan 20, 2015 at 2:35 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jan 20, 2015, at 9:10 AM, Rich Prohaska <prohaska7 at gmail.com> wrote:
+> > Is the head of the dev branch good for production?
+>
+> I tested the dev version of jemalloc pretty extensively in a production
+> environment back in November.  My experience (after fixing many
+> regressions) was that it is stable, though it's likely that some subtle
+> regressions have not yet surfaced.  Additionally, I remain somewhat
+> uncertain about the stability of the new heap profiling implementation, but
+> I've fixed all the issues I'm aware of.
+>
+> Regarding performance, I'm quite happy with the dev version of jemalloc.
+> It is significantly faster, and its memory layout refinements tend to
+> decrease fragmentation.
+>
+> Jason
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150120/81c24aba/attachment.html>
+
+From jasone at canonware.com  Tue Jan 20 22:15:40 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 20 Jan 2015 22:15:40 -0800
+Subject: Memory layout refinements (was Re: should there be another jemalloc
+	release)
+In-Reply-To: <CAMkSfsOJgsn4rG4AMmmV_VF1RivXHKpcoZGtJC3XnXGBC1wwqA@mail.gmail.com>
+References: <CAL5sXW7w6zaWJ+fb0ctMxvsOG0Zbb0x8tCRxbQDCTvaheGn-hA@mail.gmail.com>
+	<A70231AC-9ED5-49B2-9AB2-70174BBECBE3@canonware.com>
+	<CAL5sXW7A5mRZ517RhmaKBBL4LsKAWkTSpM8Rb3Q-55yOD8EJ+Q@mail.gmail.com>
+	<59BC1916-067A-48C4-93E0-71D30D2420E8@canonware.com>
+	<CAMkSfsOJgsn4rG4AMmmV_VF1RivXHKpcoZGtJC3XnXGBC1wwqA@mail.gmail.com>
+Message-ID: <75CAEDFA-D465-4180-86E4-3709898AB855@canonware.com>
+
+On Jan 20, 2015, at 4:38 PM, Dave Barrett <multisample at gmail.com> wrote:
+> >Regarding performance, I'm quite happy with the dev version of jemalloc.  It is significantly faster, and its memory layout refinements tend to decrease fragmentation.
+> 
+>  Please forgive me if this was covered before, I only check in from time to time.   Is there specific commit(s) or a link with a description of the changes for that comment above.  Specifically the memory layout refinements ?
+
+Here are the main changes that affect memory layout.  I'm leaving out commit IDs because these features each required numerous commits.
+
+- Purge unused dirty pages in LRU order instead of address order (contributed by Qinfan Wu).  This tends to decrease run fragmentation, which means fewer arena chunks, and therefore fewer pages dedicated to arena chunk header metadata.
+
+- Normalize size class spacing across the full range of size classes such that for each doubling in size, there are four equidistant size classes.  Prior to this change, one of jemalloc's worst practical weaknesses was that a 4097-byte request was rounded up to 8 KiB, but now it's rounded up to only 5 KiB.  Another benefit is that iterative reallocation has much better worst case performance with regard to copying (many fewer large and huge size classes to traverse), though in practice in-place growing reallocation tended to avoid worst case performance for large size classes.  Also, with fewer run sizes, arena chunks don't tend to fragment as badly.
+
+- Move small run metadata into the arena chunk header.  This allows much smaller runs to achieve low (actually zero) waste; all size classes evenly divide relatively small run sizes.  In addition to reducing the number of run sizes, this reduces the number of small regions per run, which reduces the impact of a single long-lived allocation keeping an entire run alive.
+
+These changes are particularly satisfying because they tend toward generalization/simplification; although they were nontrivial to implement they feel like elegant improvements.
+
+Jason
+
+From ldalessa at indiana.edu  Wed Jan 21 11:17:49 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 21 Jan 2015 19:17:49 +0000
+Subject: Reason opt.lg_dirty_mult is not writable?
+Message-ID: <94B5D16D-4E55-442E-8D74-7989AB88AD16@indiana.edu>
+
+I have an application where we use jemalloc to manage network-registered memory, and we have to make sure that it doesn?t madvise() chunks to the OS or we end up with rDMA failures.
+
+I can disable madvise() globally with the opt.lg_dirty_mult option using the environment, but that isn?t ideal since there?s no reason that the normal allocator (a separate instance of jemalloc in our case). I have been declaring an extern version of the jemalloc opt variable (prefix_je_opt_lg_dirty_mult in our case), but this means I have to link to the .a directly, rather than linking to the dynamic library or the static library through -ljemalloc_suffix.
+
+At the same time, this appears to actually work fine.
+
+Until per-chunk-allocator control comes online for this, would it be reasonable to make this option R/W in jemalloc? Is there some corner case that I?m missing that would make this not work?
+
+Thanks,
+Luke
+
+From jasone at canonware.com  Wed Jan 21 13:10:01 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 21 Jan 2015 13:10:01 -0800
+Subject: Reason opt.lg_dirty_mult is not writable?
+In-Reply-To: <94B5D16D-4E55-442E-8D74-7989AB88AD16@indiana.edu>
+References: <94B5D16D-4E55-442E-8D74-7989AB88AD16@indiana.edu>
+Message-ID: <EFD1DCD6-1756-4A46-B92C-793CA3E57F54@canonware.com>
+
+On Jan 21, 2015, at 11:17 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> I have an application where we use jemalloc to manage network-registered memory, and we have to make sure that it doesn?t madvise() chunks to the OS or we end up with rDMA failures.
+> 
+> I can disable madvise() globally with the opt.lg_dirty_mult option using the environment, but that isn?t ideal since there?s no reason that the normal allocator (a separate instance of jemalloc in our case). I have been declaring an extern version of the jemalloc opt variable (prefix_je_opt_lg_dirty_mult in our case), but this means I have to link to the .a directly, rather than linking to the dynamic library or the static library through -ljemalloc_suffix.
+> 
+> At the same time, this appears to actually work fine.
+
+Can you instead set malloc_conf (with appropriate mangling) to "lg_dirty_mult:-1"?  That's the intended mechanism for setting these options at compile time, though linker subtleties have been known to keep it from working.  Also, if you have two versions of jemalloc linked into your application, doesn't name mangling help you avoid setting lg_dirty_mult for the other copy?
+
+> Until per-chunk-allocator control comes online for this, would it be reasonable to make this option R/W in jemalloc? Is there some corner case that I?m missing that would make this not work?
+
+The historical reason that lg_dirty_mult is read-only is that gracefully transitioning between any two legal values adds complexity, and the primary use cases don't require this functionality.  I just added a note to https://github.com/jemalloc/jemalloc/issues/93 to make this more flexible though, since the internals will have to support the functionality anyway.
+
+Thanks,
+Jason
+
+From ldalessa at indiana.edu  Wed Jan 21 13:25:01 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 21 Jan 2015 21:25:01 +0000
+Subject: Reason opt.lg_dirty_mult is not writable?
+In-Reply-To: <EFD1DCD6-1756-4A46-B92C-793CA3E57F54@canonware.com>
+References: <94B5D16D-4E55-442E-8D74-7989AB88AD16@indiana.edu>
+	<EFD1DCD6-1756-4A46-B92C-793CA3E57F54@canonware.com>
+Message-ID: <635AA5DE-A1ED-4E6C-A9C2-ED43C12CDBB6@indiana.edu>
+
+
+> On Jan 21, 2015, at 4:10 PM, Jason Evans <jasone at canonware.com> wrote:
+> 
+> On Jan 21, 2015, at 11:17 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> I have an application where we use jemalloc to manage network-registered memory, and we have to make sure that it doesn?t madvise() chunks to the OS or we end up with rDMA failures.
+>> 
+>> I can disable madvise() globally with the opt.lg_dirty_mult option using the environment, but that isn?t ideal since there?s no reason that the normal allocator (a separate instance of jemalloc in our case). I have been declaring an extern version of the jemalloc opt variable (prefix_je_opt_lg_dirty_mult in our case), but this means I have to link to the .a directly, rather than linking to the dynamic library or the static library through -ljemalloc_suffix.
+>> 
+>> At the same time, this appears to actually work fine.
+> 
+> Can you instead set malloc_conf (with appropriate mangling) to "lg_dirty_mult:-1??  
+
+Ah, maybe? I didn?t realize that we could mangle those up front, the opt code can be pretty opaque :-) That would be good enough for my purposes. So if my configuration normally generates the symbol as ?prefix_je_opt_lg_dirty_mult?, then can I use that fully mangled name?
+
+
+> That's the intended mechanism for setting these options at compile time, though linker subtleties have been known to keep it from working.  Also, if you have two versions of jemalloc linked into your application, doesn't name mangling help you avoid setting lg_dirty_mult for the other copy?
+
+Yes. I didn?t realize that the environment could contain the mangled name.
+
+> 
+>> Until per-chunk-allocator control comes online for this, would it be reasonable to make this option R/W in jemalloc? Is there some corner case that I?m missing that would make this not work?
+> 
+> The historical reason that lg_dirty_mult is read-only is that gracefully transitioning between any two legal values adds complexity, and the primary use cases don't require this functionality.  I just added a note to https://github.com/jemalloc/jemalloc/issues/93 to make this more flexible though, since the internals will have to support the functionality anyway.
+
+Ah, okay. I?ll see if the mangled version works.
+
+As a side note, we run into some symbols that aren?t properly mangled to link against two jemalloc instances. At some point (soon) we?ll submit an upstream patch to mangle them.
+
+Luke
+
+> Thanks,
+> Jason
+
+
+From jasone at canonware.com  Wed Jan 21 13:32:39 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 21 Jan 2015 13:32:39 -0800
+Subject: Reason opt.lg_dirty_mult is not writable?
+In-Reply-To: <635AA5DE-A1ED-4E6C-A9C2-ED43C12CDBB6@indiana.edu>
+References: <94B5D16D-4E55-442E-8D74-7989AB88AD16@indiana.edu>
+	<EFD1DCD6-1756-4A46-B92C-793CA3E57F54@canonware.com>
+	<635AA5DE-A1ED-4E6C-A9C2-ED43C12CDBB6@indiana.edu>
+Message-ID: <9427FBBC-E603-4BC6-89F7-57535634B6BA@canonware.com>
+
+On Jan 21, 2015, at 1:25 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> On Jan 21, 2015, at 4:10 PM, Jason Evans <jasone at canonware.com> wrote:
+>> Can you instead set malloc_conf (with appropriate mangling) to "lg_dirty_mult:-1??  
+> 
+> Ah, maybe? I didn?t realize that we could mangle those up front, the opt code can be pretty opaque :-) That would be good enough for my purposes. So if my configuration normally generates the symbol as ?prefix_je_opt_lg_dirty_mult?, then can I use that fully mangled name?
+
+You can use PREFIX_MALLOC_CONF=lg_dirty_mult:-1 in the environment, or you can use prefix_malloc_conf = "lg_dirty_mult:-1" in C code.  There should be a distinct *MALLOC_CONF and *malloc_conf for each version of jemalloc you link into your application.
+
+> As a side note, we run into some symbols that aren?t properly mangled to link against two jemalloc instances. At some point (soon) we?ll submit an upstream patch to mangle them.
+
+I just integrated a patch for this today (https://github.com/jemalloc/jemalloc/pull/185).
+
+Thanks,
+Jason
+
+From ldalessa at indiana.edu  Wed Jan 21 13:38:04 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 21 Jan 2015 21:38:04 +0000
+Subject: Reason opt.lg_dirty_mult is not writable?
+In-Reply-To: <9427FBBC-E603-4BC6-89F7-57535634B6BA@canonware.com>
+References: <94B5D16D-4E55-442E-8D74-7989AB88AD16@indiana.edu>
+	<EFD1DCD6-1756-4A46-B92C-793CA3E57F54@canonware.com>
+	<635AA5DE-A1ED-4E6C-A9C2-ED43C12CDBB6@indiana.edu>
+	<9427FBBC-E603-4BC6-89F7-57535634B6BA@canonware.com>
+Message-ID: <085A3509-5C6F-4A55-8BA6-C44B9B4F0A1D@indiana.edu>
+
+
+> On Jan 21, 2015, at 4:32 PM, Jason Evans <jasone at canonware.com> wrote:
+> 
+> On Jan 21, 2015, at 1:25 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>> On Jan 21, 2015, at 4:10 PM, Jason Evans <jasone at canonware.com> wrote:
+>>> Can you instead set malloc_conf (with appropriate mangling) to "lg_dirty_mult:-1??  
+>> 
+>> Ah, maybe? I didn?t realize that we could mangle those up front, the opt code can be pretty opaque :-) That would be good enough for my purposes. So if my configuration normally generates the symbol as ?prefix_je_opt_lg_dirty_mult?, then can I use that fully mangled name?
+> 
+> You can use PREFIX_MALLOC_CONF=lg_dirty_mult:-1 in the environment, or you can use prefix_malloc_conf = "lg_dirty_mult:-1" in C code.  There should be a distinct *MALLOC_CONF and *malloc_conf for each version of jemalloc you link into your application.
+
+Perfect, thanks.
+
+>> As a side note, we run into some symbols that aren?t properly mangled to link against two jemalloc instances. At some point (soon) we?ll submit an upstream patch to mangle them.
+> 
+> I just integrated a patch for this today (https://github.com/jemalloc/jemalloc/pull/185).
+
+Great. Internal communication latency, I didn?t realize that went in already.
+
+> 
+> Thanks,
+> Jason
+
+
+From jeff.science at gmail.com  Wed Jan 21 21:21:30 2015
+From: jeff.science at gmail.com (Jeff Hammond)
+Date: Wed, 21 Jan 2015 23:21:30 -0600
+Subject: feature request: aligned_realloc
+Message-ID: <CAGKz=uJUBe8RgYOvM+_bMkH7ThpzXjXdGzi8bt+hRQBc4GiN+Q@mail.gmail.com>
+
+I don't see aligned_realloc anywhere in jemalloc.  I wonder if this is
+a feature you would be willing to support?  A colleague of mine was
+interested in it recently, and it wasn't obvious how one would do an
+efficient implementation on top of the standard API calls.
+
+There are other implementations of this already.  While I am nothing
+resembling a fan of Windows, I would argue that a function signature
+compatible with MSVC is desirable.
+
+Microsoft: https://msdn.microsoft.com/en-us/library/y69db7sx.aspx
+Boost:SIMD (not yet part of Boost):
+http://nt2.metascale.fr/doc/html/boost/simd/aligned_realloc.html
+MRPT: http://reference.mrpt.org/svn/group__mrpt__memory.html#gaa0dd8ec272a9f40a191342057c185bd9
+Eigen: http://docs.ros.org/hydro/api/win_eigen/html/namespaceEigen_1_1internal.html#a2a45fbd9d5eaa2c84e561fceaf39d139
+OpenUH: http://www2.cs.uh.edu/~estrabd/OpenUH/r593/html-libopenmp/d4/d8c/a00035.html
+
+Is this a reasonable request?  I don't feel qualified to implement
+this, otherwise I really would try to do it myself and contribute the
+patch.
+
+Thanks,
+
+Jeff
+
+-- 
+Jeff Hammond
+jeff.science at gmail.com
+http://jeffhammond.github.io/
+
+From danielmicay at gmail.com  Wed Jan 21 21:31:48 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Thu, 22 Jan 2015 00:31:48 -0500
+Subject: feature request: aligned_realloc
+In-Reply-To: <CAGKz=uJUBe8RgYOvM+_bMkH7ThpzXjXdGzi8bt+hRQBc4GiN+Q@mail.gmail.com>
+References: <CAGKz=uJUBe8RgYOvM+_bMkH7ThpzXjXdGzi8bt+hRQBc4GiN+Q@mail.gmail.com>
+Message-ID: <54C08B44.2020502@gmail.com>
+
+On 22/01/15 12:21 AM, Jeff Hammond wrote:
+> I don't see aligned_realloc anywhere in jemalloc.  I wonder if this is
+> a feature you would be willing to support?  A colleague of mine was
+> interested in it recently, and it wasn't obvious how one would do an
+> efficient implementation on top of the standard API calls.
+> 
+> There are other implementations of this already.  While I am nothing
+> resembling a fan of Windows, I would argue that a function signature
+> compatible with MSVC is desirable.
+> 
+> Microsoft: https://msdn.microsoft.com/en-us/library/y69db7sx.aspx
+> Boost:SIMD (not yet part of Boost):
+> http://nt2.metascale.fr/doc/html/boost/simd/aligned_realloc.html
+> MRPT: http://reference.mrpt.org/svn/group__mrpt__memory.html#gaa0dd8ec272a9f40a191342057c185bd9
+> Eigen: http://docs.ros.org/hydro/api/win_eigen/html/namespaceEigen_1_1internal.html#a2a45fbd9d5eaa2c84e561fceaf39d139
+> OpenUH: http://www2.cs.uh.edu/~estrabd/OpenUH/r593/html-libopenmp/d4/d8c/a00035.html
+> 
+> Is this a reasonable request?  I don't feel qualified to implement
+> this, otherwise I really would try to do it myself and contribute the
+> patch.
+> 
+> Thanks,
+> 
+> Jeff
+
+It's provided by rallocx. The Windows family of functions is different
+because you can't mix them with the regular API. You could also use the
+in-place realloc function (xallocx) and copy on your own if it fails,
+which can be more flexible.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150122/a861180a/attachment.sig>
+
+From jeff.science at gmail.com  Wed Jan 21 22:02:18 2015
+From: jeff.science at gmail.com (Jeff Hammond)
+Date: Thu, 22 Jan 2015 00:02:18 -0600
+Subject: feature request: aligned_realloc
+In-Reply-To: <54C08B44.2020502@gmail.com>
+References: <CAGKz=uJUBe8RgYOvM+_bMkH7ThpzXjXdGzi8bt+hRQBc4GiN+Q@mail.gmail.com>
+	<54C08B44.2020502@gmail.com>
+Message-ID: <CAGKz=u+yY=gnnUOAz9M0+WsRaTkZM0L9K6aRjebtYMW75XBMYQ@mail.gmail.com>
+
+On Wed, Jan 21, 2015 at 11:31 PM, Daniel Micay <danielmicay at gmail.com> wrote:
+> On 22/01/15 12:21 AM, Jeff Hammond wrote:
+>> I don't see aligned_realloc anywhere in jemalloc.  I wonder if this is
+>> a feature you would be willing to support?  A colleague of mine was
+>> interested in it recently, and it wasn't obvious how one would do an
+>> efficient implementation on top of the standard API calls.
+>>
+>> There are other implementations of this already.  While I am nothing
+>> resembling a fan of Windows, I would argue that a function signature
+>> compatible with MSVC is desirable.
+>>
+>> Microsoft: https://msdn.microsoft.com/en-us/library/y69db7sx.aspx
+>> Boost:SIMD (not yet part of Boost):
+>> http://nt2.metascale.fr/doc/html/boost/simd/aligned_realloc.html
+>> MRPT: http://reference.mrpt.org/svn/group__mrpt__memory.html#gaa0dd8ec272a9f40a191342057c185bd9
+>> Eigen: http://docs.ros.org/hydro/api/win_eigen/html/namespaceEigen_1_1internal.html#a2a45fbd9d5eaa2c84e561fceaf39d139
+>> OpenUH: http://www2.cs.uh.edu/~estrabd/OpenUH/r593/html-libopenmp/d4/d8c/a00035.html
+>>
+>> Is this a reasonable request?  I don't feel qualified to implement
+>> this, otherwise I really would try to do it myself and contribute the
+>> patch.
+>>
+>> Thanks,
+>>
+>> Jeff
+>
+> It's provided by rallocx. The Windows family of functions is different
+> because you can't mix them with the regular API. You could also use the
+> in-place realloc function (xallocx) and copy on your own if it fails,
+> which can be more flexible.
+
+Thanks!  It was not obvious to me that such a function name would
+contain neither "align" nor "realloc".
+
+Best,
+
+Jeff
+
+
+-- 
+Jeff Hammond
+jeff.science at gmail.com
+http://jeffhammond.github.io/
+
+From snl20465 at gmail.com  Fri Jan 30 07:18:30 2015
+From: snl20465 at gmail.com (SNL)
+Date: Fri, 30 Jan 2015 20:48:30 +0530
+Subject: Jemalloc debug mode
+Message-ID: <CAGvmEXhtcLhCkpc-cDtCvvKjTfymPB7dyM7zuk=dcTt6kvT3jA@mail.gmail.com>
+
+Two questions:
+
+
+1. I am using jemalloc-dev version and configured it as follows
+
+./configure --enable-debug --enable-fill --enable-ivsalloc --disable-tcache
+
+
+I am running following simple test case but double free is not detected,
+what am I missing ?
+
+
+int main()
+{
+    char * ptr = malloc(1024);
+    free(ptr);
+    free(ptr);
+    return 0;
+}
+
+
+2.  Is quarantine basically a per thread free list ? How does it interact
+with tcache ?
+
+
+Cheers.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150130/7d97751c/attachment.html>
+

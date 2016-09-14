@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Increase the number of arenas
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Increase%20the%20number%20of%20arenas&In-Reply-To=%3C2970E312-3998-44F6-A943-480A17C9A386%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000620.html">
+   <LINK REL="Next"  HREF="000622.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Increase the number of arenas</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Increase%20the%20number%20of%20arenas&In-Reply-To=%3C2970E312-3998-44F6-A943-480A17C9A386%40canonware.com%3E"
+       TITLE="Increase the number of arenas">jasone at canonware.com
+       </A><BR>
+    <I>Tue Aug  6 20:27:30 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000620.html">Increase the number of arenas
+</A></li>
+        <LI>Next message: <A HREF="000622.html">[PATCH] Allow toolchain to determine ar
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#621">[ date ]</a>
+              <a href="thread.html#621">[ thread ]</a>
+              <a href="subject.html#621">[ subject ]</a>
+              <a href="author.html#621">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Aug 6, 2013, at 4:42 PM, Veeravadivel Duraisamy &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">catchveera at yahoo.com</A>&gt; wrote:
+&gt;<i> I am running my application on a 24 core machine and I have 108 threads. I see a slight increase in latency with jemalloc when compared to tcmalloc. The jemalloc man page says by default 24*4 arenas will be created. I would like to increase the number of arenas to 108. What should be the value that i set the env variable MALLOC_CONF to?
+</I>
+MALLOC_CONF=narenas:108
+
+You may actually get better performance by *decreasing* the number of arenas though.  The thread caching is pretty effective at reducing arena accesses for most applications.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130806/0cc27d32/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130806/0cc27d32/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000620.html">Increase the number of arenas
+</A></li>
+	<LI>Next message: <A HREF="000622.html">[PATCH] Allow toolchain to determine ar
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#621">[ date ]</a>
+              <a href="thread.html#621">[ thread ]</a>
+              <a href="subject.html#621">[ subject ]</a>
+              <a href="author.html#621">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

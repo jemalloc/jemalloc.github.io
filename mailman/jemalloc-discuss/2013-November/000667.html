@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> arena_tcache_fill_small can corrupt the tcache
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20arena_tcache_fill_small%20can%20corrupt%20the%20tcache&In-Reply-To=%3CA3B5D9BA-E2D5-4A4A-9E0B-5829DE88BF50%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000666.html">
+   <LINK REL="Next"  HREF="000669.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>arena_tcache_fill_small can corrupt the tcache</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20arena_tcache_fill_small%20can%20corrupt%20the%20tcache&In-Reply-To=%3CA3B5D9BA-E2D5-4A4A-9E0B-5829DE88BF50%40canonware.com%3E"
+       TITLE="arena_tcache_fill_small can corrupt the tcache">jasone at canonware.com
+       </A><BR>
+    <I>Wed Nov 13 12:59:00 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000666.html">arena_tcache_fill_small can corrupt the tcache
+</A></li>
+        <LI>Next message: <A HREF="000669.html">arena_tcache_fill_small can corrupt the tcache
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#667">[ date ]</a>
+              <a href="thread.html#667">[ thread ]</a>
+              <a href="subject.html#667">[ subject ]</a>
+              <a href="author.html#667">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 12, 2013, at 11:34 PM, <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">valtteri at rahkonen.fi</A> wrote:
+&gt;<i> It seems that there is a thread cache memory in case of memory has run out or process hits to the memory limit. Basically the arena_tcache_fill_small will start to fill the thread cache from the end and if memory allocation fails before all cache entries have been filled the earlier thread cache entries will contain old pointers given already to the program. Now when new allocations are made the memory is given twice causing memory corruption. Also the new memory allocated and placed after tbin-&gt;ncached index is leaked.
+</I>&gt;<i> 
+</I>&gt;<i> There is really simple fix for this i.e. start to fill the tcache from the beginning. Attached patch fixes this problem that way i.e. one liner fix for the issue. I'm not totally sure if you want to use that because this brakes the low region using first that was with the original implementation, but on the other hand this gives first memory that was allocated from existing arenas, so this approach might be better in that sense.
+</I>
+Yikes.  As you guessed, I want to fix this by memmove()ing the valid pointers on failure rather than by reversing the insertion order.  If you have time to modify your patch, great; otherwise I'll make sure to integrate a fix prior to the next release.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000666.html">arena_tcache_fill_small can corrupt the tcache
+</A></li>
+	<LI>Next message: <A HREF="000669.html">arena_tcache_fill_small can corrupt the tcache
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#667">[ date ]</a>
+              <a href="thread.html#667">[ thread ]</a>
+              <a href="subject.html#667">[ subject ]</a>
+              <a href="author.html#667">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Semi-dual use of dynamic and static jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Semi-dual%20use%20of%20dynamic%20and%20static%20jemalloc&In-Reply-To=%3CCAGQTitOngB5xK9hPcTVNUnWkCX6jysvkKopxy4t6PhqfAyN7Ag%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001154.html">
+   <LINK REL="Next"  HREF="001158.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Semi-dual use of dynamic and static jemalloc</H1>
+    <B>Roel Van de Paar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Semi-dual%20use%20of%20dynamic%20and%20static%20jemalloc&In-Reply-To=%3CCAGQTitOngB5xK9hPcTVNUnWkCX6jysvkKopxy4t6PhqfAyN7Ag%40mail.gmail.com%3E"
+       TITLE="Semi-dual use of dynamic and static jemalloc">roel.vandepaar at percona.com
+       </A><BR>
+    <I>Mon Aug 24 17:24:59 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001154.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+        <LI>Next message: <A HREF="001158.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1155">[ date ]</a>
+              <a href="thread.html#1155">[ thread ]</a>
+              <a href="subject.html#1155">[ subject ]</a>
+              <a href="author.html#1155">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Florian,
+
+Thank you for the reply. My reply inline.
+
+On Tue, Aug 25, 2015 at 5:13 AM, Florian Weimer &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">fw at deneb.enyo.de</A>&gt; wrote:
+
+&gt;<i> * Roel Van de Paar:
+</I>&gt;<i>
+</I>&gt;<i> &gt; What happens if jemalloc is LD_PRELOAD'ed for an executable where such
+</I>&gt;<i> &gt; executable uses a .so library, which in turn is statically linked with
+</I>&gt;<i> &gt; jemalloc?
+</I>&gt;<i>
+</I>&gt;<i> That depends on what kind of symbols the libary exports.  What does
+</I>&gt;<i> &#8220;eu-readelf -s&#8221; or &#8220;readelf -W -s&#8221; show?  If jemalloc symbols are
+</I>&gt;<i> listed there, quite bad things can happen.
+</I>
+
+[<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">roel at localhost</A> Percona-Server-5.6.25-rel73.2-f9f2b02.Linux.x86_64-debug]$
+readelf -W -s ./lib/mysql/plugin/ha_tokudb.so | grep jemalloc
+   219: 000000000048ed90     4 OBJECT  LOCAL  DEFAULT   27
+_ZL21tokudb_check_jemalloc
+   220: 000000000048d4e0    64 OBJECT  LOCAL  DEFAULT   26
+_ZL27mysql_sysvar_check_jemalloc
+   833: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS jemalloc.pic.o
+   840: 000000000009d710    94 FUNC    LOCAL  DEFAULT   11
+jemalloc_constructor
+  8370: 000000000009d0d0    90 FUNC    LOCAL  DEFAULT   11
+je_jemalloc_prefork
+  8494: 000000000009d010    89 FUNC    LOCAL  DEFAULT   11
+je_jemalloc_postfork_child
+  8659: 000000000009d070    89 FUNC    LOCAL  DEFAULT   11
+je_jemalloc_postfork_parent
+
+Are these jemalloc symbols?
+
+Also, anyone any idea on the other questions too?
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: percona.rvandepaar
+<A HREF="http://www.percona.com/services.html">http://www.percona.com/services.html</A>
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+&lt;<A HREF="http://www.percona.com/software/percona-xtradb-cluster">http://www.percona.com/software/percona-xtradb-cluster</A>&gt;!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150825/998fdf97/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150825/998fdf97/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001154.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+	<LI>Next message: <A HREF="001158.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1155">[ date ]</a>
+              <a href="thread.html#1155">[ thread ]</a>
+              <a href="subject.html#1155">[ subject ]</a>
+              <a href="author.html#1155">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

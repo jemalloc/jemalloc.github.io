@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory corruptions near 32 bit limits
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20corruptions%20near%2032%20bit%20limits&In-Reply-To=%3CCA%2BXzkVei8v-SminztkgPyiKptn6gGTsCq25uvOe4-eO_eSR6GQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000522.html">
+   <LINK REL="Next"  HREF="000507.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory corruptions near 32 bit limits</H1>
+    <B>Salvatore Sanfilippo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20corruptions%20near%2032%20bit%20limits&In-Reply-To=%3CCA%2BXzkVei8v-SminztkgPyiKptn6gGTsCq25uvOe4-eO_eSR6GQ%40mail.gmail.com%3E"
+       TITLE="Memory corruptions near 32 bit limits">antirez at gmail.com
+       </A><BR>
+    <I>Tue Nov  6 03:01:31 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000522.html">Question about bitmap code
+</A></li>
+        <LI>Next message: <A HREF="000507.html">Memory corruptions near 32 bit limits
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#505">[ date ]</a>
+              <a href="thread.html#505">[ thread ]</a>
+              <a href="subject.html#505">[ subject ]</a>
+              <a href="author.html#505">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+in the Redis community it was observed multiple times that when a 32
+bit instance using Jemalloc (&lt;= 3.0) is very near to be out of memory
+because the whole available address space was used, it can happen that
+the server crashes because memory gets corrupted instead of malloc
+returning NULL.
+
+Is this a known issues?
+
+Redis 2.6 automatically sets a 3GB memory limit in 32 bit instances
+now so we are likely to see this less frequently in the future, but it
+is interesting for us to understand this issue as sometimes this
+triggered investigations about non existing bugs.
+
+Cheers,
+Salvatore
+
+--
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+<A HREF="http://invece.org">http://invece.org</A>
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       &#8212; David Gelernter
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000522.html">Question about bitmap code
+</A></li>
+	<LI>Next message: <A HREF="000507.html">Memory corruptions near 32 bit limits
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#505">[ date ]</a>
+              <a href="thread.html#505">[ thread ]</a>
+              <a href="subject.html#505">[ subject ]</a>
+              <a href="author.html#505">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

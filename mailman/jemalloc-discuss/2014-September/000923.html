@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc documentation build glitch in version 913e9a8
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20documentation%20build%20glitch%20in%20version%20913e9a8&In-Reply-To=%3C35EB4EB0-44A5-41A1-B298-ED6CDCB08195%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000922.html">
+   <LINK REL="Next"  HREF="000924.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc documentation build glitch in version 913e9a8</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20documentation%20build%20glitch%20in%20version%20913e9a8&In-Reply-To=%3C35EB4EB0-44A5-41A1-B298-ED6CDCB08195%40canonware.com%3E"
+       TITLE="jemalloc documentation build glitch in version 913e9a8">jasone at canonware.com
+       </A><BR>
+    <I>Tue Sep 23 09:24:37 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000922.html">jemalloc documentation build glitch in version 913e9a8
+</A></li>
+        <LI>Next message: <A HREF="000924.html">jemalloc documentation build glitch in version 913e9a8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#923">[ date ]</a>
+              <a href="thread.html#923">[ thread ]</a>
+              <a href="subject.html#923">[ subject ]</a>
+              <a href="author.html#923">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 22, 2014, at 10:37 PM, Matthew Hall &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mhall at mhcomputing.net</A>&gt; wrote:
+&gt;<i> I'm getting some odd behavior when compiling the latest jemalloc on Ubuntu 
+</I>&gt;<i> 14.04.1 LTs.
+</I>&gt;<i> 
+</I>&gt;<i> commit 913e9a8a853a693c5b5d6c13ab86f1b46a3404f7
+</I>&gt;<i> Date:   Fri Sep 19 22:01:23 2014 +0100
+</I>&gt;<i> 
+</I>&gt;<i> Using the following build commands:
+</I>&gt;<i> 
+</I>&gt;<i> autoconf
+</I>&gt;<i> ./configure \
+</I>&gt;<i> --enable-autogen \
+</I>&gt;<i> --prefix=/usr/local/jemalloc \
+</I>&gt;<i> --with-jemalloc-prefix=je_ \
+</I>&gt;<i> --enable-stats \
+</I>&gt;<i> --enable-prof \
+</I>&gt;<i> --enable-prof-libunwind \
+</I>&gt;<i> --with-static-libunwind=/usr/lib/x86_64-linux-gnu/libunwind-x86_64.a \
+</I>&gt;<i> --enable-fill \
+</I>&gt;<i> --enable-valgrind \
+</I>&gt;<i> --enable-dss \
+</I>&gt;<i> --enable-xmalloc \
+</I>&gt;<i> --disable-lazy-lock
+</I>&gt;<i> 
+</I>&gt;<i> make
+</I>&gt;<i> sudo make install
+</I>&gt;<i> 
+</I>&gt;<i> The &quot;make install&quot; fails due to missing files unless I manually invoke 
+</I>&gt;<i> the following doc make targets:
+</I>&gt;<i> 
+</I>&gt;<i> make build_doc_html
+</I>&gt;<i> make build_doc_man
+</I>&gt;<i> 
+</I>&gt;<i> It appears something's going wrong in one of these places:
+</I>&gt;<i> 
+</I>&gt;<i> 1) developer raw source build directions should include this
+</I>&gt;<i> 2) default make target is missing subtargets
+</I>&gt;<i> 3) should have used another target which wasn't present in the docs
+</I>&gt;<i> 4) there's some other doc I should have read besides INSTALL.
+</I>&gt;<i> 
+</I>&gt;<i> Can someone help me confirm what's going on?
+</I>
+(1) and (3). The build system is set up so that official releases have pre-build docs.  You can use 'make dist' prior to installing to achieve the intended effect when building from non-tarball sources.  I just added some documentation that will hopefully help:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/eb5376ab9e61d96daa0d1f03b4474baf5232478f">https://github.com/jemalloc/jemalloc/commit/eb5376ab9e61d96daa0d1f03b4474baf5232478f</A>
+
+Thanks,
+Jason
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000922.html">jemalloc documentation build glitch in version 913e9a8
+</A></li>
+	<LI>Next message: <A HREF="000924.html">jemalloc documentation build glitch in version 913e9a8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#923">[ date ]</a>
+              <a href="thread.html#923">[ thread ]</a>
+              <a href="subject.html#923">[ subject ]</a>
+              <a href="author.html#923">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

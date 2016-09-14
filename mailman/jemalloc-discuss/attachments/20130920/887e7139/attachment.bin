@@ -1,0 +1,61 @@
+>From 9cdc50b39e2b976aa25362cc3a14c6ba839631c3 Mon Sep 17 00:00:00 2001
+From: Alexandre Perrin <alex@kaworu.ch>
+Date: Fri, 20 Sep 2013 19:58:11 +0200
+Subject: [PATCH] malloc_conf_init: revert errno value when readlink(2) fail.
+
+---
+ src/jemalloc.c | 28 ++++++++++++++--------------
+ 1 file changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index bc350ed..e3991da 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -436,8 +436,9 @@ malloc_conf_init(void)
+ 			}
+ 			break;
+ 		case 1: {
++			int linklen = 0;
+ #ifndef _WIN32
+-			int linklen;
++			int saved_errno = errno;
+ 			const char *linkname =
+ #  ifdef JEMALLOC_PREFIX
+ 			    "/etc/"JEMALLOC_PREFIX"malloc.conf"
+@@ -446,21 +447,20 @@ malloc_conf_init(void)
+ #  endif
+ 			    ;
+ 
+-			if ((linklen = readlink(linkname, buf,
+-			    sizeof(buf) - 1)) != -1) {
+-				/*
+-				 * Use the contents of the "/etc/malloc.conf"
+-				 * symbolic link's name.
+-				 */
+-				buf[linklen] = '\0';
+-				opts = buf;
+-			} else
+-#endif
+-			{
++			/*
++			 * Try to use the contents of the "/etc/malloc.conf"
++			 * symbolic link's name.
++			 */
++			linklen = readlink(linkname, buf, sizeof(buf) - 1);
++			if (linklen == -1) {
+ 				/* No configuration specified. */
+-				buf[0] = '\0';
+-				opts = buf;
++				linklen = 0;
++				/* restore errno */
++				set_errno(saved_errno);
+ 			}
++#endif
++			buf[linklen] = '\0';
++			opts = buf;
+ 			break;
+ 		} case 2: {
+ 			const char *envname =
+-- 
+1.8.3.4
+

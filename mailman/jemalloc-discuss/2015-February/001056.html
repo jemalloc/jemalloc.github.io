@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150218093426.GA15780%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001023.html">
+   <LINK REL="Next"  HREF="001057.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150218093426.GA15780%40glandium.org%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">mh at glandium.org
+       </A><BR>
+    <I>Wed Feb 18 01:34:26 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001023.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001057.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1056">[ date ]</a>
+              <a href="thread.html#1056">[ thread ]</a>
+              <a href="subject.html#1056">[ subject ]</a>
+              <a href="author.html#1056">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Feb 04, 2015 at 11:54:32AM +0900, Mike Hommey wrote:
+&gt;<i> On Wed, Feb 04, 2015 at 07:51:17AM +0900, Mike Hommey wrote:
+</I>&gt;<i> &gt; Hi,
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I've been tracking a startup time regression in Firefox for Android when
+</I>&gt;<i> &gt; we tried to switch from mozjemalloc (memory refresher: it's derived from
+</I>&gt;<i> &gt; jemalloc 0.9) to mostly current jemalloc dev.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; It turned out to be <A HREF="https://github.com/jemalloc/jemalloc/pull/192">https://github.com/jemalloc/jemalloc/pull/192</A>
+</I>&gt;<i> 
+</I>&gt;<i> *sigh* and sadly, this doesn't fix it all :(
+</I>
+So, it /might/ be related to the size classes. I don't have all results
+yet, but it looks like I'm getting good results with #192,
+--with-lg-quantum=4, --with-lg-tiny-min=2 and replacing size2index,
+index2size and s2u so that jemalloc3 uses the same size classes as
+mozjemalloc (IOW, a very bastardized jemalloc3)
+
+If that happens to be true, I'll dig deeper as to what particular size
+classes changes are making a difference.
+
+In the meanwhile I spotted something &quot;interesting&quot; in size_classes.sh:
+it generates size classes for large allocations up to close to the
+entire size of the address space, which, apart from being completely
+unrealistic on 64 bits, and kind of crazy on 32 bits, is completely
+useless since those classes are not ever used, since jemalloc switches
+to huge allocations for size &gt;= chunksize (simplifying a bit), and
+AFAICT, huge allocations don't rely on size2index/index2size.
+
+So in practice, only 68 of the 108 classes on 32 bits systems are ever
+used with 4MB chunks, and 68 of the 236 classes on 64 bits systems.
+
+Sure, there is no limit to lg_chunk, but there probably should.
+
+Mike
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001023.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001057.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1056">[ date ]</a>
+              <a href="thread.html#1056">[ thread ]</a>
+              <a href="subject.html#1056">[ subject ]</a>
+              <a href="author.html#1056">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

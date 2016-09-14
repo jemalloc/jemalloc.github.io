@@ -1,0 +1,37 @@
+<tt>
+HI&nbsp;Jason,&lt;br&gt;&lt;br&gt;I&#39;ll&nbsp;see&nbsp;if&nbsp;I&nbsp;can&nbsp;use&nbsp;your&nbsp;idea&nbsp;for&nbsp;dynamically&nbsp;linking.&nbsp;There&#39;s&nbsp;a&nbsp;few&nbsp;libraries&nbsp;i&nbsp;would&nbsp;need&nbsp;to&nbsp;do&nbsp;this&nbsp;for&nbsp;but&nbsp;if&nbsp;I&nbsp;can&nbsp;sort&nbsp;this&nbsp;out&nbsp;it&nbsp;would&nbsp;be&nbsp;good.&nbsp;At&nbsp;the&nbsp;moment&nbsp;I&nbsp;have&nbsp;statically&nbsp;linked&nbsp;releases&nbsp;for&nbsp;a&nbsp;few&nbsp;different&nbsp;Linux&nbsp;builds.&lt;br&gt;<br>
+<br>
+&lt;br&gt;With&nbsp;regard&nbsp;the&nbsp;is_malloc(je_malloc),&nbsp;I&nbsp;tried&nbsp;commenting&nbsp;out&nbsp;the&nbsp;#if&nbsp;&amp;&nbsp;#endif&nbsp;lines&nbsp;but&nbsp;the&nbsp;program&nbsp;still&nbsp;used&nbsp;glibc&nbsp;malloc,&nbsp;I&nbsp;guess&nbsp;this&nbsp;may&nbsp;be&nbsp;order&nbsp;of&nbsp;loading&nbsp;the&nbsp;libraries&nbsp;so&nbsp;I&nbsp;will&nbsp;try&nbsp;with&nbsp;jemalloc&nbsp;first.&nbsp;I&#39;ll&nbsp;let&nbsp;you&nbsp;know&nbsp;if&nbsp;that&nbsp;works.&lt;br&gt;<br>
+<br>
+&lt;br&gt;Thanks&nbsp;for&nbsp;your&nbsp;advice&nbsp;and&nbsp;help.&lt;br&gt;Colin&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;20&nbsp;July&nbsp;2013&nbsp;02:27,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;im&quot;&gt;On&nbsp;Jul&nbsp;19,&nbsp;2013,&nbsp;at&nbsp;12:41&nbsp;AM,&nbsp;Colin&nbsp;Hercus&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:colin@novocraft.com&quot;&gt;colin@novocraft.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+<br>
+&gt;&nbsp;I&nbsp;am&nbsp;trying&nbsp;to&nbsp;test&nbsp;a&nbsp;HPC&nbsp;appl&#39;n&nbsp;with&nbsp;jemalloc&nbsp;to&nbsp;see&nbsp;if&nbsp;it&nbsp;can&nbsp;reduce&nbsp;memory&nbsp;fragmentation&nbsp;and&nbsp;slow&nbsp;memory&nbsp;growth&nbsp;of&nbsp;a&nbsp;long&nbsp;running&nbsp;multi-threaded&nbsp;app.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;This&nbsp;application&nbsp;is&nbsp;statically&nbsp;linked&nbsp;as&nbsp;it&#39;s&nbsp;not&nbsp;open&nbsp;source&nbsp;and&nbsp;we&nbsp;need&nbsp;one&nbsp;binary&nbsp;distribution&nbsp;to&nbsp;run&nbsp;on&nbsp;multiple&nbsp;Linux&nbsp;versions.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;If&nbsp;I&nbsp;configure&nbsp;jemalloc&nbsp;without&nbsp;a&nbsp;jemalloc&nbsp;prefix&nbsp;(je_)&nbsp;and&nbsp;link&nbsp;with&nbsp;-static&nbsp;-ljemalloc&nbsp;I&nbsp;get&nbsp;linker&nbsp;errors&nbsp;for&nbsp;multiply&nbsp;defined&nbsp;symbols&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;g++&nbsp; -m64&nbsp;-Wl,--eh-frame-hdr&nbsp;-o&nbsp;./bin/xxxx&nbsp;./obj/xxxx.o&nbsp; .....&nbsp; &nbsp;-static&nbsp;-pthread&nbsp;-lcrypto&nbsp;-lz&nbsp;-lbz2&nbsp;-ldl&nbsp; -ljemalloc&nbsp;-lunwind&nbsp;-Wl,-Map=gccmaps/xxxx.map&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;There&#39;s&nbsp;a&nbsp;good&nbsp;chance&nbsp;that&nbsp;you&nbsp;can&nbsp;make&nbsp;the&nbsp;errors&nbsp;go&nbsp;away&nbsp;by&nbsp;putting&nbsp;-ljemalloc&nbsp;earlier&nbsp;in&nbsp;the&nbsp;link&nbsp;line.&nbsp; It&nbsp;looks&nbsp;to&nbsp;me&nbsp;like&nbsp;libcrypto&nbsp;is&nbsp;pulling&nbsp;in&nbsp;the&nbsp;glibc&nbsp;malloc&nbsp;symbols,&nbsp;and&nbsp;by&nbsp;the&nbsp;time&nbsp;the&nbsp;libjemalloc&nbsp;portion&nbsp;of&nbsp;linking&nbsp;occurs,&nbsp;it&#39;s&nbsp;too&nbsp;late&nbsp;for&nbsp;jemalloc&nbsp;to&nbsp;provide&nbsp;the&nbsp;symbols.&nbsp; That&nbsp;said,&nbsp;pure&nbsp;static&nbsp;linking&nbsp;is&nbsp;pretty&nbsp;perilous,&nbsp;and&nbsp;I&nbsp;recommend&nbsp;dynamically&nbsp;linking&nbsp;against&nbsp;the&nbsp;system&nbsp;libraries,&nbsp;and&nbsp;linking&nbsp;to&nbsp;static&nbsp;libraries&nbsp;by&nbsp;specifying&nbsp;e.g.&nbsp;libjemalloc_pic.a&nbsp;along&nbsp;with&nbsp;the&nbsp;.o&nbsp;object&nbsp;files&nbsp;(and/or&nbsp;.a&nbsp;archives)&nbsp;in&nbsp;your&nbsp;project.&nbsp; glibc&nbsp;in&nbsp;particular&nbsp;does&nbsp;an&nbsp;excellent&nbsp;job&nbsp;of&nbsp;maintaining&nbsp;symbol&nbsp;compatibility&nbsp;across&nbsp;many&nbsp;years&nbsp;of&nbsp;releases,&nbsp;so&nbsp;you&nbsp;can&nbsp;ship&nbsp;around&nbsp;a&nbsp;binary&nbsp;that&nbsp;is&nbsp;dynamically&nbsp;linked&nbsp;against&nbsp;glibc&nbsp;with&nbsp;fewer&nbsp;issues&nbsp;than&nbsp;you&nbsp;will&nbsp;run&nbsp;into&nbsp;with&nbsp;a&nbsp;statically&nbsp;linked-in&nbsp;glibc.&nbsp; glibc&nbsp;protects&nbsp;you&nbsp;from&nbsp;a&nbsp;rather&nbsp;unstable&nbsp;Linux&nbsp;kernel&nbsp;interface,&nbsp;and&nbsp;if&nbsp;you&nbsp;try&nbsp;to&nbsp;run&nbsp;your&nbsp;static&nbsp;binary&nbsp;on&nbsp;top&nbsp;of&nbsp;a&nbsp;substantially&nbsp;different&nbsp;kernel,&nbsp;hilarity&nbsp;will&nbsp;ensue.&lt;br&gt;<br>
+<br>
+<br>
+&lt;div&nbsp;class=&quot;im&quot;&gt;&lt;br&gt;<br>
+&gt;&nbsp;If&nbsp;I&nbsp;build&nbsp;with&nbsp;a&nbsp;prefix&nbsp;of&nbsp;je_&nbsp;then&nbsp;linking&nbsp;is&nbsp;okay&nbsp;but&nbsp;memory&nbsp;allocation&nbsp;is&nbsp;via&nbsp;glibc&nbsp;malloc.&nbsp;The&nbsp;same&nbsp;is&nbsp;true&nbsp;if&nbsp;I&nbsp;dynamically&nbsp;link&nbsp;without&nbsp;a&nbsp;prefix.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Is&nbsp;there&nbsp;any&nbsp;simple&nbsp;easy&nbsp;way&nbsp;to&nbsp;get&nbsp;je_malloc&nbsp;to&nbsp;hook&nbsp;itself&nbsp;in&nbsp;as&nbsp;a&nbsp;replacement&nbsp;for&nbsp;malloc&nbsp;the&nbsp;way&nbsp;tcmalloc&nbsp;does?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;jemalloc&nbsp;*does*&nbsp;hook&nbsp;itself&nbsp;in&nbsp;as&nbsp;a&nbsp;replacement&nbsp;for&nbsp;glibc&nbsp;malloc,&nbsp;but&nbsp;only&nbsp;if&nbsp;no&nbsp;prefix&nbsp;is&nbsp;specified.&nbsp;=)&nbsp; You&nbsp;can&nbsp;make&nbsp;a&nbsp;one&nbsp;line&nbsp;change&nbsp;to&nbsp;src/jemalloc.c&nbsp;to&nbsp;unconditionally&nbsp;enable&nbsp;hooking.&nbsp; Replace:&lt;br&gt;<br>
+&lt;br&gt;<br>
+#if&nbsp;((is_malloc(je_malloc)&nbsp;==&nbsp;1)&nbsp;&amp;&amp;&nbsp;defined(__GLIBC__)&nbsp;&amp;&amp;&nbsp;!defined(__UCLIBC__))&lt;br&gt;<br>
+&lt;br&gt;<br>
+with:&lt;br&gt;<br>
+&lt;br&gt;<br>
+#if&nbsp;1&lt;br&gt;<br>
+&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+Jason&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;<br>
+
+</tt>

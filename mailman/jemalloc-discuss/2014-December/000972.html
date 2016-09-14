@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question about the spare chunk
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20the%20spare%20chunk&In-Reply-To=%3C431B543D-B3E6-4374-9AC1-D42B859F9F48%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000971.html">
+   <LINK REL="Next"  HREF="000973.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question about the spare chunk</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20the%20spare%20chunk&In-Reply-To=%3C431B543D-B3E6-4374-9AC1-D42B859F9F48%40canonware.com%3E"
+       TITLE="Question about the spare chunk">jasone at canonware.com
+       </A><BR>
+    <I>Wed Dec  3 15:41:45 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000971.html">Question about the spare chunk
+</A></li>
+        <LI>Next message: <A HREF="000973.html">Question about the spare chunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#972">[ date ]</a>
+              <a href="thread.html#972">[ thread ]</a>
+              <a href="subject.html#972">[ subject ]</a>
+              <a href="author.html#972">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Dec 3, 2014, at 6:17 AM, cee1 &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">fykcee1 at gmail.com</A>&gt; wrote:
+&gt;<i> I'm learning the code of jemalloc 3.6.0, I find in arena_run_dalloc()
+</I>&gt;<i> &quot;&quot;&quot;
+</I>&gt;<i> if (size == arena_maxclass)
+</I>&gt;<i>    arena_chunk_dealloc(arena, chunk);
+</I>&gt;<i> &quot;&quot;&quot;
+</I>&gt;<i> 
+</I>&gt;<i> And in arena_chunk_dealloc():
+</I>&gt;<i> &quot;&quot;&quot;
+</I>&gt;<i> if (arena-&gt;spare != NULL) {
+</I>&gt;<i>    arena_chunk_t *spare = arena-&gt;spare;
+</I>&gt;<i> 
+</I>&gt;<i>    arena-&gt;spare = chunk;
+</I>&gt;<i>    malloc_mutex_unlock(&amp;arena-&gt;lock);
+</I>&gt;<i> 
+</I>&gt;<i>    chunk_dealloc((void *)spare, chunksize, true);
+</I>&gt;<i> 
+</I>&gt;<i>    malloc_mutex_lock(&amp;arena-&gt;lock);
+</I>&gt;<i> &quot;&quot;&quot;
+</I>&gt;<i> 
+</I>&gt;<i> Here the old spare chunk is replaced by the new one and dealloced.
+</I>&gt;<i> 
+</I>&gt;<i> The deallocating process is done without the lock protection. In this
+</I>&gt;<i> lockless period, is it possible another arena_chunk_dealloc running in
+</I>&gt;<i> another thread replaces and deallocates ** our new spare chunk ** ?
+</I>&gt;<i> Which is still in the chunks_dirty tree and will be accessed by the
+</I>&gt;<i> purge process later.
+</I>
+The chunk being passed to chunk_dealloc() has been completely dissociated from the arena prior to the malloc_mutex_unlock() call, so there's no way for it to be accessed by the arena again.  If another thread concurrently calls into arena_chunk_dealloc() to deallocate the current spare, then the same logic holds for that chunk deallocation.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000971.html">Question about the spare chunk
+</A></li>
+	<LI>Next message: <A HREF="000973.html">Question about the spare chunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#972">[ date ]</a>
+              <a href="thread.html#972">[ thread ]</a>
+              <a href="subject.html#972">[ subject ]</a>
+              <a href="author.html#972">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

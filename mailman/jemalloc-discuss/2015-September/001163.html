@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-configuration-setup
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-configuration-setup&In-Reply-To=%3CSIXPR04MB06820A3344A11BC96E85FD0EF6510%40SIXPR04MB0682.apcprd04.prod.outlook.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001162.html">
+   <LINK REL="Next"  HREF="001164.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-configuration-setup</H1>
+    <B>Anshul Kundra</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-configuration-setup&In-Reply-To=%3CSIXPR04MB06820A3344A11BC96E85FD0EF6510%40SIXPR04MB0682.apcprd04.prod.outlook.com%3E"
+       TITLE="jemalloc-configuration-setup">anshul.kundra at hcl.com
+       </A><BR>
+    <I>Wed Sep  9 19:00:48 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001162.html">Can't get profile
+</A></li>
+        <LI>Next message: <A HREF="001164.html">Explicit huge pages
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1163">[ date ]</a>
+              <a href="thread.html#1163">[ thread ]</a>
+              <a href="subject.html#1163">[ subject ]</a>
+              <a href="author.html#1163">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+
+I have requirement to setup jemalloc for application, the specification is as follows:
+
+1   Allocations  (small, large ) is in terms of MB (2MB, 4MB, .........)
+
+2.  Allocations are always aligned to 2MB granularity
+3.  System Page size considered as 2MB (Linux Huge PAGE)
+4.  No request comes for allocation size less than 2MB, if such request comes then application will round up the size to 2Mb granularity
+
+Please provide how to do port jemalloc for such configuration, I want to avail jemalloc (small, large) size class  also for above requirement such that
+- small size will range from : 2MB, 4MB, 8MB ....... to 16MB
+- large size class ranges from 32MB, 64MB, 128 MB
+There is no intermediate allocation size i.e (3MB, 5MB etc )
+
+Thanks &amp; Best Regards,
+Anshul Kundra
+
+
+::<i>DISCLAIMER::
+</I>----------------------------------------------------------------------------------------------------------------------------------------------------
+
+The contents of this e-mail and any attachment(s) are confidential and intended for the named recipient(s) only.
+E-mail transmission is not guaranteed to be secure or error-free as information could be intercepted, corrupted,
+lost, destroyed, arrive late or incomplete, or may contain viruses in transmission. The e mail and its contents
+(with or without referred errors) shall therefore not attach any liability on the originator or HCL or its affiliates.
+Views or opinions, if any, presented in this email are solely those of the author and may not necessarily reflect the
+views or opinions of HCL or its affiliates. Any form of reproduction, dissemination, copying, disclosure, modification,
+distribution and / or publication of this message without the prior written consent of authorized representative of
+HCL is strictly prohibited. If you have received this email in error please delete it and notify the sender immediately.
+Before opening any email and/or attachments, please check them for viruses and other defects.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150910/d9d5ed03/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150910/d9d5ed03/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001162.html">Can't get profile
+</A></li>
+	<LI>Next message: <A HREF="001164.html">Explicit huge pages
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1163">[ date ]</a>
+              <a href="thread.html#1163">[ thread ]</a>
+              <a href="subject.html#1163">[ subject ]</a>
+              <a href="author.html#1163">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

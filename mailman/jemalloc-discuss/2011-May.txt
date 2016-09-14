@@ -1,0 +1,253 @@
+From nwmcsween at gmail.com  Sun May  8 21:38:51 2011
+From: nwmcsween at gmail.com (Nathan McSween)
+Date: Sun, 08 May 2011 21:38:51 -0700
+Subject: [patch] Add pthread to test linking options
+Message-ID: <4DC76FDB.8080909@gmail.com>
+
+Hi i've attached a simple patch that makes everything in tests require 
+pthread as using gold (probably bfd as well) errors on allocated.c.
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: Makefile.in-test-allocated-requires-pthread.patch
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110508/00c49991/attachment.ksh>
+
+From tmagee at conveycomputer.com  Tue May 10 09:58:51 2011
+From: tmagee at conveycomputer.com (Terrell Magee)
+Date: Tue, 10 May 2011 11:58:51 -0500
+Subject: New Allocator features
+Message-ID: <d724304f3e0e7ce29372f3bb44b25520@mail.gmail.com>
+
+I have been using jemalloc for the past year with good results.  Our product
+has a couple of new requirements that I have not come across before.
+
+
+
+1)      The first is the ability to completely segregate control data from
+allocated data.  This makes the allocator more like a resource manager in
+that you allocate and mange the resource but have no access to it.  The data
+structure design of jemalloc lends itself fairly well to meeting this
+requirement.
+
+2)      The second requirement is focused on multi-node NUMA systems.
+Consider the requirement to allocate memory on a specified node.  A buffer
+is returned to the application on the requested node but the application
+then migrates the data to another node for processing.  When the app frees
+the buffer, it is returned to the allocator?s free pool.  The problem is the
+memory is now located on the wrong node.  Subsequent allocations can result
+in misplaced data and performance anomalies.  This behavior is true for any
+allocator; libc malloc(3), etc.
+
+
+
+Have these types of requirements been considered or solved by other systems?
+
+
+
+Thanks
+
+Terrell
+
+Convey Computer Systems
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110510/58ed5f60/attachment.html>
+
+From jasone at canonware.com  Tue May 10 21:42:54 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 10 May 2011 21:42:54 -0700
+Subject: [patch] Add pthread to test linking options
+In-Reply-To: <4DC76FDB.8080909@gmail.com>
+References: <4DC76FDB.8080909@gmail.com>
+Message-ID: <4DCA13CE.8040500@canonware.com>
+
+On 05/08/2011 09:38 PM, Nathan McSween wrote:
+> Hi i've attached a simple patch that makes everything in tests require
+> pthread as using gold (probably bfd as well) errors on allocated.c.
+
+Applied.
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Tue May 10 21:44:24 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 10 May 2011 21:44:24 -0700
+Subject: New Allocator features
+In-Reply-To: <d724304f3e0e7ce29372f3bb44b25520@mail.gmail.com>
+References: <d724304f3e0e7ce29372f3bb44b25520@mail.gmail.com>
+Message-ID: <4DCA1428.6000501@canonware.com>
+
+On 05/10/2011 09:58 AM, Terrell Magee wrote:
+> I have been using jemalloc for the past year with good results.  Our
+> product has a couple of new requirements that I have not come across before.
+>
+> 1)The first is the ability to completely segregate control data from
+> allocated data.  This makes the allocator more like a resource manager
+> in that you allocate and mange the resource but have no access to it.
+> The data structure design of jemalloc lends itself fairly well to
+> meeting this requirement.
+
+jemalloc takes advantage of constant-time address masking operations to 
+find metadata associated with allocated objects, so although it mostly 
+segregates metadata and data, completely abstracting the two away from 
+each other would take quite a bit of refactoring, not to mention that it 
+would probably slow down the allocator.  Backing up a bit, I'm trying to 
+imagine an allocator with this constraint, and it's immediately clear 
+that some standard features, like zero-filled memory via calloc(), would 
+not be possible.  What do you need such strong separation for?
+
+> 2)The second requirement is focused on multi-node NUMA systems.
+> Consider the requirement to allocate memory on a specified node.  A
+> buffer is returned to the application on the requested node but the
+> application then migrates the data to another node for processing.  When
+> the app frees the buffer, it is returned to the allocator?s free pool.
+> The problem is the memory is now located on the wrong node.  Subsequent
+> allocations can result in misplaced data and performance anomalies.
+> This behavior is true for any allocator; libc malloc(3), etc.
+
+If you disable thread caches in jemalloc, and you're careful about your 
+thread-->arena associations, you will be able to avoid the problem. 
+That is, memory is freed back to the arena from which it came, so as 
+long as each arena is only ever used for allocation on a single node 
+(and the allocated pages are touched before objects are passed to other 
+threads), all of that arena's memory will be locally attached.
+
+As an aside, I'm planning to experiment with using sched_getcpu(3) on 
+Linux to choose the arena to allocate from.  Right now there are 4*ncpus 
+arenas by default, and threads are uniformly distributed among the 
+arenas in order to reduce lock contention.  With sched_getcpu(3) we 
+should be able to effectively use only 1*ncpus arenas.  Furthermore, the 
+application won't have to mess around with thread-->arena associations; 
+instead it can set thread-->CPU affinity as desired, and jemalloc will 
+automatically work well.
+
+Cheers,
+Jason
+
+
+From tmagee at conveycomputer.com  Thu May 12 06:33:49 2011
+From: tmagee at conveycomputer.com (Terrell Magee)
+Date: Thu, 12 May 2011 08:33:49 -0500
+Subject: New Allocator features
+In-Reply-To: <4DCA1428.6000501@canonware.com>
+References: <d724304f3e0e7ce29372f3bb44b25520@mail.gmail.com>
+	<4DCA1428.6000501@canonware.com>
+Message-ID: <5afa08a1f923e85f240a4ce2de3127b0@mail.gmail.com>
+
+The system architecture is a basic NUMA memory system to begin with.
+However, not only is access latency non-uniform, the ability to access all
+nodes does not exist.  One of the nodes contains a coprocessor that plays
+in the global virtual space of a process but requires special APIs for the
+Host processor to access memory on the coprocessor node.  So while
+technically it is possible to access the allocated buffer data, the
+performance of doing so for management purposes makes it undesirable.
+
+-----Original Message-----
+From: Jason Evans [mailto:jasone at canonware.com]
+Sent: Tuesday, May 10, 2011 11:44 PM
+To: Terrell Magee
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: New Allocator features
+
+On 05/10/2011 09:58 AM, Terrell Magee wrote:
+> I have been using jemalloc for the past year with good results.  Our
+> product has a couple of new requirements that I have not come across
+before.
+>
+> 1)The first is the ability to completely segregate control data from
+> allocated data.  This makes the allocator more like a resource manager
+> in that you allocate and mange the resource but have no access to it.
+> The data structure design of jemalloc lends itself fairly well to
+> meeting this requirement.
+
+jemalloc takes advantage of constant-time address masking operations to
+find metadata associated with allocated objects, so although it mostly
+segregates metadata and data, completely abstracting the two away from
+each other would take quite a bit of refactoring, not to mention that it
+would probably slow down the allocator.  Backing up a bit, I'm trying to
+imagine an allocator with this constraint, and it's immediately clear that
+some standard features, like zero-filled memory via calloc(), would not be
+possible.  What do you need such strong separation for?
+
+> 2)The second requirement is focused on multi-node NUMA systems.
+> Consider the requirement to allocate memory on a specified node.  A
+> buffer is returned to the application on the requested node but the
+> application then migrates the data to another node for processing.
+> When the app frees the buffer, it is returned to the allocator's free
+pool.
+> The problem is the memory is now located on the wrong node.
+> Subsequent allocations can result in misplaced data and performance
+anomalies.
+> This behavior is true for any allocator; libc malloc(3), etc.
+
+If you disable thread caches in jemalloc, and you're careful about your
+thread-->arena associations, you will be able to avoid the problem.
+That is, memory is freed back to the arena from which it came, so as long
+as each arena is only ever used for allocation on a single node (and the
+allocated pages are touched before objects are passed to other threads),
+all of that arena's memory will be locally attached.
+
+As an aside, I'm planning to experiment with using sched_getcpu(3) on
+Linux to choose the arena to allocate from.  Right now there are 4*ncpus
+arenas by default, and threads are uniformly distributed among the arenas
+in order to reduce lock contention.  With sched_getcpu(3) we should be
+able to effectively use only 1*ncpus arenas.  Furthermore, the application
+won't have to mess around with thread-->arena associations; instead it can
+set thread-->CPU affinity as desired, and jemalloc will automatically work
+well.
+
+Cheers,
+Jason
+
+
+From jakob.blomer at cern.ch  Fri May 20 02:51:47 2011
+From: jakob.blomer at cern.ch (Jakob Blomer)
+Date: Fri, 20 May 2011 11:51:47 +0200
+Subject: 64bit Literals
+Message-ID: <4DD639B3.8080709@cern.ch>
+
+Hi,
+
+in jemalloc 2.2.1, there are two spots using 64bit literals without 
+specifying them as such.  It is in include/jemalloc/internal/hash.h:29 
+and in src/ckh.c:559.  Is this intended?
+
+Cheers,
+Jakob
+
+
+From jasone at canonware.com  Sun May 22 10:51:49 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 22 May 2011 10:51:49 -0700
+Subject: 64bit Literals
+In-Reply-To: <4DD639B3.8080709@cern.ch>
+References: <4DD639B3.8080709@cern.ch>
+Message-ID: <4DD94D35.1030209@canonware.com>
+
+On 05/20/2011 02:51 AM, Jakob Blomer wrote:
+> in jemalloc 2.2.1, there are two spots using 64bit literals without
+> specifying them as such. It is in include/jemalloc/internal/hash.h:29
+> and in src/ckh.c:559. Is this intended?
+
+These were unintentional; thanks for pointing them out.  I found a third 
+instance in src/prof.c, and fixed all three on the dev branch.
+
+Thanks,
+Jason
+
+
+From wong111 at llnl.gov  Thu May 26 15:57:48 2011
+From: wong111 at llnl.gov (Wong, Daniel)
+Date: Thu, 26 May 2011 15:57:48 -0700
+Subject: Restore bookkeeping data structures across program runs
+Message-ID: <CA0428FC.5C7%wong111@llnl.gov>
+
+Hi,
+I noticed that when jemalloc initializes, book keeping data structures are stored to main memory. When I enable swap, any new allocations to book keeping data structures (for example, the red black tree) are in the swap area. I want to modify jemalloc so that I can restore the book keeping data structures from the swap file across program runs so that I can still call free(), etc. I?m currently trying to see if calling chunk_swap_enable before malloc_init_hard would do the trick, but this seems really hackish. Do you have a suggestion for a better approach? Any help would be appreciated.
+
+Thank you.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110526/e4fdc8d3/attachment.html>
+

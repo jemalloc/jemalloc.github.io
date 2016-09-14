@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> allocating memory above 2GB
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20allocating%20memory%20above%202GB&In-Reply-To=%3C530B9BB9.3090307%40neomantra.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000739.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>allocating memory above 2GB</H1>
+    <B>Evan Wies</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20allocating%20memory%20above%202GB&In-Reply-To=%3C530B9BB9.3090307%40neomantra.net%3E"
+       TITLE="allocating memory above 2GB">evan at neomantra.net
+       </A><BR>
+    <I>Mon Feb 24 11:21:29 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000739.html">allocating memory above 2GB
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#740">[ date ]</a>
+              <a href="thread.html#740">[ thread ]</a>
+              <a href="subject.html#740">[ subject ]</a>
+              <a href="author.html#740">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 2/14/14, 6:53 PM, Jason Evans wrote:
+&gt;<i> On Feb 14, 2014, at 1:52 PM, Evan Wies&lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">evan at neomantra.net</A>&gt;  wrote:
+</I>&gt;&gt;<i> Is it possible to allocate memory in a defined region, specifically anywhere above the first 2GB?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I see that mallocx with ALLOCM_ALIGN allows one to specify a base address aligned to a power of 2.  Can I grab a bunch of memory that way and somehow tell an arena to use that space and then always mallocx with that arena?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm in the midst of writing a LuaJIT [1] binding to jemalloc, and have successfully allocated memory aligned to 2^31 but can't figure out the next step -- short of writing my own allocator to dole out jemalloc-allocated memory.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Context:
+</I>&gt;&gt;<i> LuaJIT, a Lua Just-In-Time compiler, can itself only allocate memory in the lower portions of memory (&lt;1GB, &lt;2GB, &lt;4GB depending on platform).   One can get around this limitation by using its FFI to allocate memory for FFI-bound C structures, however allocating these in the lower regions effectively &quot;steals&quot; available memory from the LuaJIT VM for Lua objects.   I want to ensure maximum available memory for the LuaJIT by allocating all my objects outside this area.
+</I>&gt;<i> By default jemalloc prefers mmap() over sbrk() when allocating memory, which for 64-bit systems means that it won't allocate the low memory LuaJIT wants until mmap() fails.  On 32-bit systems, I think there are non-trivial differences between operating systems in terms of where mmap() will place anonymous mappings; IIRC FreeBSD uses a fixed (but tunable) amount of memory for sbrk(), whereas Linux allows sbrk() and mmap() to collide (but I don't remember where code gets mapped, so the practical result may be similar to FreeBSD).  I suspect that jemalloc's preference for mmap() will be sufficient for all but the most memory-hungry Lua applications, even on 32-bit systems.  Take a look at where jemalloc is actually allocating memory from; it's probably above where code is mapped.
+</I>&gt;<i>
+</I>&gt;<i> If you want to get hacky, you can build jemalloc with munmap() usage disabled, temporarily sbrk() all the low memory LuaJIT could possibly want, then temporarily allocate all the malloc()ed memory you could possibly want, then release both.  The result will be that jemalloc has a pool of cached chunks that can't have come from low memory.
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>Jason,
+
+Thanks for this prompt reply.   I did as you suggested and the default 
+behavior works well, especially on Linux.   I put my research up here:
+<A HREF="https://gist.github.com/neomantra/9122165">https://gist.github.com/neomantra/9122165</A>
+
+Here's the LuaJIT binding to jemalloc:
+<A HREF="https://github.com/neomantra/luajit-jemalloc">https://github.com/neomantra/luajit-jemalloc</A>
+
+I've switched most of my allocations to jemalloc and have relieved 
+myself of most out-of-memory errors (for LuaJIT) and improved (shorter) 
+run times.   I'm pretty psyched about this :)
+
+Regards,
+Evan
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000739.html">allocating memory above 2GB
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#740">[ date ]</a>
+              <a href="thread.html#740">[ thread ]</a>
+              <a href="subject.html#740">[ subject ]</a>
+              <a href="author.html#740">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

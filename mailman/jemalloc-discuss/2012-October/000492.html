@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C387B3CEF-78CF-4E9D-A3B1-BC6390C0F314%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000491.html">
+   <LINK REL="Next"  HREF="000493.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C387B3CEF-78CF-4E9D-A3B1-BC6390C0F314%40canonware.com%3E"
+       TITLE="Memory usage regression">jasone at canonware.com
+       </A><BR>
+    <I>Tue Oct 30 16:35:53 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000491.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000493.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#492">[ date ]</a>
+              <a href="thread.html#492">[ thread ]</a>
+              <a href="subject.html#492">[ subject ]</a>
+              <a href="author.html#492">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 30, 2012, at 12:49 PM, Jason Evans wrote:
+&gt;<i> The preference for allocating dirty runs was a solution to excessive dirty page purging.  However, the purging policy (as of jemalloc 3.0.0) is round-robin, justified only as a strategy for allowing dirty pages to accumulate in chunks before going to the considerable effort (including arena mutex operations) of scanning a chunk for dirty pages.  In retrospect I'm thinking maybe this was a bad choice, and that we should go back to scanning downward through memory to purge dirty pages.  The danger is that the linear scanning overhead for scanning each chunk will cause a measurable performance degradation if high chunks routinely have many runs, only a few of which are unused dirty runs.  I think that problem can be solved with slightly more sophisticated hysteresis though.
+</I>&gt;<i> 
+</I>&gt;<i> I'll work on a diff for you to test, and see how it affects Firefox.  I'll do some testing with Facebook server loads too (quite different behavior from Firefox).  If this causes a major reduction in virtual memory usage for both workloads, it's probably the right thing to do, even speed-wise.
+</I>
+Here's a very lightly tested patch.  Apologies if it's buggy, but I'm out of time for today.
+
+Jason
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: purge.patch
+Type: application/octet-stream
+Size: 8100 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121030/be917236/attachment.obj">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121030/be917236/attachment.obj</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000491.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000493.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#492">[ date ]</a>
+              <a href="thread.html#492">[ thread ]</a>
+              <a href="subject.html#492">[ subject ]</a>
+              <a href="author.html#492">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

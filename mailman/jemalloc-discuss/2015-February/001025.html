@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> one quesiton about the src code of jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20one%20quesiton%20about%20the%20src%20code%20of%20jemalloc&In-Reply-To=%3CDB9BE609E8045144B6CD809B8DD0BA86372588A5%40CNSHJMBX04.ad4.ad.alcatel.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001059.html">
+   <LINK REL="Next"  HREF="001026.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>one quesiton about the src code of jemalloc</H1>
+    <B>HOU Zhengkun</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20one%20quesiton%20about%20the%20src%20code%20of%20jemalloc&In-Reply-To=%3CDB9BE609E8045144B6CD809B8DD0BA86372588A5%40CNSHJMBX04.ad4.ad.alcatel.com%3E"
+       TITLE="one quesiton about the src code of jemalloc">Zhengkun.Hou at alcatel-lucent.com
+       </A><BR>
+    <I>Thu Feb  5 16:51:27 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001059.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001026.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1025">[ date ]</a>
+              <a href="thread.html#1025">[ thread ]</a>
+              <a href="subject.html#1025">[ subject ]</a>
+              <a href="author.html#1025">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi, all
+when i read the src code of jemalloc of redis, i'm confused for below code in malloc_init_hard() function. do you know what's mean of IS_INITIALIZER, it said that it for: this thread is the initializing thread, and it is recursively allocating. what's the mean of the sentence? could you take an example for it? another question is if one thread is initializing, and this thread will wait for init_lock, after that thread finish the initializing. then the malloc_initialized will be set to true. then this thread will return false. but malloc_init_hard in invoked by je_malloc, so for this thread the je_malloc will be return false? and then allocated fail???? thanks for your time.
+static bool
+malloc_init_hard(void)
+{
+arena_t *init_arenas[1];
+malloc_mutex_lock(&amp;init_lock);
+if (malloc_initialized || IS_INITIALIZER) {
+* Another thread initialized the allocator before this one
+* acquired init_lock, or this thread is the initializing
+* thread, and it is recursively allocating.
+*/
+malloc_mutex_unlock(&amp;init_lock);
+return (false);
+}
+void *
+je_malloc(size_t size)
+{
+void *ret;
+size_t usize JEMALLOC_CC_SILENCE_INIT(0);
+prof_thr_cnt_t *cnt JEMALLOC_CC_SILENCE_INIT(NULL);
+if (malloc_init()) {
+    ret = NULL;
+    goto label_oom;
+}
+label_oom:
+if (ret == NULL) {
+if (config_xmalloc &amp;&amp; opt_xmalloc) {
+malloc_write(&quot;: Error in malloc(): &quot;
+&quot;out of memory\n&quot;);
+abort();
+}
+set_errno(ENOMEM);
+}
+if (config_prof &amp;&amp; opt_prof &amp;&amp; ret != NULL)
+prof_malloc(ret, usize, cnt);
+if (config_stats &amp;&amp; ret != NULL) {
+assert(usize == isalloc(ret, config_prof));
+thread_allocated_tsd_get()-&gt;allocated += usize;
+}
+UTRACE(0, size, ret);
+JEMALLOC_VALGRIND_MALLOC(ret != NULL, ret, usize, false);
+return (ret);
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150206/42f3ba91/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150206/42f3ba91/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001059.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001026.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1025">[ date ]</a>
+              <a href="thread.html#1025">[ thread ]</a>
+              <a href="subject.html#1025">[ subject ]</a>
+              <a href="author.html#1025">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

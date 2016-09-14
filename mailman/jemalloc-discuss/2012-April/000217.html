@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Crash in arenas_cleanup on linux x86-64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20in%20arenas_cleanup%20on%20linux%20x86-64&In-Reply-To=%3C90B572E3-DCBA-4158-A705-82889259A09A%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000220.html">
+   <LINK REL="Next"  HREF="000221.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Crash in arenas_cleanup on linux x86-64</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20in%20arenas_cleanup%20on%20linux%20x86-64&In-Reply-To=%3C90B572E3-DCBA-4158-A705-82889259A09A%40canonware.com%3E"
+       TITLE="Crash in arenas_cleanup on linux x86-64">jasone at canonware.com
+       </A><BR>
+    <I>Mon Apr  2 13:59:18 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000220.html">[PATCH] Avoid NULL check in je_free
+</A></li>
+        <LI>Next message: <A HREF="000221.html">Jemalloc stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#217">[ date ]</a>
+              <a href="thread.html#217">[ thread ]</a>
+              <a href="subject.html#217">[ subject ]</a>
+              <a href="author.html#217">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 31, 2012, at 12:12 AM, Mike Hommey wrote:
+&gt;<i> Before I forget, I'll just mention that malloc_printf fails when
+</I>&gt;<i> building with --enable-debug, and using %p for a NULL pointer, because
+</I>&gt;<i> its implementation prints &quot;0x0&quot;, but vsnprintf printfs &quot;(nil)&quot;, so the
+</I>&gt;<i> asserts to compare vsnprintf output fail.
+</I>
+The &quot;(nil)&quot; output is a glibc-ism, so matching output on all platforms would require some conditional logic.  I just ripped out the validation code to keep the mess from getting even bigger.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000220.html">[PATCH] Avoid NULL check in je_free
+</A></li>
+	<LI>Next message: <A HREF="000221.html">Jemalloc stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#217">[ date ]</a>
+              <a href="thread.html#217">[ thread ]</a>
+              <a href="subject.html#217">[ subject ]</a>
+              <a href="author.html#217">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

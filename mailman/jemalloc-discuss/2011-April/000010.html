@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Configuring jemalloc on FreeBSD.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Configuring%20jemalloc%20on%20FreeBSD.&In-Reply-To=%3CBANLkTikZ3X6uFS0V5JTgaMAx4Z_T5gAT_A%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000009.html">
+   <LINK REL="Next"  HREF="000011.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Configuring jemalloc on FreeBSD.</H1>
+    <B>Mahadevan R</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Configuring%20jemalloc%20on%20FreeBSD.&In-Reply-To=%3CBANLkTikZ3X6uFS0V5JTgaMAx4Z_T5gAT_A%40mail.gmail.com%3E"
+       TITLE="Configuring jemalloc on FreeBSD.">mdevan.foobar at gmail.com
+       </A><BR>
+    <I>Sat Apr 16 09:10:30 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000009.html">Persistent Memory Allocator
+</A></li>
+        <LI>Next message: <A HREF="000011.html">Configuring jemalloc on FreeBSD.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#10">[ date ]</a>
+              <a href="thread.html#10">[ thread ]</a>
+              <a href="subject.html#10">[ subject ]</a>
+              <a href="author.html#10">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi.
+
+jemalloc 2.2.1 tarball fails to ./configure on FreeBSD 8.2 (!),
+because of attempting to check for dlopen() in libdl (this is in libc
+for FreeBSD). The patch below fixes this.
+
+Cheers,
+-Mahadevan.
+
+diff --git a/jemalloc/configure.ac b/jemalloc/configure.ac
+index 412d3d1..c543f2d 100644
+--- a/jemalloc/configure.ac
++++ b/jemalloc/configure.ac
+@@ -727,8 +727,8 @@ fi
+ )
+ if test &quot;x$enable_lazy_lock&quot; = &quot;x1&quot; ; then
+   AC_CHECK_HEADERS([dlfcn.h], , [AC_MSG_ERROR([dlfcn.h is missing])])
+-  AC_CHECK_LIB([dl], [dlopen], [LIBS=&quot;$LIBS -ldl&quot;],
+-               [AC_MSG_ERROR([libdl is missing])])
++  AC_SEARCH_LIBS([dlopen], [dl], ,
++               [AC_MSG_ERROR([dlopen not found anywhere])])
+   AC_DEFINE([JEMALLOC_LAZY_LOCK], [ ])
+ fi
+ AC_SUBST([enable_lazy_lock])
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000009.html">Persistent Memory Allocator
+</A></li>
+	<LI>Next message: <A HREF="000011.html">Configuring jemalloc on FreeBSD.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#10">[ date ]</a>
+              <a href="thread.html#10">[ thread ]</a>
+              <a href="subject.html#10">[ subject ]</a>
+              <a href="author.html#10">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

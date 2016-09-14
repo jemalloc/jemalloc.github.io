@@ -1,0 +1,74 @@
+From peter at bourgon.org  Wed Dec  7 06:46:16 2011
+From: peter at bourgon.org (Peter Bourgon)
+Date: Wed, 7 Dec 2011 15:46:16 +0100
+Subject: jemalloc+zeromq segfault
+Message-ID: <CAFm1DRG9gCWAJKD3+JaVejSnnTO3pWMNYECHPb_3t6zRn+Fqpw@mail.gmail.com>
+
+I'm running jemalloc 2.2.4 with ?MQ 2.1.7. I've got a very sporadic
+segfault occurring in zmq_msg_close, while freeing a previously
+allocated message structure. The allocating and deallocating threads
+may be different, but the memory is definitely protected by a mutex.
+The segfault is only occurring under high load, and is unfortunately
+not (yet) easily reproducible.
+
+Just a shot in the dark, but has anyone seen anything like this?
+
+Backtrace follows. Thanks.
+
+__________
+#0  0x00007f6850cdd81a in free (ptr=0x7f6623688780) at
+include/jemalloc/internal/tcache.h:373
+373 include/jemalloc/internal/tcache.h: No such file or directory.
+    in include/jemalloc/internal/tcache.h
+(gdb) bt
+#0  0x00007f6850cdd81a in free (ptr=0x7f6623688780) at
+include/jemalloc/internal/tcache.h:373
+#1  0x00007f68501763f9 in zmq_msg_close (msg_=0x47d70bc0) at zmq.cpp:153
+#2  0x0000000000423206 in buffer_read_message_from_socket
+(socket=0x7f684180e200) at ../src/broker.c:579
+#3  0x0000000000423d77 in broker_thread (arg=0x0) at ../src/broker.c:828
+#4  0x00007f68507c5fc7 in start_thread () from /lib/libpthread.so.0
+#5  0x00007f684e26e64d in clone () from /lib/libc.so.6
+#6  0x0000000000000000 in ?? ()
+
+
+From tfengjun at gmail.com  Fri Dec 30 23:50:02 2011
+From: tfengjun at gmail.com (jokea)
+Date: Sat, 31 Dec 2011 15:50:02 +0800
+Subject: jemalloc problem when working with dynamic library
+Message-ID: <4EFEBEAA.4080802@gmail.com>
+
+What's the recommend way of using jemalloc with dynamic library?
+
+I have a program which loads/unloads a liba.so many times using dlopen and dlclose.
+The program starts with, say liba.so.1.0.0, and every time when I update the dynamic library,
+say now it's liba.so.1.0.1, I send a message to the program, so it will call dlclose for liba.so.1.0.0 and
+load the new liba.so.1.0.1 with dlopen. By doing this I get zero downtime while doing upgrade.
+
+The code in liba.so contains many memory allocations and jemalloc(2.2.5) works better than tcmalloc and the
+glibc's default malloc.
+
+1. First I linked jemalloc against liba.so by compiling jemalloc using -fPIC flag.
+However, after about 50 times of load/unload, dlopen returns an error:
+"cannot allocate memory in static TLS block".
+After some googling, I went to approach #2.
+
+2. I compiled jemalloc using --disable-tls flag and the problem no longer exists(I'm not sure
+disable tls will impact performance or not). However, this led to another problem,
+after each load/unload, the memory usage of the program grows continuesly and eventually it aborted with error:
+"<jemalloc>: Error in pthread_key_create()"
+and malloc returns NULL when the program's RSS reaches about 90MB, but there are plenty of free memory on
+the server when this happens.
+
+3. Then I compiled jemalloc without -fPIC and --disable-tls flag and linked it against main, it works fine
+this time. But in this way, I can not upgrade jemalloc if there's a newer version without terminating the main program.
+
+So I'm wondering if #3 is the only right way to use jemalloc in such situation, and if I'm doing anything wrong
+in #1 and #2.
+
+
+Thanks,
+Jokea
+
+
+

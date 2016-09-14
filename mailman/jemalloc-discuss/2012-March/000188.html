@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 2/2] Avoid crashes when system libraries use the purgeable	zone allocator
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/2%5D%20Avoid%20crashes%20when%20system%20libraries%20use%20the%20purgeable%0A%09zone%20allocator&In-Reply-To=%3C1332850813-10182-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000206.html">
+   <LINK REL="Next"  HREF="000195.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 2/2] Avoid crashes when system libraries use the purgeable	zone allocator</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/2%5D%20Avoid%20crashes%20when%20system%20libraries%20use%20the%20purgeable%0A%09zone%20allocator&In-Reply-To=%3C1332850813-10182-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 2/2] Avoid crashes when system libraries use the purgeable	zone allocator">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Mar 27 05:20:13 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000206.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+        <LI>Next message: <A HREF="000195.html">[PATCH 2/2] Avoid crashes when system libraries use the purgeable	zone allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#188">[ date ]</a>
+              <a href="thread.html#188">[ thread ]</a>
+              <a href="subject.html#188">[ subject ]</a>
+              <a href="author.html#188">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ src/zone.c |   21 +++++++++++++++++++++
+ 1 files changed, 21 insertions(+), 0 deletions(-)
+
+diff --git a/src/zone.c b/src/zone.c
+index 4b6c75e..d5eae46 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -3,6 +3,13 @@
+ #  error &quot;This source file is for zones on Darwin (OS X).&quot;
+ #endif
+ 
++/*
++ * The malloc_default_purgeable_zone function is only available on &gt;= 10.6.
++ * We need to check whether it is present at runtime, thus the weak_import.
++ */
++extern malloc_zone_t *malloc_default_purgeable_zone(void)
++JEMALLOC_ATTR(weak_import);
++
+ /******************************************************************************/
+ /* Data. */
+ 
+@@ -207,6 +214,20 @@ register_zone(void)
+ #endif
+ #endif
+ 
++	/*
++	 * The default purgeable zone is created lazily by OSX's libc. It uses
++	 * the default zone when it is created for &quot;small&quot; allocations
++	 * (&lt; 15 KiB), but assumes the default zone is a scalable_zone. This
++	 * obviously fails when the default zone is the jemalloc zone, so
++	 * malloc_default_purgeable_zone is called beforehand so that the
++	 * default purgeable zone is create when the default zone is still
++	 * a scalable_zone.
++	 * As purgeable zones only exist on &gt;= 10.6, we need to check for the
++	 * function existence at runtime.
++	 */
++	if (malloc_default_purgeable_zone)
++		malloc_default_purgeable_zone();
++
+ 	/* Register the custom zone. At this point it won't be the default. */
+ 	malloc_zone_register(&amp;zone);
+ 
+-- 
+1.7.9.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000206.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+	<LI>Next message: <A HREF="000195.html">[PATCH 2/2] Avoid crashes when system libraries use the purgeable	zone allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#188">[ date ]</a>
+              <a href="thread.html#188">[ thread ]</a>
+              <a href="subject.html#188">[ subject ]</a>
+              <a href="author.html#188">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

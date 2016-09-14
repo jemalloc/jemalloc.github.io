@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc stats
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20stats&In-Reply-To=%3C20120403162121.GA16074%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000217.html">
+   <LINK REL="Next"  HREF="000222.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc stats</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20stats&In-Reply-To=%3C20120403162121.GA16074%40glandium.org%3E"
+       TITLE="Jemalloc stats">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr  3 09:21:21 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000217.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+        <LI>Next message: <A HREF="000222.html">Jemalloc stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#221">[ date ]</a>
+              <a href="thread.html#221">[ thread ]</a>
+              <a href="subject.html#221">[ subject ]</a>
+              <a href="author.html#221">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Mar 22, 2012 at 11:22:03AM -0700, Jason Evans wrote:
+&gt;<i> On Mar 22, 2012, at 11:03 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt; In Firefox, we're tracking some of the stats provided by our fork of
+</I>&gt;<i> &gt; jemalloc. One of them is: - HeapCommitted - Memory mapped by the
+</I>&gt;<i> &gt; heap allocator that is committed, i.e. in physical memory or paged
+</I>&gt;<i> &gt; to disk.  When heap-committed is larger than heap-allocated, the
+</I>&gt;<i> &gt; difference between the two values is likely due to external
+</I>&gt;<i> &gt; fragmentation; that is, the allocator allocated a large block of
+</I>&gt;<i> &gt; memory and is unable to decommit it because a small part of that
+</I>&gt;<i> &gt; block is currently in use.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; It would seem like this could match stats.active, but i'm not
+</I>&gt;<i> &gt; entirely sure it is the case. In particular, we don't count madvised
+</I>&gt;<i> &gt; pages in that metric, but it would seem stats.active does, although
+</I>&gt;<i> &gt; I haven't dug deep enough yet.
+</I>&gt;<i> 
+</I>&gt;<i> stats.active tracks all pages with active application allocations in
+</I>&gt;<i> them.  It does not include dirty unused pages for which madvise() has
+</I>&gt;<i> not yet been called, nor does it include pages that are entirely
+</I>&gt;<i> devoted to allocator metadata.
+</I>
+So essentially, what we are currently tracking as committed, which
+doesn't include metadata, would be
+stats.active + stats.arenas.&lt;i&gt;.pdirty for each arena
+
+I'm starting to think it would be convenient to have special variables
+that return the sum of the corresponding variables for all arenas.
+Something like stats.arenas.pdirty that would be the sum of all
+stats.arenas.&lt;i&gt;.pdirty.
+
+Another thing we do in that committed number is that we only count pages
+for huge allocations instead of complete chunks. If you allocate
+chunk_size + a few pages, stats.active will count 2 * chunk_size, while
+what we are after is chunk_size + a few pages. As I'm considering
+pushing this upstream, I would like to know whether you'd rather this be
+done in stats.active, or a separate variable.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000217.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+	<LI>Next message: <A HREF="000222.html">Jemalloc stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#221">[ date ]</a>
+              <a href="thread.html#221">[ thread ]</a>
+              <a href="subject.html#221">[ subject ]</a>
+              <a href="author.html#221">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

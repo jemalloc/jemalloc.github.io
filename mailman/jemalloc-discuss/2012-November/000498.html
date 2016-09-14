@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C6411284A-42F7-4B61-9522-BD682AF84A5B%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000500.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C6411284A-42F7-4B61-9522-BD682AF84A5B%40canonware.com%3E"
+       TITLE="Memory usage regression">jasone at canonware.com
+       </A><BR>
+    <I>Thu Nov  1 12:23:27 PDT 2012</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000500.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#498">[ date ]</a>
+              <a href="thread.html#498">[ thread ]</a>
+              <a href="subject.html#498">[ subject ]</a>
+              <a href="author.html#498">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 31, 2012, at 12:00 AM, Mike Hommey wrote:
+&gt;<i> On Tue, Oct 30, 2012 at 04:35:53PM -0700, Jason Evans wrote:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Here's a very lightly tested patch.  Apologies if it's buggy, but I'm
+</I>&gt;&gt;<i> out of time for today.
+</I>&gt;<i> 
+</I>&gt;<i> It's unfortunately only slightly better.
+</I>&gt;<i> <A HREF="http://i.imgur.com/hN1Cj.png">http://i.imgur.com/hN1Cj.png</A>
+</I>
+Thanks for testing it.  Too bad it didn't help.
+
+I spent some time yesterday thinking about the clean vs. dirty run fragmentation problem yesterday and came to realize that up to now all of the dirty page purging strategies jemalloc has employed have been about limiting RSS, with only indirect regard for VM size.  I developed a patch that actually tracks the amount of clean/dirty run fragmentation, but I'm still working out how to act on the information.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000500.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#498">[ date ]</a>
+              <a href="thread.html#498">[ thread ]</a>
+              <a href="subject.html#498">[ subject ]</a>
+              <a href="author.html#498">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

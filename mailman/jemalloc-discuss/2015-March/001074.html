@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Live allocation iterator
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Live%20allocation%20iterator&In-Reply-To=%3C0D554B36-8244-45DB-B359-67872FD4F051%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001073.html">
+   <LINK REL="Next"  HREF="001075.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Live allocation iterator</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Live%20allocation%20iterator&In-Reply-To=%3C0D554B36-8244-45DB-B359-67872FD4F051%40canonware.com%3E"
+       TITLE="Live allocation iterator">jasone at canonware.com
+       </A><BR>
+    <I>Tue Mar 24 10:46:52 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001073.html">Live allocation iterator
+</A></li>
+        <LI>Next message: <A HREF="001075.html">Live allocation iterator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1074">[ date ]</a>
+              <a href="thread.html#1074">[ thread ]</a>
+              <a href="subject.html#1074">[ subject ]</a>
+              <a href="author.html#1074">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 24, 2015, at 6:53 AM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+&gt;<i> If this is not possible ( I see an old post which says jemalloc does not have this infra but that was back in 2012 ). Is it possible to iterate over just an arena and dump all allocations in it  ? Basically, I have memory pool implemented on top of jemalloc which holds metadata about all other allocations jemalloc does, if I can iterate over this arena and get hold of metadata, I can get hold of each allocation as well. 
+</I>&gt;<i> 
+</I>&gt;<i> Any thoughts would be appreciated. 
+</I>&gt;<i> 
+</I>&gt;<i> On Tue, Mar 24, 2015 at 5:28 PM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A> &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt;&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> My use case is to walk through all live allocations ( the ones which are not freed yet) of all sizes the program ever made and dump it as the end of the program or on demand. I have looked at stats but I want something with even more details. Basically, the function should be able to iterate through all arenas and print details on following lines:
+</I>&gt;<i> 
+</I>&gt;<i> arena = 1 base = 0x7fd7beb88800 size = 15 bytes etc
+</I>&gt;<i> 
+</I>&gt;<i> Is there any api in jemalloc which already does subset of this  ? Any pointers will be helpful. 
+</I>
+jemalloc doesn't support iteration over live allocations, and it's unlikely to ever directly support iteration, because the feature imposes nontrivial additional complexity for limited benefit.  The closest thing under consideration is <A HREF="https://github.com/jemalloc/jemalloc/issues/203">https://github.com/jemalloc/jemalloc/issues/203</A> &lt;<A HREF="https://github.com/jemalloc/jemalloc/issues/203">https://github.com/jemalloc/jemalloc/issues/203</A>&gt;, but I don't plan to work on that until at least next year.
+
+Does your use case allow you to wrap the allocator and keep a side table which supports iteration, or can you trace allocation activity and post-process it?
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150324/bfab44d4/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150324/bfab44d4/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001073.html">Live allocation iterator
+</A></li>
+	<LI>Next message: <A HREF="001075.html">Live allocation iterator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1074">[ date ]</a>
+              <a href="thread.html#1074">[ thread ]</a>
+              <a href="subject.html#1074">[ subject ]</a>
+              <a href="author.html#1074">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> assertion pageind &gt;= map_bias
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20assertion%20pageind%20%3E%3D%20map_bias&In-Reply-To=%3CCA%2BRAKy7tTFWYg7JNpN4Q9oHZZ%3D3d6_2e%2BJhUHzWqafGQfpnpZA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001131.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>assertion pageind &gt;= map_bias</H1>
+    <B>marko at kevac.org</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20assertion%20pageind%20%3E%3D%20map_bias&In-Reply-To=%3CCA%2BRAKy7tTFWYg7JNpN4Q9oHZZ%3D3d6_2e%2BJhUHzWqafGQfpnpZA%40mail.gmail.com%3E"
+       TITLE="assertion pageind &gt;= map_bias">marko at kevac.org
+       </A><BR>
+    <I>Mon Aug  3 16:02:10 PDT 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001131.html">assertion pageind &gt;= map_bias
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1127">[ date ]</a>
+              <a href="thread.html#1127">[ thread ]</a>
+              <a href="subject.html#1127">[ subject ]</a>
+              <a href="author.html#1127">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi.
+
+We are using jemalloc in our internal project and we have been experiencing
+very strange memory corruptions lately, so we decided to build jemalloc
+with --enable-debug and --enable-fill and give it a try.
+
+Also, we used this env variable:
+MALLOC_CONF=tcache:false,redzone:true,stats_print:true
+
+jemalloc version is 3.6.0
+
+This is what we are seeing in logs:
+
+&lt;jemalloc&gt;: include/jemalloc/internal/arena.h:508: Failed assertion:
+&quot;pageind &gt;= map_bias&quot;
+
+Can you tell us anything about this assertion?
+Is there a way this could happen? Is it a possible bug in jemalloc or is it
+more likely that this is some random corruption in internal
+jemalloc structures?
+
+Thank you.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150803/41a525f7/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150803/41a525f7/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001131.html">assertion pageind &gt;= map_bias
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1127">[ date ]</a>
+              <a href="thread.html#1127">[ thread ]</a>
+              <a href="subject.html#1127">[ subject ]</a>
+              <a href="author.html#1127">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

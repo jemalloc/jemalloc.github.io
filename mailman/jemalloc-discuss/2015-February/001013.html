@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150203225117.GA26491%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001024.html">
+   <LINK REL="Next"  HREF="001014.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150203225117.GA26491%40glandium.org%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">mh at glandium.org
+       </A><BR>
+    <I>Tue Feb  3 14:51:17 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001024.html">Jemalloc debug mode
+</A></li>
+        <LI>Next message: <A HREF="001014.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1013">[ date ]</a>
+              <a href="thread.html#1013">[ thread ]</a>
+              <a href="subject.html#1013">[ subject ]</a>
+              <a href="author.html#1013">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I've been tracking a startup time regression in Firefox for Android when
+we tried to switch from mozjemalloc (memory refresher: it's derived from
+jemalloc 0.9) to mostly current jemalloc dev.
+
+It turned out to be <A HREF="https://github.com/jemalloc/jemalloc/pull/192">https://github.com/jemalloc/jemalloc/pull/192</A> but in
+the process I found a few interesting things that I thought are worth
+mentioning:
+
+- Several changesets between 3.6 and current dev made the number of
+  instructions as reported by perf stat on GNU/Linux x86-64 increase
+  significantly, on a ~200k alloc/dealloc testcase that does nothing
+  else[1]:
+  - 5460aa6f6676c7f253bfcb75c028dfd38cae8aaf made the count go from
+  69M to 76M.
+  - 6ef80d68f092caf3b3802a73b8d716057b41864c from 76M to 81.5M
+  - 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 from 81.5M to 85M
+  - 155bfa7da18cab0d21d87aa2dce4554166836f5d from 85M to 88M
+  I didn't investigate further because it was a red herring as far as
+  the regression I was tracking was concerned.
+
+- The average number of mutex lock per alloc/dealloc is close to 1 with
+  mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as above).
+  Fortunately, contention is likely lower (I measured it to be lower, but
+  the instrumentation had so much overhead that it may have skewed the
+  results), but pthread_mutex_lock/unlock are not free as far as
+  instruction count is concerned.
+
+Cheers,
+
+Mike
+
+1. That testcase is derived from a dump of the allocations happening
+during a Firefox for Android startup.
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001024.html">Jemalloc debug mode
+</A></li>
+	<LI>Next message: <A HREF="001014.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1013">[ date ]</a>
+              <a href="thread.html#1013">[ thread ]</a>
+              <a href="subject.html#1013">[ subject ]</a>
+              <a href="author.html#1013">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

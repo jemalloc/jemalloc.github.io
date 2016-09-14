@@ -1,0 +1,5 @@
+<tt>
+The&nbsp;value&nbsp;associated&nbsp;with&nbsp;arenas_tsd&nbsp;is&nbsp;set&nbsp;before&nbsp;the&nbsp;key&nbsp;is&nbsp;created.&nbsp; This&nbsp;can&nbsp;corrupt&nbsp;some&nbsp;other&nbsp;library&nbsp;that&nbsp;is&nbsp;using&nbsp;key&nbsp;0.&nbsp; Attached&nbsp;is&nbsp;a&nbsp;program&nbsp;that&nbsp;demonstrates&nbsp;the&nbsp;problem&nbsp;and&nbsp;a&nbsp;proposed&nbsp;fix&nbsp;to&nbsp;the&nbsp;problem.&nbsp; We&nbsp;are&nbsp;not&nbsp;experts&nbsp;on&nbsp;jemalloc&nbsp;internals,&nbsp;and&nbsp;we&nbsp;would&nbsp;appreciate&nbsp;any&nbsp;feedback&nbsp;about&nbsp;the&nbsp;fix. &lt;div&gt;<br>
+&lt;br&gt;&lt;/div&gt;&lt;div&gt;Run&nbsp;&quot;make&nbsp;check_arena_key&quot;&nbsp;to&nbsp;reproduce&nbsp;the&nbsp;crash.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;See&nbsp;jemalloc.c&nbsp;for&nbsp;the&nbsp;fix.&lt;/div&gt;<br>
+
+</tt>

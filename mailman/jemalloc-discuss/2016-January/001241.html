@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> question about Jemalloc purging order
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20question%20about%20Jemalloc%20purging%20order&In-Reply-To=%3Cceb0c14.4e1a.15233f3783a.Coremail.mmzsmm%40163.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001238.html">
+   <LINK REL="Next"  HREF="001237.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>question about Jemalloc purging order</H1>
+    <B>mmzsmm</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20question%20about%20Jemalloc%20purging%20order&In-Reply-To=%3Cceb0c14.4e1a.15233f3783a.Coremail.mmzsmm%40163.com%3E"
+       TITLE="question about Jemalloc purging order">mmzsmm at 163.com
+       </A><BR>
+    <I>Mon Jan 11 19:49:00 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001238.html">question about Jemalloc purging order
+</A></li>
+        <LI>Next message: <A HREF="001237.html">[PATCH v2] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1241">[ date ]</a>
+              <a href="thread.html#1241">[ thread ]</a>
+              <a href="subject.html#1241">[ subject ]</a>
+              <a href="author.html#1241">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jason,
+
+Thank you so much for the reply. I read the code once again, but I still don't understand the calculations here.
+The original dirty chunk cmp function is,
+
+static inline int
+arena_chunk_dirty_comp(arena_chunk_t *a, arena_chunk_t *b)
+{
+        ......
+        size_t a_val = (a-&gt;nruns_avail - a-&gt;nruns_adjac) *
+            b-&gt;nruns_avail;
+        size_t b_val = (b-&gt;nruns_avail - b-&gt;nruns_adjac) *
+            a-&gt;nruns_avail;
+
+        if (a_val &lt; b_val)
+            return (1);
+        if (a_val &gt; b_val)
+            return (-1);
+
+        ......
+}
+
+In the case as we mentioned above, how do you get a_val = 0.45 and b_val = 1.5?
+Is it because a_val = (10 - 1) / 20; b_val = (20 - 5) / 10?
+But according to the code, a_val = (10 - 1) * 20, and b_val = (20 - 5) * 10, so it should return (-1)?
+
+And I trace the code in a demo, that makes me more confusing...
+At first, I set the breakpoint at arena_chunk_dirty_first() when the Je is performing purging, and the backtrace is like this,
+#0  arena_chunk_dirty_first (rbtree=0x7ffff7010110) at src/arena.c:171
+#1  0x0000000000411f4e in arena_purge (arena=0x7ffff7010080, all=false) at src/arena.c:1032
+#2  0x0000000000411447 in arena_maybe_purge (arena=0x7ffff7010080) at src/arena.c:793
+#3  0x000000000041299f in arena_run_dalloc (arena=0x7ffff7010080, run=0x7ffff68ce000, dirty=true, cleaned=false) at src/arena.c:1232
+#4  0x0000000000414db4 in je_arena_dalloc_large_locked (arena=0x7ffff7010080, chunk=0x7ffff6800000, ptr=0x7ffff68ce000) at src/arena.c:1971
+#5  0x0000000000414df6 in je_arena_dalloc_large (arena=0x7ffff7010080, chunk=0x7ffff6800000, ptr=0x7ffff68ce000) at src/arena.c:1979
+#6  0x0000000000409914 in je_arena_dalloc (arena=0x7ffff7010080, chunk=0x7ffff6800000, ptr=0x7ffff68ce000, try_tcache=true)
+    at include/jemalloc/internal/arena.h:1056
+#7  0x0000000000401b85 in je_idalloct (ptr=0x7ffff68ce000, try_tcache=true) at include/jemalloc/internal/jemalloc_internal.h:898
+#8  0x0000000000401c06 in je_iqalloct (ptr=0x7ffff68ce000, try_tcache=true) at include/jemalloc/internal/jemalloc_internal.h:917
+#9  0x0000000000401c25 in je_iqalloc (ptr=0x7ffff68ce000) at include/jemalloc/internal/jemalloc_internal.h:924
+#10 0x0000000000405414 in ifree (ptr=0x7ffff68ce000) at src/jemalloc.c:1233
+#11 0x0000000000405a5c in xffree (ptr=0x7ffff68ce000) at src/jemalloc.c:1308
+#12 0x00000000004011f1 in main (argc=1, argv=0x7fffffffe0c8) at main.c:40
+
+We can see the dirty chuck tree,
+(gdb) p (arena_chunk_tree_t) *0x7ffff7010110
+$16 = {
+  rbt_root = 0x7ffff6800000,
+  rbt_nil = {
+    arena = 0x0,
+    dirty_link = {
+      rbn_left = 0x7ffff7010118,
+      rbn_right_red = 0x7ffff7010118
+    },
+    ndirty = 0,
+    nruns_avail = 0,
+    nruns_adjac = 0,
+    map = {{
+       ......
+      }}
+  }
+}
+
+The root node is 0x7ffff6800000,
+(gdb) p (arena_chunk_t) *0x7ffff6800000
+$17 = {
+  arena = 0x7ffff7010080,
+  dirty_link = {
+    rbn_left = 0x7ffff6c00000,
+    rbn_right_red = 0x7ffff7010118
+  },
+  ndirty = 96,
+  nruns_avail = 3,
+  nruns_adjac = 1,
+  map = {{
+      ......
+    }}
+}
+
+And the left node is 0x7ffff6c00000, which is also the left-most node(we only have two chunks here),
+(gdb) p (arena_chunk_t) *0x7ffff6c00000
+$18 = {
+  arena = 0x7ffff7010080,
+  dirty_link = {
+    rbn_left = 0x7ffff7010118,
+    rbn_right_red = 0x7ffff7010119
+  },
+  ndirty = 72,
+  nruns_avail = 127,
+  nruns_adjac = 0,
+  map = {{
+      ......
+    }}
+}
+
+So when returned from frame#0, we got the chunk 0x7ffff6c00000,
+(gdb) fin
+Run till exit from #0  arena_chunk_dirty_first (rbtree=0x7ffff7010110) at src/arena.c:171
+0x0000000000411f4e in arena_purge (arena=0x7ffff7010080, all=false) at src/arena.c:1032
+1032            chunk = arena_chunk_dirty_first(&amp;arena-&gt;chunks_dirty);
+Value returned is $19 = (arena_chunk_t *) 0x7ffff6c00000
+
+That is the traversal order, from 0x7ffff6c00000 -&gt; 0x7ffff6800000. But you can see the
+node 0x7ffff6c00000 with nruns_avail = 127, nruns_adjac = 0; and 0x7ffff6800000
+with nruns_avail = 3, nruns_adjac = 1.  So why? According to the algorithm as you said,
+shoultn't we purge 0x7ffff6800000 first? However actually we purged a chunk even with no
+adjac first!
+
+
+
+
+
+&#22312; 2016-01-12 03:37:23&#65292;&quot;Jason Evans&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; &#20889;&#36947;&#65306;
+On Jan 7, 2016, at 6:46 PM, mmzsmm &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mmzsmm at 163.com</A>&gt; wrote:
+[...] according to the code comments, the clean-dirty fragmentation is measured as,
+
+* Order such that chunks with higher fragmentation are &quot;less than&quot;
+* those with lower fragmentation -- purging order is from &quot;least&quot; to
+* &quot;greatest&quot;.
+    mean current avail run size                 nruns_avail-nruns_adjac
+--------------------------------------------  =  ----------------------------------
+mean defragmented avail run size                  nruns_avail
+
+So if I have a chunkA with avail_runs = 10, adjac = 1, and another chunkB with avail_runs = 20, adjac = 5.
+Obviously, the fragmentA(0.9) &gt; fragmentB(0.75), so the A will be prior to B in the dirty chunk tree, and
+will be purged first. But the chunkB truely has more adjacs than the A, and the performace gain after purging
+chunkA is also less than the other(0.1 vs 0.25). Why we prefer to purge the chunk with &quot;less adjacs&quot;?
+Shouldn't we purge more adjacs or clean-dirty fragments to acquire more continuous unalloc pages?
+
+
+
+We actually do purge B first, but it's hard to see unless you follow the calculations in the code.  Note that a_val=0.45 and b_val=1.5 in this case, which means that the comparison function returns 1, causing A to come after B in the in-order tree traversal.
+
+
+Another question is, I notice that before the git node e3d13060 there are two avail-trees, one is for dirty,
+and another for clean,
+    arena_avail_tree_t    runs_avail_clean;
+    arena_avail_tree_t    runs_avail_dirty;
+After that, the two became one. So how to ensure the new runs allocaction to prefer to dirty pages?
+
+
+
+IIRC, there were versions of jemalloc that did not prefer dirty pages.
+
+
+Note that you're looking at jemalloc 3.x code, but 4.x uses substantially different algorithms that obsoleted the code that ordered chunks according to fragmentation.
+
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160112/1a73fae2/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160112/1a73fae2/attachment-0001.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001238.html">question about Jemalloc purging order
+</A></li>
+	<LI>Next message: <A HREF="001237.html">[PATCH v2] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1241">[ date ]</a>
+              <a href="thread.html#1241">[ thread ]</a>
+              <a href="subject.html#1241">[ subject ]</a>
+              <a href="author.html#1241">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

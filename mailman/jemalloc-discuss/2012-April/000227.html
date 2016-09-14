@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 3/3] Improve zone support for OSX
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/3%5D%20Improve%20zone%20support%20for%20OSX&In-Reply-To=%3C446F887B-0833-4347-8D80-3190EE501E3F%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000224.html">
+   <LINK REL="Next"  HREF="000228.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 3/3] Improve zone support for OSX</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/3%5D%20Improve%20zone%20support%20for%20OSX&In-Reply-To=%3C446F887B-0833-4347-8D80-3190EE501E3F%40canonware.com%3E"
+       TITLE="[PATCH 3/3] Improve zone support for OSX">jasone at canonware.com
+       </A><BR>
+    <I>Thu Apr  5 10:52:07 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000224.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+        <LI>Next message: <A HREF="000228.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#227">[ date ]</a>
+              <a href="thread.html#227">[ thread ]</a>
+              <a href="subject.html#227">[ subject ]</a>
+              <a href="author.html#227">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 5, 2012, at 2:45 AM, Mike Hommey wrote:
+&gt;<i> On Tue, Mar 20, 2012 at 01:18:13PM -0400, Justin Lebar wrote:
+</I>&gt;&gt;<i> On Tue, Mar 20, 2012 at 1:10 PM, Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh+jemalloc at glandium.org</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> On Tue, Mar 20, 2012 at 01:04:54PM -0400, Justin Lebar wrote:
+</I>&gt;&gt;&gt;&gt;<i> btw, I'm skeptical of the value of supporting OSX 10.5, because 10.5
+</I>&gt;&gt;&gt;&gt;<i> occasionally passes invalid pointers to ozone_size [1].
+</I>&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;<i> [1] <A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=694335">https://bugzilla.mozilla.org/show_bug.cgi?id=694335</A>
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> For one, not all jemalloc users are going to have the problem, which is
+</I>&gt;&gt;&gt;<i> limited to some APIs.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> True, but we of course don't know the full set of circumstances under
+</I>&gt;&gt;<i> which OSX will pass an invalid pointer.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> Also, AIUI, the current jemalloc code does the right thing for the
+</I>&gt;&gt;&gt;<i> ozone_size, which is not the case in the old jemalloc fork we use in
+</I>&gt;&gt;&gt;<i> Firefox, so depending on what is done with the result of ozone_size,
+</I>&gt;&gt;&gt;<i> it might be okay.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> What's the difference in behavior?
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> BTW, I guess you wanted to point to
+</I>&gt;&gt;&gt;<i> <A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=702250#c30">https://bugzilla.mozilla.org/show_bug.cgi?id=702250#c30</A>
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Yes, thanks.  And my analysis there is that 10.5 tries to free the
+</I>&gt;&gt;<i> internal pointer.  I'd be impressed if jemalloc handled this
+</I>&gt;&gt;<i> correctly!  (And even more impressed if it worked in general, for
+</I>&gt;&gt;<i> non-huge allocations too.  :)
+</I>&gt;<i> 
+</I>&gt;<i> From my trivial testing, it actually works for allocations &gt; (1 &lt;&lt; 15).
+</I>&gt;<i> 
+</I>&gt;<i> That is:
+</I>&gt;<i> char *ptr = malloc((1 &lt;&lt; 15) + 1); free(ptr + 32);
+</I>&gt;<i> does free the pointer, while
+</I>&gt;<i> char *ptr = malloc(1 &lt;&lt; 15); free(ptr + 32);
+</I>&gt;<i> doesn't.
+</I>&gt;<i> 
+</I>&gt;<i> Neither crash (which is better than the crash we get with our fork :) )
+</I>&gt;<i> 
+</I>&gt;<i> Jason, how actually safe is jemalloc now, when trying to free a pointer
+</I>&gt;<i> inside an allocation it gave out?
+</I>
+There are assertions that catch attempts to free interior pointers for small allocations, but as far as I know, freeing interior pointers for small allocations will otherwise work.  Freeing interior pointers for large and huge allocations will always cause some sort of metadata corruption.  I expect that both of your test cases are actually causing corruption.  Do you have assertions enabled?  I think (hope) there are assertions that will fail in both cases.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000224.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+	<LI>Next message: <A HREF="000228.html">[PATCH 3/3] Improve zone support for OSX
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#227">[ date ]</a>
+              <a href="thread.html#227">[ thread ]</a>
+              <a href="subject.html#227">[ subject ]</a>
+              <a href="author.html#227">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

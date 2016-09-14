@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Does%20arena_tcache_fill_small%28%29%20ever%20end%20up%20bypassing%20custom%0A%09chunk%09allocation%3F&In-Reply-To=%3CF02328E5-230C-42C6-9352-FB0B26B49258%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001041.html">
+   <LINK REL="Next"  HREF="001043.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Does%20arena_tcache_fill_small%28%29%20ever%20end%20up%20bypassing%20custom%0A%09chunk%09allocation%3F&In-Reply-To=%3CF02328E5-230C-42C6-9352-FB0B26B49258%40canonware.com%3E"
+       TITLE="Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?">jasone at canonware.com
+       </A><BR>
+    <I>Tue Feb 10 21:45:36 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001041.html">Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?
+</A></li>
+        <LI>Next message: <A HREF="001043.html">Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1042">[ date ]</a>
+              <a href="thread.html#1042">[ thread ]</a>
+              <a href="subject.html#1042">[ subject ]</a>
+              <a href="author.html#1042">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 10, 2015, at 8:29 PM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+&gt;&gt;<i> On Feb 10, 2015, at 11:00 PM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> On Feb 10, 2015, at 10:52 PM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> We have an arena that we are using for a specific bit of memory that we are managing with a custom chunk allocator.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> We&#8217;re seeing initial small allocations through this arena succeed without calling out to our custom chunk allocator. This behavior appears to be new since b617df8. While tracing this behavior, I&#8217;m seeing the initial allocations miss in the cache, and forward to arena_tcache_fill_small() which does some difficult-to-disect stuff including something to do with runs. After this call, the cache succeeds in supplying the allocation, without ever getting our chunk allocator involved.
+</I>
+10aff3f3e1b8b3ac0348b259c439c9fe870a6b95 had a lot of a0-related changes in it, which may be related to the behavior change you're seeing.
+
+&gt;&gt;&gt;<i> This causes us issues because the memory we&#8217;re getting back doesn&#8217;t seem to come from the place we&#8217;re expecting it to come from.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> Is arena_tcache_fill_small() going somewhere special to find memory that was allocated with some other chunk allocator, previous to our initialization of our arena?
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;<i> Ah, actually, I see one call happening to the default chunk allocator for another arena during initialization.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> We&#8217;re calling mallctl with opt.lg_chunk, and that triggers a really early a0malloc() inside of ctl_init(), which cascades into the chunk_alloc_default before we&#8217;ve had a chance to set our custom allocator on the default arena. I guess that arena_tcache_fill_small() uses this chunk to satisfy misses for small objects, which makes sense.
+</I>
+Is the problem that the region that is allocated from arena 0 ends up being freed back to the tcache, and you're depending on the tcache only containing regions from your custom arena?  In that case you could flush the tcache once you have the arena fully configured.
+
+&gt;&gt;<i> Is this early a0malloc() behavior new? 
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> I&#8217;ll will try and see if we can promote our custom allocator to be the default arena&#8217;s allocator before we do any other interaction with jemalloc.
+</I>&gt;&gt;<i> Let me know if there is any other way to bypass this issue,
+</I>&gt;<i> 
+</I>&gt;<i> Okay, I&#8217;ve run into a wall here.
+</I>&gt;<i> 
+</I>&gt;<i> In order to change the custom chunk allocator I am using the mallctl interface, which requires that I provide the arena id which I normally get through mallctl, but this triggers the a0malloc() that causes my problem.
+</I>&gt;<i> 
+</I>&gt;<i> If I hard-code arena to be 0, which is correct, but feels brittle, I can skip that initial mallctl query, however I still need to use mallctl to set the chunk allocator which will trigger the bad a0malloc() before the allocator is installed.
+</I>&gt;<i> 
+</I>&gt;<i> Is there a way around this? Could I set the allocator without passing through the mallctl interface as a workaround for now? Where would I look to do that? Can I have a0malloc() use the system malloc instead (we&#8217;re using jemalloc in prefixed form)?
+</I>&gt;<i> 
+</I>&gt;<i> Any help would be appreciated as this is a blocker for us.
+</I>
+I'm a bit confused about what your code is trying to do, but maybe you're hitting one of these problems:
+
+- You're trying to change the chunk allocator for one of the automatic arenas (arena 0?).  This is unlikely to ever work reliably for arena 0, though it would potentially be possible for other automatic arenas prior to launching any threads.
+- You're calling the thread.arena mallctl to refer to a newly created arena before you've finished setting up the arena to use your chunk allocator.
+
+I still have a bit of work to do on making sure that no metadata are allocated from non-auto arenas, so that they can be reset (see <A HREF="https://github.com/jemalloc/jemalloc/issues/146">https://github.com/jemalloc/jemalloc/issues/146</A>).  Is that related to what you're hitting?
+
+Thanks,
+Jason
+</PRE>
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001041.html">Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?
+</A></li>
+	<LI>Next message: <A HREF="001043.html">Does arena_tcache_fill_small() ever end up bypassing custom	chunk	allocation?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1042">[ date ]</a>
+              <a href="thread.html#1042">[ thread ]</a>
+              <a href="subject.html#1042">[ subject ]</a>
+              <a href="author.html#1042">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [jemalloc-4.2.1]Can't profile heap on ARM target
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5Bjemalloc-4.2.1%5DCan%27t%20profile%20heap%20on%20ARM%20target&In-Reply-To=%3C82264FDE-183E-40B1-968B-906256172EB4%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001308.html">
+   <LINK REL="Next"  HREF="001312.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[jemalloc-4.2.1]Can't profile heap on ARM target</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5Bjemalloc-4.2.1%5DCan%27t%20profile%20heap%20on%20ARM%20target&In-Reply-To=%3C82264FDE-183E-40B1-968B-906256172EB4%40canonware.com%3E"
+       TITLE="[jemalloc-4.2.1]Can't profile heap on ARM target">jasone at canonware.com
+       </A><BR>
+    <I>Thu Jul  7 14:04:49 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001308.html">4.2.1 test/integration/mallocx still fails on older i686 (Was:	jemalloc 4.1.1 released)
+</A></li>
+        <LI>Next message: <A HREF="001312.html">Jemalloc quickly OOMs with custom chunk_hooks that opt out of	purge
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1311">[ date ]</a>
+              <a href="thread.html#1311">[ thread ]</a>
+              <a href="subject.html#1311">[ subject ]</a>
+              <a href="author.html#1311">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 27, 2016, at 7:38 PM, &#37073;&#39745; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">zack93 at 126.com</A>&gt; wrote:
+&gt;<i> Hi all, I was trying HeapProf on ARM target, But always get a Empty call stack. 
+</I>&gt;<i> Step:
+</I>&gt;<i> 1. cross-compile jemalloc-4.2.1 (./configure --build=x86_64-unknown-linux-gnu --host=arm-none-linux-gnueabi EXTRA_CFLAGS=&quot;-fno-omit-frame-pointer -DUSE_UTF8 -O2 -fPIC -std=gnu99 &quot; LDFLAGS=&quot; -fPIC -std=gnu99&quot; CC=&quot;arm-linux-gnueabi-gcc&quot; CXX=&quot;arm-linux-gnueabihf-g++&quot; AR=&quot;arm-linux-gnueabihf-ar&quot; CFLAGS=&quot;-O2&quot; --enable-debug --enable-prof
+</I>&gt;<i> ) and test.c (a very simple code)
+</I>&gt;<i> 2. running &quot;MALLOC_CONF=stats_print:true LD_PRELOAD=/usr/lib/libjemalloc.so ./test&quot; , Yes, it works!
+</I>&gt;<i> 3. Try profile heap like following: 
+</I>&gt;<i>     MALLOC_CONF=prof:true,lg_prof_sample:0,prof_final:true LD_PRELOAD=/usr/lib/libjemalloc.so ./test
+</I>&gt;<i> then get heap file &quot;jeprof.10678.0.f.heap&quot; with empty call stack:
+</I>&gt;<i> /tmp/jemalloc # cat jeprof.10678.0.f.heap
+</I>&gt;<i> cat jeprof.10678.0.f.heap
+</I>&gt;<i> heap_v2/1
+</I>&gt;<i>   t*: 1000: 54673752 [0: 0]
+</I>&gt;<i>   t0: 1000: 54673752 [0: 0]
+</I>&gt;<i> @
+</I>&gt;<i>   t*: 1000: 54673752 [0: 0]
+</I>&gt;<i>   t0: 1000: 54673752 [0: 0]
+</I>&gt;<i> 
+</I>&gt;<i> Note: With same steps and commands, HeapProf works on x86 platform; like:
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">kuii at ubuntu</A>:~/mem/jemalloc/mytest$ MALLOC_CONF=prof:true,lg_prof_sample:0,prof_final:true LD_PRELOAD=/home/kuii/mem/jemalloc/jemalloc-4.2.1/lib/libjemalloc.so ./test
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">kuii at ubuntu</A>:~/mem/jemalloc/mytest$ cat jeprof.23836.0.f.heap
+</I>&gt;<i> heap_v2/1
+</I>&gt;<i>   t*: 10: 47112 [0: 0]
+</I>&gt;<i>   t0: 10: 47112 [0: 0]
+</I>&gt;<i> @ 0x7fa08cb98c2d 0x7fa08cb91a1d 0x7fa08cb5d171 0x7fa08cb5d3da 0x7fa08cb5d651 0x40054c 0x400573 0x7fa08c7b0ec5 0x400469
+</I>&gt;<i>   t*: 10: 47112 [0: 0]
+</I>&gt;<i>   t0: 10: 47112 [0: 0]
+</I>
+A few months ago I tracked down the cause of a similar report, and it turned out to be due to a bug in libgcc on ARM.  Try libunwind (--enable-prof-libunwind).
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001308.html">4.2.1 test/integration/mallocx still fails on older i686 (Was:	jemalloc 4.1.1 released)
+</A></li>
+	<LI>Next message: <A HREF="001312.html">Jemalloc quickly OOMs with custom chunk_hooks that opt out of	purge
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1311">[ date ]</a>
+              <a href="thread.html#1311">[ thread ]</a>
+              <a href="subject.html#1311">[ subject ]</a>
+              <a href="author.html#1311">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

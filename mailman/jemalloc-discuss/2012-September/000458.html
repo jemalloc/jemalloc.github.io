@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> mark _pthread_mutex_init_calloc_cb as public explicitly
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mark%20_pthread_mutex_init_calloc_cb%20as%20public%20explicitly&In-Reply-To=%3C1TDx6L-000Als-9z%40internal.tormail.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000451.html">
+   <LINK REL="Next"  HREF="000459.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>mark _pthread_mutex_init_calloc_cb as public explicitly</H1>
+    <B>Jan Beich</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mark%20_pthread_mutex_init_calloc_cb%20as%20public%20explicitly&In-Reply-To=%3C1TDx6L-000Als-9z%40internal.tormail.org%3E"
+       TITLE="mark _pthread_mutex_init_calloc_cb as public explicitly">jbeich at tormail.org
+       </A><BR>
+    <I>Tue Sep 18 05:42:10 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000451.html">how to remove pthread mutex dependency in jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000459.html">jemalloc and STL
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#458">[ date ]</a>
+              <a href="thread.html#458">[ thread ]</a>
+              <a href="subject.html#458">[ subject ]</a>
+              <a href="author.html#458">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Mozilla build hides everything by default using visibility pragma and
+unhides only explicitly listed headers. But this doesn't work on FreeBSD
+because _pthread_mutex_init_calloc_cb is neither documented nor exposed
+via any header.
+
+diff --git a/src/mutex.c b/src/mutex.c
+index 37a843e..55e18c2 100644
+--- a/src/mutex.c
++++ b/src/mutex.c
+@@ -64,7 +64,7 @@ pthread_create(pthread_t *__restrict thread,
+ /******************************************************************************/
+ 
+ #ifdef JEMALLOC_MUTEX_INIT_CB
+-int	_pthread_mutex_init_calloc_cb(pthread_mutex_t *mutex,
++JEMALLOC_EXPORT int	_pthread_mutex_init_calloc_cb(pthread_mutex_t *mutex,
+     void *(calloc_cb)(size_t, size_t));
+ #endif
+ 
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000451.html">how to remove pthread mutex dependency in jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000459.html">jemalloc and STL
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#458">[ date ]</a>
+              <a href="thread.html#458">[ thread ]</a>
+              <a href="subject.html#458">[ subject ]</a>
+              <a href="author.html#458">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,165 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc library is hitting Segmentation fault on CentOS-7
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20library%20is%20hitting%20Segmentation%20fault%20on%20CentOS-7&In-Reply-To=%3CCAGQTitMbC%2BzC6m7ii1tcREg1K%2B7nqrLgW87hSS%3DR6d2JZGePTg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001321.html">
+   <LINK REL="Next"  HREF="001322.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc library is hitting Segmentation fault on CentOS-7</H1>
+    <B>Roel Van de Paar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20library%20is%20hitting%20Segmentation%20fault%20on%20CentOS-7&In-Reply-To=%3CCAGQTitMbC%2BzC6m7ii1tcREg1K%2B7nqrLgW87hSS%3DR6d2JZGePTg%40mail.gmail.com%3E"
+       TITLE="Jemalloc library is hitting Segmentation fault on CentOS-7">roel.vandepaar at percona.com
+       </A><BR>
+    <I>Wed Sep 14 00:03:07 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001321.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+        <LI>Next message: <A HREF="001322.html">4.2.1 test/integration/mallocx still fails on older 32 bit (Was:	jemalloc 4.2.1 released)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1327">[ date ]</a>
+              <a href="thread.html#1327">[ thread ]</a>
+              <a href="subject.html#1327">[ subject ]</a>
+              <a href="author.html#1327">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jason,
+
+Please let us know how you went. Thanks
+
+On Fri, Sep 9, 2016 at 2:46 AM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> Hi Ramesh,
+</I>&gt;<i>
+</I>&gt;<i> This crash is happening inside glibc, perhaps due to recursive allocation
+</I>&gt;<i> failing despite a temporary bootstrap allocation environment having been
+</I>&gt;<i> set up inside jemalloc.  Are you able to determine whether something is
+</I>&gt;<i> going wrong during a malloc() (or similar) call inside get_nprocs()?
+</I>&gt;<i>
+</I>&gt;<i> I'm in the process of setting up a CentOS 7 system right now, but it will
+</I>&gt;<i> take some time before I can reproduce this.
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>&gt;<i> &gt; On Aug 25, 2016, at 2:27 AM, Ramesh Sivaraman &lt;
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ramesh.sivaraman at percona.com</A>&gt; wrote:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Hi Team,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Forgot to mention version details
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; jemalloc.x86_64  : 3.6.0-3.el7
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; On Thu, Aug 25, 2016 at 2:49 PM, Ramesh Sivaraman &lt;
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ramesh.sivaraman at percona.com</A>&gt; wrote:
+</I>&gt;<i> &gt; Hi Team,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Jemalloc library is hitting  Segmentation fault on CentOS-7
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; With debug library Segmentation fault issue triggering with simple `ls`
+</I>&gt;<i> command.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; $ export LD_PRELOAD=/usr/lib/debug/usr/lib64/libjemalloc.so.1.debug
+</I>&gt;<i> &gt; $ ls
+</I>&gt;<i> &gt; Segmentation fault (core dumped)
+</I>&gt;<i> &gt; $
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Also seeing a segmentation fault issue (same issue?) with non-debug
+</I>&gt;<i> jemalloc
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; $ export LD_PRELOAD=/usr/lib64/libjemalloc.so.1
+</I>&gt;<i> &gt; $ ./bin/mysqld --version
+</I>&gt;<i> &gt; Segmentation fault (core dumped)
+</I>&gt;<i> &gt; $ gdb ./bin/mysqld core.11345.mysqld.11
+</I>&gt;<i> &gt; [..]
+</I>&gt;<i> &gt; (gdb) bt
+</I>&gt;<i> &gt; +bt
+</I>&gt;<i> &gt; #0  0x00007f1c21fa5964 in get_nprocs () from /lib64/libc.so.6
+</I>&gt;<i> &gt; #1  0x00007f1c21f70b0c in sysconf () from /lib64/libc.so.6
+</I>&gt;<i> &gt; #2  0x00007f1c26efebd0 in malloc_ncpus () at src/jemalloc.c:256
+</I>&gt;<i> &gt; #3  malloc_init_hard () at src/jemalloc.c:776
+</I>&gt;<i> &gt; #4  0x00007f1c26f01705 in malloc_init () at src/jemalloc.c:292
+</I>&gt;<i> &gt; #5  calloc (num=1, size=32) at src/jemalloc.c:1123
+</I>&gt;<i> &gt; #6  0x00007f1c22eb1690 in _dlerror_run () from /lib64/libdl.so.2
+</I>&gt;<i> &gt; #7  0x00007f1c22eb1198 in dlsym () from /lib64/libdl.so.2
+</I>&gt;<i> &gt; #8  0x00007f1c23f88fec in ?? () from /lib64/libasan.so.0
+</I>&gt;<i> &gt; #9  0x00007f1c23f7b2c9 in ?? () from /lib64/libasan.so.0
+</I>&gt;<i> &gt; #10 0x00007f1c23f7d91b in __asan_init_v1 () from /lib64/libasan.so.0
+</I>&gt;<i> &gt; #11 0x00007f1c271426c3 in _dl_init_internal () from
+</I>&gt;<i> /lib64/ld-linux-x86-64.so.2
+</I>&gt;<i> &gt; #12 0x00007f1c2713445a in _dl_start_user () from
+</I>&gt;<i> /lib64/ld-linux-x86-64.so.2
+</I>&gt;<i> &gt; #13 0x0000000000000002 in ?? ()
+</I>&gt;<i> &gt; #14 0x00007fff9d552740 in ?? ()
+</I>&gt;<i> &gt; #15 0x00007fff9d55274d in ?? ()
+</I>&gt;<i> &gt; #16 0x0000000000000000 in ?? ()
+</I>&gt;<i> &gt; (gdb)
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; --
+</I>&gt;<i> &gt; Best Regards,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Ramesh
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; --
+</I>&gt;<i> &gt; Best Regards,
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Ramesh Sivaraman
+</I>&gt;<i> &gt; QA Engineer, Percona
+</I>&gt;<i> &gt; <A HREF="http://www.percona.com/">http://www.percona.com/</A>
+</I>&gt;<i> &gt; Phone : +91 8606432991
+</I>&gt;<i> &gt; Skype : rameshvs02
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; _______________________________________________
+</I>&gt;<i> &gt; jemalloc-discuss mailing list
+</I>&gt;<i> &gt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> &gt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160914/fb67b878/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160914/fb67b878/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001321.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+	<LI>Next message: <A HREF="001322.html">4.2.1 test/integration/mallocx still fails on older 32 bit (Was:	jemalloc 4.2.1 released)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1327">[ date ]</a>
+              <a href="thread.html#1327">[ thread ]</a>
+              <a href="subject.html#1327">[ subject ]</a>
+              <a href="author.html#1327">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

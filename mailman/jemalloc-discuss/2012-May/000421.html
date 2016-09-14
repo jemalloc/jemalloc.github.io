@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> sge_execd segfaults in ptmalloc_lock_all during fork
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20sge_execd%20segfaults%20in%20ptmalloc_lock_all%20during%20fork&In-Reply-To=%3C1337845956.12212.19.camel%40yum.linpro.no%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000420.html">
+   <LINK REL="Next"  HREF="000422.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>sge_execd segfaults in ptmalloc_lock_all during fork</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20sge_execd%20segfaults%20in%20ptmalloc_lock_all%20during%20fork&In-Reply-To=%3C1337845956.12212.19.camel%40yum.linpro.no%3E"
+       TITLE="sge_execd segfaults in ptmalloc_lock_all during fork">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Thu May 24 00:52:36 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000420.html">sge_execd segfaults in ptmalloc_lock_all during fork
+</A></li>
+        <LI>Next message: <A HREF="000422.html">sge_execd segfaults in ptmalloc_lock_all during fork
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#421">[ date ]</a>
+              <a href="thread.html#421">[ thread ]</a>
+              <a href="subject.html#421">[ subject ]</a>
+              <a href="author.html#421">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>on., 23.05.2012 kl. 16.11 -0700, skrev Jason Evans:
+&gt;<i> On May 23, 2012, at 2:48 PM, Orion Poplawski wrote:
+</I>&gt;<i> &gt; I'm seeing sge_execd segfaults in ptmalloc_lock_all during fork on Fedora 17 with jemalloc 3.0.0.  See <A HREF="https://bugzilla.redhat.com/show_bug.cgi?id=824646">https://bugzilla.redhat.com/show_bug.cgi?id=824646</A> for details.
+</I>&gt;<i> 
+</I>&gt;<i> In my own build of jemalloc, I see via nm(1) that in libjemalloc[_pic].a and jemalloc.o, the __*_hook symbols are read-only data ('R'), but they should be writable ('D'), as they are in libjemalloc.so.1.  This problem arises because jemalloc mistakenly declares the hooks as const, so they are indeed read-only (whoops).  Here's the fix:
+</I>&gt;<i> 
+</I>&gt;<i> 	<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=5c710cee783a44061fa2c467ffd8984b8047b90e">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=5c710cee783a44061fa2c467ffd8984b8047b90e</A>
+</I>
+
+A scratch build for fedora 17 with that patch is available here:
+
+<A HREF="http://koji.fedoraproject.org/koji/taskinfo?taskID=4097345">http://koji.fedoraproject.org/koji/taskinfo?taskID=4097345</A>
+
+Please test.
+
+Ingvar
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000420.html">sge_execd segfaults in ptmalloc_lock_all during fork
+</A></li>
+	<LI>Next message: <A HREF="000422.html">sge_execd segfaults in ptmalloc_lock_all during fork
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#421">[ date ]</a>
+              <a href="thread.html#421">[ thread ]</a>
+              <a href="subject.html#421">[ subject ]</a>
+              <a href="author.html#421">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

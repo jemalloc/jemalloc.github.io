@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a malloc_usable_size_in_advance function
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20malloc_usable_size_in_advance%20function&In-Reply-To=%3C1329842350-14148-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000114.html">
+   <LINK REL="Next"  HREF="000099.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a malloc_usable_size_in_advance function</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20malloc_usable_size_in_advance%20function&In-Reply-To=%3C1329842350-14148-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Add a malloc_usable_size_in_advance function">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Feb 21 08:39:10 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000114.html">[PATCH] Use s2u in zone_good_size
+</A></li>
+        <LI>Next message: <A HREF="000099.html">[PATCH] Add a malloc_usable_size_in_advance function
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#89">[ date ]</a>
+              <a href="thread.html#89">[ thread ]</a>
+              <a href="subject.html#89">[ subject ]</a>
+              <a href="author.html#89">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ doc/jemalloc.xml.in            |   13 +++++++++++++
+ include/jemalloc/jemalloc.h.in |    2 ++
+ src/jemalloc.c                 |    7 +++++++
+ 3 files changed, 22 insertions(+), 0 deletions(-)
+
+diff --git a/doc/jemalloc.xml.in b/doc/jemalloc.xml.in
+index 1e8c800..c125738 100644
+--- a/doc/jemalloc.xml.in
++++ b/doc/jemalloc.xml.in
+@@ -33,6 +33,7 @@
+     &lt;refname&gt;realloc&lt;/refname&gt;
+     &lt;refname&gt;free&lt;/refname&gt;
+     &lt;refname&gt;malloc_usable_size&lt;/refname&gt;
++    &lt;refname&gt;malloc_usable_size_in_advance&lt;/refname&gt;
+     &lt;refname&gt;malloc_stats_print&lt;/refname&gt;
+     &lt;refname&gt;mallctl&lt;/refname&gt;
+     &lt;refname&gt;mallctlnametomib&lt;/refname&gt;
+@@ -89,6 +90,11 @@
+           &lt;paramdef&gt;const void *&lt;parameter&gt;ptr&lt;/parameter&gt;&lt;/paramdef&gt;
+         &lt;/funcprototype&gt;
+         &lt;funcprototype&gt;
++          &lt;funcdef&gt;size_t &lt;function&gt;malloc_usable_size_in_advance&lt;/function&gt;&lt;/funcdef&gt;
++          &lt;paramdef&gt;size_t &lt;parameter&gt;size&lt;/parameter&gt;&lt;/paramdef&gt;
++          &lt;paramdef&gt;size_t &lt;parameter&gt;alignment&lt;/parameter&gt;&lt;/paramdef&gt;
++        &lt;/funcprototype&gt;
++        &lt;funcprototype&gt;
+           &lt;funcdef&gt;void &lt;function&gt;malloc_stats_print&lt;/function&gt;&lt;/funcdef&gt;
+           &lt;paramdef&gt;void &lt;parameter&gt;(*write_cb)&lt;/parameter&gt;
+             &lt;funcparams&gt;void *, const char *&lt;/funcparams&gt;
+@@ -217,6 +223,13 @@
+       depended on, since such behavior is entirely implementation-dependent.
+       &lt;/para&gt;
+ 
++      &lt;para&gt;The &lt;function&gt;malloc_usable_size_in_advance&lt;parameter/&gt;&lt;/function&gt;
++      function returns the usable size that would be allocated if the given
++      &lt;parameter&gt;size&lt;/parameter&gt; and &lt;parameter&gt;alignment&lt;/parameter&gt; were
++      used with &lt;function&gt;malloc&lt;parameter/&gt;&lt;/function&gt;,
++      &lt;function&gt;memalign&lt;parameter/&gt;&lt;/function&gt;, or other allocation function.
++      &lt;/para&gt;
++
+       &lt;para&gt;The &lt;function&gt;malloc_stats_print&lt;parameter/&gt;&lt;/function&gt; function
+       writes human-readable summary statistics via the
+       &lt;parameter&gt;write_cb&lt;/parameter&gt; callback function pointer and
+diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+index 580a5ec..e43a060 100644
+--- a/include/jemalloc/jemalloc.h.in
++++ b/include/jemalloc/jemalloc.h.in
+@@ -43,6 +43,8 @@ void	*JEMALLOC_P(realloc)(void *ptr, size_t size);
+ void	JEMALLOC_P(free)(void *ptr);
+ 
+ size_t	JEMALLOC_P(malloc_usable_size)(const void *ptr);
++size_t	JEMALLOC_P(malloc_usable_size_in_advance)(size_t size,
++    size_t alignment);
+ void	JEMALLOC_P(malloc_stats_print)(void (*write_cb)(void *, const char *),
+     void *cbopaque, const char *opts);
+ int	JEMALLOC_P(mallctl)(const char *name, void *oldp, size_t *oldlenp,
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index e819b7e..64961c5 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -1357,6 +1357,13 @@ JEMALLOC_P(malloc_usable_size)(const void *ptr)
+ }
+ 
+ JEMALLOC_ATTR(visibility(&quot;default&quot;))
++size_t
++JEMALLOC_P(malloc_usable_size_in_advance)(size_t size, size_t alignment)
++{
++	return (alignment == 0) ? s2u(size) : sa2u(size, alignment, NULL);
++}
++
++JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void
+ JEMALLOC_P(malloc_stats_print)(void (*write_cb)(void *, const char *),
+     void *cbopaque, const char *opts)
+-- 
+1.7.9
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000114.html">[PATCH] Use s2u in zone_good_size
+</A></li>
+	<LI>Next message: <A HREF="000099.html">[PATCH] Add a malloc_usable_size_in_advance function
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#89">[ date ]</a>
+              <a href="thread.html#89">[ thread ]</a>
+              <a href="subject.html#89">[ subject ]</a>
+              <a href="author.html#89">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

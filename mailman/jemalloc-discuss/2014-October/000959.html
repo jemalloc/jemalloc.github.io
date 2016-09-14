@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> RFC: TCMalloc-style new/delete hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3CCA%2BXzkVdNMeSSzeQH_nkU%2Bo41kW8_pA-%2B-ypdX09nGXorMszuAg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000954.html">
+   <LINK REL="Next"  HREF="000960.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>RFC: TCMalloc-style new/delete hooks</H1>
+    <B>Salvatore Sanfilippo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3CCA%2BXzkVdNMeSSzeQH_nkU%2Bo41kW8_pA-%2B-ypdX09nGXorMszuAg%40mail.gmail.com%3E"
+       TITLE="RFC: TCMalloc-style new/delete hooks">antirez at gmail.com
+       </A><BR>
+    <I>Wed Oct 15 02:14:08 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000954.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+        <LI>Next message: <A HREF="000960.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#959">[ date ]</a>
+              <a href="thread.html#959">[ thread ]</a>
+              <a href="subject.html#959">[ subject ]</a>
+              <a href="author.html#959">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>My 2 cents are that, at least for Redis, creating application-level
+wrappers was a better strategy.
+For memory tracking tasks, the application-level approach helped to
+abstract away the logic from the allocator itself, so that different
+allocators can be used: when the allocator used has certain low-level
+functionalities they are exploited (for example,
+je_malloc_usable_size). When the task is instead objects cleanup, my
+opinion is that most of the times you also need to implement some way
+to also deal with multiple references, which is, reference counting,
+so an higher layer is also the best fit.
+
+Salvatore
+
+
+
+On Tue, Oct 14, 2014 at 7:55 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On Oct 14, 2014, at 9:13 AM, David Rigby &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">daver at couchbase.com</A>&gt; wrote:
+</I>&gt;&gt;<i> We are currently using TCMalloc as our memory allocator, however the significantly better fragmentation characteristics and deterministic lowest-available address selection of jemalloc means we want switching to jemalloc in the near future.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> One of (the only?) sticking points however is the lack of a direct equivalent to TCMalloc&#8217;s new/delete hooks, which allow an application to register callbacks when memory is allocated/freed by the application.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> We use this feature to essentially perform sub-heap memory tracking, to determine how much memory different buckets (think tables/databases) are using. To be more specific, as a worker thread is assigned to a particular bucket the bucket ID is stored in TLS, and then when a new/delete callback is invoked we lookup the thread&#8217;s current bucket from TLS and increment/decrement the total used as appropriate.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> To allow us to work with jemalloc, I&#8217;ve implemented[1] equivalent functionality in jemalloc.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I did consider making use of the arena functionality in jemalloc for this, but I was concerned about the potential increase in fragment ion with many arenas, which is exactly one of the reasons why we want to move away from TCMalloc (I&#8217;m proposing setting narenas=1 when we deploy).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> How would you (Jason?) feel about merging this patch, or something conceptually similar into upstream?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> [1]: <A HREF="https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5">https://github.com/daverigby/jemalloc/commit/bbf3877d785417f03671bd1aed94723d750937d5</A>
+</I>&gt;<i>
+</I>&gt;<i> I have some concerns about this functionality that have kept me from adding it so far:
+</I>&gt;<i>
+</I>&gt;<i> - It adds yet another branch to the fast path, whereas if you create your own wrappers and mangle jemalloc's API, it imposes no cost on applications which don't need hooks.
+</I>&gt;<i> - It's really tricky (and requires a messy API) to support hooks that get called for all allocations from the beginning of program execution.  I don't know of a way to pull this off short of exposing weak function pointer symbols that can be overridden during static linking or dynamic loading.
+</I>&gt;<i> - It can result in really surprising &quot;impossible&quot; behavior if the compiler makes assumptions about globally visible side effects, as does gcc.  In order to make hooks generally safe, the application must be compiled with -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free.  Other compilers potentially have similar issues, possibly without escape hatches.  I worry that hooks add a documentation burden on jemalloc, and that people will repeatedly fail to take note of this requirement, leaving them with the impression that jemalloc is somehow flakey.
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - GoPivotal
+<A HREF="http://invece.org">http://invece.org</A>
+
+&quot;Fear makes the wolf bigger than he is.&quot;
+       &#8212; German proverb
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000954.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+	<LI>Next message: <A HREF="000960.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#959">[ date ]</a>
+              <a href="thread.html#959">[ thread ]</a>
+              <a href="subject.html#959">[ subject ]</a>
+              <a href="author.html#959">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

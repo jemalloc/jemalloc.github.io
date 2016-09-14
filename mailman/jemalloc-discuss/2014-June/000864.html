@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> RES memory footprint on Ubuntu 14.04
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RES%20memory%20footprint%20on%20Ubuntu%2014.04&In-Reply-To=%3C154D056EBA41274386AAF68C1AB00D65E36F2FF1%40ex-01.corp.maxpointinteractive.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000859.html">
+   <LINK REL="Next"  HREF="000860.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>RES memory footprint on Ubuntu 14.04</H1>
+    <B>Sheppard Parker</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RES%20memory%20footprint%20on%20Ubuntu%2014.04&In-Reply-To=%3C154D056EBA41274386AAF68C1AB00D65E36F2FF1%40ex-01.corp.maxpointinteractive.com%3E"
+       TITLE="RES memory footprint on Ubuntu 14.04">Sheppard.Parker at maxpoint.com
+       </A><BR>
+    <I>Wed Jun  4 08:17:05 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000859.html">RES memory footprint on Ubuntu 14.04
+</A></li>
+        <LI>Next message: <A HREF="000860.html">[PATCH] Check for __builtin_ffsl before ffsl.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#864">[ date ]</a>
+              <a href="thread.html#864">[ thread ]</a>
+              <a href="subject.html#864">[ subject ]</a>
+              <a href="author.html#864">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Setting transparent_hugepages to madvise fixed my issue. Thanks for all the help!
+
+Sheppard
+
+
+From: Sheppard Parker
+Sent: Tuesday, June 03, 2014 3:02 PM
+To: 'Jason Evans'
+Cc: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+Subject: RE: RES memory footprint on Ubuntu 14.04
+
+Turns out transparent_hugepages is set to &quot;always&quot; on 14.04, was set to &quot;madvise&quot; on 12.04. Should it be set to &quot;never&quot; everywhere rather than &quot;madvise&quot;?
+
+Testing now... will update here when results are clear.
+
+Thanks,
+Sheppard
+
+
+From: Jason Evans [mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>]
+Sent: Tuesday, June 03, 2014 2:36 PM
+To: Sheppard Parker
+Cc: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>&lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>&gt;
+Subject: Re: RES memory footprint on Ubuntu 14.04
+
+On Jun 3, 2014, at 11:41 AM, Sheppard Parker &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Sheppard.Parker at maxpoint.com</A>&lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Sheppard.Parker at maxpoint.com</A>&gt;&gt; wrote:
+We have been running a particular jemalloc-aware application on Ubuntu Server 12.04 LTS for about a year now with no trouble (thx btw... we were having major fragmentation issues prior to trying jemalloc). Nominal RES memory footprint is between 23GB and 27GB depending on how much data is loaded at any given time of the day or day of the week.
+
+We recently purchased some new hardware that came with Ubuntu Server 14.04 LTS and now our same app shows almost 2X the RES memory footprint when loaded with the same data. I don't think it is growing, so it may not be a big deal, but I am still concerned. Why the major difference? Exact same executable installed, no code changes, even the same hardware (Dell R620s). Only difference is the move from Ubuntu Server 12.04 (3.8.0-36-generic #52~precise1-Ubuntu SMP) to Ubuntu Server 14.04 (one machine is 3.13.0-24-generic #47-Ubuntu SMP, another is 3.13.0-27-generic #50-Ubuntu SMP).
+
+Any ideas? Is there something enabled/disabled on Ubuntu 14.04 that I need to modify to get things working like they do on the older 12.04? FWWIW,  we have been using jemalloc v3.5.0.
+
+I tried rebuilding our app (again, no code changes) with jemalloc 3.5.1 and 3.6.0. No change. Seems like jemalloc is unhappy about something on Ubuntu 14.04 (or visa versa), but what? Has anybody else encountered anything similar?
+
+My only guess is that the newer system is using transparent huge pages, whereas the older one is not.  I recently came across this related blog post:
+
+            <A HREF="http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb">http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb</A>
+
+In short, madvise() isn't actually purging unused dirty (4 KiB) pages if the underlying memory has been promoted to huge (2 MiB) pages.  In the short term, the solution seems to be disabling transparent huge pages.  In the long run I hope the Linux kernel improves its algorithms for such usage patterns, and I'm also contemplating layout strategies that coexist better with huge pages.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140604/4582d6f2/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140604/4582d6f2/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000859.html">RES memory footprint on Ubuntu 14.04
+</A></li>
+	<LI>Next message: <A HREF="000860.html">[PATCH] Check for __builtin_ffsl before ffsl.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#864">[ date ]</a>
+              <a href="thread.html#864">[ thread ]</a>
+              <a href="subject.html#864">[ subject ]</a>
+              <a href="author.html#864">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

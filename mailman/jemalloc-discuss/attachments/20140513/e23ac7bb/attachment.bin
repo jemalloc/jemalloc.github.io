@@ -1,0 +1,95 @@
+commit 5fe93225a5e33b5b91e305338c470c4e35f6949e
+Author: Crestez Dan Leonard <lcrestez@ixiacom.com>
+Date:   Wed May 14 00:02:56 2014 +0300
+
+    Track if inside a fork and prevent tcache_event_hard GC
+
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index 268cd14..b5a36ba 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -517,6 +517,7 @@ extern malloc_mutex_t	arenas_lock; /* Protects arenas initialization. */
+  */
+ extern arena_t		**arenas;
+ extern unsigned		narenas;
++extern bool		malloc_forking;
+ 
+ arena_t	*arenas_extend(unsigned ind);
+ void	arenas_cleanup(void *arg);
+diff --git a/include/jemalloc/internal/tcache.h b/include/jemalloc/internal/tcache.h
+index 38d735c..893280e 100644
+--- a/include/jemalloc/internal/tcache.h
++++ b/include/jemalloc/internal/tcache.h
+@@ -265,6 +265,9 @@ tcache_event(tcache_t *tcache)
+ 	if (TCACHE_GC_INCR == 0)
+ 		return;
+ 
++	if (malloc_forking)
++		return;
++
+ 	tcache->ev_cnt++;
+ 	assert(tcache->ev_cnt <= TCACHE_GC_INCR);
+ 	if (tcache->ev_cnt == TCACHE_GC_INCR)
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 7bc69ac..39f5249 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -38,6 +38,9 @@ unsigned		narenas;
+ /* Set to true once the allocator has been initialized. */
+ static bool		malloc_initialized = false;
+ 
++/* Set to true between jemalloc_prefork and jemalloc_postfork_* */
++bool			malloc_forking = false;
++
+ #ifdef JEMALLOC_THREADED_INIT
+ /* Used to let the initializing thread recursively allocate. */
+ #  define NO_INITIALIZER	((unsigned long)0)
+@@ -1632,6 +1635,7 @@ _malloc_prefork(void)
+ 		return;
+ #endif
+ 	assert(malloc_initialized);
++	assert(!malloc_forking);
+ 
+ 	/* Acquire all mutexes in a safe order. */
+ 	malloc_mutex_prefork(&arenas_lock);
+@@ -1642,6 +1646,8 @@ _malloc_prefork(void)
+ 	base_prefork();
+ 	huge_prefork();
+ 	chunk_dss_prefork();
++
++	malloc_forking = true;
+ }
+ 
+ #ifndef JEMALLOC_MUTEX_INIT_CB
+@@ -1659,6 +1665,7 @@ _malloc_postfork(void)
+ 		return;
+ #endif
+ 	assert(malloc_initialized);
++	assert(malloc_forking);
+ 
+ 	/* Release all mutexes, now that fork() has completed. */
+ 	chunk_dss_postfork_parent();
+@@ -1669,6 +1676,7 @@ _malloc_postfork(void)
+ 			arena_postfork_parent(arenas[i]);
+ 	}
+ 	malloc_mutex_postfork_parent(&arenas_lock);
++	malloc_forking = false;
+ }
+ 
+ void
+@@ -1677,6 +1685,7 @@ jemalloc_postfork_child(void)
+ 	unsigned i;
+ 
+ 	assert(malloc_initialized);
++	assert(malloc_forking);
+ 
+ 	/* Release all mutexes, now that fork() has completed. */
+ 	chunk_dss_postfork_child();
+@@ -1687,6 +1696,7 @@ jemalloc_postfork_child(void)
+ 			arena_postfork_child(arenas[i]);
+ 	}
+ 	malloc_mutex_postfork_child(&arenas_lock);
++	malloc_forking = false;
+ }
+ 
+ /******************************************************************************/

@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Remove bogus dependency
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20bogus%20dependency&In-Reply-To=%3C1334244118-21444-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000275.html">
+   <LINK REL="Next"  HREF="000274.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Remove bogus dependency</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20bogus%20dependency&In-Reply-To=%3C1334244118-21444-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Remove bogus dependency">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 12 08:21:58 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000275.html">[PATCH] Use -MT options to build dependency files
+</A></li>
+        <LI>Next message: <A HREF="000274.html">[PATCH] Remove bogus dependency
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#270">[ date ]</a>
+              <a href="thread.html#270">[ thread ]</a>
+              <a href="subject.html#270">[ subject ]</a>
+              <a href="author.html#270">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+test/bitmap.c #includes src/bitmap.c, which is correctly detected by gcc -MM,
+but building test/bitmap.o doesn't require src/bitmap.o.
+---
+ Makefile.in |    3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index a01e5e9..1f33b19 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -133,9 +133,6 @@ test/%.o: $(srcroot)test/%.c
+ 	$(CC) $(CFLAGS) -c $(CPPFLAGS) -Itest -o $@ $&lt;
+ 	@$(SHELL) -ec &quot;$(CC) -MM $(CPPFLAGS) -Itest $&lt; | sed \&quot;s/\($(subst /,\/,$(notdir $(basename $@)))\)\.o\([ :]*\)/$(subst /,\/,$(strip $(dir $@)))\1.o \2/g\&quot; &gt; $(@:%.o=%.d)&quot;
+ 
+-# Automatic dependency generation misses #include &quot;*.c&quot;.
+-test/bitmap.o : src/bitmap.o
+-
+ test/%: test/%.o \
+ 		 lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO)
+ 	@mkdir -p $(@D)
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000275.html">[PATCH] Use -MT options to build dependency files
+</A></li>
+	<LI>Next message: <A HREF="000274.html">[PATCH] Remove bogus dependency
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#270">[ date ]</a>
+              <a href="thread.html#270">[ thread ]</a>
+              <a href="subject.html#270">[ subject ]</a>
+              <a href="author.html#270">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

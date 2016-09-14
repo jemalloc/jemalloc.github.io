@@ -1,0 +1,1099 @@
+From xose.vazquez at gmail.com  Sat Jun  1 13:53:08 2013
+From: xose.vazquez at gmail.com (Xose Vazquez Perez)
+Date: Sat, 01 Jun 2013 22:53:08 +0200
+Subject: performance regression after 3.1
+Message-ID: <51AA5F34.6090809@gmail.com>
+
+hi,
+
+3.1 : is fine
+3.2 : bad performance <---- bug since 3.2
+3.3.x : bad performance
+git-tree : bad performance
+
+OS: Fedora 17
+kernel: 3.9.4-100
+x86_64 machine
+
+test done with ebizzy-0.3 <http://ebizzy.sf.net>
+code: http://sf.net/projects/ebizzy/files/latest/download?source=files
+
+
+jemalloc-3.3.1:
+
+$ LD_PRELOAD=/usr/lib64/libjemalloc.so.1 ./ebizzy -s 131072
+47525 records/s
+real 10.00 s
+user  5.99 s
+sys  13.54 s
+
+ebizzy shows very low records.
+
+$ vmstat 1
+procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa
+ 4  0      0 5868732 106904 1055100    0    0     0     0 18170 1356 13 25 62  0
+ 4  0      0 5868804 106904 1055188    0    0     0     0 50193 1538 34 67  0  0
+ 4  0      0 5868804 106904 1055188    0    0     0     0 49276 1721 31 69  0  0
+ 5  0      0 5868772 106904 1055164    0    0     0     0 50630 1502 33 67  0  0
+ 4  0      0 5868804 106904 1055164    0    0     0     0 50525 1461 32 68  0  0
+ 4  0      0 5868804 106904 1055108    0    0     0     0 50602 1526 32 68  0  0
+ 4  0      0 5868796 106904 1055108    0    0     0     8 50151 1519 33 67  0  0
+ 4  0      0 5868772 106904 1055116    0    0     0     0 50355 1497 30 70  0  0
+ 4  0      0 5868804 106904 1055116    0    0     0     0 50216 1494 29 71  0  0
+ 4  0      0 5868804 106904 1055116    0    0     0     0 50395 1522 30 70  0  0
+                                                          ^^^^^         ^^
+system time is too high, and also system interrupts.
+
+
+
+Same test done with jemalloc-3.1.0 (glibc-2.15 and tcmalloc-2.0 get similar results):
+
+$ LD_PRELOAD=/home/xose/bajar/j/3.1/lib64/libjemalloc.so.1 ./ebizzy -s 131072
+335568 records/s
+real 10.00 s
+user 19.55 s
+sys   0.01 s
+
+$ vmstat 1
+procs -----------memory---------- ---swap-- -----io---- -system-- ----cpu----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa
+ 4  0      0 5844152 107644 1067828    0    0     0     0 2579 1862 100  0  0  0
+ 4  0      0 5839812 107644 1071980    0    0     0     0 2558 1676 99  1  0  0
+ 4  0      0 5839564 107652 1071940    0    0     0    12 2574 1669 100  1  0  0
+ 4  0      0 5843292 107652 1067740    0    0     0     0 2548 1651 99  1  0  0
+ 4  0      0 5839348 107652 1071900    0    0     0     0 2532 1637 100  1  0  0
+ 4  0      0 5839100 107652 1071868    0    0     0     0 2549 1652 100  1  0  0
+ 4  0      0 5842500 107652 1067740    0    0     0     0 2553 1648 99  1  0  0
+ 4  0      0 5842284 107652 1067772    0    0     0     0 2562 1670 99  1  0  0
+ 4  0      0 5838324 107652 1071900    0    0     0     0 2556 1759 99  1  0  0
+ 0  0      0 5852096 107652 1071868    0    0     0     0 2583 1904 97  1  2  0
+
+-thanks-
+
+
+From jasone at canonware.com  Sun Jun  2 12:39:14 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 2 Jun 2013 12:39:14 -0700
+Subject: performance regression after 3.1
+In-Reply-To: <51AA5F34.6090809@gmail.com>
+References: <51AA5F34.6090809@gmail.com>
+Message-ID: <11FF1FDB-2055-4684-B6C0-4D11877CED0C@canonware.com>
+
+On Jun 1, 2013, at 1:53 PM, Xose Vazquez Perez <xose.vazquez at gmail.com> wrote:
+> 3.1 : is fine
+> 3.2 : bad performance <---- bug since 3.2
+> 3.3.x : bad performance
+> git-tree : bad performance
+> 
+> OS: Fedora 17
+> kernel: 3.9.4-100
+> x86_64 machine
+> 
+> test done with ebizzy-0.3 <http://ebizzy.sf.net>
+> code: http://sf.net/projects/ebizzy/files/latest/download?source=files
+> 
+> jemalloc-3.3.1:
+> 
+> $ LD_PRELOAD=/usr/lib64/libjemalloc.so.1 ./ebizzy -s 131072
+> 47525 records/s
+> 
+> [?]
+> 
+> Same test done with jemalloc-3.1.0 (glibc-2.15 and tcmalloc-2.0 get similar results):
+> 
+> $ LD_PRELOAD=/home/xose/bajar/j/3.1/lib64/libjemalloc.so.1 ./ebizzy -s 131072
+> 335568 records/s
+> 
+> [?]
+
+This is due to the following change:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=e3d13060c8a04f08764b16b003169eb205fa09eb
+
+Specifically, this part of the change:
+
+Remove the limitation that prevented purging unless at least one chunk
+worth of dirty pages had accumulated in an arena.  This limitation was
+intended to avoid excessive purging for small applications, but the
+threshold was arbitrary, and the effect of questionable utility.
+
+In essence, the effect you're seeing is due to the microbenchmark nature of ebizzy.  The allocator threads in ebizzy each have a working set that oscillates between 0 and 131071 bytes; every free() call causes an madvise() call.  Set MALLOC_CONF=lg_dirty_mult:-1 to measure performance with unused dirty page purging disabled.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130602/17b1bcb2/attachment.html>
+
+From jasone at canonware.com  Mon Jun  3 16:23:05 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 3 Jun 2013 16:23:05 -0700
+Subject: High amount of private clean data in smaps
+In-Reply-To: <OFC82237DD.8F26F703-ON85257B7B.007DE1D1-85257B7B.007EF7E4@us.ibm.com>
+References: <OFD601CD90.832E71A2-ON85257B7A.00729344-85257B7A.0072B266@LocalDomain>
+	<OF1620C583.95DDC2E3-ON85257B7B.007DCD10-85257B7B.007DD9EA@LocalDomain>
+	<OFC82237DD.8F26F703-ON85257B7B.007DE1D1-85257B7B.007EF7E4@us.ibm.com>
+Message-ID: <35941C6B-8CDA-47B2-A190-839B65880FBF@canonware.com>
+
+On May 30, 2013, at 4:06 PM, Kurtis Martin wrote:
+> 1) Why does jemalloc have smaps with such large Private_Clean size?  I'm actually surprised jemalloc has such large smaps in general.  I would expect a bunch of smaller smaps that match the configured chunk size. 
+
+I've been trying to figure this out for quite a while now, and I have yet to come up a way to transition pages that were mapped as MAP_PRIVATE|MAP_ANON to the Private_Clean state.  My experiments included fork(2) abuse, mmap'ed files, shared anonymous memory, etc., and I'm currently out of ideas.  If you're able to observe a process as its Private_Clean page count is increasing, can you capture an strace log to see what system calls are occurring?  Also, can you tell me the Linux kernel version you're using, jemalloc configuration (e.g. whether munmap is disabled), and jemalloc run-time options specified?
+
+Regarding large smaps, all the Unix operating systems I've dealt with coalesce mappings that have identical attributes.  If jemalloc maps two chunks that happen to be adjacent to each other, the kernel tracks them as a single mapping.  jemalloc goes to some effort to make coalescing possible, because Linux unfortunately does linear map scans that severely degrade performance if the number of map entries isn't kept low.
+
+Thanks,
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130603/c463ce5a/attachment.html>
+
+From rogier+jemalloc at fastly.com  Mon Jun  3 20:19:10 2013
+From: rogier+jemalloc at fastly.com (Rogier 'DocWilco' Mulhuijzen)
+Date: Mon, 3 Jun 2013 20:19:10 -0700
+Subject: Frequent segfaults in 2.2.5
+Message-ID: <CAF05Cc9B9xHrT-g4QO+=kwyUxY9ETqSRMUoT7dnVyZ+XcQyXkg@mail.gmail.com>
+
+Heya,
+
+We're currently using jemalloc 2.2.5 statically linked into a private fork
+of Varnish with a very high rate of malloc/calloc/free, and we're seeing
+segfaults on a somewhat frequent basis. (one a day on a group of 6 hosts.)
+
+We had the same segfaults with 2.2.3, and upgrading to 2.2.5 seems not to
+have helped.
+
+(Also, we tried upgrading to 3.3.1 and things just got worse, tried
+enabling debugging which made it even more worse. Under time pressure, we
+dropped down to 2.2.5)
+
+I should mention that I backported the mmap strategy from 3.3.1 into 2.2.5,
+to prevent VM fragmentation, which was causing us to run into
+vm.max_map_count.
+
+So, to the meat of the problem! (We saw these in both 2.2.3 without the
+mmap strategy backported, and 2.2.5 with mmap strategy backported.)
+
+Unfortunately, we don't have core files (we're running with 153G resident,
+and 4075G virtual process size on one of the hosts that I'm looking at
+right now) so the internal Varnish (libgcc based) backtrace is all we have:
+
+*0x483894*: arena_tcache_fill_small+1a4
+0x4916b9: tcache_alloc_small_hard+19
+0x4841bf: arena_malloc+1bf
+0x47b498: calloc+218
+
+Looking that up:
+
+# addr2line -e /usr/sbin/varnishd -i 0x483894
+/varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:101
+/varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:140
+/varnish-cache/lib/libjemalloc/src/arena.c:264
+/varnish-cache/lib/libjemalloc/src/arena.c:1395
+
+Which looks like:
+
+97 goff = bit >> LG_BITMAP_GROUP_NBITS;
+98 gp = &bitmap[goff];
+99 g = *gp;
+100 assert(g & (1LU << (bit & BITMAP_GROUP_NBITS_MASK)));
+*101* g ^= 1LU << (bit & BITMAP_GROUP_NBITS_MASK);
+102 *gp = g;
+
+Which makes no sense at first, since there's no deref being done there, but
+a disassembly (thanks Devon) shows:
+
+  483883:       48 c1 ef 06             shr    $0x6,%rdi
+  483887:       83 e1 3f                and    $0x3f,%ecx
+  48388a:       4c 8d 04 fa             lea    (%rdx,%rdi,8),%r8
+  48388e:       49 d3 e1                shl    %cl,%r9
+  483891:       4c 89 c9                mov    %r9,%rcx
+  *483894*:       49 33 08                xor    (%r8),%rcx
+
+The optimizer got rid of g and just does the xor straight on *gp. So gp is
+an illegal address. According to our segfault handler, it's NULL.
+
+For gp to be NULL, both bitmap and goff need to be NULL. And bitmap being
+NULL is somewhat impossible due to:
+
+if ((run = bin->runcur) != NULL && run->nfree > 0)
+ptr = arena_run_reg_alloc(run, &arena_bin_info[binind]);
+
+bitmap is an offset to run, so both the offset and the run need to be NULL
+(or perfectly matched to cancel eachother out, but also unlikely.)
+
+bin->runcur and bin->bitmap_offset both being NULL seems _very_ unlikely.
+
+And that's about as far as we've gotten.
+
+Help?
+
+      Doc & Devon
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130603/d26a4169/attachment.html>
+
+From jasone at canonware.com  Mon Jun  3 21:11:41 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 3 Jun 2013 21:11:41 -0700
+Subject: Frequent segfaults in 2.2.5
+In-Reply-To: <CAF05Cc9B9xHrT-g4QO+=kwyUxY9ETqSRMUoT7dnVyZ+XcQyXkg@mail.gmail.com>
+References: <CAF05Cc9B9xHrT-g4QO+=kwyUxY9ETqSRMUoT7dnVyZ+XcQyXkg@mail.gmail.com>
+Message-ID: <87123E03-C9C8-4B0A-8C54-34985ADC37F8@canonware.com>
+
+On Jun 3, 2013, at 8:19 PM, Rogier 'DocWilco' Mulhuijzen <rogier+jemalloc at fastly.com> wrote:
+> We're currently using jemalloc 2.2.5 statically linked into a private fork of Varnish with a very high rate of malloc/calloc/free, and we're seeing segfaults on a somewhat frequent basis. (one a day on a group of 6 hosts.)
+> 
+> We had the same segfaults with 2.2.3, and upgrading to 2.2.5 seems not to have helped.
+> 
+> (Also, we tried upgrading to 3.3.1 and things just got worse, tried enabling debugging which made it even more worse. Under time pressure, we dropped down to 2.2.5)
+> 
+> I should mention that I backported the mmap strategy from 3.3.1 into 2.2.5, to prevent VM fragmentation, which was causing us to run into vm.max_map_count.
+> 
+> So, to the meat of the problem! (We saw these in both 2.2.3 without the mmap strategy backported, and 2.2.5 with mmap strategy backported.) 
+> 
+> Unfortunately, we don't have core files (we're running with 153G resident, and 4075G virtual process size on one of the hosts that I'm looking at right now) so the internal Varnish (libgcc based) backtrace is all we have:
+> 
+> 0x483894: arena_tcache_fill_small+1a4
+> 0x4916b9: tcache_alloc_small_hard+19
+> 0x4841bf: arena_malloc+1bf
+> 0x47b498: calloc+218
+> 
+> Looking that up:
+> 
+> # addr2line -e /usr/sbin/varnishd -i 0x483894
+> /varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:101
+> /varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:140
+> /varnish-cache/lib/libjemalloc/src/arena.c:264
+> /varnish-cache/lib/libjemalloc/src/arena.c:1395
+> 
+> Which looks like:
+> 
+> 97	goff = bit >> LG_BITMAP_GROUP_NBITS;
+> 98	gp = &bitmap[goff];
+> 99	g = *gp;
+> 100	assert(g & (1LU << (bit & BITMAP_GROUP_NBITS_MASK)));
+> 101	g ^= 1LU << (bit & BITMAP_GROUP_NBITS_MASK);
+> 102	*gp = g;
+> 
+> Which makes no sense at first, since there's no deref being done there, but a disassembly (thanks Devon) shows:
+> 
+>   483883:       48 c1 ef 06             shr    $0x6,%rdi
+>   483887:       83 e1 3f                and    $0x3f,%ecx
+>   48388a:       4c 8d 04 fa             lea    (%rdx,%rdi,8),%r8
+>   48388e:       49 d3 e1                shl    %cl,%r9
+>   483891:       4c 89 c9                mov    %r9,%rcx
+>   483894:       49 33 08                xor    (%r8),%rcx
+> 
+> The optimizer got rid of g and just does the xor straight on *gp. So gp is an illegal address. According to our segfault handler, it's NULL.
+> 
+> For gp to be NULL, both bitmap and goff need to be NULL. And bitmap being NULL is somewhat impossible due to:
+> 
+> 		if ((run = bin->runcur) != NULL && run->nfree > 0)
+> 			ptr = arena_run_reg_alloc(run, &arena_bin_info[binind]);
+> 
+> bitmap is an offset to run, so both the offset and the run need to be NULL (or perfectly matched to cancel eachother out, but also unlikely.)
+> 
+> bin->runcur and bin->bitmap_offset both being NULL seems _very_ unlikely.
+> 
+> And that's about as far as we've gotten.
+> 
+> Help?
+
+This sort of crash can happen as a distant result of a double-free.  For example:
+
+1) free(p)
+2) free(p) corrupts run counters, causing the run to be deallocated.
+3) free(q) causes the deallocated run to be placed back in service, but with definite corruption.
+4) malloc(?) tries to allocate from run, but run metadata are in a bad state.
+
+My suggestion is to enable assertions (something like: CFLAGS=-O3 ./configure --enable-debug --disable-tcache), disable tcache (which can keep double free bugs from exercising the assertions), and look for the source of corruption.  I'll be surprised if the problem deviates substantially from the above, but if it does, then my next bet will be a buffer overflow corrupting run metadata.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130603/65546410/attachment.html>
+
+From rogier+jemalloc at fastly.com  Tue Jun  4 00:14:13 2013
+From: rogier+jemalloc at fastly.com (Rogier 'DocWilco' Mulhuijzen)
+Date: Tue, 4 Jun 2013 00:14:13 -0700
+Subject: Frequent segfaults in 2.2.5
+In-Reply-To: <87123E03-C9C8-4B0A-8C54-34985ADC37F8@canonware.com>
+References: <CAF05Cc9B9xHrT-g4QO+=kwyUxY9ETqSRMUoT7dnVyZ+XcQyXkg@mail.gmail.com>
+	<87123E03-C9C8-4B0A-8C54-34985ADC37F8@canonware.com>
+Message-ID: <CAF05Cc-g9QasgYvm5faueVCucx4z56M9bXQ9pd0beu=Rtc5s0w@mail.gmail.com>
+
+We added --enable-fill and junk:true to the mix and ran headlong into a
+wall of libnuma init code. Looks like glibc malloc followed by jemalloc
+free. But even backporting the glibc hooks code from 3.x didn't help.
+
+We'll try 3.4 in the morning, see where that takes us.
+
+Thanks for the pointers so far. :)
+
+Cheers,
+
+      Doc
+
+
+On Mon, Jun 3, 2013 at 9:11 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jun 3, 2013, at 8:19 PM, Rogier 'DocWilco' Mulhuijzen <
+> rogier+jemalloc at fastly.com> wrote:
+>
+> We're currently using jemalloc 2.2.5 statically linked into a private fork
+> of Varnish with a very high rate of malloc/calloc/free, and we're seeing
+> segfaults on a somewhat frequent basis. (one a day on a group of 6 hosts.)
+>
+> We had the same segfaults with 2.2.3, and upgrading to 2.2.5 seems not to
+> have helped.
+>
+> (Also, we tried upgrading to 3.3.1 and things just got worse, tried
+> enabling debugging which made it even more worse. Under time pressure, we
+> dropped down to 2.2.5)
+>
+> I should mention that I backported the mmap strategy from 3.3.1 into
+> 2.2.5, to prevent VM fragmentation, which was causing us to run into
+> vm.max_map_count.
+>
+> So, to the meat of the problem! (We saw these in both 2.2.3 without the
+> mmap strategy backported, and 2.2.5 with mmap strategy backported.)
+>
+> Unfortunately, we don't have core files (we're running with 153G resident,
+> and 4075G virtual process size on one of the hosts that I'm looking at
+> right now) so the internal Varnish (libgcc based) backtrace is all we have:
+>
+> *0x483894*: arena_tcache_fill_small+1a4
+> 0x4916b9: tcache_alloc_small_hard+19
+> 0x4841bf: arena_malloc+1bf
+> 0x47b498: calloc+218
+>
+> Looking that up:
+>
+> # addr2line -e /usr/sbin/varnishd -i 0x483894
+> /varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:101
+> /varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:140
+> /varnish-cache/lib/libjemalloc/src/arena.c:264
+> /varnish-cache/lib/libjemalloc/src/arena.c:1395
+>
+> Which looks like:
+>
+> 97 goff = bit >> LG_BITMAP_GROUP_NBITS;
+> 98 gp = &bitmap[goff];
+> 99 g = *gp;
+> 100 assert(g & (1LU << (bit & BITMAP_GROUP_NBITS_MASK)));
+> *101* g ^= 1LU << (bit & BITMAP_GROUP_NBITS_MASK);
+> 102 *gp = g;
+>
+> Which makes no sense at first, since there's no deref being done there,
+> but a disassembly (thanks Devon) shows:
+>
+>   483883:       48 c1 ef 06             shr    $0x6,%rdi
+>   483887:       83 e1 3f                and    $0x3f,%ecx
+>   48388a:       4c 8d 04 fa             lea    (%rdx,%rdi,8),%r8
+>   48388e:       49 d3 e1                shl    %cl,%r9
+>   483891:       4c 89 c9                mov    %r9,%rcx
+>   *483894*:       49 33 08                xor    (%r8),%rcx
+>
+> The optimizer got rid of g and just does the xor straight on *gp. So gp is
+> an illegal address. According to our segfault handler, it's NULL.
+>
+> For gp to be NULL, both bitmap and goff need to be NULL. And bitmap being
+> NULL is somewhat impossible due to:
+>
+> if ((run = bin->runcur) != NULL && run->nfree > 0)
+>  ptr = arena_run_reg_alloc(run, &arena_bin_info[binind]);
+>
+> bitmap is an offset to run, so both the offset and the run need to be NULL
+> (or perfectly matched to cancel eachother out, but also unlikely.)
+>
+> bin->runcur and bin->bitmap_offset both being NULL seems _very_ unlikely.
+>
+> And that's about as far as we've gotten.
+>
+> Help?
+>
+>
+> This sort of crash can happen as a distant result of a double-free.  For
+> example:
+>
+> 1) free(p)
+> 2) free(p) corrupts run counters, causing the run to be deallocated.
+> 3) free(q) causes the deallocated run to be placed back in service, but
+> with definite corruption.
+> 4) malloc(?) tries to allocate from run, but run metadata are in a bad
+> state.
+>
+> My suggestion is to enable assertions (something like: CFLAGS=-O3
+> ./configure --enable-debug --disable-tcache), disable tcache (which can
+> keep double free bugs from exercising the assertions), and look for the
+> source of corruption.  I'll be surprised if the problem deviates
+> substantially from the above, but if it does, then my next bet will be a
+> buffer overflow corrupting run metadata.
+>
+> Jason
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130604/f49abbf1/attachment.html>
+
+From kurtism at us.ibm.com  Tue Jun  4 13:32:00 2013
+From: kurtism at us.ibm.com (Kurtis Martin)
+Date: Tue, 4 Jun 2013 16:32:00 -0400
+Subject: High amount of private clean data in smaps
+In-Reply-To: <35941C6B-8CDA-47B2-A190-839B65880FBF@canonware.com>
+References: <OFD601CD90.832E71A2-ON85257B7A.00729344-85257B7A.0072B266@LocalDomain>
+	<OF1620C583.95DDC2E3-ON85257B7B.007DCD10-85257B7B.007DD9EA@LocalDomain>
+	<OFC82237DD.8F26F703-ON85257B7B.007DE1D1-85257B7B.007EF7E4@us.ibm.com>
+	<35941C6B-8CDA-47B2-A190-839B65880FBF@canonware.com>
+Message-ID: <OF4C8F9C2F.239D7C32-ON85257B80.00706828-85257B80.0070CC83@us.ibm.com>
+
+Hi Jason,
+
+Thx for taking the time to look into this !
+
+Below is the requested information.  When I originally observed this 
+behavior I was running with munmap disabled.  We are currently running 
+with it enabled, to see how much it helps or hurts us.  Private_Clean is 
+still high with munmap enabled, however our processes RSS seems to be 
+growing slower.
+
+Also, we have swapping disabled.  Mainly because we are running a bunch of 
+java processes for which we don't want any of the JVM to ever be swapped. 
+It's unclear if enabling swap will help us avoid the OS OOM killer, 
+however we will soon be running some experiments with swap enabled.
+
+I've been try to catch strace when the Private_Clean is growing.  Not sure 
+if you are asking for a full strace or whether the summary is good enough. 
+ A full strace would be way too large as our server is under full load 
+with tens of thousands of allocations every second.  The summary is 
+attached below for a 30 minute duration, during which time I observed a 
+single smap grow by 100MB of private clean pages.  Over the next couple of 
+hours it didn't grow at all, rather it shrunk by a couple of hundred MBs.
+
+Please let me know if anything else is needed, or if you have any 
+suggestions with other jemalloc config options or Linux tuning we maybe 
+able to do to help.  THX !
+
+1) Linux version:
+
+Linux 10.42.229.68 2.6.32-131.21.1.89.br5_0.x86_64 #1 SMP Tue Mar 19 
+15:05:57 CDT 2013 x86_64 GNU/Linux
+
+2) config options for jemalloc:
+
+===============================================================================
+jemalloc version   : 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+library revision   : 1
+
+CC                 : gcc
+CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+CFLAGS             : -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 
+-funroll-loops
+LDFLAGS            : 
+LIBS               :  -lm -lpthread
+RPATH_EXTRA        : 
+
+XSLTPROC           : /usr/bin/xsltproc
+XSLROOT            : /usr/share/sgml/docbook/xsl-stylesheets
+
+PREFIX             : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc
+BINDIR             : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/bin
+INCLUDEDIR         : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/include
+LIBDIR             : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/lib
+DATADIR            : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/share
+MANDIR             : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/share/man
+
+srcroot            : 
+abs_srcroot        : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/src/jemalloc-3.3.1/
+objroot            : 
+abs_objroot        : 
+/root/kWebSphere/workspace/XS3/XS/ws/code/prereq.jemalloc/src/jemalloc-3.3.1/
+
+JEMALLOC_PREFIX    : je
+JEMALLOC_PRIVATE_NAMESPACE
+                   : 
+install_suffix     : 
+autogen            : 0
+experimental       : 1
+cc-silence         : 0
+debug              : 0
+stats              : 1
+prof               : 0
+prof-libunwind     : 0
+prof-libgcc        : 0
+prof-gcc           : 0
+tcache             : 0
+fill               : 1
+utrace             : 0
+valgrind           : 0
+xmalloc            : 0
+mremap             : 0
+munmap             : 1
+dss                : 0
+lazy_lock          : 0
+tls                : 1
+===============================================================================
+
+3) jemalloc runtime:
+
+Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+Assertions disabled
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 21
+  opt.dss: "secondary"
+  opt.narenas: 96
+  opt.lg_dirty_mult: 6
+  opt.stats_print: false
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+CPUs: 24
+Arenas: 96
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 64:1
+Chunk size: 2097152 (2^21)
+
+4) strace summary
+
+
+
+        bye,
+                kMartin
+.
+
+
+
+
+From:
+Jason Evans <jasone at canonware.com>
+To:
+Kurtis Martin/Raleigh/IBM at IBMUS, 
+Cc:
+jemalloc-discuss at canonware.com
+Date:
+06/03/2013 07:23 PM
+Subject:
+Re: High amount of private clean data in smaps
+
+
+
+On May 30, 2013, at 4:06 PM, Kurtis Martin wrote:
+1) Why does jemalloc have smaps with such large Private_Clean size?  I'm 
+actually surprised jemalloc has such large smaps in general.  I would 
+expect a bunch of smaller smaps that match the configured chunk size. 
+
+I've been trying to figure this out for quite a while now, and I have yet 
+to come up a way to transition pages that were mapped as 
+MAP_PRIVATE|MAP_ANON to the Private_Clean state.  My experiments included 
+fork(2) abuse, mmap'ed files, shared anonymous memory, etc., and I'm 
+currently out of ideas.  If you're able to observe a process as its 
+Private_Clean page count is increasing, can you capture an strace log to 
+see what system calls are occurring?  Also, can you tell me the Linux 
+kernel version you're using, jemalloc configuration (e.g. whether munmap 
+is disabled), and jemalloc run-time options specified?
+
+Regarding large smaps, all the Unix operating systems I've dealt with 
+coalesce mappings that have identical attributes.  If jemalloc maps two 
+chunks that happen to be adjacent to each other, the kernel tracks them as 
+a single mapping.  jemalloc goes to some effort to make coalescing 
+possible, because Linux unfortunately does linear map scans that severely 
+degrade performance if the number of map entries isn't kept low.
+
+Thanks,
+Jason
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130604/27c1edd5/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: strace.348821.100MB_30m.log
+Type: application/octet-stream
+Size: 3483 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130604/27c1edd5/attachment.obj>
+
+From rogier+jemalloc at fastly.com  Wed Jun  5 16:24:05 2013
+From: rogier+jemalloc at fastly.com (Rogier 'DocWilco' Mulhuijzen)
+Date: Wed, 5 Jun 2013 16:24:05 -0700
+Subject: Frequent segfaults in 2.2.5
+In-Reply-To: <CAF05Cc-g9QasgYvm5faueVCucx4z56M9bXQ9pd0beu=Rtc5s0w@mail.gmail.com>
+References: <CAF05Cc9B9xHrT-g4QO+=kwyUxY9ETqSRMUoT7dnVyZ+XcQyXkg@mail.gmail.com>
+	<87123E03-C9C8-4B0A-8C54-34985ADC37F8@canonware.com>
+	<CAF05Cc-g9QasgYvm5faueVCucx4z56M9bXQ9pd0beu=Rtc5s0w@mail.gmail.com>
+Message-ID: <CAF05Cc_4xvtFu3uUFJUOC+Uxcuoq5dG6aDYpqxAdu_7nFc6EwQ@mail.gmail.com>
+
+Upgraded libnuma, startup problem went away. We'll see if this improves
+longterm stability.
+
+
+On Tue, Jun 4, 2013 at 12:14 AM, Rogier 'DocWilco' Mulhuijzen <
+rogier+jemalloc at fastly.com> wrote:
+
+> We added --enable-fill and junk:true to the mix and ran headlong into a
+> wall of libnuma init code. Looks like glibc malloc followed by jemalloc
+> free. But even backporting the glibc hooks code from 3.x didn't help.
+>
+> We'll try 3.4 in the morning, see where that takes us.
+>
+> Thanks for the pointers so far. :)
+>
+> Cheers,
+>
+>       Doc
+>
+>
+> On Mon, Jun 3, 2013 at 9:11 PM, Jason Evans <jasone at canonware.com> wrote:
+>
+>> On Jun 3, 2013, at 8:19 PM, Rogier 'DocWilco' Mulhuijzen <
+>> rogier+jemalloc at fastly.com> wrote:
+>>
+>> We're currently using jemalloc 2.2.5 statically linked into a private
+>> fork of Varnish with a very high rate of malloc/calloc/free, and we're
+>> seeing segfaults on a somewhat frequent basis. (one a day on a group of 6
+>> hosts.)
+>>
+>> We had the same segfaults with 2.2.3, and upgrading to 2.2.5 seems not to
+>> have helped.
+>>
+>> (Also, we tried upgrading to 3.3.1 and things just got worse, tried
+>> enabling debugging which made it even more worse. Under time pressure, we
+>> dropped down to 2.2.5)
+>>
+>> I should mention that I backported the mmap strategy from 3.3.1 into
+>> 2.2.5, to prevent VM fragmentation, which was causing us to run into
+>> vm.max_map_count.
+>>
+>> So, to the meat of the problem! (We saw these in both 2.2.3 without the
+>> mmap strategy backported, and 2.2.5 with mmap strategy backported.)
+>>
+>> Unfortunately, we don't have core files (we're running with 153G
+>> resident, and 4075G virtual process size on one of the hosts that I'm
+>> looking at right now) so the internal Varnish (libgcc based) backtrace is
+>> all we have:
+>>
+>> *0x483894*: arena_tcache_fill_small+1a4
+>> 0x4916b9: tcache_alloc_small_hard+19
+>> 0x4841bf: arena_malloc+1bf
+>> 0x47b498: calloc+218
+>>
+>> Looking that up:
+>>
+>> # addr2line -e /usr/sbin/varnishd -i 0x483894
+>> /varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:101
+>> /varnish-cache/lib/libjemalloc/include/jemalloc/internal/bitmap.h:140
+>> /varnish-cache/lib/libjemalloc/src/arena.c:264
+>> /varnish-cache/lib/libjemalloc/src/arena.c:1395
+>>
+>> Which looks like:
+>>
+>> 97 goff = bit >> LG_BITMAP_GROUP_NBITS;
+>> 98 gp = &bitmap[goff];
+>> 99 g = *gp;
+>> 100 assert(g & (1LU << (bit & BITMAP_GROUP_NBITS_MASK)));
+>> *101* g ^= 1LU << (bit & BITMAP_GROUP_NBITS_MASK);
+>> 102 *gp = g;
+>>
+>> Which makes no sense at first, since there's no deref being done there,
+>> but a disassembly (thanks Devon) shows:
+>>
+>>   483883:       48 c1 ef 06             shr    $0x6,%rdi
+>>   483887:       83 e1 3f                and    $0x3f,%ecx
+>>   48388a:       4c 8d 04 fa             lea    (%rdx,%rdi,8),%r8
+>>   48388e:       49 d3 e1                shl    %cl,%r9
+>>   483891:       4c 89 c9                mov    %r9,%rcx
+>>   *483894*:       49 33 08                xor    (%r8),%rcx
+>>
+>> The optimizer got rid of g and just does the xor straight on *gp. So gp
+>> is an illegal address. According to our segfault handler, it's NULL.
+>>
+>> For gp to be NULL, both bitmap and goff need to be NULL. And bitmap being
+>> NULL is somewhat impossible due to:
+>>
+>> if ((run = bin->runcur) != NULL && run->nfree > 0)
+>>  ptr = arena_run_reg_alloc(run, &arena_bin_info[binind]);
+>>
+>> bitmap is an offset to run, so both the offset and the run need to be
+>> NULL (or perfectly matched to cancel eachother out, but also unlikely.)
+>>
+>> bin->runcur and bin->bitmap_offset both being NULL seems _very_ unlikely.
+>>
+>> And that's about as far as we've gotten.
+>>
+>> Help?
+>>
+>>
+>> This sort of crash can happen as a distant result of a double-free.  For
+>> example:
+>>
+>> 1) free(p)
+>> 2) free(p) corrupts run counters, causing the run to be deallocated.
+>> 3) free(q) causes the deallocated run to be placed back in service, but
+>> with definite corruption.
+>> 4) malloc(?) tries to allocate from run, but run metadata are in a bad
+>> state.
+>>
+>> My suggestion is to enable assertions (something like: CFLAGS=-O3
+>> ./configure --enable-debug --disable-tcache), disable tcache (which can
+>> keep double free bugs from exercising the assertions), and look for the
+>> source of corruption.  I'll be surprised if the problem deviates
+>> substantially from the above, but if it does, then my next bet will be a
+>> buffer overflow corrupting run metadata.
+>>
+>> Jason
+>>
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130605/333118d2/attachment.html>
+
+From gissel at us.ibm.com  Wed Jun  5 21:17:46 2013
+From: gissel at us.ibm.com (Thomas R Gissel)
+Date: Wed, 5 Jun 2013 22:17:46 -0600
+Subject: High amount of private clean data in smaps
+Message-ID: <OF519EDCD4.68687AF6-ON87257B82.001634F4-85257B82.0017A177@us.ibm.com>
+
+
+
+I too have been trying to reproduce the existence of Private_Clean
+memory?segments in smaps via a simple test case with jemalloc and was
+unable to on my laptop, a 2 core machine running a 3.8.0-23 kernel . ?I
+then moved my test to our production box: 96GB memory, 24 hardware threads
+and 2.6 kernel (detailed information below), and within a few minutes of
+execution, with a few minor adjustments, I was able duplicate the results,
+smaps showing the jemalloc segment with Private_Clean memory usage, of our
+larger test. Note that I'm using the same jemalloc library whose
+information Kurtis posted earlier (96 arenas etc...).
+
+Thank you,
+Tom
+
+---------------
+DETAILS
+
+
+Smaps memory segment
+?7f1f75c00000-7f35bce00000 rw-p 00000000 00:00 0
+Size: 93440000 kB
+Rss: 63177024 kB
+Pss: 63177024 kB
+Shared_Clean: 0 kB
+Shared_Dirty: 0 kB
+Private_Clean: 614992 kB
+Private_Dirty: 62562032 kB
+Referenced: 62562212 kB
+Swap: 0 kB
+KernelPageSize: 4 kB
+MMUPageSize: 4 kB
+
+
+Production Box Info:
+# uname -a
+Linux 9.42.94.12 2.6.32-131.21.1.89.br5_0.x86_64 #1 SMP Tue Mar 19 15:05:57
+CDT 2013 x86_64 GNU/Linux
+
+Tail of CPU Info
+processor?????? : 23
+vendor_id?????? : GenuineIntel
+cpu family????? : 6
+model?????????? : 44
+model name????? : Intel(R) Xeon(R) CPU?????????? X5670? @ 2.93GHz
+stepping??????? : 2
+cpu MHz???????? : 2933.304
+cache size????? : 12288 KB
+physical id???? : 1
+siblings??????? : 12
+core id???????? : 10
+cpu cores?????? : 6
+apicid????????? : 53
+initial apicid? : 53
+fpu???????????? : yes
+fpu_exception?? : yes
+cpuid level???? : 11
+wp????????????? : yes
+flags?????????? : fpu vme de pse tsc msr pae mce cx8 apic mtrr pge mca cmov
+pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx
+pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good xtopology
+nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2
+ssse3 cx16 xtpr pdcm dca sse4_1 sse4_2 popcnt aes lahf_lm ida arat
+tpr_shadow vnmi flexpriority ept vpid
+bogomips??????? : 5867.23
+clflush size??? : 64
+cache_alignment : 64
+address sizes?? : 40 bits physical, 48 bits virtual
+power management:
+
+
+(See attached file: stressTest.c)
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130605/d2faaf22/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: stressTest.c
+Type: application/octet-stream
+Size: 5813 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130605/d2faaf22/attachment.obj>
+
+From jasone at canonware.com  Wed Jun  5 22:34:57 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 5 Jun 2013 22:34:57 -0700
+Subject: High amount of private clean data in smaps
+In-Reply-To: <OF519EDCD4.68687AF6-ON87257B82.001634F4-85257B82.0017A177@us.ibm.com>
+References: <OF519EDCD4.68687AF6-ON87257B82.001634F4-85257B82.0017A177@us.ibm.com>
+Message-ID: <6A918918-587F-4774-9B06-8022E0D2B19A@canonware.com>
+
+On Jun 5, 2013, at 9:17 PM, Thomas R Gissel <gissel at us.ibm.com> wrote:
+> I too have been trying to reproduce the existence of Private_Clean memory segments in smaps via a simple test case with jemalloc and was unable to on my laptop, a 2 core machine running a 3.8.0-23 kernel .  I then moved my test to our production box: 96GB memory, 24 hardware threads and 2.6 kernel (detailed information below), and within a few minutes of execution, with a few minor adjustments, I was able duplicate the results, smaps showing the jemalloc segment with Private_Clean memory usage, of our larger test. Note that I'm using the same jemalloc library whose information Kurtis posted earlier (96 arenas etc...). 
+> 
+
+Interesting!  I don't see anything unusual about the test program, so I'm guessing this is kernel-specific.  I'll run it on some 8- and 16-core machines tomorrow with a couple of kernel versions and see what happens.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130605/a4e9b6e5/attachment.html>
+
+From duddlf.choi at samsung.com  Wed Jun 12 02:28:16 2013
+From: duddlf.choi at samsung.com (=?euc-kr?B?w9a/tcDP?=)
+Date: Wed, 12 Jun 2013 09:28:16 +0000 (GMT)
+Subject: Porting jemalloc to Android
+Message-ID: <32576018.349361371029296579.JavaMail.weblogic@epml01>
+
+
+Hi,
+
+Anyone succeed to port Android ?
+
+I tried like below but got SEGV on simple malloc test program.
+
+- modify configure.ac to pass cross compile 
+957c957,958
+<                              [je_cv_static_page_shift=undefined]))
+---
+>                              [je_cv_static_page_shift=undefined],
+>                              [je_cv_static_page_shift=12]))
+                   
+- configure with NDK
+
+configure --disable-experimental --build=x86_64-unknown-linux-gnu --host=arm-linux-androideabi EXTRA_CFLAGS="-fno-omit-frame-pointer -DUSE_UTF8 -O2 -fPIC -std=gnu99 " LDFLAGS=" -fPIC -std=gnu99" CC="/opt/ndk_standalone/bin/arm-linux-androideabi-gcc" CXX="/opt/ndk_standalone/bin/arm-linux-androideabi-g++" AR="/opt/ndk_standalone/bin/arm-linux-androideabi-ar"
+
+- Add dummy pthread_atfork.c
+
+int pthread_atfork(void (*prefork)(void),
+                   void (*postfork_parent)(void),
+                   void (*postfork_child)(void))
+{
+  return 0;
+}
+
+
+From ingvar at redpill-linpro.com  Fri Jun 14 01:05:57 2013
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Fri, 14 Jun 2013 10:05:57 +0200
+Subject: Enable valgrind support by default in Red Hat / Fedora package
+Message-ID: <51BACEE5.2070101@redpill-linpro.com>
+
+I got a request for enabling valgrind support by default in the RedHat/Fedora package, ie. add valgrind-devel to the build requirements. (bz#974270)
+
+Is there any downside with just adding valgrind support to the RedHat/Fedora build?
+
+How will jemalloc behave if valgrind support is compiled in, but valgrind is not installed at runtime?
+
+Ingvar
+
+
+
+
+From jasone at canonware.com  Fri Jun 14 19:21:39 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 14 Jun 2013 19:21:39 -0700
+Subject: Enable valgrind support by default in Red Hat / Fedora package
+In-Reply-To: <51BACEE5.2070101@redpill-linpro.com>
+References: <51BACEE5.2070101@redpill-linpro.com>
+Message-ID: <0721ABBA-58CE-4E78-88E3-877E5051D420@canonware.com>
+
+On Jun 14, 2013, at 1:05 AM, Ingvar Hagelund wrote:
+> I got a request for enabling valgrind support by default in the RedHat/Fedora package, ie. add valgrind-devel to the build requirements. (bz#974270)
+> 
+> Is there any downside with just adding valgrind support to the RedHat/Fedora build?
+> 
+> How will jemalloc behave if valgrind support is compiled in, but valgrind is not installed at runtime?
+
+The only down side is that a few extra instructions (no-op sequences) are executed per allocation event.  As long as the valgrind dependency doesn't cause any rpm build-time dependency issues, I'd say go for it.
+
+Jason
+
+From gissel at us.ibm.com  Tue Jun 25 06:13:21 2013
+From: gissel at us.ibm.com (Thomas R Gissel)
+Date: Tue, 25 Jun 2013 09:13:21 -0400
+Subject: High amount of private clean data in smaps
+In-Reply-To: <6A918918-587F-4774-9B06-8022E0D2B19A@canonware.com>
+References: <OF519EDCD4.68687AF6-ON87257B82.001634F4-85257B82.0017A177@us.ibm.com>
+	<6A918918-587F-4774-9B06-8022E0D2B19A@canonware.com>
+Message-ID: <OF65339387.A3A4F4B3-ON87257B95.004830B3-85257B95.0048B110@us.ibm.com>
+
+
+With help from our local Linux kernel experts we've tracked down the
+inexplicable Private_Clean emergence in our processes' smaps file to a
+kernel bug,
+https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/fs/proc/task_mmu.c?id=1c2499ae87f828eabddf6483b0dfc11da1100c07
+, which, according to GIT, was first?committed?in?v2.6.36-rc6~63. ?When we
+manually applied the aforementioned patched to our?kernel?there were no
+memory segments in smaps showing large Private_Clean regions during our
+test. ?Unfortunately?the fix seems to have been merely an accounting
+change. ?Everything?previously reported as Private_Clean is now correctly
+showing up as Private_Dirty, so we are still digging to find out why our
+RSS, specifically Private_Dirty, continues to grow while jemalloc's active
+reports much lower numbers.
+
+Thanks,
+
+Tom
+
+
+|------------>
+| From:      |
+|------------>
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Jason Evans <jasone at canonware.com>                                                                                                               |
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------>
+| To:        |
+|------------>
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Thomas R Gissel/Rochester/IBM at IBMUS,                                                                                                             |
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------>
+| Cc:        |
+|------------>
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+  |jemalloc-discuss at canonware.com                                                                                                                   |
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------>
+| Date:      |
+|------------>
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+  |06/06/2013 01:34 AM                                                                                                                              |
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------>
+| Subject:   |
+|------------>
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+  |Re: High amount of private clean data in smaps                                                                                                   |
+  >-------------------------------------------------------------------------------------------------------------------------------------------------|
+
+
+
+
+
+On Jun 5, 2013, at 9:17 PM, Thomas R Gissel <gissel at us.ibm.com> wrote:
+
+
+      I too have been trying to reproduce the existence of Private_Clean
+      memory segments in smaps via a simple test case with jemalloc and was
+      unable to on my laptop, a 2 core machine running a 3.8.0-23 kernel .
+      I then moved my test to our production box: 96GB memory, 24 hardware
+      threads and 2.6 kernel (detailed information below), and within a few
+      minutes of execution, with a few minor adjustments, I was able
+      duplicate the results, smaps showing the jemalloc segment with
+      Private_Clean memory usage, of our larger test. Note that I'm using
+      the same jemalloc library whose information Kurtis posted earlier (96
+      arenas etc...).
+
+
+Interesting!  I don't see anything unusual about the test program, so I'm
+guessing this is kernel-specific.  I'll run it on some 8- and 16-core
+machines tomorrow with a couple of kernel versions and see what happens.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130625/3215e254/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: graycol.gif
+Type: image/gif
+Size: 105 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130625/3215e254/attachment.gif>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ecblank.gif
+Type: image/gif
+Size: 45 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130625/3215e254/attachment-0001.gif>
+
+From jasone at canonware.com  Tue Jun 25 09:26:02 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 25 Jun 2013 09:26:02 -0700
+Subject: High amount of private clean data in smaps
+In-Reply-To: <OF65339387.A3A4F4B3-ON87257B95.004830B3-85257B95.0048B110@us.ibm.com>
+References: <OF519EDCD4.68687AF6-ON87257B82.001634F4-85257B82.0017A177@us.ibm.com>
+	<6A918918-587F-4774-9B06-8022E0D2B19A@canonware.com>
+	<OF65339387.A3A4F4B3-ON87257B95.004830B3-85257B95.0048B110@us.ibm.com>
+Message-ID: <DE71443A-2202-4B1D-956D-C5AED15F6F79@canonware.com>
+
+On Jun 25, 2013, at 6:13 AM, Thomas R Gissel wrote:
+> With help from our local Linux kernel experts we've tracked down the inexplicable Private_Clean emergence in our processes' smaps file to a kernel bug, https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/fs/proc/task_mmu.c?id=1c2499ae87f828eabddf6483b0dfc11da1100c07, which, according to GIT, was first committed in v2.6.36-rc6~63.  When we manually applied the aforementioned patched to our kernel there were no memory segments in smaps showing large Private_Clean regions during our test.  Unfortunately the fix seems to have been merely an accounting change.  Everything previously reported as Private_Clean is now correctly showing up as Private_Dirty, so we are still digging to find out why our RSS, specifically Private_Dirty, continues to grow while jemalloc's active reports much lower numbers.
+> 
+Does the stressTest.c program reproduce the problem after the kernel fix?
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130625/5a5831ca/attachment.html>
+
+From gissel at us.ibm.com  Thu Jun 27 20:31:09 2013
+From: gissel at us.ibm.com (Thomas R Gissel)
+Date: Thu, 27 Jun 2013 23:31:09 -0400
+Subject: High amount of private clean data in smaps
+In-Reply-To: <DE71443A-2202-4B1D-956D-C5AED15F6F79@canonware.com>
+References: <OF519EDCD4.68687AF6-ON87257B82.001634F4-85257B82.0017A177@us.ibm.com>
+	<6A918918-587F-4774-9B06-8022E0D2B19A@canonware.com>
+	<OF65339387.A3A4F4B3-ON87257B95.004830B3-85257B95.0048B110@us.ibm.com>
+	<DE71443A-2202-4B1D-956D-C5AED15F6F79@canonware.com>
+Message-ID: <OFAC412FC4.507268DD-ON87257B98.00131F12-85257B98.00136413@us.ibm.com>
+
+
+I apologize for the delinquency of my response.  The previously provided
+stressTest.c does not exhibit the same RSS growth problem as our larger
+application.   As perhaps an interesting data point, running with 1 arena
+seems to eliminate or at least mitigate the issue to the point where it is
+no longer noticeable with our current tests. This seems to indicate
+internal, across arena, fragmentation, but what is still puzzling is that
+in the multi-arena configuration the jemalloc stats seem to disconfirm that
+hypothesis. Specifically, the pattern we see is that after our test has
+been running for some long period of time, usually several hours, and after
+our eviction logic has run several eviction cycles, the process begins to
+and continues to behave in the following way until the test is terminated:
+jemalloc's mapped statistic and process VmRSS seem to grow in a correlated
+way while jemalloc's active statistic stays flat.  Does this information
+give you any insights?
+
+Thank you,
+Tom
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130627/7b3f57d1/attachment.html>
+

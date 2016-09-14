@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> mallctl(&quot;arenas.purge&quot;) dead-locks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mallctl%28%22arenas.purge%22%29%20dead-locks&In-Reply-To=%3C0667E891-1FFB-4E92-92B8-F3DA48D23CF2%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000506.html">
+   <LINK REL="Next"  HREF="000502.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>mallctl(&quot;arenas.purge&quot;) dead-locks</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mallctl%28%22arenas.purge%22%29%20dead-locks&In-Reply-To=%3C0667E891-1FFB-4E92-92B8-F3DA48D23CF2%40canonware.com%3E"
+       TITLE="mallctl(&quot;arenas.purge&quot;) dead-locks">jasone at canonware.com
+       </A><BR>
+    <I>Sat Nov  3 23:07:35 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000506.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000502.html">Question about bitmap code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#499">[ date ]</a>
+              <a href="thread.html#499">[ thread ]</a>
+              <a href="subject.html#499">[ subject ]</a>
+              <a href="author.html#499">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 31, 2012, at 1:38 AM, Mike Hommey wrote:
+&gt;<i> When i tried using arenas.purge, it appeared that it is dead-locking.
+</I>&gt;<i> This is due to both arenas_purge_ctl and arena_purge getting the
+</I>&gt;<i> ctl_mtx mutex.
+</I>&gt;<i> I know arena.i.purge replaces arenas.purge, but arenas.purge is still
+</I>&gt;<i> more convenient, since it doesn't require to retrieve narenas.
+</I>
+This is fixed now on the dev branch:
+
+	<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commit;h=34457f51448e81f32a1bff16bbf600b79dd9ec5a">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commit;h=34457f51448e81f32a1bff16bbf600b79dd9ec5a</A>
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000506.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000502.html">Question about bitmap code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#499">[ date ]</a>
+              <a href="thread.html#499">[ thread ]</a>
+              <a href="subject.html#499">[ subject ]</a>
+              <a href="author.html#499">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,755 @@
+From catchveera at yahoo.com  Tue Aug  6 16:42:35 2013
+From: catchveera at yahoo.com (Veeravadivel Duraisamy)
+Date: Wed, 7 Aug 2013 07:42:35 +0800 (SGT)
+Subject: Increase the number of arenas
+Message-ID: <1375832555.3867.YahooMailNeo@web194604.mail.sg3.yahoo.com>
+
+Hi,
+
+I am running my application on a 24 core machine and I have 108 threads. I see a slight increase in latency with jemalloc when compared to tcmalloc. The jemalloc man page says by default 24*4 arenas will be created. I would like to increase the number of arenas to 108. What should be the value that i set the env variable MALLOC_CONF to?
+
+Thanks,
+Veera.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130807/a44373af/attachment.html>
+
+From jasone at canonware.com  Tue Aug  6 20:27:30 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 6 Aug 2013 20:27:30 -0700
+Subject: Increase the number of arenas
+In-Reply-To: <1375832555.3867.YahooMailNeo@web194604.mail.sg3.yahoo.com>
+References: <1375832555.3867.YahooMailNeo@web194604.mail.sg3.yahoo.com>
+Message-ID: <2970E312-3998-44F6-A943-480A17C9A386@canonware.com>
+
+On Aug 6, 2013, at 4:42 PM, Veeravadivel Duraisamy <catchveera at yahoo.com> wrote:
+> I am running my application on a 24 core machine and I have 108 threads. I see a slight increase in latency with jemalloc when compared to tcmalloc. The jemalloc man page says by default 24*4 arenas will be created. I would like to increase the number of arenas to 108. What should be the value that i set the env variable MALLOC_CONF to?
+
+MALLOC_CONF=narenas:108
+
+You may actually get better performance by *decreasing* the number of arenas though.  The thread caching is pretty effective at reducing arena accesses for most applications.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130806/0cc27d32/attachment.html>
+
+From anarchy at gentoo.org  Sun Aug 11 07:44:59 2013
+From: anarchy at gentoo.org (Jory A. Pratt)
+Date: Sun, 11 Aug 2013 09:44:59 -0500
+Subject: [PATCH] Allow toolchain to determine ar
+Message-ID: <5207A36B.8010408@gentoo.org>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Please see patch!!
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.20 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iQEcBAEBAgAGBQJSB6NrAAoJEKDMw7q00Ii0Lj0IAI5WlZ0LkyMAEyYUnkNEb4bV
+o/cg63DHtA/gvqOZMbS1NsK3QurzFq2x5lV/ZuQqoGBDPI3G0L2q+33kR72DhOwd
+5kvTR84vJNz2OXDbbp70HmiOl7DxOU94w+Fv6ukd0zVBgp+qdcCRLtxjhzuKR/5s
+UjYbwavDGBF1Mq6mUiWqtdKhuGKnwxh58ANE3DTvaxeBV7RcZp7GDr2c2vswczuV
++uUyA81CuQl2oWKyG/xwogp7HzI9SZ9kELFvmtDhaO7YffmOrtVV2NENPc/k442C
+ZApL3rtdWEidJMyKdDnwpWruBNMzdK4GLMji7iBE5qXPIJFRnpoNdYPvXYbCEc0=
+=T3qX
+-----END PGP SIGNATURE-----
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc-fix-ar-call.patch
+Type: text/x-patch
+Size: 1488 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130811/f2cb369f/attachment.bin>
+
+From jasone at canonware.com  Mon Aug 19 09:59:02 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 19 Aug 2013 17:59:02 +0100
+Subject: [PATCH] Allow toolchain to determine ar
+In-Reply-To: <5207A36B.8010408@gentoo.org>
+References: <5207A36B.8010408@gentoo.org>
+Message-ID: <A43DD791-93E8-4A46-A947-81F2C9C4ADCE@canonware.com>
+
+On Aug 11, 2013, at 3:44 PM, Jory A. Pratt <anarchy at gentoo.org> wrote:
+> [...]
+
+Applied to the dev branch; thanks.
+
+Jason
+
+
+
+From mh+jemalloc at glandium.org  Mon Aug 19 16:19:47 2013
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 20 Aug 2013 08:19:47 +0900
+Subject: [PATCH] Allow toolchain to determine ar
+In-Reply-To: <A43DD791-93E8-4A46-A947-81F2C9C4ADCE@canonware.com>
+References: <5207A36B.8010408@gentoo.org>
+	<A43DD791-93E8-4A46-A947-81F2C9C4ADCE@canonware.com>
+Message-ID: <20130819231947.GA10391@glandium.org>
+
+On Mon, Aug 19, 2013 at 05:59:02PM +0100, Jason Evans wrote:
+> On Aug 11, 2013, at 3:44 PM, Jory A. Pratt <anarchy at gentoo.org> wrote:
+> > [...]
+> 
+> Applied to the dev branch; thanks.
+
+I have a message that never made it to the list that said this patch
+will break MSVC builds because of the added space between -out: and $@.
+
+Mike
+
+
+From jasone at canonware.com  Tue Aug 20 03:52:13 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 20 Aug 2013 11:52:13 +0100
+Subject: [PATCH] Allow toolchain to determine ar
+In-Reply-To: <20130819231947.GA10391@glandium.org>
+References: <5207A36B.8010408@gentoo.org>
+	<A43DD791-93E8-4A46-A947-81F2C9C4ADCE@canonware.com>
+	<20130819231947.GA10391@glandium.org>
+Message-ID: <44E10DE9-4F23-4740-ADCE-F0777561A32E@canonware.com>
+
+On Aug 20, 2013, at 12:19 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> On Mon, Aug 19, 2013 at 05:59:02PM +0100, Jason Evans wrote:
+>> On Aug 11, 2013, at 3:44 PM, Jory A. Pratt <anarchy at gentoo.org> wrote:
+>>> [...]
+>> 
+>> Applied to the dev branch; thanks.
+> 
+> I have a message that never made it to the list that said this patch
+> will break MSVC builds because of the added space between -out: and $@.
+
+This should now be fixed:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=80ddf498eb166cad45c8592973eb4f949f176688
+
+Thanks,
+Jason
+
+From mh at glandium.org  Sun Aug 11 15:43:38 2013
+From: mh at glandium.org (Mike Hommey)
+Date: Mon, 12 Aug 2013 07:43:38 +0900
+Subject: [PATCH] Allow toolchain to determine ar
+In-Reply-To: <5207A36B.8010408@gentoo.org>
+References: <5207A36B.8010408@gentoo.org>
+Message-ID: <20130811224338.GA17979@glandium.org>
+
+On Sun, Aug 11, 2013 at 09:44:59AM -0500, Jory A. Pratt wrote:
+>  dnl Platform-specific settings.  abi and RPATH can probably be determined
+>  dnl programmatically, but doing so is error-prone, which makes it generally
+>  dnl not worth the trouble.
+> @@ -310,7 +314,8 @@ case "${host}" in
+>  	  EXTRA_LDFLAGS="-link -DEBUG"
+>  	  CTARGET='-Fo$@'
+>  	  LDTARGET='-Fe$@'
+> -	  MKLIB='lib -nologo -out:$@'
+> +	  AR='lib'
+> +	  ARFLAGS='-nologo -out:'
+
+This likely breaks building with msvc, because of the added space
+between -out: and the filename.
+
+Mike
+
+
+From rnsanchez at wait4.org  Fri Aug 30 05:21:04 2013
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Fri, 30 Aug 2013 09:21:04 -0300
+Subject: 3.4.0 build log using gcc-4.8.1
+Message-ID: <20130830092104.29c1e616@darkbook.lan.box>
+
+Hello,
+
+I'm posting my build log for jemalloc-3.4.0, using gcc-4.8.1.  I did not look
+whether these warnings may be false positives, and I do know that gcc-4.8 has
+been more vocal about some classes of warnings.
+
+Nevertheless, I hope this log is still useful to some extent.
+
+Cheers.
+
+
+% gcc -v
+Reading specs from /usr/lib64/gcc/x86_64-slackware-linux/4.8.1/specs
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-slackware-linux/4.8.1/lto-wrapper
+Target: x86_64-slackware-linux
+Configured with: ../gcc-4.8.1/configure --prefix=/usr --libdir=/usr/lib64 --mandir=/usr/man --infodir=/usr/info --enable-shared --enable-bootstrap --enable-languages=ada,c,c++,fortran,go,java,lto,objc --enable-threads=posix --enable-checking=release --enable-objc-gc --with-system-zlib --with-python-dir=/lib64/python2.7/site-packages --disable-libunwind-exceptions --enable-__cxa_atexit --enable-libssp --enable-lto --with-gnu-ld --verbose --enable-java-home --with-java-home=/usr/lib64/jvm/jre --with-jvm-root-dir=/usr/lib64/jvm --with-jvm-jar-dir=/usr/lib64/jvm/jvm-exports --with-arch-directory=amd64 --with-antlr-jar=/root/slackware64-current/source/d/gcc/antlr-runtime-3.4.jar --enable-java-awt=gtk --disable-gtktest --disable-multilib --target=x86_64-slackware-linux --build=x86_64-slackware-linux --host=x86_64-slackware-linux
+Thread model: posix
+gcc version 4.8.1 (GCC)
+
+
+% ./configure --disable-experimental
+checking for xsltproc... /usr/bin/xsltproc
+checking for gcc... gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+checking whether compiler supports -std=gnu99... yes
+checking whether compiler supports -Wall... yes
+checking whether compiler supports -pipe... yes
+checking whether compiler supports -g3... yes
+checking how to run the C preprocessor... gcc -E
+checking for grep that handles long lines and -e... /bin/grep
+checking for egrep... /bin/grep -E
+checking for ANSI C header files... yes
+checking for sys/types.h... yes
+checking for sys/stat.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for memory.h... yes
+checking for strings.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for unistd.h... yes
+checking size of void *... 8
+checking size of int... 4
+checking size of long... 8
+checking size of intmax_t... 8
+checking build system type... x86_64-unknown-linux-gnu
+checking host system type... x86_64-unknown-linux-gnu
+checking whether __asm__ syntax is compilable... yes
+checking whether __attribute__ syntax is compilable... yes
+checking whether compiler supports -fvisibility=hidden... yes
+checking whether compiler supports -Werror... yes
+checking whether tls_model attribute is compilable... no
+checking for a BSD-compatible install... /bin/ginstall -c
+checking for ranlib... ranlib
+checking for ar... /usr/bin/ar
+checking for ld... /usr/bin/ld
+checking for autoconf... /usr/bin/autoconf
+checking for memalign... yes
+checking for valloc... yes
+checking whether compiler supports -O3... yes
+checking whether compiler supports -funroll-loops... yes
+checking configured backtracing method... N/A
+checking for sbrk... yes
+checking whether utrace(2) is compilable... no
+checking whether valgrind is compilable... yes
+checking STATIC_PAGE_SHIFT... 12
+checking pthread.h usability... yes
+checking pthread.h presence... yes
+checking for pthread.h... yes
+checking for pthread_create in -lpthread... yes
+checking for _malloc_thread_cleanup... no
+checking for _pthread_mutex_init_calloc_cb... no
+checking for TLS... yes
+checking whether a program using ffsl is compilable... yes
+checking whether atomic(9) is compilable... no
+checking whether Darwin OSAtomic*() is compilable... no
+checking whether to force 32-bit __sync_{add,sub}_and_fetch()... no
+checking whether to force 64-bit __sync_{add,sub}_and_fetch()... no
+checking whether Darwin OSSpin*() is compilable... no
+checking for stdbool.h that conforms to C99... yes
+checking for _Bool... yes
+configure: creating ./config.status
+config.status: creating Makefile
+config.status: creating doc/html.xsl
+config.status: creating doc/manpages.xsl
+config.status: creating doc/jemalloc.xml
+config.status: creating include/jemalloc/jemalloc.h
+config.status: creating include/jemalloc/internal/jemalloc_internal.h
+config.status: creating test/jemalloc_test.h
+config.status: creating config.stamp
+config.status: creating bin/jemalloc.sh
+config.status: creating include/jemalloc/jemalloc_defs.h
+config.status: executing include/jemalloc/internal/size_classes.h commands
+===============================================================================
+jemalloc version   : 3.4.0-0-g0ed518e5dab789ad2171bb38977a8927e2a26775
+library revision   : 1
+
+CC                 : gcc
+CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+CFLAGS             : -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops
+LDFLAGS            : 
+LIBS               :  -lm -lpthread
+RPATH_EXTRA        : 
+
+XSLTPROC           : /usr/bin/xsltproc
+XSLROOT            : /usr/share/xml/docbook/stylesheet/docbook-xsl
+
+PREFIX             : /usr/local
+BINDIR             : /usr/local/bin
+INCLUDEDIR         : /usr/local/include
+LIBDIR             : /usr/local/lib
+DATADIR            : /usr/local/share
+MANDIR             : /usr/local/share/man
+
+srcroot            : 
+abs_srcroot        : /tmp/jemalloc-3.4.0/
+objroot            : 
+abs_objroot        : /tmp/jemalloc-3.4.0/
+
+JEMALLOC_PREFIX    : 
+JEMALLOC_PRIVATE_NAMESPACE
+                   : 
+install_suffix     : 
+autogen            : 0
+experimental       : 0
+cc-silence         : 0
+debug              : 0
+stats              : 1
+prof               : 0
+prof-libunwind     : 0
+prof-libgcc        : 0
+prof-gcc           : 0
+tcache             : 1
+fill               : 1
+utrace             : 0
+valgrind           : 1
+xmalloc            : 0
+mremap             : 0
+munmap             : 0
+dss                : 0
+lazy_lock          : 0
+tls                : 1
+===============================================================================
+
+
+
+% make
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.pic.o src/jemalloc.c
+src/jemalloc.c:303:1: warning: always_inline function might not be inlinable [-Wattributes]
+ malloc_init(void)
+ ^
+src/jemalloc.c:286:1: warning: always_inline function might not be inlinable [-Wattributes]
+ malloc_thread_init(void)
+ ^
+In file included from src/jemalloc.c:2:0:
+src/jemalloc.c: In function 'memalign':
+include/jemalloc/internal/jemalloc_internal.h:866:7: warning: 'ret' may be used uninitialized in this function [-Wmaybe-uninitialized]
+   ret = huge_salloc(ptr);
+       ^
+src/jemalloc.c:1289:8: note: 'ret' was declared here
+  void *ret JEMALLOC_CC_SILENCE_INIT(NULL);
+        ^
+In file included from src/jemalloc.c:2:0:
+/usr/include/stdlib.h: In function 'valloc':
+include/jemalloc/internal/jemalloc_internal.h:866:7: warning: 'ret' may be used uninitialized in this function [-Wmaybe-uninitialized]
+   ret = huge_salloc(ptr);
+       ^
+src/jemalloc.c:1300:8: note: 'ret' was declared here
+  void *ret JEMALLOC_CC_SILENCE_INIT(NULL);
+        ^
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/arena.pic.o src/arena.c
+In file included from include/jemalloc/internal/jemalloc_internal.h:206:0,
+                 from src/arena.c:2:
+src/arena.c:103:23: warning: 'arena_run_tree_last' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:326:1: note: in definition of macro 'rb_gen'
+ a_prefix##last(a_rbt_type *rbtree) {     \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_next' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:335:1: note: in definition of macro 'rb_gen'
+ a_prefix##next(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_prev' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:363:1: note: in definition of macro 'rb_gen'
+ a_prefix##prev(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_nsearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:409:1: note: in definition of macro 'rb_gen'
+ a_prefix##nsearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_psearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:431:1: note: in definition of macro 'rb_gen'
+ a_prefix##psearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:900:1: note: in definition of macro 'rb_gen'
+ a_prefix##iter(a_rbt_type *rbtree, a_type *start, a_type *(*cb)( \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_reverse_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:957:1: note: in definition of macro 'rb_gen'
+ a_prefix##reverse_iter(a_rbt_type *rbtree, a_type *start,  \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_first' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:317:1: note: in definition of macro 'rb_gen'
+ a_prefix##first(a_rbt_type *rbtree) {     \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_last' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:326:1: note: in definition of macro 'rb_gen'
+ a_prefix##last(a_rbt_type *rbtree) {     \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_next' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:335:1: note: in definition of macro 'rb_gen'
+ a_prefix##next(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_prev' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:363:1: note: in definition of macro 'rb_gen'
+ a_prefix##prev(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_search' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:391:1: note: in definition of macro 'rb_gen'
+ a_prefix##search(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_psearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:431:1: note: in definition of macro 'rb_gen'
+ a_prefix##psearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:900:1: note: in definition of macro 'rb_gen'
+ a_prefix##iter(a_rbt_type *rbtree, a_type *start, a_type *(*cb)( \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_reverse_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:957:1: note: in definition of macro 'rb_gen'
+ a_prefix##reverse_iter(a_rbt_type *rbtree, a_type *start,  \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_last' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:326:1: note: in definition of macro 'rb_gen'
+ a_prefix##last(a_rbt_type *rbtree) {     \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_next' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:335:1: note: in definition of macro 'rb_gen'
+ a_prefix##next(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_prev' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:363:1: note: in definition of macro 'rb_gen'
+ a_prefix##prev(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_search' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:391:1: note: in definition of macro 'rb_gen'
+ a_prefix##search(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_nsearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:409:1: note: in definition of macro 'rb_gen'
+ a_prefix##nsearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_psearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:431:1: note: in definition of macro 'rb_gen'
+ a_prefix##psearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_reverse_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:957:1: note: in definition of macro 'rb_gen'
+ a_prefix##reverse_iter(a_rbt_type *rbtree, a_type *start,  \
+ ^
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/atomic.pic.o src/atomic.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/base.pic.o src/base.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/bitmap.pic.o src/bitmap.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/chunk.pic.o src/chunk.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/chunk_dss.pic.o src/chunk_dss.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/chunk_mmap.pic.o src/chunk_mmap.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/ckh.pic.o src/ckh.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/ctl.pic.o src/ctl.c
+src/ctl.c: In function 'epoch_ctl':
+src/ctl.c:1112:11: warning: variable 'newval' set but not used [-Wunused-but-set-variable]
+  uint64_t newval;
+           ^
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/extent.pic.o src/extent.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/hash.pic.o src/hash.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/huge.pic.o src/huge.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/mb.pic.o src/mb.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/mutex.pic.o src/mutex.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/prof.pic.o src/prof.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/quarantine.pic.o src/quarantine.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/rtree.pic.o src/rtree.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/stats.pic.o src/stats.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/tcache.pic.o src/tcache.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/util.pic.o src/util.c
+src/util.c: In function 'wrtmessage':
+src/util.c:53:13: warning: unused variable 'result' [-Wunused-variable]
+  UNUSED int result = syscall(SYS_write, STDERR_FILENO, s, strlen(s));
+             ^
+src/util.c: In function 'malloc_vsnprintf':
+src/util.c:225:6: warning: 'val' may be used uninitialized in this function [-Wmaybe-uninitialized]
+    x >>= 4;
+      ^
+src/util.c:519:15: note: 'val' was declared here
+     uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+               ^
+src/util.c:214:6: warning: 'val' may be used uninitialized in this function [-Wmaybe-uninitialized]
+    x /= (uint64_t)10;
+      ^
+src/util.c:510:15: note: 'val' was declared here
+     uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+               ^
+src/util.c:237:6: warning: 'val' may be used uninitialized in this function [-Wmaybe-uninitialized]
+    x /= (uint64_t)base;
+      ^
+src/util.c:501:15: note: 'val' was declared here
+     uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+               ^
+src/util.c:250:11: warning: 'val' may be used uninitialized in this function [-Wmaybe-uninitialized]
+  if ((neg = (x < 0)))
+           ^
+src/util.c:491:14: note: 'val' was declared here
+     intmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+              ^
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/tsd.pic.o src/tsd.c
+gcc -shared -Wl,-soname,libjemalloc.so.1  -o lib/libjemalloc.so.1 src/jemalloc.pic.o src/arena.pic.o src/atomic.pic.o src/base.pic.o src/bitmap.pic.o src/chunk.pic.o src/chunk_dss.pic.o src/chunk_mmap.pic.o src/ckh.pic.o src/ctl.pic.o src/extent.pic.o src/hash.pic.o src/huge.pic.o src/mb.pic.o src/mutex.pic.o src/prof.pic.o src/quarantine.pic.o src/rtree.pic.o src/stats.pic.o src/tcache.pic.o src/util.pic.o src/tsd.pic.o  -lm -lpthread 
+ln -sf libjemalloc.so.1 lib/libjemalloc.so
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/jemalloc.o src/jemalloc.c
+src/jemalloc.c:303:1: warning: always_inline function might not be inlinable [-Wattributes]
+ malloc_init(void)
+ ^
+src/jemalloc.c:286:1: warning: always_inline function might not be inlinable [-Wattributes]
+ malloc_thread_init(void)
+ ^
+In file included from src/jemalloc.c:2:0:
+src/jemalloc.c: In function 'memalign':
+include/jemalloc/internal/jemalloc_internal.h:866:7: warning: 'ret' may be used uninitialized in this function [-Wmaybe-uninitialized]
+   ret = huge_salloc(ptr);
+       ^
+src/jemalloc.c:1289:8: note: 'ret' was declared here
+  void *ret JEMALLOC_CC_SILENCE_INIT(NULL);
+        ^
+In file included from src/jemalloc.c:2:0:
+/usr/include/stdlib.h: In function 'valloc':
+include/jemalloc/internal/jemalloc_internal.h:866:7: warning: 'ret' may be used uninitialized in this function [-Wmaybe-uninitialized]
+   ret = huge_salloc(ptr);
+       ^
+src/jemalloc.c:1300:8: note: 'ret' was declared here
+  void *ret JEMALLOC_CC_SILENCE_INIT(NULL);
+        ^
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/arena.o src/arena.c
+In file included from include/jemalloc/internal/jemalloc_internal.h:206:0,
+                 from src/arena.c:2:
+src/arena.c:103:23: warning: 'arena_run_tree_last' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:326:1: note: in definition of macro 'rb_gen'
+ a_prefix##last(a_rbt_type *rbtree) {     \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_next' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:335:1: note: in definition of macro 'rb_gen'
+ a_prefix##next(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_prev' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:363:1: note: in definition of macro 'rb_gen'
+ a_prefix##prev(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_nsearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:409:1: note: in definition of macro 'rb_gen'
+ a_prefix##nsearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_psearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:431:1: note: in definition of macro 'rb_gen'
+ a_prefix##psearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:900:1: note: in definition of macro 'rb_gen'
+ a_prefix##iter(a_rbt_type *rbtree, a_type *start, a_type *(*cb)( \
+ ^
+src/arena.c:103:23: warning: 'arena_run_tree_reverse_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_run_tree_, arena_run_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:957:1: note: in definition of macro 'rb_gen'
+ a_prefix##reverse_iter(a_rbt_type *rbtree, a_type *start,  \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_first' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:317:1: note: in definition of macro 'rb_gen'
+ a_prefix##first(a_rbt_type *rbtree) {     \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_last' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:326:1: note: in definition of macro 'rb_gen'
+ a_prefix##last(a_rbt_type *rbtree) {     \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_next' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:335:1: note: in definition of macro 'rb_gen'
+ a_prefix##next(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_prev' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:363:1: note: in definition of macro 'rb_gen'
+ a_prefix##prev(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_search' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:391:1: note: in definition of macro 'rb_gen'
+ a_prefix##search(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_psearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:431:1: note: in definition of macro 'rb_gen'
+ a_prefix##psearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:900:1: note: in definition of macro 'rb_gen'
+ a_prefix##iter(a_rbt_type *rbtree, a_type *start, a_type *(*cb)( \
+ ^
+src/arena.c:135:23: warning: 'arena_avail_tree_reverse_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+                       ^
+include/jemalloc/internal/rb.h:957:1: note: in definition of macro 'rb_gen'
+ a_prefix##reverse_iter(a_rbt_type *rbtree, a_type *start,  \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_last' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:326:1: note: in definition of macro 'rb_gen'
+ a_prefix##last(a_rbt_type *rbtree) {     \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_next' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:335:1: note: in definition of macro 'rb_gen'
+ a_prefix##next(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_prev' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:363:1: note: in definition of macro 'rb_gen'
+ a_prefix##prev(a_rbt_type *rbtree, a_type *node) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_search' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:391:1: note: in definition of macro 'rb_gen'
+ a_prefix##search(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_nsearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:409:1: note: in definition of macro 'rb_gen'
+ a_prefix##nsearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_psearch' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:431:1: note: in definition of macro 'rb_gen'
+ a_prefix##psearch(a_rbt_type *rbtree, a_type *key) {   \
+ ^
+src/arena.c:205:23: warning: 'arena_chunk_dirty_reverse_iter' defined but not used [-Wunused-function]
+ rb_gen(static UNUSED, arena_chunk_dirty_, arena_chunk_tree_t, arena_chunk_t,
+                       ^
+include/jemalloc/internal/rb.h:957:1: note: in definition of macro 'rb_gen'
+ a_prefix##reverse_iter(a_rbt_type *rbtree, a_type *start,  \
+ ^
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/atomic.o src/atomic.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/base.o src/base.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/bitmap.o src/bitmap.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/chunk.o src/chunk.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/chunk_dss.o src/chunk_dss.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/chunk_mmap.o src/chunk_mmap.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/ckh.o src/ckh.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/ctl.o src/ctl.c
+src/ctl.c: In function 'epoch_ctl':
+src/ctl.c:1112:11: warning: variable 'newval' set but not used [-Wunused-but-set-variable]
+  uint64_t newval;
+           ^
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/extent.o src/extent.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/hash.o src/hash.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/huge.o src/huge.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/mb.o src/mb.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/mutex.o src/mutex.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/prof.o src/prof.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/quarantine.o src/quarantine.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/rtree.o src/rtree.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/stats.o src/stats.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/tcache.o src/tcache.c
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/util.o src/util.c
+src/util.c: In function 'wrtmessage':
+src/util.c:53:13: warning: unused variable 'result' [-Wunused-variable]
+  UNUSED int result = syscall(SYS_write, STDERR_FILENO, s, strlen(s));
+             ^
+src/util.c: In function 'malloc_vsnprintf':
+src/util.c:225:6: warning: 'val' may be used uninitialized in this function [-Wmaybe-uninitialized]
+    x >>= 4;
+      ^
+src/util.c:519:15: note: 'val' was declared here
+     uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+               ^
+src/util.c:214:6: warning: 'val' may be used uninitialized in this function [-Wmaybe-uninitialized]
+    x /= (uint64_t)10;
+      ^
+src/util.c:510:15: note: 'val' was declared here
+     uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+               ^
+src/util.c:237:6: warning: 'val' may be used uninitialized in this function [-Wmaybe-uninitialized]
+    x /= (uint64_t)base;
+      ^
+src/util.c:501:15: note: 'val' was declared here
+     uintmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+               ^
+src/util.c:250:11: warning: 'val' may be used uninitialized in this function [-Wmaybe-uninitialized]
+  if ((neg = (x < 0)))
+           ^
+src/util.c:491:14: note: 'val' was declared here
+     intmax_t val JEMALLOC_CC_SILENCE_INIT(0);
+              ^
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o src/tsd.o src/tsd.c
+ar crus lib/libjemalloc.a src/jemalloc.o src/arena.o src/atomic.o src/base.o src/bitmap.o src/chunk.o src/chunk_dss.o src/chunk_mmap.o src/ckh.o src/ctl.o src/extent.o src/hash.o src/huge.o src/mb.o src/mutex.o src/prof.o src/quarantine.o src/rtree.o src/stats.o src/tcache.o src/util.o src/tsd.o
+ar crus lib/libjemalloc_pic.a src/jemalloc.pic.o src/arena.pic.o
+src/atomic.pic.o src/base.pic.o src/bitmap.pic.o src/chunk.pic.o
+src/chunk_dss.pic.o src/chunk_mmap.pic.o src/ckh.pic.o src/ctl.pic.o
+src/extent.pic.o src/hash.pic.o src/huge.pic.o src/mb.pic.o
+src/mutex.pic.o src/prof.pic.o src/quarantine.pic.o src/rtree.pic.o
+src/stats.pic.o src/tcache.pic.o src/util.pic.o src/tsd.pic.o
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+

@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Cross-compiling and configure.ac macros
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3CBANLkTikuGkt4LuKhAcdWefPDOqCB8yoEbg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000007.html">
+   <LINK REL="Next"  HREF="000008.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Cross-compiling and configure.ac macros</H1>
+    <B>Andreas Vinsander</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3CBANLkTikuGkt4LuKhAcdWefPDOqCB8yoEbg%40mail.gmail.com%3E"
+       TITLE="Cross-compiling and configure.ac macros">andreas+jemalloc at vinsander.se
+       </A><BR>
+    <I>Wed Apr 27 01:54:42 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000007.html">Cross-compiling and configure.ac macros
+</A></li>
+        <LI>Next message: <A HREF="000008.html">Persistent Memory Allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#18">[ date ]</a>
+              <a href="thread.html#18">[ thread ]</a>
+              <a href="subject.html#18">[ subject ]</a>
+              <a href="author.html#18">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>2011/4/15 Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;:
+&gt;<i> On 04/15/2011 07:07 AM, Andreas Vinsander wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Seems like autoconf has its own idea where ffsl should be found.
+</I>&gt;&gt;<i> According to manual pages on my Fedora desktop, ffsl should be found
+</I>&gt;&gt;<i> in string.h if _GNU_SOURCE is defined.
+</I>&gt;&gt;<i> Any idea what is going on here?
+</I>&gt;<i>
+</I>&gt;<i> Wow, that looks like a mess. &#160;Maybe the cleanest solution is to switch the
+</I>&gt;<i> test to a simple JE_COMPILABLE() program.
+</I>
+I haven't had the time to work on this until now. I have something
+that compiles for both SH4 and mips now.
+My patches are attached to this mail, would be nice if someone could
+review them and maybe Jason will incorporate them into jemalloc in
+time for next release?
+I also attach my default autoconf cache used when cross compiling for
+the SH4 CPU.
+
+I have run a device (having an SH4 based CPU) and it seems to work
+when doing some rudimentary smoke testing. I still have to do some
+benchmark testing to decide if I should switch from the default uclibc
+allocator or not.
+
+Thanks,
+/Andreas
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: configure.ac.patch
+Type: text/x-patch
+Size: 5267 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment.bin</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc_internal.h.in.patch
+Type: text/x-patch
+Size: 527 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0001.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0001.bin</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: fix_64bit_literals.patch
+Type: text/x-patch
+Size: 2959 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0002.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0002.bin</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: atomic.h.patch
+Type: text/x-patch
+Size: 919 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0003.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0003.bin</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: sh4.cache
+Type: application/octet-stream
+Size: 676 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment.obj">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment.obj</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000007.html">Cross-compiling and configure.ac macros
+</A></li>
+	<LI>Next message: <A HREF="000008.html">Persistent Memory Allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#18">[ date ]</a>
+              <a href="thread.html#18">[ thread ]</a>
+              <a href="subject.html#18">[ subject ]</a>
+              <a href="author.html#18">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

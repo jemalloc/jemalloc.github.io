@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc on Solaris (Joyent SmartOS)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20on%20Solaris%20%28Joyent%20SmartOS%29&In-Reply-To=%3C52110095-C6DF-4280-AE4C-7281E53C7C9D%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000628.html">
+   <LINK REL="Next"  HREF="000629.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc on Solaris (Joyent SmartOS)</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20on%20Solaris%20%28Joyent%20SmartOS%29&In-Reply-To=%3C52110095-C6DF-4280-AE4C-7281E53C7C9D%40canonware.com%3E"
+       TITLE="jemalloc on Solaris (Joyent SmartOS)">jasone at canonware.com
+       </A><BR>
+    <I>Mon Sep 16 15:01:28 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000628.html">jemalloc on Solaris (Joyent SmartOS)
+</A></li>
+        <LI>Next message: <A HREF="000629.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#630">[ date ]</a>
+              <a href="thread.html#630">[ thread ]</a>
+              <a href="subject.html#630">[ subject ]</a>
+              <a href="author.html#630">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 5, 2013, at 6:25 AM, Paul Smith &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">paul at mad-scientist.net</A>&gt; wrote:
+&gt;<i> I have some software using jemalloc (in a large, heavily multi-threaded
+</I>&gt;<i> C++ program) currently running on Linux, MacOSX, and Windows, and we are
+</I>&gt;<i> porting it to Joyent's cloud-based SmartOS offering, which is Solaris
+</I>&gt;<i> underneath.  This is compiled using GCC 4.7.0 (that's the version
+</I>&gt;<i> packaged with this OS).
+</I>&gt;<i> 
+</I>&gt;<i> I'm using jemalloc 3.1.0-0-g3b1f3aca54fede23299cde9034f7b909c3d290d7
+</I>&gt;<i> currently; I'm not adverse to upgrading if that's warranted.
+</I>&gt;<i> 
+</I>&gt;<i> When I start my program it dumps core.  Examining the core dump the
+</I>&gt;<i> problem is obvious: my program is going into an infinite recursion
+</I>&gt;<i> trying to allocate memory.
+</I>&gt;<i> 
+</I>&gt;<i> Based on the stacktrace I rebuilt jemalloc without TLS support
+</I>&gt;<i> (--disable-tls), then I don't get this failure but I've not tested far
+</I>&gt;<i> enough to know if there might be other issues.
+</I>
+Any recursive call into malloc during early jemalloc bootstrapping will cause catastrophic failure.  This is unfortunately a common theme in jemalloc bootstrapping that requires OS-specific solutions.  OS X also calls malloc during TLS initialization, but TSD is very fast on OS X, so it's a reasonable alternative.  The fact that __emutls_get_address() (part of libgcc) is being called in this case makes me wonder if TLS is really an improvement over TSD.  In any case, the only expected adverse effect of disabling TLS is performance-related, and that is an OS-specific effect.  If you are concerned about a performance hit, you can use --with-jemalloc-prefix to change the allocation function names and write a microbenchmark that compares with/without TLS support built in.
+
+&gt;<i> My main question is, I've noted that <A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+</I>&gt;<i> doesn't list Solaris as supported by the stand-alone jemalloc
+</I>&gt;<i> implementation, which is what I'm using.  A subsequent bullet item lists
+</I>&gt;<i> Solaris as being supported by the version of jemalloc that's included in
+</I>&gt;<i> Mozilla's FireFox allocator.
+</I>&gt;<i> 
+</I>&gt;<i> Is that still the situation today?  I'd really prefer to not try to use
+</I>&gt;<i> two different versions of jemalloc on my different platforms.  Is anyone
+</I>&gt;<i> familiar with the differences, and can they advise me on my best bet
+</I>&gt;<i> going forward?  Should I continue on working with stand-alone jemalloc
+</I>&gt;<i> on Solaris, or should I investigate using the version in FireFox?
+</I>
+The stand-alone version of jemalloc is far advanced beyond the version in Mozilla.
+
+If you have general success with jemalloc on Solaris with --disable-tls and you determine that it's the right setting for all Solaris builds, please let me know so that we can force the option, as we do for OS X.  I don't have a Solaris environment set up, so I don't test releases there.  Your email is the first Solaris-related feedback I've received in quite some time, so up to now I've conservatively left it off the list of supported platforms.  There's already Solaris support in the configure script though, and I'm happy to take patches to get/keep jemalloc working on Solaris. 
+ 
+Thanks,
+Jason
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000628.html">jemalloc on Solaris (Joyent SmartOS)
+</A></li>
+	<LI>Next message: <A HREF="000629.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#630">[ date ]</a>
+              <a href="thread.html#630">[ thread ]</a>
+              <a href="subject.html#630">[ subject ]</a>
+              <a href="author.html#630">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

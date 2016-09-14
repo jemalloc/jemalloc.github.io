@@ -1,0 +1,11 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&gt;&lt;div&gt;Hi&nbsp;&lt;br&gt;&lt;br&gt;&lt;/div&gt;We&nbsp;are&nbsp;trying&nbsp;to&nbsp;replace&nbsp;glibc&nbsp;malloc&nbsp;with&nbsp;jemalloc&nbsp;because&nbsp;we&nbsp;have&nbsp;several&nbsp;concurrent&nbsp;allocations&nbsp;and&nbsp;in&nbsp;all&nbsp;our&nbsp;benchmarks&nbsp;jemalloc&nbsp;is&nbsp;consistently&nbsp;better&nbsp;than&nbsp;glibc&nbsp;malloc&nbsp;and&nbsp;many&nbsp;others.&nbsp;&lt;br&gt;<br>
+<br>
+&lt;br&gt;Our&nbsp;setups&nbsp;start&nbsp;typically&nbsp;with&nbsp;96&nbsp;GB&nbsp;of&nbsp;RAM&nbsp;and&nbsp;up.&nbsp;We&nbsp;have&nbsp;observed&nbsp;that&nbsp;using&nbsp;jemalloc&nbsp;the&nbsp;virtual&nbsp;memory&nbsp;usage&nbsp;of&nbsp;our&nbsp;process&nbsp;rises&nbsp;up&nbsp;to&nbsp;around&nbsp;75GB.&nbsp;While&nbsp;the&nbsp;resident&nbsp;memory&nbsp;stays&nbsp;low&nbsp;and&nbsp;it&nbsp;is&nbsp;not&nbsp;a&nbsp;problem&nbsp;as&nbsp;such,&nbsp;when&nbsp;we&nbsp;try&nbsp;to&nbsp;fork&nbsp;a&nbsp;process&nbsp;from&nbsp;within&nbsp;here,&nbsp;it&nbsp;fails&nbsp;as&nbsp;the&nbsp;kernel&nbsp;assumes&nbsp;there&nbsp;is&nbsp;not&nbsp;enough&nbsp;memory&nbsp;to&nbsp;copy&nbsp;the&nbsp;VM&nbsp;space.&nbsp;Perhaps&nbsp;a&nbsp;vfork&nbsp;would&nbsp;be&nbsp;better&nbsp;but&nbsp;we&nbsp;can&#39;t&nbsp;use&nbsp;that&nbsp;for&nbsp;now.&lt;br&gt;<br>
+<br>
+&lt;br&gt;So&nbsp;we&nbsp;have&nbsp;made&nbsp;some&nbsp;modifications&nbsp;to&nbsp;jemalloc&nbsp;so&nbsp;that&nbsp;all&nbsp;huge&nbsp;memory&nbsp;allocations&nbsp;are&nbsp;forced&nbsp;to&nbsp;unmap&nbsp;their&nbsp;memory&nbsp;on&nbsp;freeing&nbsp;up.&nbsp;Non&nbsp;huge&nbsp;memory&nbsp;allocations&nbsp;and&nbsp;freeing&nbsp;up&nbsp;remain&nbsp;the&nbsp;same.&nbsp;This&nbsp;seems&nbsp;to&nbsp;help&nbsp;us.&nbsp;I&nbsp;have&nbsp;attached&nbsp;the&nbsp;patch&nbsp;here&nbsp;which&nbsp;is&nbsp;against&nbsp;jemalloc-3.3.1.&nbsp;Please&nbsp;review&nbsp;and&nbsp;suggest&nbsp;if&nbsp;there&nbsp;is&nbsp;a&nbsp;better&nbsp;way&nbsp;to&nbsp;handle&nbsp;this.&lt;br&gt;<br>
+<br>
+&lt;br&gt;--&nbsp;&lt;br&gt;Regards&lt;br&gt;Abhishek <br>
+&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

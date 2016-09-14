@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Correctly return exit code from thd_join on Windows
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Correctly%20return%20exit%20code%20from%20thd_join%20on%20Windows&In-Reply-To=%3C1401253590-18622-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000829.html">
+   <LINK REL="Next"  HREF="000830.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Correctly return exit code from thd_join on Windows</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Correctly%20return%20exit%20code%20from%20thd_join%20on%20Windows&In-Reply-To=%3C1401253590-18622-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Correctly return exit code from thd_join on Windows">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue May 27 22:06:30 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000829.html">[PATCH] Define INFINITY when it's not defined
+</A></li>
+        <LI>Next message: <A HREF="000830.html">[PATCH] Correctly return exit code from thd_join on Windows
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#826">[ date ]</a>
+              <a href="thread.html#826">[ thread ]</a>
+              <a href="subject.html#826">[ subject ]</a>
+              <a href="author.html#826">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ test/src/thd.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/test/src/thd.c b/test/src/thd.c
+index 233242a..7e53625 100644
+--- a/test/src/thd.c
++++ b/test/src/thd.c
+@@ -14,7 +14,8 @@ void
+ thd_join(thd_t thd, void **ret)
+ {
+ 
+-	WaitForSingleObject(thd, INFINITE);
++	if (WaitForSingleObject(thd, INFINITE) == WAIT_OBJECT_0 &amp;&amp; ret)
++		GetExitCodeThread(thd, (LPDWORD) ret);
+ }
+ 
+ #else
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000829.html">[PATCH] Define INFINITY when it's not defined
+</A></li>
+	<LI>Next message: <A HREF="000830.html">[PATCH] Correctly return exit code from thd_join on Windows
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#826">[ date ]</a>
+              <a href="thread.html#826">[ thread ]</a>
+              <a href="subject.html#826">[ subject ]</a>
+              <a href="author.html#826">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

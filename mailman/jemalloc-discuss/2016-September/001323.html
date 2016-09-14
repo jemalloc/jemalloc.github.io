@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc initialization in a shared library
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20initialization%20in%20a%20shared%20library&In-Reply-To=%3C1473353981.7265.61.camel%40mad-scientist.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001320.html">
+   <LINK REL="Next"  HREF="001324.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc initialization in a shared library</H1>
+    <B>Paul Smith</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20initialization%20in%20a%20shared%20library&In-Reply-To=%3C1473353981.7265.61.camel%40mad-scientist.net%3E"
+       TITLE="jemalloc initialization in a shared library">paul at mad-scientist.net
+       </A><BR>
+    <I>Thu Sep  8 09:59:41 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001320.html">jemalloc initialization in a shared library
+</A></li>
+        <LI>Next message: <A HREF="001324.html">jemalloc initialization in a shared library
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1323">[ date ]</a>
+              <a href="thread.html#1323">[ thread ]</a>
+              <a href="subject.html#1323">[ subject ]</a>
+              <a href="author.html#1323">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, 2016-09-08 at 09:28 -0700, Jason Evans wrote:
+&gt;<i> On Aug 30, 2016, at 2:43 PM, Paul Smith &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">paul at mad-scientist.net</A>&gt;
+</I>&gt;<i> wrote:
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; [...]
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I'm compiling jemalloc as a static library (with -fPIC) then I link it
+</I>&gt;<i> &gt; into my own shared library (.so).&#160;&#160;I use -fvisibility=hidden so that
+</I>&gt;<i> &gt; the jemalloc symbols are not visible outside the shared library (e.g.,
+</I>&gt;<i> &gt; when I use &quot;nm&quot; on my .so, all the jemalloc symbols are marked &quot;t&quot; not
+</I>&gt;<i> &gt; &quot;T&quot;).
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; It works all the time for my testing and most of the time for my users.
+</I>&gt;<i> &gt; However, in some situations I've had users report that their process is
+</I>&gt;<i> &gt; hanging and when I get a stacktrace, the hang is happening inside
+</I>&gt;<i> &gt; pthread_mutex_unlock called from within jemalloc tls stuff.&#160;&#160;Note that
+</I>&gt;<i> &gt; my library is not being linked directly, it's being dlopen()'d, so the
+</I>&gt;<i> &gt; process is running for a bit before my library is loaded.&#160;&#160;To be
+</I>&gt;<i> &gt; precise, it's being loaded inside an openjdk 1.8 JVM and invoked from
+</I>&gt;<i> &gt; Java using JNI.
+</I>&gt;<i> 
+</I>&gt;<i> This may a separate issue from the TLS initialization issue you're
+</I>&gt;<i> hitting, but linking a malloc implementation into a dlopen()ed
+</I>&gt;<i> library is exceedingly difficult to make work correctly, because it's
+</I>&gt;<i> very difficult to avoid mixed allocator use, e.g. calling malloc() of
+</I>&gt;<i> one implementation and erroneously calling free() of the other.&#160;&#160;You
+</I>&gt;<i> can work around this by using mangled names for one implementation,
+</I>&gt;<i> and being very careful to match calls correctly.
+</I>
+Yes; however we also run on Windows where there are similar issues
+crossing DLL boundaries even using the default allocator: our code is
+careful to never free memory given to us by other libraries and no one
+else will free our memory.
+
+We have also compiled jemalloc with -fvisibility=hidden so I don't
+think that any other code besides ours will be able to invoke our
+jemalloc functions.
+
+I get that this is a fraught area and I'm not 100% sure that our
+safeguards are sufficient. &#160;However in all our internal testing things
+seem to work OK...
+
+&gt;<i> I huge amount has changed in the TLS-related code since 3.1, so it's
+</I>&gt;<i> hard for me to recall the exact quirks relative to the current
+</I>&gt;<i> release.&#160;&#160;Trying a newer version is certainly worthwhile.
+</I>
+I will work on this. &#160;It's not trivial because we've made some changes:
+particularly an enhancement to allow us to dump profile stats to a
+memory buffer rather than a file, so that we can send them back over
+the network to a central admin service.
+
+We have meant to contribute this back although I suspect you would not
+be happy with the implementation as it is. &#160;As part of this port I'll
+try to clean it up at least a bit and send along a patch, just for
+informational purposes if nothing else.
+
+&gt;<i> &gt; Does this seem like it might be plausible?&#160;&#160;If so is there anything
+</I>&gt;<i> &gt; that can be done (other than sweeping all my code to remove any
+</I>&gt;<i> &gt; allocation done during a static constructor)?&#160;&#160;It's OK if this is a
+</I>&gt;<i> &gt; GCC-only solution, such as using __attribute__((init_priority()))
+</I>&gt;<i> &gt; or something...
+</I>&gt;<i> 
+</I>&gt;<i> The init_priority attribute could help, but note that there's no
+</I>&gt;<i> simple way to guarantee that some other linked code isn't also using
+</I>&gt;<i> the maximum priority, thus resulting in arbitrary initialization
+</I>&gt;<i> order.
+</I>
+Yes, I understand. &#160;However looking through all the code for static
+content that allocates memory is daunting (as is ensuring more such
+content doesn't crop up on the future) so I don't prefer this option,
+if it can be avoided.
+
+&gt;<i> &gt; It would be much simpler if I could reproduce the problem myself,
+</I>&gt;<i> &gt; then I could just experiment, but so far no luck.
+</I>&gt;<i> 
+</I>&gt;<i> You may be able to work around this by making jemalloc_constructor()
+</I>&gt;<i> visible and calling it directly, i.e. look it up via dlsym() and call
+</I>&gt;<i> it immediately after dlopen().&#160;&#160;However, your comments make it sound
+</I>&gt;<i> as though this is happening before dlopen() returns.
+</I>
+Well, the hang definitely happens later, not during dlopen(): it's one
+of the earliest operations but it's part of user code after the library
+has been loaded. &#160;Of course, if the problem really is initialization of
+memory then it could be that the corruption etc. happens during the
+dlopen() call and the hang is just a symptom.
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001320.html">jemalloc initialization in a shared library
+</A></li>
+	<LI>Next message: <A HREF="001324.html">jemalloc initialization in a shared library
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1323">[ date ]</a>
+              <a href="thread.html#1323">[ thread ]</a>
+              <a href="subject.html#1323">[ subject ]</a>
+              <a href="author.html#1323">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

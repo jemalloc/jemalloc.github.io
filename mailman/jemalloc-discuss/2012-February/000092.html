@@ -1,0 +1,280 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3C20120223112511.GA839%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000091.html">
+   <LINK REL="Next"  HREF="000116.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3C20120223112511.GA839%40glandium.org%3E"
+       TITLE="[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Feb 23 03:25:11 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000091.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+        <LI>Next message: <A HREF="000116.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#92">[ date ]</a>
+              <a href="thread.html#92">[ thread ]</a>
+              <a href="subject.html#92">[ subject ]</a>
+              <a href="author.html#92">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I failed to add the following comment when sending the patch:
+
+This supersedes the &quot;Allow to include memalign and valloc even when
+prefixing the API&quot; patch.
+
+On Thu, Feb 23, 2012 at 12:23:01PM +0100, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> In some cases, it can be interesting to use different prefixes for the
+</I>&gt;<i> &quot;standard&quot; libc malloc functions and for jemalloc specific functions. One such
+</I>&gt;<i> case is to use the &quot;__wrap_&quot; prefix on libc malloc functions (for use with ld's
+</I>&gt;<i> --wrap option) and no prefix or &quot;je_&quot; for jemalloc functions.
+</I>&gt;<i> 
+</I>&gt;<i> In such cases, it can also me interesting not to exclude memalign and valloc,
+</I>&gt;<i> so this change also adds an option not to omit them when the prefix is set.
+</I>&gt;<i> ---
+</I>&gt;<i>  configure.ac                        |   18 ++++++++++++++++++
+</I>&gt;<i>  include/jemalloc/jemalloc.h.in      |   15 +++++++++------
+</I>&gt;<i>  include/jemalloc/jemalloc_defs.h.in |   10 ++++++++++
+</I>&gt;<i>  src/jemalloc.c                      |   25 +++++++++++++------------
+</I>&gt;<i>  4 files changed, 50 insertions(+), 18 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> diff --git a/configure.ac b/configure.ac
+</I>&gt;<i> index 5ce16eb..704a703 100644
+</I>&gt;<i> --- a/configure.ac
+</I>&gt;<i> +++ b/configure.ac
+</I>&gt;<i> @@ -320,6 +320,22 @@ if test &quot;x$JEMALLOC_PREFIX&quot; != &quot;x&quot; ; then
+</I>&gt;<i>    AC_DEFINE_UNQUOTED([JEMALLOC_P(string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix)], [${JEMALLOC_PREFIX}##string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix])
+</I>&gt;<i>  fi
+</I>&gt;<i>  
+</I>&gt;<i> +AC_ARG_WITH([libc_prefix],
+</I>&gt;<i> +  [AS_HELP_STRING([--with-libc-prefix=&lt;prefix&gt;], [Prefix to prepend to public APIs normally defined in libc. By default, same as --with-jemalloc-prefix])],
+</I>&gt;<i> +  [JEMALLOC_LIBC_PREFIX=&quot;$with_libc_prefix&quot;],
+</I>&gt;<i> +  [JEMALLOC_LIBC_PREFIX=&quot;$JEMALLOC_PREFIX&quot;])
+</I>&gt;<i> +
+</I>&gt;<i> +if test &quot;x$JEMALLOC_LIBC_PREFIX&quot; != &quot;x&quot; ; then
+</I>&gt;<i> +  AC_DEFINE_UNQUOTED([JEMALLOC_LIBC_PREFIX], [&quot;$JEMALLOC_LIBC_PREFIX&quot;])
+</I>&gt;<i> +  AC_DEFINE_UNQUOTED([JEMALLOC_LIBC(string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix)], [${JEMALLOC_LIBC_PREFIX}##string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix])
+</I>&gt;<i> +fi
+</I>&gt;<i> +
+</I>&gt;<i> +AC_ARG_ENABLE([libc_omit],
+</I>&gt;<i> +  [AS_HELP_STRING([--disable-libc-omit], [Do not omit APIs that are normally ommitted when --with-jemalloc-prefix or --with-libc-prefix is used])])
+</I>&gt;<i> +if test &quot;x$enable_libc_omit&quot; = &quot;xno&quot; ; then
+</I>&gt;<i> +  AC_DEFINE([JEMALLOC_LIBC_NO_OMIT])
+</I>&gt;<i> +fi
+</I>&gt;<i> +
+</I>&gt;<i>  dnl Do not mangle library-private APIs by default.
+</I>&gt;<i>  AC_ARG_WITH([private_namespace],
+</I>&gt;<i>    [AS_HELP_STRING([--with-private-namespace=&lt;prefix&gt;], [Prefix to prepend to all library-private APIs])],
+</I>&gt;<i> @@ -915,6 +931,8 @@ AC_MSG_RESULT([objroot            : ${objroot}])
+</I>&gt;<i>  AC_MSG_RESULT([abs_objroot        : ${abs_objroot}])
+</I>&gt;<i>  AC_MSG_RESULT([])
+</I>&gt;<i>  AC_MSG_RESULT([JEMALLOC_PREFIX    : ${JEMALLOC_PREFIX}])
+</I>&gt;<i> +AC_MSG_RESULT([JEMALLOC_LIBC_PREFIX])
+</I>&gt;<i> +AC_MSG_RESULT([                   : ${JEMALLOC_LIBC_PREFIX}])
+</I>&gt;<i>  AC_MSG_RESULT([JEMALLOC_PRIVATE_NAMESPACE])
+</I>&gt;<i>  AC_MSG_RESULT([                   : ${JEMALLOC_PRIVATE_NAMESPACE}])
+</I>&gt;<i>  AC_MSG_RESULT([install_suffix     : ${install_suffix}])
+</I>&gt;<i> diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+</I>&gt;<i> index e43a060..5e3d595 100644
+</I>&gt;<i> --- a/include/jemalloc/jemalloc.h.in
+</I>&gt;<i> +++ b/include/jemalloc/jemalloc.h.in
+</I>&gt;<i> @@ -15,6 +15,9 @@ extern &quot;C&quot; {
+</I>&gt;<i>  #define	JEMALLOC_VERSION_GID &quot;@jemalloc_version_gid@&quot;
+</I>&gt;<i>  
+</I>&gt;<i>  #include &quot;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc_defs at install_suffix</A>@.h&quot;
+</I>&gt;<i> +#ifndef JEMALLOC_LIBC
+</I>&gt;<i> +#  define JEMALLOC_LIBC(s) s
+</I>&gt;<i> +#endif
+</I>&gt;<i>  #ifndef JEMALLOC_P
+</I>&gt;<i>  #  define JEMALLOC_P(s) s
+</I>&gt;<i>  #endif
+</I>&gt;<i> @@ -35,14 +38,14 @@ extern &quot;C&quot; {
+</I>&gt;<i>  extern const char	*JEMALLOC_P(malloc_conf);
+</I>&gt;<i>  extern void		(*JEMALLOC_P(malloc_message))(void *, const char *);
+</I>&gt;<i>  
+</I>&gt;<i> -void	*JEMALLOC_P(malloc)(size_t size) JEMALLOC_ATTR(malloc);
+</I>&gt;<i> -void	*JEMALLOC_P(calloc)(size_t num, size_t size) JEMALLOC_ATTR(malloc);
+</I>&gt;<i> -int	JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
+</I>&gt;<i> +void	*JEMALLOC_LIBC(malloc)(size_t size) JEMALLOC_ATTR(malloc);
+</I>&gt;<i> +void	*JEMALLOC_LIBC(calloc)(size_t num, size_t size) JEMALLOC_ATTR(malloc);
+</I>&gt;<i> +int	JEMALLOC_LIBC(posix_memalign)(void **memptr, size_t alignment, size_t size)
+</I>&gt;<i>      JEMALLOC_ATTR(nonnull(1));
+</I>&gt;<i> -void	*JEMALLOC_P(realloc)(void *ptr, size_t size);
+</I>&gt;<i> -void	JEMALLOC_P(free)(void *ptr);
+</I>&gt;<i> +void	*JEMALLOC_LIBC(realloc)(void *ptr, size_t size);
+</I>&gt;<i> +void	JEMALLOC_LIBC(free)(void *ptr);
+</I>&gt;<i>  
+</I>&gt;<i> -size_t	JEMALLOC_P(malloc_usable_size)(const void *ptr);
+</I>&gt;<i> +size_t	JEMALLOC_LIBC(malloc_usable_size)(const void *ptr);
+</I>&gt;<i>  size_t	JEMALLOC_P(malloc_usable_size_in_advance)(size_t size,
+</I>&gt;<i>      size_t alignment);
+</I>&gt;<i>  void	JEMALLOC_P(malloc_stats_print)(void (*write_cb)(void *, const char *),
+</I>&gt;<i> diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+</I>&gt;<i> index d1622fb..18cad28 100644
+</I>&gt;<i> --- a/include/jemalloc/jemalloc_defs.h.in
+</I>&gt;<i> +++ b/include/jemalloc/jemalloc_defs.h.in
+</I>&gt;<i> @@ -17,6 +17,16 @@
+</I>&gt;<i>  #if (defined(JEMALLOC_PREFIX) &amp;&amp; defined(JEMALLOC_MANGLE))
+</I>&gt;<i>  #undef JEMALLOC_P
+</I>&gt;<i>  #endif
+</I>&gt;<i> +#undef JEMALLOC_LIBC_PREFIX
+</I>&gt;<i> +#if (defined(JEMALLOC_LIBC_PREFIX) &amp;&amp; defined(JEMALLOC_MANGLE))
+</I>&gt;<i> +#undef JEMALLOC_LIBC
+</I>&gt;<i> +#endif
+</I>&gt;<i> +
+</I>&gt;<i> +/*
+</I>&gt;<i> + * If JEMALLOC_LIBC_NO_OMIT is defined, it will cause APIs that are normally
+</I>&gt;<i> + * ommitted when JEMALLOC_LIBC is defined, to be included.
+</I>&gt;<i> + */
+</I>&gt;<i> +#undef JEMALLOC_LIBC_NO_OMIT
+</I>&gt;<i>  
+</I>&gt;<i>  /*
+</I>&gt;<i>   * JEMALLOC_PRIVATE_NAMESPACE is used as a prefix for all library-private APIs.
+</I>&gt;<i> diff --git a/src/jemalloc.c b/src/jemalloc.c
+</I>&gt;<i> index 64961c5..8b927f8 100644
+</I>&gt;<i> --- a/src/jemalloc.c
+</I>&gt;<i> +++ b/src/jemalloc.c
+</I>&gt;<i> @@ -856,7 +856,7 @@ jemalloc_darwin_init(void)
+</I>&gt;<i>  JEMALLOC_ATTR(malloc)
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i>  void *
+</I>&gt;<i> -JEMALLOC_P(malloc)(size_t size)
+</I>&gt;<i> +JEMALLOC_LIBC(malloc)(size_t size)
+</I>&gt;<i>  {
+</I>&gt;<i>  	void *ret;
+</I>&gt;<i>  	size_t usize;
+</I>&gt;<i> @@ -1035,7 +1035,7 @@ RETURN:
+</I>&gt;<i>  JEMALLOC_ATTR(nonnull(1))
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i>  int
+</I>&gt;<i> -JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
+</I>&gt;<i> +JEMALLOC_LIBC(posix_memalign)(void **memptr, size_t alignment, size_t size)
+</I>&gt;<i>  {
+</I>&gt;<i>  	/*
+</I>&gt;<i>  	 * posix_memalign needs alignment to be a power of two and a multiple
+</I>&gt;<i> @@ -1051,7 +1051,7 @@ JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
+</I>&gt;<i>  JEMALLOC_ATTR(malloc)
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i>  void *
+</I>&gt;<i> -JEMALLOC_P(calloc)(size_t num, size_t size)
+</I>&gt;<i> +JEMALLOC_LIBC(calloc)(size_t num, size_t size)
+</I>&gt;<i>  {
+</I>&gt;<i>  	void *ret;
+</I>&gt;<i>  	size_t num_size;
+</I>&gt;<i> @@ -1130,7 +1130,7 @@ RETURN:
+</I>&gt;<i>  
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i>  void *
+</I>&gt;<i> -JEMALLOC_P(realloc)(void *ptr, size_t size)
+</I>&gt;<i> +JEMALLOC_LIBC(realloc)(void *ptr, size_t size)
+</I>&gt;<i>  {
+</I>&gt;<i>  	void *ret;
+</I>&gt;<i>  	size_t usize;
+</I>&gt;<i> @@ -1264,7 +1264,7 @@ RETURN:
+</I>&gt;<i>  
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i>  void
+</I>&gt;<i> -JEMALLOC_P(free)(void *ptr)
+</I>&gt;<i> +JEMALLOC_LIBC(free)(void *ptr)
+</I>&gt;<i>  {
+</I>&gt;<i>  
+</I>&gt;<i>  	if (ptr != NULL) {
+</I>&gt;<i> @@ -1292,16 +1292,17 @@ JEMALLOC_P(free)(void *ptr)
+</I>&gt;<i>  /*
+</I>&gt;<i>   * Begin non-standard override functions.
+</I>&gt;<i>   *
+</I>&gt;<i> - * These overrides are omitted if the JEMALLOC_PREFIX is defined, since the
+</I>&gt;<i> - * entire point is to avoid accidental mixed allocator usage.
+</I>&gt;<i> + * These overrides are omitted if the JEMALLOC_LIBC_PREFIX is defined, since the
+</I>&gt;<i> + * entire point is to avoid accidental mixed allocator usage. They may however
+</I>&gt;<i> + * be included with the JEMALLOC_LIBC prefix if JEMALLOC_LIBC_NO_OMIT is defined.
+</I>&gt;<i>   */
+</I>&gt;<i> -#ifndef JEMALLOC_PREFIX
+</I>&gt;<i> +#if !defined(JEMALLOC_LIBC_PREFIX) || defined(JEMALLOC_LIBC_NO_OMIT)
+</I>&gt;<i>  
+</I>&gt;<i>  #ifdef JEMALLOC_OVERRIDE_MEMALIGN
+</I>&gt;<i>  JEMALLOC_ATTR(malloc)
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i>  void *
+</I>&gt;<i> -JEMALLOC_P(memalign)(size_t alignment, size_t size)
+</I>&gt;<i> +JEMALLOC_LIBC(memalign)(size_t alignment, size_t size)
+</I>&gt;<i>  {
+</I>&gt;<i>  	void *ret
+</I>&gt;<i>  #ifdef JEMALLOC_CC_SILENCE
+</I>&gt;<i> @@ -1317,7 +1318,7 @@ JEMALLOC_P(memalign)(size_t alignment, size_t size)
+</I>&gt;<i>  JEMALLOC_ATTR(malloc)
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i>  void *
+</I>&gt;<i> -JEMALLOC_P(valloc)(size_t size)
+</I>&gt;<i> +JEMALLOC_LIBC(valloc)(size_t size)
+</I>&gt;<i>  {
+</I>&gt;<i>  	void *ret
+</I>&gt;<i>  #ifdef JEMALLOC_CC_SILENCE
+</I>&gt;<i> @@ -1340,7 +1341,7 @@ JEMALLOC_P(valloc)(size_t size)
+</I>&gt;<i>  
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i>  size_t
+</I>&gt;<i> -JEMALLOC_P(malloc_usable_size)(const void *ptr)
+</I>&gt;<i> +JEMALLOC_LIBC(malloc_usable_size)(const void *ptr)
+</I>&gt;<i>  {
+</I>&gt;<i>  	size_t ret;
+</I>&gt;<i>  
+</I>&gt;<i> @@ -1680,7 +1681,7 @@ jemalloc_postfork(void)
+</I>&gt;<i>  
+</I>&gt;<i>  /******************************************************************************/
+</I>&gt;<i>  
+</I>&gt;<i> -#ifndef JEMALLOC_PREFIX
+</I>&gt;<i> +#ifndef JEMALLOC_LIBC_PREFIX
+</I>&gt;<i>  
+</I>&gt;<i>  #if defined(__GLIBC__) &amp;&amp; !defined(__UCLIBC__)
+</I>&gt;<i>  /*
+</I>&gt;<i> -- 
+</I>&gt;<i> 1.7.9.1
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000091.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+	<LI>Next message: <A HREF="000116.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#92">[ date ]</a>
+              <a href="thread.html#92">[ thread ]</a>
+              <a href="subject.html#92">[ subject ]</a>
+              <a href="author.html#92">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Pthread spinlock support
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Pthread%20spinlock%20support&In-Reply-To=%3CA16DA966-33BA-4027-9515-C91099BC01FE%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000704.html">
+   <LINK REL="Next"  HREF="000716.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Pthread spinlock support</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Pthread%20spinlock%20support&In-Reply-To=%3CA16DA966-33BA-4027-9515-C91099BC01FE%40canonware.com%3E"
+       TITLE="Pthread spinlock support">jasone at canonware.com
+       </A><BR>
+    <I>Tue Jan 14 10:16:52 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000704.html">Possible glitch with prof_accum ouput (or maybe pprof)
+</A></li>
+        <LI>Next message: <A HREF="000716.html">Pthread spinlock support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#701">[ date ]</a>
+              <a href="thread.html#701">[ thread ]</a>
+              <a href="subject.html#701">[ subject ]</a>
+              <a href="author.html#701">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Dec 30, 2013, at 5:23 AM, <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">valtteri at rahkonen.fi</A> wrote:
+&gt;<i> I noticed that the OSX version of the jemalloc uses spin locks and decided to implement support for the pthread spin locks that can be used in Linux. At least in my case there is huge benefit because I run a single thread in a specific core that has not that much other activity and pthread mutex lock contention seems to always schedule the thread away from execution, so spin locking seems to give more stable result while adding bit more CPU load. Most likely in more general case this would not be wanted, because there would be more threads/processes running on same core and thus the scheduling might give execution time for some other important threads like the one having the lock taken.
+</I>&gt;<i> 
+</I>&gt;<i> What do you think, is this something that could be merged to the upstream? My patch implements new configure script option --enable-pthread-spinlock that turns on the pthread spin lock i.e. the spin locks are not used by default because of the scheduling benefit with normal use.
+</I>
+The only reason jemalloc uses spinlocks on OS X is that normal pthread mutex creation uses malloc() internally, and that causes bootstrapping issues.  Under all the real-world scenarios I've examined, mutex contention is negligible.  Furthermore, on Linux jemalloc uses adaptive mutexes, which IIRC spin before blocking.  Do you have an application for which your patch makes a significant difference?
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000704.html">Possible glitch with prof_accum ouput (or maybe pprof)
+</A></li>
+	<LI>Next message: <A HREF="000716.html">Pthread spinlock support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#701">[ date ]</a>
+              <a href="thread.html#701">[ thread ]</a>
+              <a href="subject.html#701">[ subject ]</a>
+              <a href="author.html#701">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

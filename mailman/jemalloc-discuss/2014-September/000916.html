@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [OS X] Configuring jemalloc via je_malloc_conf
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BOS%20X%5D%20Configuring%20jemalloc%20via%20je_malloc_conf&In-Reply-To=%3CA305B83B-40EF-4658-BD41-8E240D388F1B%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000915.html">
+   <LINK REL="Next"  HREF="000917.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[OS X] Configuring jemalloc via je_malloc_conf</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BOS%20X%5D%20Configuring%20jemalloc%20via%20je_malloc_conf&In-Reply-To=%3CA305B83B-40EF-4658-BD41-8E240D388F1B%40canonware.com%3E"
+       TITLE="[OS X] Configuring jemalloc via je_malloc_conf">jasone at canonware.com
+       </A><BR>
+    <I>Thu Sep  4 22:50:15 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000915.html">[OS X] Configuring jemalloc via je_malloc_conf
+</A></li>
+        <LI>Next message: <A HREF="000917.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#916">[ date ]</a>
+              <a href="thread.html#916">[ thread ]</a>
+              <a href="subject.html#916">[ subject ]</a>
+              <a href="author.html#916">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 4, 2014, at 9:14 AM, David Rigby &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">daver at couchbase.com</A>&gt; wrote:
+&gt;<i> I&#8217;m having some problems using je_malloc_conf to configure jemalloc&#8217;s runtime behaviour, but *only on OSX* - Linux is fine. The behaviour I see is that any je_malloc_conf setting on OS X Mavericks (clang-503.0.40) is ignored, but works perfectly when compiling on Ubuntu 14.04, x86_64, gcc 4.8.2)
+</I>&gt;<i> 
+</I>&gt;<i> I&#8217;m defining je_malloc_conf as:
+</I>&gt;<i> 
+</I>&gt;<i>     const char* je_malloc_conf = &quot;narenas:1&quot;;
+</I>&gt;<i> 
+</I>&gt;<i> [...]
+</I>
+
+It turns out that this doesn't work on FreeBSD anymore either, and I'm certain that it used to.  My guess is that something changed with regard to duplicate symbol resolution that requires jemalloc to declare its malloc_conf definition as a weak symbol, but I haven't had a chance to investigate yet.  Here's the issue I just created:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues/113">https://github.com/jemalloc/jemalloc/issues/113</A>
+
+If you learn more, or come up with a fix, please let me know.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140904/eed1a3e7/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140904/eed1a3e7/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000915.html">[OS X] Configuring jemalloc via je_malloc_conf
+</A></li>
+	<LI>Next message: <A HREF="000917.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#916">[ date ]</a>
+              <a href="thread.html#916">[ thread ]</a>
+              <a href="subject.html#916">[ subject ]</a>
+              <a href="author.html#916">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

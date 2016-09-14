@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> how to remove pthread mutex dependency in jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20how%20to%20remove%20pthread%20mutex%20dependency%20in%20jemalloc&In-Reply-To=%3CCAFWcpZ7meBGRpsXvHJ4UDLwAQw5JaF9KtJohA5kAJzv0W8GS6Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000449.html">
+   <LINK REL="Next"  HREF="000451.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>how to remove pthread mutex dependency in jemalloc</H1>
+    <B>Justin Lebar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20how%20to%20remove%20pthread%20mutex%20dependency%20in%20jemalloc&In-Reply-To=%3CCAFWcpZ7meBGRpsXvHJ4UDLwAQw5JaF9KtJohA5kAJzv0W8GS6Q%40mail.gmail.com%3E"
+       TITLE="how to remove pthread mutex dependency in jemalloc">justin.lebar at gmail.com
+       </A><BR>
+    <I>Thu Sep 13 10:35:42 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000449.html">how to remove pthread mutex dependency in jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000451.html">how to remove pthread mutex dependency in jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#450">[ date ]</a>
+              <a href="thread.html#450">[ thread ]</a>
+              <a href="subject.html#450">[ subject ]</a>
+              <a href="author.html#450">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> I have a system that have no thread, and usage of the jemalloc are per
+</I>&gt;<i> process only.
+</I>
+I don't think jemalloc is designed for this situation.  Indeed, much
+of the complexity in jemalloc is around making it fast in a threaded
+environment.
+
+It sounds like jemalloc may be the wrong tool for you to use.
+
+On Thu, Sep 13, 2012 at 1:23 PM, zhu qun-ying &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">qunying at yahoo.com</A>&gt; wrote:
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> I have a system that have no thread, and usage of the jemalloc are per
+</I>&gt;<i> process only.  I don't see anything in the library that I could turn off the
+</I>&gt;<i> usage of pthread mutex easily without heavily modified the library which I
+</I>&gt;<i> am afraid I may break something along the way.
+</I>&gt;<i>
+</I>&gt;<i> Would you point me to the direction of safely remove any dependency on
+</I>&gt;<i> pthread and mutex in the code?
+</I>&gt;<i>
+</I>&gt;<i> Thanks
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> qun-ying
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000449.html">how to remove pthread mutex dependency in jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000451.html">how to remove pthread mutex dependency in jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#450">[ date ]</a>
+              <a href="thread.html#450">[ thread ]</a>
+              <a href="subject.html#450">[ subject ]</a>
+              <a href="author.html#450">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

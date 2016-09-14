@@ -1,0 +1,768 @@
+diff --git a/memory/jemalloc/src/src/jemalloc.c b/memory/jemalloc/src/src/jemalloc.c
+--- a/memory/jemalloc/src/src/jemalloc.c
++++ b/memory/jemalloc/src/src/jemalloc.c
+@@ -790,17 +790,17 @@ malloc_init_hard(void)
+  * End initialization functions.
+  */
+ /******************************************************************************/
+ /*
+  * Begin malloc(3)-compatible functions.
+  */
+ 
+ void *
+-je_malloc(size_t size)
++real_je_malloc(size_t size)
+ {
+ 	void *ret;
+ 	size_t usize JEMALLOC_CC_SILENCE_INIT(0);
+ 	prof_thr_cnt_t *cnt JEMALLOC_CC_SILENCE_INIT(NULL);
+ 
+ 	if (malloc_init()) {
+ 		ret = NULL;
+ 		goto label_oom;
+@@ -939,41 +939,41 @@ label_return:
+ 	}
+ 	if (config_prof && opt_prof && result != NULL)
+ 		prof_malloc(result, usize, cnt);
+ 	UTRACE(0, size, result);
+ 	return (ret);
+ }
+ 
+ int
+-je_posix_memalign(void **memptr, size_t alignment, size_t size)
++real_je_posix_memalign(void **memptr, size_t alignment, size_t size)
+ {
+ 	int ret = imemalign(memptr, alignment, size, sizeof(void *));
+ 	JEMALLOC_VALGRIND_MALLOC(ret == 0, *memptr, isalloc(*memptr,
+ 	    config_prof), false);
+ 	return (ret);
+ }
+ 
+ void *
+-je_aligned_alloc(size_t alignment, size_t size)
++real_je_aligned_alloc(size_t alignment, size_t size)
+ {
+ 	void *ret;
+ 	int err;
+ 
+ 	if ((err = imemalign(&ret, alignment, size, 1)) != 0) {
+ 		ret = NULL;
+ 		set_errno(err);
+ 	}
+ 	JEMALLOC_VALGRIND_MALLOC(err == 0, ret, isalloc(ret, config_prof),
+ 	    false);
+ 	return (ret);
+ }
+ 
+ void *
+-je_calloc(size_t num, size_t size)
++real_je_calloc(size_t num, size_t size)
+ {
+ 	void *ret;
+ 	size_t num_size;
+ 	size_t usize JEMALLOC_CC_SILENCE_INIT(0);
+ 	prof_thr_cnt_t *cnt JEMALLOC_CC_SILENCE_INIT(NULL);
+ 
+ 	if (malloc_init()) {
+ 		num_size = 0;
+@@ -1038,17 +1038,17 @@ label_return:
+ 		thread_allocated_tsd_get()->allocated += usize;
+ 	}
+ 	UTRACE(0, num_size, ret);
+ 	JEMALLOC_VALGRIND_MALLOC(ret != NULL, ret, usize, true);
+ 	return (ret);
+ }
+ 
+ void *
+-je_realloc(void *ptr, size_t size)
++real_je_realloc(void *ptr, size_t size)
+ {
+ 	void *ret;
+ 	size_t usize JEMALLOC_CC_SILENCE_INIT(0);
+ 	size_t old_size = 0;
+ 	size_t old_rzsize JEMALLOC_CC_SILENCE_INIT(0);
+ 	prof_thr_cnt_t *cnt JEMALLOC_CC_SILENCE_INIT(NULL);
+ 	prof_ctx_t *old_ctx JEMALLOC_CC_SILENCE_INIT(NULL);
+ 
+@@ -1185,19 +1185,18 @@ label_return:
+ 		ta->deallocated += old_size;
+ 	}
+ 	UTRACE(ptr, size, ret);
+ 	JEMALLOC_VALGRIND_REALLOC(ret, usize, ptr, old_size, old_rzsize, false);
+ 	return (ret);
+ }
+ 
+ void
+-je_free(void *ptr)
++real_je_free(void *ptr)
+ {
+-
+ 	UTRACE(ptr, 0, 0);
+ 	if (ptr != NULL) {
+ 		size_t usize;
+ 		size_t rzsize JEMALLOC_CC_SILENCE_INIT(0);
+ 
+ 		assert(malloc_initialized || IS_INITIALIZER);
+ 
+ 		if (config_prof && opt_prof) {
+@@ -1214,41 +1213,514 @@ je_free(void *ptr)
+ 	}
+ }
+ 
+ /*
+  * End malloc(3)-compatible functions.
+  */
+ /******************************************************************************/
+ /*
+- * Begin non-standard override functions.
++ * Begin non-standard override functions
+  */
+ 
+ #ifdef JEMALLOC_OVERRIDE_MEMALIGN
+ void *
+-je_memalign(size_t alignment, size_t size)
++real_je_memalign(size_t alignment, size_t size)
+ {
+ 	void *ret JEMALLOC_CC_SILENCE_INIT(NULL);
+ 	imemalign(&ret, alignment, size, 1);
+ 	JEMALLOC_VALGRIND_MALLOC(ret != NULL, ret, size, false);
+ 	return (ret);
+ }
+ #endif
+ 
+ #ifdef JEMALLOC_OVERRIDE_VALLOC
+ void *
+-je_valloc(size_t size)
++real_je_valloc(size_t size)
+ {
+ 	void *ret JEMALLOC_CC_SILENCE_INIT(NULL);
+ 	imemalign(&ret, PAGE, size, 1);
+ 	JEMALLOC_VALGRIND_MALLOC(ret != NULL, ret, size, false);
+ 	return (ret);
+ }
+ #endif
+ 
++// This is the linked-list-element structure that we are storing at the beginning of each block.
++// So we allocate larger blocks than requested, and store this linked list element just before
++// the payload.
++//
++// We may have to allocate extra padding space before the linked list element,
++// to honor alignment requirements.
++struct je_list_elem_s
++{
++  // Marker allowing to identify instrumented blocks. Useful as a debugging helper.
++  // Can be removed if memory usage is a concern.
++  uint64_t marker;
++
++  // Doubly linked list; could be made a XOR-linked list to save some space.
++  struct je_list_elem_s *prev;
++  struct je_list_elem_s *next;
++  size_t offset_into_real_block;
++  size_t payload_size;
++
++  // Extra padding space to ensure that size of this struct is a multiple of 16 bytes.
++  // The point is that even though malloc() is not specified to give back pointers
++  // aligned to anything higher than word size, on many platforms it gives 16-byte
++  // aligned pointers, and applications have come to rely on that. Keeping the size of this
++  // struct a multiple of 16 bytes ensures that we don't interact with that.
++  // Note that this uint64_t trick works in 2 cases:
++  //  * if both void* and size_t have sizeof==4 (the size of this struct is then 32)
++  //  * if both void* and size_t have sizeof==8 (the size of this struct is then 48)
++  // It would fail if e.g. sizeof(void*)==8 and sizeof(size_t)==4. An assertion in je_sentinel
++  // guards that.
++  uint64_t dummy_just_for_16_byte_alignment;
++};
++
++static const uint64_t je_list_elem_marker_value = 0x8313f73b0b58dc49; // randomly chosen to minimize collisions
++static const uint64_t je_sentinel_marker_value  = 0xbd70ec36bce96258; // randomly chosen to minimize collisions
++static const uint64_t je_deleted_marker_value   = 0x5a5a5a5a5a5a5a5a; // standard jemalloc deleted marker
++
++typedef struct je_list_elem_s je_list_elem_t;
++
++static void
++je_init_list_elem(je_list_elem_t *elem, void *real_block, size_t payload_size)
++{
++  elem->marker = je_list_elem_marker_value;
++  elem->prev = elem;
++  elem->next = elem;
++  elem->payload_size = payload_size;
++  elem->offset_into_real_block = (uint64_t)(((char*)elem) - ((char*)real_block));
++}
++
++// Returns the initial linked list element
++static je_list_elem_t *
++je_sentinel(void)
++{
++  static je_list_elem_t je_sentinel_object;
++  static int je_sentinel_object_initialized = 0;
++
++  if (!je_sentinel_object_initialized) {
++    // see comment in je_list_elem_s
++    assert((sizeof(je_list_elem_t) % 16) == 0);
++    je_init_list_elem(&je_sentinel_object, NULL, 0);
++    je_sentinel_object.marker = je_sentinel_marker_value;
++    je_sentinel_object_initialized = 1;
++  }
++  return &je_sentinel_object;
++}
++
++static void
++je_tie_list_elems(je_list_elem_t *a, je_list_elem_t *b)
++{
++  a->next = b;
++  b->prev = a;
++}
++
++static void
++je_append_list_elem(je_list_elem_t *elem)
++{
++  je_list_elem_t *sentinel = je_sentinel();
++  je_list_elem_t *last = sentinel->prev;
++  je_tie_list_elems(last, elem);
++  je_tie_list_elems(elem, sentinel);
++}
++
++static int
++je_is_actual_list_elem(je_list_elem_t *elem)
++{
++  return elem->marker == je_list_elem_marker_value;
++}
++
++static void
++je_remove_list_elem(je_list_elem_t *elem)
++{
++  assert(je_is_actual_list_elem(elem));
++  elem->marker = je_deleted_marker_value;
++  je_tie_list_elems(elem->prev, elem->next);
++}
++
++static je_list_elem_t*
++je_first_list_elem(void)
++{
++  return je_sentinel()->next;
++}
++
++static je_list_elem_t *
++je_list_elem_for_payload(void *payload)
++{
++  return ((je_list_elem_t *) payload) - 1;
++}
++
++static void*
++je_payload_for_list_elem(je_list_elem_t *elem)
++{
++  return (void *)(elem + 1);
++}
++
++static void*
++je_real_block_for_list_elem(je_list_elem_t *elem)
++{
++  return (void *)(((char*)elem) - elem->offset_into_real_block);
++}
++
++static size_t
++je_payload_size_for_list_elem(je_list_elem_t *elem)
++{
++  return elem->payload_size;
++}
++
++static size_t
++je_payload_size_for_payload(void *payload)
++{
++  return je_payload_size_for_list_elem(je_list_elem_for_payload(payload));
++}
++
++static void*
++je_real_block_for_payload(void *payload)
++{
++  return je_real_block_for_list_elem(je_list_elem_for_payload(payload));
++}
++
++static void*
++je_instrument_new_block(void *real_block, size_t extra_space, size_t size)
++{
++  void *r;
++  je_list_elem_t *elem = (je_list_elem_t*) ( ((char*)real_block) + extra_space - sizeof(je_list_elem_t));
++  je_init_list_elem(elem, real_block, size);
++  je_append_list_elem(elem);
++  r = (void *)(elem + 1);
++  return r;
++}
++
++static void
++je_dump_list_of_blocks(void)
++{
++  unsigned long block_index = 0;
++  je_list_elem_t* elem;
++  malloc_printf("\n\nBegin enumeration of jemalloc blocks:\n\n");
++  elem = je_first_list_elem();
++  while (je_is_actual_list_elem(elem)) {
++    malloc_printf("Block %lu:  real block = %p,  payload = %p,  payload size = %lu\n",
++                  block_index,
++                  je_real_block_for_list_elem(elem),
++                  je_payload_for_list_elem(elem),
++                  je_payload_size_for_list_elem(elem));
++    elem = elem->next;
++    block_index++;
++  }
++  malloc_printf("\nEnd enumeration of %lu jemalloc blocks.\n\n", block_index);
++}
++
++// Even though it is legal for malloc(0) to always return null, lots of software out there
++// (including Xorg and Mozilla) assume wrongly that malloc only returns null on OOM.
++static void *dummy_malloc_0(void) {
++  static void *retval = NULL;
++  if (!retval) {
++    // using valloc, to give alignment that will satisfy everybody.
++    retval = real_je_valloc(1);
++  }
++  return retval;
++}
++
++// Our instrumentation is not reentrant by itself, so we currently need a lock.
++// If performance is a concern, one could improve it by using some sort of lock-free
++// linked list, I guess.
++malloc_mutex_t malloc_instrument_lock;
++int malloc_instrument_lock_initialized = 0;
++
++static void initialize_once_malloc_instrument_lock(void)
++{
++  if (malloc_instrument_lock_initialized) return;
++  malloc_mutex_init(&malloc_instrument_lock);
++  malloc_instrument_lock_initialized = 1;
++}
++
++static void lock_malloc_instrument(void)
++{
++  initialize_once_malloc_instrument_lock();
++  malloc_mutex_lock(&malloc_instrument_lock);
++}
++
++static void unlock_malloc_instrument(void)
++{
++  initialize_once_malloc_instrument_lock();
++  malloc_mutex_unlock(&malloc_instrument_lock);
++}
++
++int
++je_posix_memalign_nolock(void **memptr, size_t alignment, size_t size)
++{
++  void *real_block;
++  je_list_elem_t *elem;
++  int ret;
++
++  *memptr = NULL;
++
++  if ((!alignment) ||
++      (alignment & (alignment - 1)))
++  {
++    return EINVAL;
++  }
++
++  if (!size) {
++    *memptr = dummy_malloc_0();
++    return 0;
++  }
++
++  while (alignment < sizeof(je_list_elem_t))
++    alignment *= 2;
++
++  ret = real_je_posix_memalign(&real_block, alignment, size + alignment);
++
++  if (ret) {
++    *memptr = NULL;
++    return ret;
++  }
++  *memptr = je_instrument_new_block(real_block, alignment, size);
++  return 0;
++}
++
++int je_posix_memalign(void **memptr, size_t alignment, size_t size)
++{
++  int result;
++  lock_malloc_instrument();
++  result = je_posix_memalign_nolock(memptr, alignment, size);
++  unlock_malloc_instrument();
++  return result;
++}
++
++void *
++je_aligned_alloc_nolock(size_t alignment, size_t size)
++{
++  void *real_block;
++  if ((!alignment) ||
++      (alignment & (alignment - 1)))
++  {
++    set_errno(EINVAL);
++    return NULL;
++  }
++
++  if (!size)
++    return dummy_malloc_0();
++
++  while (alignment < sizeof(je_list_elem_t))
++    alignment *= 2;
++
++  real_block = real_je_aligned_alloc(alignment, size + alignment);
++
++  if (!real_block)
++    return NULL;
++
++  return je_instrument_new_block(real_block, alignment, size);
++}
++
++void *
++je_aligned_alloc(size_t alignment, size_t size)
++{
++  void *result;
++  lock_malloc_instrument();
++  result = je_aligned_alloc_nolock(alignment, size);
++  unlock_malloc_instrument();
++  return result;
++}
++
++void *
++je_malloc_nolock(size_t size)
++{
++  void *real_block;
++  size_t extra_space;
++
++  if (!size)
++    return dummy_malloc_0();
++
++  extra_space = sizeof(je_list_elem_t);
++
++  real_block = real_je_malloc(size + extra_space);
++
++  if (!real_block)
++    return NULL;
++
++  return je_instrument_new_block(real_block, extra_space, size);
++}
++
++void *
++je_malloc(size_t size)
++{
++  void *result;
++  lock_malloc_instrument();
++  result = je_malloc_nolock(size);
++  unlock_malloc_instrument();
++  return result;
++}
++
++void *
++je_calloc_nolock(size_t num, size_t size)
++{
++  const size_t extra_space = sizeof(je_list_elem_t);
++  void *real_block;
++  size_t bytes;
++
++  if (!num || !size)
++    return dummy_malloc_0();
++
++  if (num > SIZE_T_MAX / size)
++    return NULL;
++
++  bytes = num * size;
++  assert(bytes / size == num);
++  real_block = real_je_calloc(1, bytes + extra_space);
++  if (!real_block)
++    return NULL;
++
++  return je_instrument_new_block(real_block, extra_space, bytes);
++}
++
++void *
++je_calloc(size_t num, size_t size)
++{
++  void *result;
++  lock_malloc_instrument();
++  result = je_calloc_nolock(num, size);
++  unlock_malloc_instrument();
++  return result;
++}
++
++void
++je_free_nolock(void *ptr)
++{
++  je_list_elem_t *elem;
++
++  if (!ptr)
++    return;
++
++  if (ptr == dummy_malloc_0())
++    return;
++
++  elem = je_list_elem_for_payload(ptr);
++
++  if (elem->marker == je_deleted_marker_value) {
++    malloc_printf("double free(%p) !\n", ptr);
++    abort();
++    return;
++  }
++
++  if (!je_is_actual_list_elem(elem)) {
++    malloc_printf("bad free(%p) !\n", ptr);
++    abort();
++    return;
++  }
++
++  je_remove_list_elem(elem);
++  real_je_free(je_real_block_for_list_elem(elem));
++}
++
++void
++je_free(void *ptr)
++{
++  lock_malloc_instrument();
++  je_free_nolock(ptr);
++  unlock_malloc_instrument();
++}
++
++void *
++je_realloc_nolock(void *oldp, size_t newsize)
++{
++  const size_t extra_space = sizeof(je_list_elem_t);
++  je_list_elem_t *elem;
++  void *real_block;
++  if (!oldp || oldp == dummy_malloc_0())
++    return je_malloc_nolock(newsize);
++
++  if (!newsize) {
++    je_free_nolock(oldp);
++    return dummy_malloc_0();
++  }
++
++  elem = je_list_elem_for_payload(oldp);
++  je_remove_list_elem(elem);
++
++  real_block = real_je_realloc(je_real_block_for_payload(oldp), newsize + extra_space);
++  if (!real_block)
++    return NULL;
++
++  return je_instrument_new_block(real_block, extra_space, newsize);
++}
++
++void *
++je_realloc(void *oldp, size_t newsize)
++{
++  void *result;
++  lock_malloc_instrument();
++  result = je_realloc_nolock(oldp, newsize);
++  unlock_malloc_instrument();
++  return result;
++}
++
++void *
++je_memalign_nolock(size_t alignment, size_t size)
++{
++  void *real_block;
++
++  if (!size)
++    return dummy_malloc_0();
++
++  if ((!alignment) ||
++      (alignment & (alignment - 1)))
++  {
++    set_errno(EINVAL);
++    return NULL;
++  }
++
++  while (alignment < sizeof(je_list_elem_t))
++    alignment *= 2;
++
++  real_block = real_je_memalign(alignment, size + alignment);
++  if (!real_block)
++    return NULL;
++
++  return je_instrument_new_block(real_block, alignment, size);
++}
++
++void *
++je_memalign(size_t alignment, size_t size)
++{
++  void *result;
++  lock_malloc_instrument();
++  result = je_memalign_nolock(alignment, size);
++  unlock_malloc_instrument();
++  return result;
++}
++
++void *
++je_valloc_nolock(size_t size)
++{
++  const size_t alignment = PAGE;
++  void *real_block;
++
++  if (!size)
++    return dummy_malloc_0();
++
++  assert(alignment == 4096);
++  real_block = real_je_valloc(size + alignment);
++  if (!real_block)
++    return NULL;
++
++  return je_instrument_new_block(real_block, alignment, size);
++}
++
++void *
++je_valloc(size_t size)
++{
++  void *result;
++  lock_malloc_instrument();
++  result = je_valloc_nolock(size);
++  unlock_malloc_instrument();
++  return result;
++}
++
+ /*
+  * is_malloc(je_malloc) is some macro magic to detect if jemalloc_defs.h has
+  * #define je_malloc malloc
+  */
+ #define	malloc_is_malloc 1
+ #define	is_malloc_(a) malloc_is_ ## a
+ #define	is_malloc(a) is_malloc_(a)
+ 
+@@ -1274,17 +1746,17 @@ JEMALLOC_EXPORT void *(* const __memalig
+  * End non-standard override functions.
+  */
+ /******************************************************************************/
+ /*
+  * Begin non-standard functions.
+  */
+ 
+ size_t
+-je_malloc_usable_size(const void *ptr)
++real_je_malloc_usable_size(const void *ptr)
+ {
+ 	size_t ret;
+ 
+ 	assert(malloc_initialized || IS_INITIALIZER);
+ 
+ 	if (config_ivsalloc)
+ 		ret = ivsalloc(ptr, config_prof);
+ 	else
+@@ -1292,25 +1764,23 @@ je_malloc_usable_size(const void *ptr)
+ 
+ 	return (ret);
+ }
+ 
+ void
+ je_malloc_stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+     const char *opts)
+ {
+-
+ 	stats_print(write_cb, cbopaque, opts);
+ }
+ 
+ int
+-je_mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
++real_je_mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
+     size_t newlen)
+ {
+-
+ 	if (malloc_init())
+ 		return (EAGAIN);
+ 
+ 	return (ctl_byname(name, oldp, oldlenp, newp, newlen));
+ }
+ 
+ int
+ je_mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp)
+@@ -1318,35 +1788,60 @@ je_mallctlnametomib(const char *name, si
+ 
+ 	if (malloc_init())
+ 		return (EAGAIN);
+ 
+ 	return (ctl_nametomib(name, mibp, miblenp));
+ }
+ 
+ int
+-je_mallctlbymib(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
++real_je_mallctlbymib(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
+   void *newp, size_t newlen)
+ {
+-
+ 	if (malloc_init())
+ 		return (EAGAIN);
+ 
+ 	return (ctl_bymib(mib, miblen, oldp, oldlenp, newp, newlen));
+ }
+ 
++size_t
++je_malloc_usable_size(const void *ptr)
++{
++  return je_payload_size_for_payload((void*)ptr);
++}
++
++int
++je_mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
++    size_t newlen)
++{
++  int ret;
++  assert (newp == NULL && newlen == 0);
++  ret = real_je_mallctl(name, oldp, oldlenp, NULL, 0);
++  return ret;
++}
++
++int
++je_mallctlbymib(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp, void *newp,
++    size_t newlen)
++{
++  int ret;
++  assert (newp == NULL && newlen == 0);
++  ret = real_je_mallctlbymib(mib, miblen, oldp, oldlenp, NULL, 0);
++  return ret;
++}
++
+ /*
+  * End non-standard functions.
+  */
+ /******************************************************************************/
+ /*
+  * Begin experimental functions.
+  */
+-#ifdef JEMALLOC_EXPERIMENTAL
+-
++// not supported by this patch
++#if 0
+ JEMALLOC_INLINE void *
+ iallocm(size_t usize, size_t alignment, bool zero)
+ {
+ 
+ 	assert(usize == ((alignment == 0) ? s2u(usize) : sa2u(usize,
+ 	    alignment)));
+ 
+ 	if (alignment != 0)
+@@ -1684,17 +2179,18 @@ jemalloc_postfork_child(void)
+ }
+ 
+ /******************************************************************************/
+ /*
+  * The following functions are used for TLS allocation/deallocation in static
+  * binaries on FreeBSD.  The primary difference between these and i[mcd]alloc()
+  * is that these avoid accessing TLS variables.
+  */
+-
++// not supported by this patch
++#if 0
+ static void *
+ a0alloc(size_t size, bool zero)
+ {
+ 
+ 	if (malloc_init())
+ 		return (NULL);
+ 
+ 	if (size == 0)
+@@ -1729,10 +2225,11 @@ a0free(void *ptr)
+ 		return;
+ 
+ 	chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(ptr);
+ 	if (chunk != ptr)
+ 		arena_dalloc(chunk->arena, chunk, ptr, false);
+ 	else
+ 		huge_dalloc(ptr, true);
+ }
++#endif
+ 
+ /******************************************************************************/

@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc performance tunning for Embedded Platform
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20performance%20tunning%20for%20Embedded%20Platform&In-Reply-To=%3CF3625146-B62B-4EA9-851E-36D0BBBEEE58%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000415.html">
+   <LINK REL="Next"  HREF="000417.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc performance tunning for Embedded Platform</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20performance%20tunning%20for%20Embedded%20Platform&In-Reply-To=%3CF3625146-B62B-4EA9-851E-36D0BBBEEE58%40canonware.com%3E"
+       TITLE="jemalloc performance tunning for Embedded Platform">jasone at canonware.com
+       </A><BR>
+    <I>Wed May 16 11:51:02 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000415.html">jemalloc performance tunning for Embedded Platform
+</A></li>
+        <LI>Next message: <A HREF="000417.html">jemalloc performance tunning for Embedded Platform
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#416">[ date ]</a>
+              <a href="thread.html#416">[ thread ]</a>
+              <a href="subject.html#416">[ subject ]</a>
+              <a href="author.html#416">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 16, 2012, at 12:41 AM, amol pise wrote:
+&gt;<i> I am planning to use jemalloc library for the embedded platform (ARM and MIPS).
+</I>&gt;<i> I wanted to know the areas where we can tunned its performance for
+</I>&gt;<i> Embedded platforms ?
+</I>&gt;<i> 
+</I>&gt;<i> Your suggestions and inputs are very important for me to go ahead.
+</I>&gt;<i> 
+</I>&gt;<i> I realy appriciated the help in this regards.
+</I>&gt;<i> 
+</I>&gt;<i> Waiting for the reply.
+</I>
+You probably want to disable every optional feature at configuration time.  Depending on the virtual memory system for your embedded platform, you may want to reduce the chunk size.  I can't think of any other general guidelines that apply to all embedded use cases.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000415.html">jemalloc performance tunning for Embedded Platform
+</A></li>
+	<LI>Next message: <A HREF="000417.html">jemalloc performance tunning for Embedded Platform
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#416">[ date ]</a>
+              <a href="thread.html#416">[ thread ]</a>
+              <a href="subject.html#416">[ subject ]</a>
+              <a href="author.html#416">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

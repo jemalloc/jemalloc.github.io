@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question about pthread_getspecific with jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20pthread_getspecific%20with%20jemalloc&In-Reply-To=%3CBANLkTi%3DOA%2BOYO%3Dji2XkKFh8HmSfzCo_tpg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000028.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question about pthread_getspecific with jemalloc</H1>
+    <B>Ethan Burns</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20pthread_getspecific%20with%20jemalloc&In-Reply-To=%3CBANLkTi%3DOA%2BOYO%3Dji2XkKFh8HmSfzCo_tpg%40mail.gmail.com%3E"
+       TITLE="Question about pthread_getspecific with jemalloc">burns.ethan at gmail.com
+       </A><BR>
+    <I>Tue Jun 14 13:48:55 PDT 2011</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000028.html">Question about pthread_getspecific with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#27">[ date ]</a>
+              <a href="thread.html#27">[ thread ]</a>
+              <a href="subject.html#27">[ subject ]</a>
+              <a href="author.html#27">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I am experiencing strange behavior with pthread_getspecific when I
+link with jemalloc.  What happens is, after calling malloc(), the
+value of one of my keys seems to change out from under me.  Here is a
+small example that demonstrates this:
+<A HREF="http://itsapad.appspot.com/fancy/6.">http://itsapad.appspot.com/fancy/6.</A>  I am using jemalloc-2.2.1 on
+Linux.  If I compile the example with gcc (ver 4.4.3) using the
+following command: 'gcc -lpthread main.c' then both calls to
+pthread_getspecific return a NULL pointer as expected.  When I link
+with jemalloc, however, ('gcc -ljemalloc -lpthread main.c') then the
+second call to pthread_getspecific returns some non-NULL value.  Is
+this a known bug or am I doing something wrong?
+
+Best,
+Ethan
+
+P.S. I am not subscribed to the list so please make sure to CC me in
+any responses.
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000028.html">Question about pthread_getspecific with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#27">[ date ]</a>
+              <a href="thread.html#27">[ thread ]</a>
+              <a href="subject.html#27">[ subject ]</a>
+              <a href="author.html#27">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

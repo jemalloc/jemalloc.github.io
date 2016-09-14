@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> huge class sizes
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20huge%20class%20sizes&In-Reply-To=%3C4FA42343-DCE5-4D5B-951E-596545362739%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001297.html">
+   <LINK REL="Next"  HREF="001299.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>huge class sizes</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20huge%20class%20sizes&In-Reply-To=%3C4FA42343-DCE5-4D5B-951E-596545362739%40canonware.com%3E"
+       TITLE="huge class sizes">jasone at canonware.com
+       </A><BR>
+    <I>Thu May 19 17:09:10 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001297.html">huge class sizes
+</A></li>
+        <LI>Next message: <A HREF="001299.html">Crash with programs linked with libasan
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1298">[ date ]</a>
+              <a href="thread.html#1298">[ thread ]</a>
+              <a href="subject.html#1298">[ subject ]</a>
+              <a href="author.html#1298">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 18, 2016, at 2:14 AM, Yoav Steinberg &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">yoav at monfort.co.il</A>&gt; wrote:
+&gt;<i> I recently moved from jemalloc 3.x to 4.0.4 and I noticed my 513MB allocations jumped to over 600MB allocations. Digging into the code I see huge allocations are now done using size classes (<A HREF="https://github.com/jemalloc/jemalloc/commit/560a4e1e01d3733c2f107cdb3cc3580f3ed84442">https://github.com/jemalloc/jemalloc/commit/560a4e1e01d3733c2f107cdb3cc3580f3ed84442</A>). 
+</I>&gt;<i> 
+</I>&gt;<i> This leads to huge internal fragmentation for such allocations. Did anyone consider this degradation when making the change? Is there any clean way to revert to non size classed huge allocations? What's the advantage of size classed huge allocations?
+</I>
+The size class change actually *decreases* worst case internal fragmentation relative to allocation size from 50% to 20%.  For example, malloc(4 MiB + 1) results in a 5 MiB allocation with jemalloc 4.x, rather than 8 MiB with 3.x.  Furthermore, in the case of huge size classes, the internal fragmentation only matters in terms of virtual memory if the application doesn't use the extra space, since no physical pages are ever required.
+
+If maximum 20% internal fragmentation is too high for your tastes, you can configure with --with-lg-size-class-group=3 or 4 to drop maximum internal fragmentation to 11% or 6%, respectively.  But, if you do that you will likely increase external fragmentation as a side effect.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001297.html">huge class sizes
+</A></li>
+	<LI>Next message: <A HREF="001299.html">Crash with programs linked with libasan
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1298">[ date ]</a>
+              <a href="thread.html#1298">[ thread ]</a>
+              <a href="subject.html#1298">[ subject ]</a>
+              <a href="author.html#1298">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

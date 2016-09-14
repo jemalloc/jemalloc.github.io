@@ -1,0 +1,197 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> keeping memory usage at certain limit
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3CCAKSyJXfd0f5QEyL3Jsm6En6p4K%3DTi5TM0GwbWmXTNr8XRwNbsw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000760.html">
+   <LINK REL="Next"  HREF="000763.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>keeping memory usage at certain limit</H1>
+    <B>Bradley C. Kuszmaul</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3CCAKSyJXfd0f5QEyL3Jsm6En6p4K%3DTi5TM0GwbWmXTNr8XRwNbsw%40mail.gmail.com%3E"
+       TITLE="keeping memory usage at certain limit">bradley at mit.edu
+       </A><BR>
+    <I>Tue Apr 29 04:28:57 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000760.html">keeping memory usage at certain limit
+</A></li>
+        <LI>Next message: <A HREF="000763.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#761">[ date ]</a>
+              <a href="thread.html#761">[ thread ]</a>
+              <a href="subject.html#761">[ subject ]</a>
+              <a href="author.html#761">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Are transparent huge pages enabled? Does disabling them help?  (If so, you
+may be able to thus workaround, and perhaps jemalloc could be improved.)
+
+Bradley C Kuszmaul - via snartphone
+On Apr 29, 2014 3:47 AM, &quot;Antony Dovgal&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">antony.dovgal at gmail.com</A>&gt; wrote:
+
+&gt;<i> Here is the output of malloc_stats_print() ~20h after the process start.
+</I>&gt;<i> The dirty/active pages ratio is 0.02%, the stats.allocated is stable at
+</I>&gt;<i> 107.42G for about 8 hours already,
+</I>&gt;<i> but both maxrss from getrusage() and `top` report slow, but constant
+</I>&gt;<i> growth and the process is currently at 117G.
+</I>&gt;<i>
+</I>&gt;<i> Can somebody help me to locate the problem?
+</I>&gt;<i> Jemalloc is the latest 3.6.1, the server is SLES 11SP2 with
+</I>&gt;<i> 3.0.13-0.28.1-default kernel.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Merged arenas stats:
+</I>&gt;<i> assigned threads: 1534
+</I>&gt;<i> dss allocation precedence: N/A
+</I>&gt;<i> dirty pages: 30687799:8168 active:dirty, 33408 sweeps, 601205 madvises,
+</I>&gt;<i> 2438751 purged
+</I>&gt;<i>              allocated      nmalloc      ndalloc    nrequests
+</I>&gt;<i> small:    93168540424   3004799703   1470963737   9264491673
+</I>&gt;<i> large:    22176190464     14660311      9267172     63169190
+</I>&gt;<i> total:   115344730888   3019460014   1480230909   9327660863
+</I>&gt;<i> active:  125697224704
+</I>&gt;<i> mapped:  126835752960
+</I>&gt;<i> bins:     bin  size regs pgs    allocated      nmalloc      ndalloc
+</I>&gt;<i>  nrequests       nfills     nflushes      newruns       reruns      curruns
+</I>&gt;<i>              0     8  501   1       187080      2126908      2103523
+</I>&gt;<i> 1116416777      1555126       581832          259          446          250
+</I>&gt;<i>              1    16  252   1   1009393200     73690994     10603919
+</I>&gt;<i>  409774890      1195005       634185       260659      2339496       260298
+</I>&gt;<i>              2    32  126   1  25238593216   1023814477    235108439
+</I>&gt;<i> 2436114995     12326052      2442614      6785629     53333719      6749049
+</I>&gt;<i>              3    48   84   1   3038375616    904172945    840873453
+</I>&gt;<i> 1949316101     11110139     10331717       835619    279254946       764188
+</I>&gt;<i>              4    64   63   1    690966016     53752004     42955660
+</I>&gt;<i>  639269895      1759730      1333503       247975     15673477       171852
+</I>&gt;<i>              5    80   50   1  40474885680    650494671    144558600
+</I>&gt;<i>  672186803     13318752      3230015     11177482     32259383     11175827
+</I>&gt;<i>              6    96   84   2   1062968448     39626341     28553753
+</I>&gt;<i>  465736871      1112411      1067446       137727     16327920       132170
+</I>&gt;<i>              7   112   72   2         2240        31813        31793
+</I>&gt;<i>  60475        21899        22328          153            2            2
+</I>&gt;<i>              8   128   63   2   4549588736     62704970     27161308
+</I>&gt;<i>  442268899      1941056       965362       588306     17299897       564516
+</I>&gt;<i>              9   160   51   2       878880       884471       878978
+</I>&gt;<i> 10989296       547747        73180         7112         9614          646
+</I>&gt;<i>             10   192   63   3   3332299200     68192386     50836661
+</I>&gt;<i>  350773752      1828422      1430862       298788     24850226       280966
+</I>&gt;<i>             11   224   72   4        82880       201645       201275
+</I>&gt;<i>  1355238       120818       125326         1985          916          126
+</I>&gt;<i>             12   256   63   4   4436903168     65932357     48600704
+</I>&gt;<i>  343566754      1922969      1395158       312713     23206402       298496
+</I>&gt;<i>             13   320   63   5       820800       300581       298016
+</I>&gt;<i>  1021102       194469       198863          770         3320          529
+</I>&gt;<i>             14   384   63   6   3776567808     38617426     28782614
+</I>&gt;<i>  186385036      1731152      1105440       230725      7560797       218083
+</I>&gt;<i>             15   448   63   7       323904       264187       263464
+</I>&gt;<i>  2136968       163723       167838         6654         1232          136
+</I>&gt;<i>             16   512   63   8   5546707456     19354481      8521068
+</I>&gt;<i>  221862388      1584431       831055       175294      2714070       172054
+</I>&gt;<i>             17   640   51   8         1280        43868        43866
+</I>&gt;<i>  5529027        19499        20648         1299           61            1
+</I>&gt;<i>             18   768   47   9          768        26068        26067
+</I>&gt;<i>  11346         5544         6621          722           52            1
+</I>&gt;<i>             19   896   45  10            0        15578        15578
+</I>&gt;<i>  24313        15494        15498        15494            0            0
+</I>&gt;<i>             20  1024   63  16      1235968       200289       199082
+</I>&gt;<i>  2304970       102401       106699         1035         2014          600
+</I>&gt;<i>             21  1280   51  16      5251840        20599        16496
+</I>&gt;<i> 319262        14088        14157          130            2          130
+</I>&gt;<i>             22  1536   42  16         1536           85           84
+</I>&gt;<i>     53           39           43            4            0            1
+</I>&gt;<i>             23 1792 38 17            0           93           93
+</I>&gt;<i>   67           50           54           50            0            0
+</I>&gt;<i>             24  2048   65  33      2504704       330001       328778
+</I>&gt;<i>  7066010       172616       139016         1039         2291          604
+</I>&gt;<i>             25 2560 52 33            0          173          173
+</I>&gt;<i>  152          113          117          113            0            0
+</I>&gt;<i>             26  3072   43  33            0          199          199
+</I>&gt;<i>    170          144          148          144            0            0
+</I>&gt;<i>             27  3584   39  35            0           93           93
+</I>&gt;<i>     63           46           50           46            0            0
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On 04/28/2014 03:08 PM, Antony Dovgal wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> Hello all,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'm currently working on a daemon that processes a lot of data and has to
+</I>&gt;&gt;<i> store the most recent of it.
+</I>&gt;&gt;<i> Unfortunately, memory is allocated and freed in small blocks and in
+</I>&gt;&gt;<i> totally random (for the allocator) manner.
+</I>&gt;&gt;<i> I use &quot;stats.allocated&quot; to measure how much memory is currently in use,
+</I>&gt;&gt;<i> delete the oldest data when the memory limit is reached and purge thread
+</I>&gt;&gt;<i> caches with &quot;arena.N.purge&quot; from time to time.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The problem is that keeping stat.allocated on a certain level doesn't
+</I>&gt;&gt;<i> keep the process from growing until it's killed by OOM-killer.
+</I>&gt;&gt;<i> I suspect that this is caused by memory fragmentation issues, though I've
+</I>&gt;&gt;<i> no idea how to prove it (or at least all my ideas involve complex stats and
+</I>&gt;&gt;<i> are quite inefficient).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> So my main questions are:
+</I>&gt;&gt;<i> is there any way to see how much memory is currently being (under)used
+</I>&gt;&gt;<i> because of fragmentation in Jemalloc?
+</I>&gt;&gt;<i> is there a way to prevent it or force some garbage collection?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Thanks in advance.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> Wbr,
+</I>&gt;<i> Antony Dovgal
+</I>&gt;<i> ---
+</I>&gt;<i> <A HREF="http://pinba.org">http://pinba.org</A> - realtime profiling for PHP
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> Wbr,
+</I>&gt;<i> Antony Dovgal
+</I>&gt;<i> ---
+</I>&gt;<i> <A HREF="http://pinba.org">http://pinba.org</A> - realtime profiling for PHP
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140429/5b82352f/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140429/5b82352f/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000760.html">keeping memory usage at certain limit
+</A></li>
+	<LI>Next message: <A HREF="000763.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#761">[ date ]</a>
+              <a href="thread.html#761">[ thread ]</a>
+              <a href="subject.html#761">[ subject ]</a>
+              <a href="author.html#761">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

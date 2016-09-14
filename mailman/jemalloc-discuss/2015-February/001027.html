@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Enabling profiling causes hang?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3C3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001026.html">
+   <LINK REL="Next"  HREF="001028.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Enabling profiling causes hang?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Enabling%20profiling%20causes%20hang%3F&In-Reply-To=%3C3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5%40canonware.com%3E"
+       TITLE="Enabling profiling causes hang?">jasone at canonware.com
+       </A><BR>
+    <I>Fri Feb  6 22:47:05 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001026.html">Enabling profiling causes hang?
+</A></li>
+        <LI>Next message: <A HREF="001028.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1027">[ date ]</a>
+              <a href="thread.html#1027">[ thread ]</a>
+              <a href="subject.html#1027">[ subject ]</a>
+              <a href="author.html#1027">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Feb 6, 2015, at 6:40 PM, Brock Pytlik &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">brock.pytlik at gmail.com</A>&gt; wrote:
+&gt;<i> I'm trying to track down a possible memory leak in ardb, which uses jemalloc, when running on an arm processor.
+</I>&gt;<i> 
+</I>&gt;<i> The problem I have is that when I set 'MALLOC_CONF=prof_leak:true' and start ardb, the program hangs.
+</I>&gt;<i> When I strace it, this is the system call it does:
+</I>&gt;<i> futex(0xb6db3c0c, FUTEX_WAIT_PRIVATE, 2, NULL
+</I>&gt;<i> 
+</I>&gt;<i> Here's the stack trace gdb reports:
+</I>&gt;<i> (gdb) bt 
+</I>&gt;<i> #0  0xb6e1af4c in __lll_lock_wait_private () from /lib/libc.so.6
+</I>&gt;<i> #1  0xb6d79de4 in __new_exitfn () from /lib/libc.so.6
+</I>&gt;<i> #2  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+</I>&gt;<i> #3  0x0016d75c in je_prof_boot2 () at src/prof.c:1349
+</I>&gt;<i> #4  0x00143418 in malloc_init_hard () at src/jemalloc.c:767
+</I>&gt;<i> #5  0x0014db70 in malloc_init () at src/jemalloc.c:292
+</I>&gt;<i> #6  calloc (num=1, size=520) at src/jemalloc.c:1123
+</I>&gt;<i> #7  0xb6d79da4 in __new_exitfn () from /lib/libc.so.6
+</I>&gt;<i> #8  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+</I>&gt;<i> #9  0x00013410 in __static_initialization_and_destruction_0 (
+</I>&gt;<i>     __initialize_p=&lt;optimized out&gt;, __priority=&lt;optimized out&gt;)
+</I>&gt;<i>     at &lt;&gt;/include/c++/4.7.3/iostream:75
+</I>&gt;<i> #10 _GLOBAL__sub_I_channel.cpp(void) () at common/channel/channel.cpp:738
+</I>&gt;<i> #11 0x001786f8 in __libc_csu_init ()
+</I>&gt;<i> #12 0xb6d61834 in __libc_start_main () from /lib/libc.so.6
+</I>&gt;<i> #13 0x0001424c in _start ()
+</I>&gt;<i> 
+</I>&gt;<i> I'll admit at this point I'm kind of stumped as to how to proceed. I thought I'd start by asking here in case anyone had seen similar behavior or knew what the problem was. I checked the issues at the github page and couldn't find anything similar. This is using version 3.6.0 of jemalloc.
+</I>&gt;<i> 
+</I>&gt;<i> When I looked at the jemalloc.xml user manual in the gate tip (not the 3.6.0 branch I'm using) I saw some discussion of atexit being problematic in the context of prof_final. If that's the problem, is there a way to generate profiling information either while the program is running, avoiding the atexit issue? I didn't quite follow the comment in the user manual that says that an application can register its own atexit parameter with equivalent functionality. Is there an example someplace I could crib from or could someone help me understand that a bit?
+</I>
+Yes, it looks like you're hitting the same atexit() issue that caused me to disable prof_final by default in the dev branch of jemalloc.  If you instead use MALLOC_CONF=prof_final:false,lg_prof_interval=20 (see <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval</A> and choose an appropriate dump interval), you should be able to get useful heap profiles without modifying the ardb source code.  The prof_gdump option provides an alternative mechanism for triggering heap dumps.  If you want to go as far as modifying ardb source code, you can call the prof.dump mallctl to trigger a dump.  None of these options will cause jemalloc to print a leak report during exit, but the resulting heap profiles are what you really need anyway.
+
+Jason
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001026.html">Enabling profiling causes hang?
+</A></li>
+	<LI>Next message: <A HREF="001028.html">Enabling profiling causes hang?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1027">[ date ]</a>
+              <a href="thread.html#1027">[ thread ]</a>
+              <a href="subject.html#1027">[ subject ]</a>
+              <a href="author.html#1027">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

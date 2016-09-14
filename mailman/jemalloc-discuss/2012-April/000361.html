@@ -1,0 +1,418 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 2/7] Use Get/SetLastError on Win32
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/7%5D%20Use%20Get/SetLastError%20on%20Win32&In-Reply-To=%3C1335782311-8040-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000360.html">
+   <LINK REL="Next"  HREF="000362.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 2/7] Use Get/SetLastError on Win32</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/7%5D%20Use%20Get/SetLastError%20on%20Win32&In-Reply-To=%3C1335782311-8040-2-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 2/7] Use Get/SetLastError on Win32">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 30 03:38:26 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000360.html">[PATCH 1/7] Remove the VOID macro
+</A></li>
+        <LI>Next message: <A HREF="000362.html">[PATCH 3/7] Few configure.ac adjustments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#361">[ date ]</a>
+              <a href="thread.html#361">[ thread ]</a>
+              <a href="subject.html#361">[ subject ]</a>
+              <a href="author.html#361">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+Using errno on win32 doesn't quite work, because the value set in a shared
+library can't be read from e.g. an executable calling the function setting
+errno.
+
+At the same time, since buferror always uses errno/GetLastError, don't pass
+it.
+---
+ include/jemalloc/internal/jemalloc_internal.h.in |   12 ++++++++--
+ include/jemalloc/internal/util.h                 |   28 +++++++++++++++++++++-
+ src/chunk_mmap.c                                 |    4 ++--
+ src/huge.c                                       |    2 +-
+ src/jemalloc.c                                   |   18 +++++++-------
+ src/util.c                                       |   15 ++++++------
+ test/aligned_alloc.c                             |   25 ++++++++++---------
+ 7 files changed, 71 insertions(+), 33 deletions(-)
+
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index a364d7a..d4c4b4c 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -1,8 +1,17 @@
+ #ifndef JEMALLOC_INTERNAL_H
+ #define JEMALLOC_INTERNAL_H
+ #include &lt;sys/param.h&gt;
++#include &lt;math.h&gt;
+ #ifdef _WIN32
+ #  include &lt;windows.h&gt;
++#  define ENOENT ERROR_PATH_NOT_FOUND
++#  define EINVAL ERROR_BAD_ARGUMENTS
++#  define EAGAIN ERROR_OUTOFMEMORY
++#  define EPERM  ERROR_WRITE_FAULT
++#  define EFAULT ERROR_INVALID_ADDRESS
++#  define ENOMEM ERROR_NOT_ENOUGH_MEMORY
++#  undef ERANGE
++#  define ERANGE ERROR_INVALID_DATA
+ #else
+ #  include &lt;sys/mman.h&gt;
+ #  include &lt;sys/syscall.h&gt;
+@@ -11,10 +20,10 @@
+ #  endif
+ #  include &lt;sys/uio.h&gt;
+ #  include &lt;pthread.h&gt;
++#  include &lt;errno.h&gt;
+ #endif
+ #include &lt;sys/types.h&gt;
+ 
+-#include &lt;errno.h&gt;
+ #include &lt;limits.h&gt;
+ #ifndef SIZE_T_MAX
+ #  define SIZE_T_MAX	SIZE_MAX
+@@ -34,7 +43,6 @@
+ #include &lt;ctype.h&gt;
+ #include &lt;unistd.h&gt;
+ #include &lt;fcntl.h&gt;
+-#include &lt;math.h&gt;
+ 
+ #define	JEMALLOC_NO_DEMANGLE
+ #include &quot;../<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at install_suffix</A>@.h&quot;
+diff --git a/include/jemalloc/internal/util.h b/include/jemalloc/internal/util.h
+index d360ae3..9661c7b 100644
+--- a/include/jemalloc/internal/util.h
++++ b/include/jemalloc/internal/util.h
+@@ -84,7 +84,7 @@
+ 
+ extern void	(*je_malloc_message)(void *wcbopaque, const char *s);
+ 
+-int	buferror(int errnum, char *buf, size_t buflen);
++int	buferror(char *buf, size_t buflen);
+ uintmax_t	malloc_strtoumax(const char *nptr, char **endptr, int base);
+ 
+ /*
+@@ -109,6 +109,8 @@ void	malloc_printf(const char *format, ...)
+ #ifndef JEMALLOC_ENABLE_INLINE
+ size_t	pow2_ceil(size_t x);
+ void	malloc_write(const char *s);
++void	set_errno(int errnum);
++int	get_errno(void);
+ #endif
+ 
+ #if (defined(JEMALLOC_ENABLE_INLINE) || defined(JEMALLOC_UTIL_C_))
+@@ -140,6 +142,30 @@ malloc_write(const char *s)
+ 
+ 	je_malloc_message(NULL, s);
+ }
++
++/* Sets error code */
++JEMALLOC_INLINE void
++set_errno(int errnum)
++{
++
++#ifdef _WIN32
++	SetLastError(errnum);
++#else
++	errno = errnum;
++#endif
++}
++
++/* Get last error code */
++JEMALLOC_INLINE int
++get_errno(void)
++{
++
++#ifdef _WIN32
++	return GetLastError();
++#else
++	return errno;
++#endif
++}
+ #endif
+ 
+ #endif /* JEMALLOC_H_INLINES */
+diff --git a/src/chunk_mmap.c b/src/chunk_mmap.c
+index 0ad65a1..9f388d2 100644
+--- a/src/chunk_mmap.c
++++ b/src/chunk_mmap.c
+@@ -41,7 +41,7 @@ pages_map(void *addr, size_t size)
+ 		if (munmap(ret, size) == -1) {
+ 			char buf[BUFERROR_BUF];
+ 
+-			buferror(errno, buf, sizeof(buf));
++			buferror(buf, sizeof(buf));
+ 			malloc_printf(&quot;&lt;jemalloc: Error in munmap(): %s\n&quot;,
+ 			    buf);
+ 			if (opt_abort)
+@@ -67,7 +67,7 @@ pages_unmap(void *addr, size_t size)
+ 	{
+ 		char buf[BUFERROR_BUF];
+ 
+-		buferror(errno, buf, sizeof(buf));
++		buferror(buf, sizeof(buf));
+ 		malloc_printf(&quot;&lt;jemalloc&gt;: Error in &quot;
+ #ifdef _WIN32
+ 		              &quot;VirtualFree&quot;
+diff --git a/src/huge.c b/src/huge.c
+index 23eb074..67b282d 100644
+--- a/src/huge.c
++++ b/src/huge.c
+@@ -168,7 +168,7 @@ huge_ralloc(void *ptr, size_t oldsize, size_t size, size_t extra,
+ 			 */
+ 			char buf[BUFERROR_BUF];
+ 
+-			buferror(errno, buf, sizeof(buf));
++			buferror(buf, sizeof(buf));
+ 			malloc_printf(&quot;&lt;jemalloc&gt;: Error in mremap(): %s\n&quot;,
+ 			    buf);
+ 			if (opt_abort)
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 52296e0..cae0098 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -472,9 +472,9 @@ malloc_conf_init(void)
+ 				uintmax_t um;				\
+ 				char *end;				\
+ 									\
+-				errno = 0;				\
++				set_errno(0);				\
+ 				um = malloc_strtoumax(v, &amp;end, 0);	\
+-				if (errno != 0 || (uintptr_t)end -	\
++				if (get_errno() != 0 || (uintptr_t)end -\
+ 				    (uintptr_t)v != vlen) {		\
+ 					malloc_conf_error(		\
+ 					    &quot;Invalid conf value&quot;,	\
+@@ -493,9 +493,9 @@ malloc_conf_init(void)
+ 				long l;					\
+ 				char *end;				\
+ 									\
+-				errno = 0;				\
++				set_errno(0);				\
+ 				l = strtol(v, &amp;end, 0);			\
+-				if (errno != 0 || (uintptr_t)end -	\
++				if (get_errno() != 0 || (uintptr_t)end -\
+ 				    (uintptr_t)v != vlen) {		\
+ 					malloc_conf_error(		\
+ 					    &quot;Invalid conf value&quot;,	\
+@@ -831,7 +831,7 @@ label_oom:
+ 			    &quot;out of memory\n&quot;);
+ 			abort();
+ 		}
+-		errno = ENOMEM;
++		set_errno(ENOMEM);
+ 	}
+ 	if (config_prof &amp;&amp; opt_prof &amp;&amp; ret != NULL)
+ 		prof_malloc(ret, usize, cnt);
+@@ -959,7 +959,7 @@ je_aligned_alloc(size_t alignment, size_t size)
+ 
+ 	if ((err = imemalign(&amp;ret, alignment, size, 1)) != 0) {
+ 		ret = NULL;
+-		errno = err;
++		set_errno(err);
+ 	}
+ 	JEMALLOC_VALGRIND_MALLOC(err == 0, ret, isalloc(ret, config_prof),
+ 	    false);
+@@ -1029,7 +1029,7 @@ label_return:
+ 			    &quot;memory\n&quot;);
+ 			abort();
+ 		}
+-		errno = ENOMEM;
++		set_errno(ENOMEM);
+ 	}
+ 
+ 	if (config_prof &amp;&amp; opt_prof &amp;&amp; ret != NULL)
+@@ -1130,7 +1130,7 @@ label_oom:
+ 				    &quot;out of memory\n&quot;);
+ 				abort();
+ 			}
+-			errno = ENOMEM;
++			set_errno(ENOMEM);
+ 		}
+ 	} else {
+ 		/* realloc(NULL, size) is equivalent to malloc(size). */
+@@ -1172,7 +1172,7 @@ label_oom:
+ 				    &quot;out of memory\n&quot;);
+ 				abort();
+ 			}
+-			errno = ENOMEM;
++			set_errno(ENOMEM);
+ 		}
+ 	}
+ 
+diff --git a/src/util.c b/src/util.c
+index 2042329..64d53dd 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -65,7 +65,7 @@ void	(*je_malloc_message)(void *, const char *s)
+  * provide a wrapper.
+  */
+ int
+-buferror(int errnum, char *buf, size_t buflen)
++buferror(char *buf, size_t buflen)
+ {
+ 
+ #ifdef _WIN32
+@@ -93,7 +93,7 @@ malloc_strtoumax(const char *nptr, char **endptr, int base)
+ 	const char *p, *ns;
+ 
+ 	if (base &lt; 0 || base == 1 || base &gt; 36) {
+-		errno = EINVAL;
++		set_errno(EINVAL);
+ 		return (UINTMAX_MAX);
+ 	}
+ 	b = base;
+@@ -168,7 +168,7 @@ malloc_strtoumax(const char *nptr, char **endptr, int base)
+ 		ret += digit;
+ 		if (ret &lt; pret) {
+ 			/* Overflow. */
+-			errno = ERANGE;
++			set_errno(ERANGE);
+ 			return (UINTMAX_MAX);
+ 		}
+ 		p++;
+@@ -416,9 +416,9 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 			case '0': case '1': case '2': case '3': case '4':
+ 			case '5': case '6': case '7': case '8': case '9': {
+ 				uintmax_t uwidth;
+-				errno = 0;
++				set_errno(0);
+ 				uwidth = malloc_strtoumax(f, (char **)&amp;f, 10);
+-				assert(uwidth != UINTMAX_MAX || errno !=
++				assert(uwidth != UINTMAX_MAX || get_errno() !=
+ 				    ERANGE);
+ 				width = (int)uwidth;
+ 				if (*f == '.') {
+@@ -442,9 +442,10 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 			case '0': case '1': case '2': case '3': case '4':
+ 			case '5': case '6': case '7': case '8': case '9': {
+ 				uintmax_t uprec;
+-				errno = 0;
++				set_errno(0);
+ 				uprec = malloc_strtoumax(f, (char **)&amp;f, 10);
+-				assert(uprec != UINTMAX_MAX || errno != ERANGE);
++				assert(uprec != UINTMAX_MAX || get_errno() !=
++				    ERANGE);
+ 				prec = (int)uprec;
+ 				break;
+ 			}
+diff --git a/test/aligned_alloc.c b/test/aligned_alloc.c
+index 81caa0a..5a9b0ca 100644
+--- a/test/aligned_alloc.c
++++ b/test/aligned_alloc.c
+@@ -17,18 +17,18 @@ main(void)
+ 
+ 	/* Test error conditions. */
+ 	alignment = 0;
+-	errno = 0;
++	set_errno(0);
+ 	p = aligned_alloc(alignment, 1);
+-	if (p != NULL || errno != EINVAL) {
++	if (p != NULL || get_errno() != EINVAL) {
+ 		malloc_printf(
+ 		    &quot;Expected error for invalid alignment %zu\n&quot;, alignment);
+ 	}
+ 
+ 	for (alignment = sizeof(size_t); alignment &lt; MAXALIGN;
+ 	    alignment &lt;&lt;= 1) {
+-		errno = 0;
++		set_errno(0);
+ 		p = aligned_alloc(alignment + 1, 1);
+-		if (p != NULL || errno != EINVAL) {
++		if (p != NULL || get_errno() != EINVAL) {
+ 			malloc_printf(
+ 			    &quot;Expected error for invalid alignment %zu\n&quot;,
+ 			    alignment + 1);
+@@ -42,9 +42,9 @@ main(void)
+ 	alignment = 0x80000000LU;
+ 	size      = 0x80000000LU;
+ #endif
+-	errno = 0;
++	set_errno(0);
+ 	p = aligned_alloc(alignment, size);
+-	if (p != NULL || errno != ENOMEM) {
++	if (p != NULL || get_errno() != ENOMEM) {
+ 		malloc_printf(
+ 		    &quot;Expected error for aligned_alloc(%zu, %zu)\n&quot;,
+ 		    alignment, size);
+@@ -57,9 +57,9 @@ main(void)
+ 	alignment = 0x40000000LU;
+ 	size      = 0x84000001LU;
+ #endif
+-	errno = 0;
++	set_errno(0);
+ 	p = aligned_alloc(alignment, size);
+-	if (p != NULL || errno != ENOMEM) {
++	if (p != NULL || get_errno() != ENOMEM) {
+ 		malloc_printf(
+ 		    &quot;Expected error for aligned_alloc(%zu, %zu)\n&quot;,
+ 		    alignment, size);
+@@ -71,9 +71,9 @@ main(void)
+ #else
+ 	size = 0xfffffff0LU;
+ #endif
+-	errno = 0;
++	set_errno(0);
+ 	p = aligned_alloc(alignment, size);
+-	if (p != NULL || errno != ENOMEM) {
++	if (p != NULL || get_errno() != ENOMEM) {
+ 		malloc_printf(
+ 		    &quot;Expected error for aligned_alloc(&amp;p, %zu, %zu)\n&quot;,
+ 		    alignment, size);
+@@ -93,9 +93,12 @@ main(void)
+ 			for (i = 0; i &lt; NITER; i++) {
+ 				ps[i] = aligned_alloc(alignment, size);
+ 				if (ps[i] == NULL) {
++					char buf[BUFERROR_BUF];
++
++					buferror(buf, sizeof(buf));
+ 					malloc_printf(
+ 					    &quot;Error for size %zu (%#zx): %s\n&quot;,
+-					    size, size, strerror(errno));
++					    size, size, buf);
+ 					exit(1);
+ 				}
+ 				total += malloc_usable_size(ps[i]);
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000360.html">[PATCH 1/7] Remove the VOID macro
+</A></li>
+	<LI>Next message: <A HREF="000362.html">[PATCH 3/7] Few configure.ac adjustments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#361">[ date ]</a>
+              <a href="thread.html#361">[ thread ]</a>
+              <a href="subject.html#361">[ subject ]</a>
+              <a href="author.html#361">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

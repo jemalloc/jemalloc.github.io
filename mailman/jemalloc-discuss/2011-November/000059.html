@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Mac OS X Lion support
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Mac%20OS%20X%20Lion%20support&In-Reply-To=%3CCACEyc8KTaX3-FjDkWj6Ydn1rAgvXs6zjLu%3D%3Dr5B%3DwwvDcBwcQQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000057.html">
+   <LINK REL="Next"  HREF="000056.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Mac OS X Lion support</H1>
+    <B>Paul Biggar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Mac%20OS%20X%20Lion%20support&In-Reply-To=%3CCACEyc8KTaX3-FjDkWj6Ydn1rAgvXs6zjLu%3D%3Dr5B%3DwwvDcBwcQQ%40mail.gmail.com%3E"
+       TITLE="Mac OS X Lion support">paul.biggar at gmail.com
+       </A><BR>
+    <I>Fri Nov  4 12:21:04 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000057.html">Mac OS X Lion support
+</A></li>
+        <LI>Next message: <A HREF="000056.html">Mac OS X Lion support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#59">[ date ]</a>
+              <a href="thread.html#59">[ thread ]</a>
+              <a href="subject.html#59">[ subject ]</a>
+              <a href="author.html#59">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Fri, Nov 4, 2011 at 12:05, Douglas Creager &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">dcreager at dcreager.net</A>&gt; wrote:
+&gt;&gt;<i> It looks like you're setting JEMALLOC_ZONE_VERSION as a compile-time
+</I>&gt;&gt;<i> constant? &#160;Unless you never intend to run the program on a system
+</I>&gt;&gt;<i> other than the one it was compiled on, I don't think this will work.
+</I>&gt;<i>
+</I>&gt;<i> Yep, but that's what the standalone jemalloc was already doing previously. &#160;The current dev branch (and the 2.2.3 release) do the configure-time check, and build a libjemalloc.dylib that only works on the current system. &#160;I assumed that it's a configure-time check for a reason, so I kept it that way.
+</I>
+The configure time check is older than the dynamic check. It causes
+crashes when the version compiled for is not the version used at
+run-time (eg compile with Snow Leopard SDK, run on Lion).
+
+Paul
+
+
+-- 
+Paul Biggar
+paulbiggar.com
+@paulbiggar
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000057.html">Mac OS X Lion support
+</A></li>
+	<LI>Next message: <A HREF="000056.html">Mac OS X Lion support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#59">[ date ]</a>
+              <a href="thread.html#59">[ thread ]</a>
+              <a href="subject.html#59">[ subject ]</a>
+              <a href="author.html#59">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

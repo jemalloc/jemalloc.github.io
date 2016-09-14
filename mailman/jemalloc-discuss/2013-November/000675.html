@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc tuning help
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20tuning%20help&In-Reply-To=%3C6E4DDA16-71D7-4317-A306-F7C8FE8FCCED%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000674.html">
+   <LINK REL="Next"  HREF="000677.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc tuning help</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20tuning%20help&In-Reply-To=%3C6E4DDA16-71D7-4317-A306-F7C8FE8FCCED%40canonware.com%3E"
+       TITLE="jemalloc tuning help">jasone at canonware.com
+       </A><BR>
+    <I>Thu Nov 14 17:20:45 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000674.html">jemalloc tuning help
+</A></li>
+        <LI>Next message: <A HREF="000677.html">jemalloc tuning help
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#675">[ date ]</a>
+              <a href="thread.html#675">[ thread ]</a>
+              <a href="subject.html#675">[ subject ]</a>
+              <a href="author.html#675">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 14, 2013, at 1:17 PM, Nikhil Bhatia &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">nbhatia at vmware.com</A>&gt; wrote:
+&gt;<i> I am observing a huge gap between the &quot;total allocated&quot; &amp; 
+</I>&gt;<i> &quot;active&quot; counts in the jemalloc stats. The &quot;active&quot; &amp; &quot;mapped&quot;
+</I>&gt;<i> correctly point to the RSS and VIRT counters in top. Below
+</I>&gt;<i> is a snippet of the stats output. 
+</I>&gt;<i> 
+</I>&gt;<i> How should I infer this gap? Is this the fragmentation caused
+</I>&gt;<i> by the chunk metadata &amp; unused dirty pages?
+</I>
+The gap is due to external fragmentation of small object page runs.  I computed per size class fragmentation and overall blame for the fragmented memory:
+
+bin	size	regs	pgs	allocated	cur runs	% of small		% of blame
+							utilization	frag memory
+0	8	501	1	50937728	40745	31%	1%	112368232	4%
+1	16	252	1	77020144	21604	88%	2%	10087184	0%
+2	32	126	1	429852096	231731	46%	12%	504487296	20%
+3	48	84	1	774254160	344983	56%	22%	616717296	24%
+4	64	63	1	270561344	102283	66%	8%	141843712	6%
+5	80	50	1	526179760	163248	81%	15%	126812240	5%
+6	96	84	2	66918048	20469	41%	2%	98143968	4%
+7	112	72	2	141823360	31895	55%	4%	115377920	4%
+8	128	63	2	117911808	22666	65%	3%	64866816	3%
+9	160	51	2	104119200	22748	56%	3%	81504480	3%
+10	192	63	3	178081344	20630	71%	5%	71459136	3%
+11	224	72	4	65155104	5327	76%	2%	20758752	1%
+12	256	63	4	48990208	7009	43%	1%	64050944	2%
+13	320	63	5	99602240	10444	47%	3%	110948800	4%
+14	384	63	6	22376448	1897	49%	1%	23515776	1%
+15	448	63	7	19032384	2290	29%	1%	45600576	2%
+16	512	63	8	83511808	4852	53%	2%	72994304	3%
+17	640	51	8	40183040	2979	41%	1%	57051520	2%
+18	768	47	9	17687040	747	66%	1%	9276672		0%
+19	896	45	10	17929856	730	61%	1%	11503744	0%
+20	1024	63	16	226070528	4142	85%	6%	41138176	2%
+21	1280	51	16	24062720	786	47%	1%	27247360	1%
+22	1536	42	16	9480192		326	45%	0%	11550720	0%
+23	1792	38	17	3695104		223	24%	0%	11490304	0%
+24	2048	65	33	42412032	565	56%	1%	32800768	1%
+25	2560	52	33	27392000	760	27%	1%	73779200	3%
+26	3072	43	33	1959936		65	23%	0%	6626304		0%
+27	3584	39	35	24493056	235	75%	1%	8354304		0%
+
+utilization = allocated / (size * regs * cur runs)
+% of small = allocated / total allocated
+frag memory = (size * regs * cur runs) - allocated
+% of blame = frag memory / total frag memory
+
+In order for fragmentation to be that bad, your application has to have a steady state memory usage that is well below its peak usage.  In absolute terms, 32- and 48-byte allocations are to blame for nearly half the total fragmentation, and they have utilization (1-fragmentation) of 46% and 56%, respectively.
+
+The core of the problem is that short-lived and long-lived object allocations are being interleaved even during near-peak memory usage, and when the short-lived objects are freed, the long-lived objects keep entire page runs active, even if almost all neighboring regions have been freed.  jemalloc is robust with regard to multiple grow/shrink cycles, in that its layout policies keep fragmentation from increasing from cycle to cycle, but it can do very little about the external fragmentation that exists during the low-usage time periods.  If the application accumulates long-lived objects (i.e. each peak is higher than the previous), then the layout policies tend to cause accumulation of long-lived objects in low memory, and fragmentation in high memory is proportionally small.  Presumably that's not how your application behaves though.
+
+You can potentially mitigate the problem by reducing the number of arenas (only helps if per thread memory usage spikes are uncorrelated).  Another possibility is to segregate short- and long-lived objects into different arenas, but this requires that you have reliable (and ideally stable) knowledge of object lifetimes.  In practice, segregation is usually very difficult to maintain.  If you choose to go this direction, take a look at the &quot;arenas.extend&quot; mallctl (for creating an arena that contains long-lived objects), and the ALLOCM_ARENA(a) macro argument to the [r]allocm() functions.
+
+&gt;<i> I am purging unused
+</I>&gt;<i> dirty pages a bit more aggressively than default (lg_dirty_mult: 5). 
+</I>&gt;<i> Should I consider being more aggressive? 
+</I>
+Dirty page purging isn't related to this problem.
+
+&gt;<i> Secondly, I am using 1 arena per CPU core but my application creates
+</I>&gt;<i> lots of transient threads making small allocations. Should I consider
+</I>&gt;<i> using more arenas to mitigate performance bottlenecks incurred due to
+</I>&gt;<i> blocking on per-arena locks?
+</I>
+In general, the more arenas you have, the worse fragmentation is likely to be.  Use the smallest number of arenas that doesn't unacceptably degrade throughput.
+
+&gt;<i> Finally, looking at the jemalloc stats how should I go about 
+</I>&gt;<i> configuring the tcache? My application has a high thread churn &amp; 
+</I>&gt;<i> each thread performs lots of short-lived small allocations. Should
+</I>&gt;<i> I consider decreasing lg_tcache_max to 4K? 
+</I>
+This probably won't have much effect one way or the other, but setting lg_tcache_max set to 12 will potentially reduce memory overhead, so go for it if application throughput doesn't degrade unacceptably as a side effect.
+
+It's worth mentioning that the tcache is a cause of fragmentation, because it thwarts jemalloc's layout policy of always choosing the lowest available region.  Fragmentation may go down substantially if you completely disable the tcache, though the potential throughput degradation may be unacceptable.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131114/8af6ca34/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131114/8af6ca34/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000674.html">jemalloc tuning help
+</A></li>
+	<LI>Next message: <A HREF="000677.html">jemalloc tuning help
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#675">[ date ]</a>
+              <a href="thread.html#675">[ thread ]</a>
+              <a href="subject.html#675">[ subject ]</a>
+              <a href="author.html#675">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,39 @@
+From jasone at canonware.com  Tue Oct 16 11:05:59 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 16 Oct 2012 11:05:59 -0700
+Subject: jemalloc 3.1.0 released
+Message-ID: <C2A07722-AEE4-4B58-B879-E7BFD43506D1@canonware.com>
+
+jemalloc 3.1.0 is now available.  It includes a handful of bug fixes, plus one major new feature: the ability to manually create arenas that are outside the purview of jemalloc's automatic thread:arena multiplexing.  Manually created arenas can be selected for use on a per thread basis using the existing "thread.arena" mallctl, or on a per allocation basis using the new ALLOCM_ARENA() flag in conjunction with allocm()/rallocm()/dallocm().
+
+New features:
+- Auto-detect whether running inside Valgrind, thus removing the need to manually specify MALLOC_CONF=valgrind:true.
+- Add the "arenas.extend" mallctl, which allows applications to create manually managed arenas.
+- Add the ALLOCM_ARENA() flag for {,r,d}allocm().
+- Add the "opt.dss", "arena.<i>.dss", and "stats.arenas.<i>.dss" mallctls, which provide control over dss/mmap precedence.
+- Add the "arena.<i>.purge" mallctl, which obsoletes "arenas.purge".
+- Define LG_QUANTUM for hppa.
+
+Incompatible changes:
+- Disable tcache by default if running inside Valgrind, in order to avoid making unallocated objects appear reachable to Valgrind.
+- Drop const from malloc_usable_size() argument on Linux.
+
+Bug fixes:
+- Fix heap profiling crash if sampled object is freed via realloc(p, 0).
+- Remove const from __*_hook variable declarations, so that glibc can modify them during process forking.
+- Fix mlockall(2)/madvise(2) interaction.
+- Fix fork(2)-related deadlocks.
+- Fix error return value for "thread.tcache.enabled" mallctl.
+
+For the complete ChangeLog, see:
+	http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+	http://www.canonware.com/download/jemalloc/jemalloc-3.1.0.tar.bz2
+
+Starting point for general information:
+	http://www.canonware.com/jemalloc/
+
+Browsable revision history:
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git
+

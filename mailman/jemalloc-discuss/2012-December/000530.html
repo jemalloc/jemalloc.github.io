@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/3] Don't mangle errno with free(3) if utrace(2) fails
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/3%5D%20Don%27t%20mangle%20errno%20with%20free%283%29%20if%20utrace%282%29%20fails&In-Reply-To=%3Calpine.BSF.2.00.1212021755380.40258%40toaster.local%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000553.html">
+   <LINK REL="Next"  HREF="000531.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/3] Don't mangle errno with free(3) if utrace(2) fails</H1>
+    <B>Garrett Cooper</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/3%5D%20Don%27t%20mangle%20errno%20with%20free%283%29%20if%20utrace%282%29%20fails&In-Reply-To=%3Calpine.BSF.2.00.1212021755380.40258%40toaster.local%3E"
+       TITLE="[PATCH 1/3] Don't mangle errno with free(3) if utrace(2) fails">yanegomi at gmail.com
+       </A><BR>
+    <I>Sun Dec  2 17:56:25 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000553.html">[PATCH 0/3] jemalloc(3) on FreeBSD fixes
+</A></li>
+        <LI>Next message: <A HREF="000531.html">[PATCH 2/3] Improve configure tests for ffsl
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#530">[ date ]</a>
+              <a href="thread.html#530">[ thread ]</a>
+              <a href="subject.html#530">[ subject ]</a>
+              <a href="author.html#530">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>This ensures POLA on FreeBSD (at least) as free(3) is generally assumed
+to not fiddle around with errno.
+
+Signed-off-by: Garrett Cooper &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">yanegomi at gmail.com</A>&gt;
+---
+  src/jemalloc.c | 2 ++
+  1 file changed, 2 insertions(+)
+
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 8a667b6..ec3805c 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -83,11 +83,13 @@ typedef struct {
+  #ifdef JEMALLOC_UTRACE
+  #  define UTRACE(a, b, c) do {						\
+  	if (opt_utrace) {						\
++		int utrace_serrno = errno;				\
+  		malloc_utrace_t ut;					\
+  		ut.p = (a);						\
+  		ut.s = (b);						\
+  		ut.r = (c);						\
+  		utrace(&amp;ut, sizeof(ut));				\
++		errno = utrace_serrno;					\
+  	}								\
+  } while (0)
+  #else
+-- 
+1.8.0
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000553.html">[PATCH 0/3] jemalloc(3) on FreeBSD fixes
+</A></li>
+	<LI>Next message: <A HREF="000531.html">[PATCH 2/3] Improve configure tests for ffsl
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#530">[ date ]</a>
+              <a href="thread.html#530">[ thread ]</a>
+              <a href="subject.html#530">[ subject ]</a>
+              <a href="author.html#530">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

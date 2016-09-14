@@ -1,0 +1,60 @@
+<tt>
+&lt;html&gt;&lt;body&gt;<br>
+&lt;p&gt;&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;I&nbsp;too&nbsp;have&nbsp;been&nbsp;trying&nbsp;to&nbsp;reproduce&nbsp;the&nbsp;existence&nbsp;of&nbsp;Private_Clean&nbsp;memory segments&nbsp;in&nbsp;smaps&nbsp;via&nbsp;a&nbsp;simple&nbsp;test&nbsp;case&nbsp;with&nbsp;jemalloc&nbsp;and&nbsp;was&nbsp;unable&nbsp;to&nbsp;on&nbsp;my&nbsp;laptop,&nbsp;a&nbsp;2&nbsp;core&nbsp;machine&nbsp;running&nbsp;a&nbsp;3.8.0-23&nbsp;kernel&nbsp;.&nbsp; I&nbsp;then&nbsp;moved&nbsp;my&nbsp;test&nbsp;to&nbsp;our&nbsp;production&nbsp;box:&nbsp;96GB&nbsp;memory,&nbsp;24&nbsp;hardware&nbsp;threads&nbsp;and&nbsp;2.6&nbsp;kernel&nbsp;(detailed&nbsp;information&nbsp;below),&nbsp;and&nbsp;within&nbsp;a&nbsp;few&nbsp;minutes&nbsp;of&nbsp;execution,&nbsp;with&nbsp;a&nbsp;few&nbsp;minor&nbsp;adjustments,&nbsp;I&nbsp;was&nbsp;able&nbsp;duplicate&nbsp;the&nbsp;results,&nbsp;smaps&nbsp;showing&nbsp;the&nbsp;jemalloc&nbsp;segment&nbsp;with&nbsp;Private_Clean&nbsp;memory&nbsp;usage,&nbsp;of&nbsp;our&nbsp;larger&nbsp;test.&nbsp;Note&nbsp;that&nbsp;I'm&nbsp;using&nbsp;the&nbsp;same&nbsp;jemalloc&nbsp;library&nbsp;whose&nbsp;information&nbsp;Kurtis&nbsp;posted&nbsp;earlier&nbsp;(96&nbsp;arenas&nbsp;etc...).&nbsp;&lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;Thank&nbsp;you,&lt;/font&gt;&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;Tom&lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;---------------&lt;/font&gt;&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;DETAILS&lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;Smaps&nbsp;memory&nbsp;segment&lt;/font&gt;&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt; 7f1f75c00000-7f35bce00000&nbsp;rw-p&nbsp;00000000&nbsp;00:00&nbsp;0&lt;br&gt;<br>
+Size:&nbsp;93440000&nbsp;kB&lt;br&gt;<br>
+Rss:&nbsp;63177024&nbsp;kB&lt;br&gt;<br>
+Pss:&nbsp;63177024&nbsp;kB&lt;br&gt;<br>
+Shared_Clean:&nbsp;0&nbsp;kB&lt;br&gt;<br>
+Shared_Dirty:&nbsp;0&nbsp;kB&lt;br&gt;<br>
+Private_Clean:&nbsp;614992&nbsp;kB&lt;br&gt;<br>
+Private_Dirty:&nbsp;62562032&nbsp;kB&lt;br&gt;<br>
+Referenced:&nbsp;62562212&nbsp;kB&lt;br&gt;<br>
+Swap:&nbsp;0&nbsp;kB&lt;br&gt;<br>
+KernelPageSize:&nbsp;4&nbsp;kB&lt;br&gt;<br>
+MMUPageSize:&nbsp;4&nbsp;kB&lt;br&gt;<br>
+ &nbsp; &lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;Production&nbsp;Box&nbsp;Info:&lt;/font&gt;&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;#&nbsp;uname&nbsp;-a&lt;br&gt;<br>
+Linux&nbsp;9.42.94.12&nbsp;2.6.32-131.21.1.89.br5_0.x86_64&nbsp;#1&nbsp;SMP&nbsp;Tue&nbsp;Mar&nbsp;19&nbsp;15:05:57&nbsp;CDT&nbsp;2013&nbsp;x86_64&nbsp;GNU/Linux&lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;Tail&nbsp;of&nbsp;CPU&nbsp;Info&lt;/font&gt;&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;3&quot;&nbsp;face=&quot;Tahoma&quot;&gt;processor      &nbsp;:&nbsp;23&lt;br&gt;<br>
+vendor_id      &nbsp;:&nbsp;GenuineIntel&lt;br&gt;<br>
+cpu&nbsp;family     &nbsp;:&nbsp;6&lt;br&gt;<br>
+model          &nbsp;:&nbsp;44&lt;br&gt;<br>
+model&nbsp;name     &nbsp;:&nbsp;Intel(R)&nbsp;Xeon(R)&nbsp;CPU          &nbsp;X5670 &nbsp;@&nbsp;2.93GHz&lt;br&gt;<br>
+stepping       &nbsp;:&nbsp;2&lt;br&gt;<br>
+cpu&nbsp;MHz        &nbsp;:&nbsp;2933.304&lt;br&gt;<br>
+cache&nbsp;size     &nbsp;:&nbsp;12288&nbsp;KB&lt;br&gt;<br>
+physical&nbsp;id    &nbsp;:&nbsp;1&lt;br&gt;<br>
+siblings       &nbsp;:&nbsp;12&lt;br&gt;<br>
+core&nbsp;id        &nbsp;:&nbsp;10&lt;br&gt;<br>
+cpu&nbsp;cores      &nbsp;:&nbsp;6&lt;br&gt;<br>
+apicid         &nbsp;:&nbsp;53&lt;br&gt;<br>
+initial&nbsp;apicid &nbsp;:&nbsp;53&lt;br&gt;<br>
+fpu            &nbsp;:&nbsp;yes&lt;br&gt;<br>
+fpu_exception  &nbsp;:&nbsp;yes&lt;br&gt;<br>
+cpuid&nbsp;level    &nbsp;:&nbsp;11&lt;br&gt;<br>
+wp             &nbsp;:&nbsp;yes&lt;br&gt;<br>
+flags          &nbsp;:&nbsp;fpu&nbsp;vme&nbsp;de&nbsp;pse&nbsp;tsc&nbsp;msr&nbsp;pae&nbsp;mce&nbsp;cx8&nbsp;apic&nbsp;mtrr&nbsp;pge&nbsp;mca&nbsp;cmov&nbsp;pat&nbsp;pse36&nbsp;clflush&nbsp;dts&nbsp;acpi&nbsp;mmx&nbsp;fxsr&nbsp;sse&nbsp;sse2&nbsp;ss&nbsp;ht&nbsp;tm&nbsp;pbe&nbsp;syscall&nbsp;nx&nbsp;pdpe1gb&nbsp;rdtscp&nbsp;lm&nbsp;constant_tsc&nbsp;arch_perfmon&nbsp;pebs&nbsp;bts&nbsp;rep_good&nbsp;xtopology&nbsp;nonstop_tsc&nbsp;aperfmperf&nbsp;pni&nbsp;pclmulqdq&nbsp;dtes64&nbsp;monitor&nbsp;ds_cpl&nbsp;vmx&nbsp;smx&nbsp;est&nbsp;tm2&nbsp;ssse3&nbsp;cx16&nbsp;xtpr&nbsp;pdcm&nbsp;dca&nbsp;sse4_1&nbsp;sse4_2&nbsp;popcnt&nbsp;aes&nbsp;lahf_lm&nbsp;ida&nbsp;arat&nbsp;tpr_shadow&nbsp;vnmi&nbsp;flexpriority&nbsp;ept&nbsp;vpid&lt;br&gt;<br>
+bogomips       &nbsp;:&nbsp;5867.23&lt;br&gt;<br>
+clflush&nbsp;size   &nbsp;:&nbsp;64&lt;br&gt;<br>
+cache_alignment&nbsp;:&nbsp;64&lt;br&gt;<br>
+address&nbsp;sizes  &nbsp;:&nbsp;40&nbsp;bits&nbsp;physical,&nbsp;48&nbsp;bits&nbsp;virtual&lt;br&gt;<br>
+power&nbsp;management:&lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;i&gt;(See&nbsp;attached&nbsp;file:&nbsp;stressTest.c)&lt;/i&gt;&lt;/body&gt;&lt;/html&gt;<br>
+
+</tt>

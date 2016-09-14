@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C54D158D7.6000802%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001013.html">
+   <LINK REL="Next"  HREF="001015.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C54D158D7.6000802%40gmail.com%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">danielmicay at gmail.com
+       </A><BR>
+    <I>Tue Feb  3 15:25:11 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001013.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001015.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1014">[ date ]</a>
+              <a href="thread.html#1014">[ thread ]</a>
+              <a href="subject.html#1014">[ subject ]</a>
+              <a href="author.html#1014">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 03/02/15 05:51 PM, Mike Hommey wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> I've been tracking a startup time regression in Firefox for Android when
+</I>&gt;<i> we tried to switch from mozjemalloc (memory refresher: it's derived from
+</I>&gt;<i> jemalloc 0.9) to mostly current jemalloc dev.
+</I>&gt;<i> 
+</I>&gt;<i> It turned out to be <A HREF="https://github.com/jemalloc/jemalloc/pull/192">https://github.com/jemalloc/jemalloc/pull/192</A> but in
+</I>&gt;<i> the process I found a few interesting things that I thought are worth
+</I>&gt;<i> mentioning:
+</I>&gt;<i> 
+</I>&gt;<i> - Several changesets between 3.6 and current dev made the number of
+</I>&gt;<i>   instructions as reported by perf stat on GNU/Linux x86-64 increase
+</I>&gt;<i>   significantly, on a ~200k alloc/dealloc testcase that does nothing
+</I>&gt;<i>   else[1]:
+</I>&gt;<i>   - 5460aa6f6676c7f253bfcb75c028dfd38cae8aaf made the count go from
+</I>&gt;<i>   69M to 76M.
+</I>&gt;<i>   - 6ef80d68f092caf3b3802a73b8d716057b41864c from 76M to 81.5M
+</I>&gt;<i>   - 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 from 81.5M to 85M
+</I>&gt;<i>   - 155bfa7da18cab0d21d87aa2dce4554166836f5d from 85M to 88M
+</I>&gt;<i>   I didn't investigate further because it was a red herring as far as
+</I>&gt;<i>   the regression I was tracking was concerned.
+</I>&gt;<i> 
+</I>&gt;<i> - The average number of mutex lock per alloc/dealloc is close to 1 with
+</I>&gt;<i>   mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as above).
+</I>&gt;<i>   Fortunately, contention is likely lower (I measured it to be lower, but
+</I>&gt;<i>   the instrumentation had so much overhead that it may have skewed the
+</I>&gt;<i>   results), but pthread_mutex_lock/unlock are not free as far as
+</I>&gt;<i>   instruction count is concerned.
+</I>&gt;<i> 
+</I>&gt;<i> Cheers,
+</I>&gt;<i> 
+</I>&gt;<i> Mike
+</I>
+You can speed up locking/unlocking by ~10-20% by dropping a lighter
+mutex implementation. Here's a simple C11 implementation based on
+Drepper's futex paper, for example:
+
+<A HREF="https://github.com/thestinger/allocator/blob/master/mutex.h">https://github.com/thestinger/allocator/blob/master/mutex.h</A>
+<A HREF="https://github.com/thestinger/allocator/blob/master/mutex.c">https://github.com/thestinger/allocator/blob/master/mutex.c</A>
+
+It would be easy enough to add (adaptive) spinning to lock/unlock just
+like the glibc adaptive mutex that's currently used by jemalloc.
+
+Implementing great load balancing for arenas would greatly reduce the
+benefits of fine-grained locking. The best approach that I've come up
+with is the following:
+
+* 1 arena per core, rather than 4 arenas per core
+* assign the initial threads via round-robin, until each arena is used
+* when there are no unused arenas, switch to sched_getcpu()
+* store the thread ID of the last thread to allocate in the arena
+
+The algorithm for picking an arena for allocating:
+
+if thread.last_arena.last_allocator == thread.id &amp;&amp; trylock() != fail
+    pass
+else:
+    pick_arena_with_sched_getcpu()
+    lock()
+set_last_allocator()
+
+This results in significantly better load balancing than jemalloc has at
+the moment while using 1/4 as many arenas.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/7cf28004/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/7cf28004/attachment.sig</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001013.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001015.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1014">[ date ]</a>
+              <a href="thread.html#1014">[ thread ]</a>
+              <a href="subject.html#1014">[ subject ]</a>
+              <a href="author.html#1014">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

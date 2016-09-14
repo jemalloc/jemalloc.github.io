@@ -1,0 +1,357 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Remove the objroot variable from the build system
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20the%20objroot%20variable%20from%20the%20build%20system&In-Reply-To=%3C1334241740-9838-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000266.html">
+   <LINK REL="Next"  HREF="000273.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Remove the objroot variable from the build system</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20the%20objroot%20variable%20from%20the%20build%20system&In-Reply-To=%3C1334241740-9838-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Remove the objroot variable from the build system">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 12 07:42:20 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000266.html">Mingw port, status update
+</A></li>
+        <LI>Next message: <A HREF="000273.html">[PATCH] Remove the objroot variable from the build system
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#265">[ date ]</a>
+              <a href="thread.html#265">[ thread ]</a>
+              <a href="subject.html#265">[ subject ]</a>
+              <a href="author.html#265">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+It is of no use, and is always &quot;&quot;.
+---
+ Makefile.in  |  120 +++++++++++++++++++++++++++++-----------------------------
+ configure.ac |    5 +--
+ 2 files changed, 61 insertions(+), 64 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 8aa9425..da07db4 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -19,7 +19,7 @@ DATADIR := $(DESTDIR)@DATADIR@
+ MANDIR := $(DESTDIR)@MANDIR@
+ 
+ # Build parameters.
+-CPPFLAGS := @CPPFLAGS@ <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-I at srcroot</A>@include <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-I at objroot</A>@include
++CPPFLAGS := @CPPFLAGS@ <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-I at srcroot</A>@include -Iinclude
+ CFLAGS := @CFLAGS@
+ ifeq (macho, @abi@)
+ CFLAGS += -dynamic
+@@ -35,15 +35,15 @@ WL_SONAME := soname
+ endif
+ REV := @rev@
+ ifeq (macho, @abi@)
+-TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>
++TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=lib
+ else
+ TEST_LIBRARY_PATH :=
+ endif
+ 
+ # Lists of files.
+-BINS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at bin</A>/pprof @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at bin</A>/jemalloc.sh
+-CHDRS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at include</A>/jemalloc/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at install_suffix</A>@.h \
+-	@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at include</A>/jemalloc/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc_defs at install_suffix</A>@.h
++BINS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at bin</A>/pprof bin/jemalloc.sh
++CHDRS := include/jemalloc/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at install_suffix</A>@.h \
++	include/jemalloc/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc_defs at install_suffix</A>@.h
+ CSRCS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/jemalloc.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/arena.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/atomic.c \
+ 	@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/base.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/bitmap.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/chunk.c \
+ 	@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/chunk_dss.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/chunk_mmap.c \
+@@ -55,14 +55,14 @@ CSRCS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/jemalloc.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/arena.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/atomic.c \
+ ifeq (macho, @abi@)
+ CSRCS += @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/zone.c
+ endif
+-STATIC_LIBS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.a
+-DSOS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO).$(REV) \
+-	@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO) \
+-	@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@_pic.a
+-MAN3 := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at doc</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at install_suffix</A>@.3
+-DOCS_XML := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at doc</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at install_suffix</A>@.xml
+-DOCS_HTML := $(DOCS_XML:@objroot@%.xml=@srcroot@%.html)
+-DOCS_MAN3 := $(DOCS_XML:@objroot@%.xml=@srcroot@%.3)
++STATIC_LIBS := lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.a
++DSOS := lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO).$(REV) \
++	lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO) \
++	lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@_pic.a
++MAN3 := doc/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at install_suffix</A>@.3
++DOCS_XML := doc/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at install_suffix</A>@.xml
++DOCS_HTML := $(DOCS_XML:%.xml=@srcroot@%.html)
++DOCS_MAN3 := $(DOCS_XML:%.xml=@srcroot@%.3)
+ DOCS := $(DOCS_HTML) $(DOCS_MAN3)
+ CTESTS := @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at test</A>/aligned_alloc.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at test</A>/allocated.c \
+ 	@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at test</A>/bitmap.c @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at test</A>/mremap.c \
+@@ -77,18 +77,18 @@ endif
+ .PHONY: install_html install_man install_doc install
+ .PHONY: tests check clean distclean relclean
+ 
+-.SECONDARY : $(CTESTS:@srcroot@%.c=@objroot@%.o)
++.SECONDARY : $(CTESTS:@srcroot@%.c=%.o)
+ 
+ # Default target.
+ all: build
+ 
+ dist: build_doc
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at srcroot</A>@doc/%.html : @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at doc</A>/%.xml @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at doc</A>/stylesheet.xsl @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at doc</A>/html.xsl
+-	@XSLTPROC@ -o $@ @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at doc</A>/html.xsl $&lt;
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">+ at srcroot</A>@doc/%.html : doc/%.xml @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at doc</A>/stylesheet.xsl doc/html.xsl
++	@XSLTPROC@ -o $@ doc/html.xsl $&lt;
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at srcroot</A>@doc/%.3 : @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at doc</A>/%.xml @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at doc</A>/stylesheet.xsl @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at doc</A>/manpages.xsl
+-	@XSLTPROC@ -o $@ @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at doc</A>/manpages.xsl $&lt;
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">+ at srcroot</A>@doc/%.3 : doc/%.xml @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at doc</A>/stylesheet.xsl doc/manpages.xsl
++	@XSLTPROC@ -o $@ doc/manpages.xsl $&lt;
+ 
+ build_doc_html: $(DOCS_HTML)
+ build_doc_man: $(DOCS_MAN3)
+@@ -97,16 +97,16 @@ build_doc: $(DOCS)
+ #
+ # Include generated dependency files.
+ #
+--include $(CSRCS:@srcroot@%.c=@objroot@%.d)
+--include $(CSRCS:@srcroot@%.c=@objroot@%.pic.d)
+--include $(CTESTS:@srcroot@%.c=@objroot@%.d)
++-include $(CSRCS:@srcroot@%.c=%.d)
++-include $(CSRCS:@srcroot@%.c=%.pic.d)
++-include $(CTESTS:@srcroot@%.c=%.d)
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@src/%.o: @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/%.c
++src/%.o: @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/%.c
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -c $(CPPFLAGS) -o $@ $&lt;
+ 	@$(SHELL) -ec &quot;$(CC) -MM $(CPPFLAGS) $&lt; | sed \&quot;s/\($(subst /,\/,$(notdir $(basename $@)))\)\.o\([ :]*\)/$(subst /,\/,$(strip $(dir $@)))\1.o \2/g\&quot; &gt; $(@:%.o=%.d)&quot;
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@src/%.pic.o: @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/%.c
++src/%.pic.o: @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at src</A>/%.c
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -fPIC -DPIC -c $(CPPFLAGS) -o $@ $&lt;
+ 	@$(SHELL) -ec &quot;$(CC) -MM $(CPPFLAGS) $&lt; | sed \&quot;s/\($(subst /,\/,$(notdir $(basename $(basename $@))))\)\.o\([ :]*\)/$(subst /,\/,$(strip $(dir $@)))\1.pic.o \2/g\&quot; &gt; $(@:%.o=%.d)&quot;
+@@ -115,33 +115,33 @@ build_doc: $(DOCS)
+ 	@mkdir -p $(@D)
+ 	ln -sf $(&lt;F) $@
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO).$(REV) : $(CSRCS:@srcroot@%.c=@objroot@%.pic.o)
++lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO).$(REV) : $(CSRCS:@srcroot@%.c=%.pic.o)
+ 	@mkdir -p $(@D)
+ 	$(CC) -shared -Wl,-$(WL_SONAME),$(@F) $(RPATH_EXTRA:%=@RPATH@%) -o $@ $+ $(LDFLAGS) $(LIBS)
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@_pic.a : $(CSRCS:@srcroot@%.c=@objroot@%.pic.o)
++lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@_pic.a : $(CSRCS:@srcroot@%.c=%.pic.o)
+ 	@mkdir -p $(@D)
+ 	ar crus $@ $+
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.a : $(CSRCS:@srcroot@%.c=@objroot@%.o)
++lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.a : $(CSRCS:@srcroot@%.c=%.o)
+ 	@mkdir -p $(@D)
+ 	ar crus $@ $+
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@test/%.o: @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at test</A>/%.c
++test/%.o: @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at test</A>/%.c
+ 	@mkdir -p $(@D)
+-	$(CC) $(CFLAGS) -c $(CPPFLAGS) <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-I at objroot</A>@test -o $@ $&lt;
+-	@$(SHELL) -ec &quot;$(CC) -MM $(CPPFLAGS) <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-I at objroot</A>@test $&lt; | sed \&quot;s/\($(subst /,\/,$(notdir $(basename $@)))\)\.o\([ :]*\)/$(subst /,\/,$(strip $(dir $@)))\1.o \2/g\&quot; &gt; $(@:%.o=%.d)&quot;
++	$(CC) $(CFLAGS) -c $(CPPFLAGS) -Itest -o $@ $&lt;
++	@$(SHELL) -ec &quot;$(CC) -MM $(CPPFLAGS) -Itest $&lt; | sed \&quot;s/\($(subst /,\/,$(notdir $(basename $@)))\)\.o\([ :]*\)/$(subst /,\/,$(strip $(dir $@)))\1.o \2/g\&quot; &gt; $(@:%.o=%.d)&quot;
+ 
+ # Automatic dependency generation misses #include &quot;*.c&quot;.
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@test/bitmap.o : @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at src</A>/bitmap.o
++test/bitmap.o : src/bitmap.o
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@test/%: @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at test</A>/%.o \
+-		 @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO)
++test/%: test/%.o \
++		 lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO)
+ 	@mkdir -p $(@D)
+ ifneq (@RPATH@, )
+-	$(CC) -o $@ $&lt; @RPATH@@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-L at objroot</A>@lib <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-ljemalloc at install_suffix</A>@ -lpthread
++	$(CC) -o $@ $&lt; @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">RPATH at lib</A> -Llib <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-ljemalloc at install_suffix</A>@ -lpthread
+ else
+-	$(CC) -o $@ $&lt; <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-L at objroot</A>@lib <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-ljemalloc at install_suffix</A>@ -lpthread
++	$(CC) -o $@ $&lt; -Llib <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">-ljemalloc at install_suffix</A>@ -lpthread
+ endif
+ 
+ build_lib_shared: $(DSOS)
+@@ -164,13 +164,13 @@ done
+ 
+ install_lib_shared: $(DSOS)
+ 	install -d $(LIBDIR)
+-	install -m 755 @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO).$(REV) $(LIBDIR)
++	install -m 755 lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO).$(REV) $(LIBDIR)
+ 	ln -sf <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO).$(REV) $(LIBDIR)/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.$(SO)
+ 
+ install_lib_static: $(DSOS) $(STATIC_LIBS)
+ 	install -d $(LIBDIR)
+-	install -m 755 @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@_pic.a $(LIBDIR)
+-	install -m 755 @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at lib</A>/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.a $(LIBDIR)
++	install -m 755 lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@_pic.a $(LIBDIR)
++	install -m 755 lib/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">libjemalloc at install_suffix</A>@.a $(LIBDIR)
+ 
+ install_lib: install_lib_shared install_lib_static
+ 
+@@ -192,21 +192,21 @@ install_doc: install_doc_html install_doc_man
+ 
+ install: install_bin install_include install_lib install_doc
+ 
+-tests: $(CTESTS:@srcroot@%.c=@objroot@%)
++tests: $(CTESTS:@srcroot@%.c=%)
+ 
+ check: tests
+-	@mkdir -p @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at test</A>
++	@mkdir -p test
+ 	@$(SHELL) -c 'total=0; \
+ 		failures=0; \
+ 		echo &quot;=========================================&quot;; \
+-		for t in $(CTESTS:@srcroot@%.c=@objroot@%); do \
++		for t in $(CTESTS:@srcroot@%.c=%); do \
+ 			total=`expr $$total + 1`; \
+ 			/bin/echo -n &quot;$${t} ... &quot;; \
+ 			$(TEST_LIBRARY_PATH) $${t} @abs_srcroot@ @abs_objroot@ \
+-			  &gt; @objroot@$${t}.out 2&gt;&amp;1; \
++			  &gt; $${t}.out 2&gt;&amp;1; \
+ 			if test -e &quot;@srcroot@$${t}.exp&quot;; then \
+ 				diff -w -u @srcroot@$${t}.exp \
+-				  @objroot@$${t}.out &gt;/dev/null 2&gt;&amp;1; \
++				  $${t}.out &gt;/dev/null 2&gt;&amp;1; \
+ 				fail=$$?; \
+ 				if test &quot;$${fail}&quot; -eq &quot;1&quot; ; then \
+ 					failures=`expr $${failures} + 1`; \
+@@ -223,26 +223,26 @@ check: tests
+ 		echo &quot;Failures: $${failures}/$${total}&quot;'
+ 
+ clean:
+-	rm -f $(CSRCS:@srcroot@%.c=@objroot@%.o)
+-	rm -f $(CSRCS:@srcroot@%.c=@objroot@%.pic.o)
+-	rm -f $(CSRCS:@srcroot@%.c=@objroot@%.d)
+-	rm -f $(CSRCS:@srcroot@%.c=@objroot@%.pic.d)
+-	rm -f $(CTESTS:@srcroot@%.c=@objroot@%)
+-	rm -f $(CTESTS:@srcroot@%.c=@objroot@%.o)
+-	rm -f $(CTESTS:@srcroot@%.c=@objroot@%.d)
+-	rm -f $(CTESTS:@srcroot@%.c=@objroot@%.out)
++	rm -f $(CSRCS:@srcroot@%.c=%.o)
++	rm -f $(CSRCS:@srcroot@%.c=%.pic.o)
++	rm -f $(CSRCS:@srcroot@%.c=%.d)
++	rm -f $(CSRCS:@srcroot@%.c=%.pic.d)
++	rm -f $(CTESTS:@srcroot@%.c=%)
++	rm -f $(CTESTS:@srcroot@%.c=%.o)
++	rm -f $(CTESTS:@srcroot@%.c=%.d)
++	rm -f $(CTESTS:@srcroot@%.c=%.out)
+ 	rm -f $(DSOS) $(STATIC_LIBS)
+ 
+ distclean: clean
+-	rm -rf @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at autom4te.cache</A>
+-	rm -f @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at config.log</A>
+-	rm -f @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at config.status</A>
+-	rm -f @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at config.stamp</A>
++	rm -rf autom4te.cache
++	rm -f config.log
++	rm -f config.status
++	rm -f config.stamp
+ 	rm -f @cfghdrs_out@
+ 	rm -f @cfgoutputs_out@
+ 
+ relclean: distclean
+-	rm -f @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at configure</A>
++	rm -f configure
+ 	rm -f @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at VERSION</A>
+ 	rm -f $(DOCS_HTML)
+ 	rm -f $(DOCS_MAN3)
+@@ -254,18 +254,18 @@ ifeq (@enable_autogen@, 1)
+ @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at configure</A> : @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at configure.ac</A>
+ 	cd ./@srcroot@ &amp;&amp; @AUTOCONF@
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@config.status : @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at configure</A>
+-	./@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at config.status</A> --recheck
++config.status : @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at configure</A>
++	./config.status --recheck
+ 
+ @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at config.stamp.in</A> : @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at configure.ac</A>
+ 	echo stamp &gt; @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at config.stamp.in</A>
+ 
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at objroot</A>@config.stamp : @cfgoutputs_in@ @cfghdrs_in@ @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at configure</A>
+-	./@<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at config.status</A>
++config.stamp : @cfgoutputs_in@ @cfghdrs_in@ @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">srcroot at configure</A>
++	./config.status
+ 	@touch $@
+ 
+ # There must be some action in order for make to re-read Makefile when it is
+ # out of date.
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">- at cfgoutputs_out</A>@ @cfghdrs_out@ : @<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">objroot at config.stamp</A>
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">+ at cfgoutputs_out</A>@ @cfghdrs_out@ : config.stamp
+ 	@true
+ endif
+diff --git a/configure.ac b/configure.ac
+index 204e6e5..27a9f73 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -55,8 +55,6 @@ AC_SUBST([srcroot])
+ abs_srcroot=&quot;`cd \&quot;${srcdir}\&quot;; pwd`/&quot;
+ AC_SUBST([abs_srcroot])
+ 
+-objroot=&quot;&quot;
+-AC_SUBST([objroot])
+ abs_objroot=&quot;`pwd`/&quot;
+ AC_SUBST([abs_objroot])
+ 
+@@ -1085,7 +1083,7 @@ AC_HEADER_STDBOOL
+ 
+ AC_CONFIG_COMMANDS([include/jemalloc/internal/size_classes.h], [
+   mkdir -p &quot;include/jemalloc/internal&quot;
+-  &quot;${srcdir}/include/jemalloc/internal/size_classes.sh&quot; &gt; &quot;${objroot}include/jemalloc/internal/size_classes.h&quot;
++  &quot;${srcdir}/include/jemalloc/internal/size_classes.sh&quot; &gt; &quot;include/jemalloc/internal/size_classes.h&quot;
+ ])
+ 
+ dnl Process .in files.
+@@ -1125,7 +1123,6 @@ AC_MSG_RESULT([MANDIR             : ${MANDIR}])
+ AC_MSG_RESULT([])
+ AC_MSG_RESULT([srcroot            : ${srcroot}])
+ AC_MSG_RESULT([abs_srcroot        : ${abs_srcroot}])
+-AC_MSG_RESULT([objroot            : ${objroot}])
+ AC_MSG_RESULT([abs_objroot        : ${abs_objroot}])
+ AC_MSG_RESULT([])
+ AC_MSG_RESULT([JEMALLOC_PREFIX    : ${JEMALLOC_PREFIX}])
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000266.html">Mingw port, status update
+</A></li>
+	<LI>Next message: <A HREF="000273.html">[PATCH] Remove the objroot variable from the build system
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#265">[ date ]</a>
+              <a href="thread.html#265">[ thread ]</a>
+              <a href="subject.html#265">[ subject ]</a>
+              <a href="author.html#265">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

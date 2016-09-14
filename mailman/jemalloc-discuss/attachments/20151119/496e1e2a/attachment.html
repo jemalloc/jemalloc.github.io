@@ -1,0 +1,38 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Hi<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;I&#39;ve&nbsp;been&nbsp;using&nbsp;the&nbsp;GitHub shines77/jemalloc-win32&nbsp;for&nbsp;a&nbsp;while&nbsp;-&nbsp; that&nbsp;uses&nbsp;<br>
+jemalloc&nbsp;3.6.0.&lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;However&nbsp;recently&nbsp;I&#39;ve&nbsp;hit&nbsp;problems&nbsp;relating&nbsp;to&nbsp;leaks&nbsp;in&nbsp;highly&nbsp;threaded&nbsp;<br>
+environments.&nbsp;I&nbsp;know&nbsp;these&nbsp;are&nbsp;jemalloc&nbsp;related&nbsp;because&nbsp;if&nbsp;I&nbsp;swap&nbsp;out&nbsp;jemalloc&nbsp;<br>
+for&nbsp;a&nbsp;different&nbsp;memory&nbsp;manager&nbsp;then&nbsp;they&nbsp;go&nbsp;away.&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;So&nbsp;it&nbsp;would&nbsp;seem&nbsp;to&nbsp;me&nbsp;that&nbsp;the&nbsp;first&nbsp;thing&nbsp;to&nbsp;do&nbsp;is&nbsp;to&nbsp;upgrade&nbsp;to&nbsp;4.0.4&nbsp;to&nbsp;<br>
+see&nbsp;if&nbsp;the&nbsp;issue&nbsp;is&nbsp;resolved.&nbsp;However&nbsp;I&nbsp;am&nbsp;having&nbsp;some&nbsp;problem&nbsp;getting&nbsp;this&nbsp;to&nbsp;<br>
+work&nbsp;under&nbsp;MSVC.&lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;I&nbsp;can&nbsp;see&nbsp;that&nbsp;this&nbsp;is&nbsp;supposed&nbsp;to&nbsp;work&nbsp;because&nbsp;I&nbsp;can&nbsp;see&nbsp;MSVC&nbsp;bits&nbsp;in&nbsp;the&nbsp;<br>
+config&nbsp;code.&nbsp;However&nbsp;there&nbsp;are&nbsp;lots&nbsp;of&nbsp;questions&nbsp;about&nbsp;this&nbsp;and&nbsp;a&nbsp;notable&nbsp;dearth&nbsp;<br>
+of&nbsp;people&nbsp;who&nbsp;have&nbsp;been&nbsp;successful&nbsp;in&nbsp;this&nbsp;area.&nbsp;That&nbsp;includes&nbsp;me&nbsp;after&nbsp;my&nbsp;first&nbsp;<br>
+day.&nbsp;:-(&lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;The&nbsp;MSVC&nbsp;bit&nbsp;is&nbsp;easy.&nbsp;It&#39;s&nbsp;getting&nbsp;the&nbsp;config&nbsp;to&nbsp;generate&nbsp;the&nbsp;right&nbsp;bits&nbsp;<br>
+that&nbsp;is&nbsp;difficult. &lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;I&#39;m&nbsp;using&nbsp;cygwin.&nbsp;I&#39;ve&nbsp;put&nbsp;the&nbsp;Visual&nbsp;Studio&nbsp;2012&nbsp;environment&nbsp;variables&nbsp;<br>
+into&nbsp;my&nbsp;shell&nbsp;so&nbsp;I&nbsp;can&nbsp;use&nbsp;MSVC&nbsp;CL&nbsp;and&nbsp;then&nbsp;I&#39;ve&nbsp;done&nbsp;an ./&lt;a&nbsp;href=&quot;http://autogen.sl/&quot;&gt;autogen.sl&lt;/a&gt;&nbsp;CC=CL. &lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;This&nbsp;seems&nbsp;to&nbsp;work&nbsp;more&nbsp;or&nbsp;less&nbsp;ok.&nbsp;The&nbsp;results&nbsp;look&nbsp;feasible,.But&nbsp;then&nbsp;I&#39;m&nbsp;<br>
+missing&nbsp;important&nbsp;bits&nbsp;like&nbsp;sensible&nbsp;values&nbsp;in&nbsp;size_classes.h.&lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;I&nbsp;would&nbsp;love&nbsp;any&nbsp;pointers&nbsp;here.&nbsp;I&#39;m&nbsp;pretty&nbsp;hot&nbsp;on&nbsp;VC++&nbsp;so&nbsp;once&nbsp;I&nbsp;get&nbsp;the&nbsp;<br>
+config&nbsp;going&nbsp;it&nbsp;will&nbsp;be&nbsp;fine.&nbsp;I&nbsp;am&nbsp;sure&nbsp;that&nbsp;will&nbsp;also&nbsp;be&nbsp;useful&nbsp;for&nbsp;other&nbsp;people&nbsp;who&nbsp;want&nbsp;to&nbsp;do&nbsp;similar&nbsp;things.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Jos&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;<br>
+&lt;div&gt;<br>
+&lt;div&nbsp;class=&quot;gmail_signature&quot;&gt;----------------------------------------------------------------------&lt;br&gt;jos&nbsp;<br>
+vernon&lt;br&gt;&lt;a&nbsp;href=&quot;http://www.websupergoo.com/&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.websupergoo.com/&lt;/a&gt;&lt;br&gt;.NET&nbsp;Image&nbsp;Components&nbsp;&amp;&nbsp;<br>
+Consultancy&lt;br&gt;----------------------------------------------------------------------&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;<br>
+&lt;/div&gt;<br>
+
+</tt>

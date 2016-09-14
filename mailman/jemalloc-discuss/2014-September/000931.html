@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> compilation error for client app w/ clang and 913e9a8
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compilation%20error%20for%20client%20app%20w/%20clang%20and%20913e9a8&In-Reply-To=%3CF6C40299-0EB3-4BB7-AAF2-C4652B636053%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000927.html">
+   <LINK REL="Next"  HREF="000935.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>compilation error for client app w/ clang and 913e9a8</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compilation%20error%20for%20client%20app%20w/%20clang%20and%20913e9a8&In-Reply-To=%3CF6C40299-0EB3-4BB7-AAF2-C4652B636053%40canonware.com%3E"
+       TITLE="compilation error for client app w/ clang and 913e9a8">jasone at canonware.com
+       </A><BR>
+    <I>Mon Sep 29 15:34:25 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000927.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+        <LI>Next message: <A HREF="000935.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#931">[ date ]</a>
+              <a href="thread.html#931">[ thread ]</a>
+              <a href="subject.html#931">[ subject ]</a>
+              <a href="author.html#931">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 24, 2014, at 12:21 AM, Matthew Hall &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mhall at mhcomputing.net</A>&gt; wrote:
+&gt;<i> On Wed, Sep 24, 2014 at 01:42:17AM -0400, Qinfan Wu wrote:
+</I>&gt;&gt;<i> You actually need to include stdbool.h:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> #include &lt;stdbool.h&gt;
+</I>&gt;&gt;<i> #include &lt;stdlib.h&gt;
+</I>&gt;&gt;<i> #include &lt;jemalloc/jemalloc.h&gt;
+</I>&gt;<i> 
+</I>&gt;<i> To me this seems buggy.
+</I>
+It was intentional, but perhaps misguided, IIRC based on FreeBSD header anti-pollution philosophy.  I'll make sure this is changed for the next release (patch welcome if you have one handy):
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues/132">https://github.com/jemalloc/jemalloc/issues/132</A>
+
+&gt;<i> Shouldn't jemalloc include this, if it requires this to be present?
+</I>&gt;<i> 
+</I>&gt;<i> Another observation... when you compile with jemalloc built with libunwind you 
+</I>&gt;<i> have to specify -lunwind to get the compile to work. I was wondering if there 
+</I>&gt;<i> is some script or other place one should look to get the linker flags for the 
+</I>&gt;<i> current jemalloc.
+</I>
+There isn't currently, but adding a jemalloc-config script seems reasonable to me.
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues/133">https://github.com/jemalloc/jemalloc/issues/133</A>
+
+Thanks,
+Jason
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000927.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+	<LI>Next message: <A HREF="000935.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#931">[ date ]</a>
+              <a href="thread.html#931">[ thread ]</a>
+              <a href="subject.html#931">[ subject ]</a>
+              <a href="author.html#931">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

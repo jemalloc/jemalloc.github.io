@@ -1,0 +1,820 @@
+From andreas+jemalloc at vinsander.se  Thu Apr 14 05:16:14 2011
+From: andreas+jemalloc at vinsander.se (Andreas Vinsander)
+Date: Thu, 14 Apr 2011 14:16:14 +0200
+Subject: Cross-compiling and configure.ac macros
+Message-ID: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+
+Hi,
+
+I am trying to cross-compile jemalloc for evaluation on an embedded
+device running a Linux home brew distro.
+
+I have some problems with the way jemalloc tests for various support
+of the host (target) system.
+
+So far I have modified jemalloc-2.2.1 configure.ac as seen in the
+attached patch, but there still exists a call to AC_RUN_IFELSE.
+
+What is the best way to handle it? To use autoconf cache and supply a
+default value when cross-compiling?
+
+BR,
+/Andreas Vinsander
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: cross_compilation.patch
+Type: text/x-patch
+Size: 1251 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110414/cb527519/attachment.bin>
+
+From andreas+jemalloc at vinsander.se  Thu Apr 14 05:45:45 2011
+From: andreas+jemalloc at vinsander.se (Andreas Vinsander)
+Date: Thu, 14 Apr 2011 14:45:45 +0200
+Subject: Cross-compiling and configure.ac macros
+In-Reply-To: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+References: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+Message-ID: <BANLkTi=ZeivQ431adukKSXTe=D1xHyOiWw@mail.gmail.com>
+
+2011/4/14 Andreas Vinsander <andreas+jemalloc at vinsander.se>:
+> So far I have modified jemalloc-2.2.1 configure.ac as seen in the
+> attached patch, but there still exists a call to AC_RUN_IFELSE.
+
+Uhm, I managed to send an old version of the patch in my previous post.
+Here is the latest incarnation.
+
+/Andreas
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: cross_compilation.patch
+Type: text/x-patch
+Size: 3266 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110414/0ac66f5b/attachment.bin>
+
+From jasone at canonware.com  Thu Apr 14 23:11:15 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 14 Apr 2011 23:11:15 -0700
+Subject: Cross-compiling and configure.ac macros
+In-Reply-To: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+References: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+Message-ID: <4DA7E183.8000900@canonware.com>
+
+On 04/14/2011 05:16 AM, Andreas Vinsander wrote:
+> I am trying to cross-compile jemalloc for evaluation on an embedded
+> device running a Linux home brew distro.
+>
+> I have some problems with the way jemalloc tests for various support
+> of the host (target) system.
+
+For a first pass, can you run configure without the cross compiler 
+specified, then hack up Makefile and include/jemalloc/jemalloc_defs.h to 
+do the right thing for your platform?
+
+> So far I have modified jemalloc-2.2.1 configure.ac as seen in the
+> attached patch, but there still exists a call to AC_RUN_IFELSE.
+
+The one remaining AC_RUN_IFELSE is for page size detection, right?  I 
+think it's reasonable to just specify a default of 12 (and maybe even 
+allow an environment variable to override that default) if the test fails.
+
+> What is the best way to handle it? To use autoconf cache and supply a
+> default value when cross-compiling?
+
+How would the autoconf cache help here?  Isn't it still necessary for 
+the test to have successfully run at some point for the cache to have a 
+valid result?
+
+Thanks,
+Jason
+
+
+From andreas+jemalloc at vinsander.se  Fri Apr 15 06:48:55 2011
+From: andreas+jemalloc at vinsander.se (Andreas Vinsander)
+Date: Fri, 15 Apr 2011 15:48:55 +0200
+Subject: Cross-compiling and configure.ac macros
+In-Reply-To: <4DA7E183.8000900@canonware.com>
+References: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+	<4DA7E183.8000900@canonware.com>
+Message-ID: <BANLkTi=GGM+H6S6MyN8etJEh3OdXv4T81Q@mail.gmail.com>
+
+2011/4/15 Jason Evans <jasone at canonware.com>:
+> On 04/14/2011 05:16 AM, Andreas Vinsander wrote:
+>>
+>> I am trying to cross-compile jemalloc for evaluation on an embedded
+>> device running a Linux home brew distro.
+>>
+>> I have some problems with the way jemalloc tests for various support
+>> of the host (target) system.
+>
+> For a first pass, can you run configure without the cross compiler
+> specified, then hack up Makefile and include/jemalloc/jemalloc_defs.h to do
+> the right thing for your platform?
+
+Yes, I could do that but I would rather fix the autoconf issues.
+
+>
+>> So far I have modified jemalloc-2.2.1 configure.ac as seen in the
+>> attached patch, but there still exists a call to AC_RUN_IFELSE.
+>
+> The one remaining AC_RUN_IFELSE is for page size detection, right? ?I think
+> it's reasonable to just specify a default of 12 (and maybe even allow an
+> environment variable to override that default) if the test fails.
+
+Yes, the STATIC_PAGE_SHIFT test.
+Shouldn't that be possible to find out in runtime. Or is that what
+--enable-dynamic-page-shift is doing? In that case shouldn't the
+configure.ac script ignore the STATIC_PAGE_SHIFT if
+--enable-dynamic-page-shift was specified?
+
+>
+>> What is the best way to handle it? To use autoconf cache and supply a
+>> default value when cross-compiling?
+>
+> How would the autoconf cache help here? ?Isn't it still necessary for the
+> test to have successfully run at some point for the cache to have a valid
+> result?
+
+See for example:
+http://developer.gnome.org/glib/2.28/glib-cross-compiling.html
+
+It is possible to provide a pre-defined cache with values that suites
+the target system.
+I thought that could be useful here as well. I have poked around a bit
+with it here and it seems to work.
+
+/Andreas
+
+
+From andreas+jemalloc at vinsander.se  Fri Apr 15 07:07:55 2011
+From: andreas+jemalloc at vinsander.se (Andreas Vinsander)
+Date: Fri, 15 Apr 2011 16:07:55 +0200
+Subject: Cross-compiling and configure.ac macros
+In-Reply-To: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+References: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+Message-ID: <BANLkTimZz1_t-qxArotak7iPMJiV3A+T_w@mail.gmail.com>
+
+2011/4/14 Andreas Vinsander <andreas+jemalloc at vinsander.se>:
+> Hi,
+>
+> I am trying to cross-compile jemalloc for evaluation on an embedded
+> device running a Linux home brew distro.
+>
+> I have some problems with the way jemalloc tests for various support
+> of the host (target) system.
+
+I found another test that doesn't work for me.
+The test for ffsl complains about:
+
+conftest.c:58: warning: conflicting types for built-in function 'ffsl'
+
+where conftests.c look this way:
+
+
+configure: failed program was:
+| /* confdefs.h */
+| #define PACKAGE_NAME ""
+| #define PACKAGE_TARNAME ""
+| #define PACKAGE_VERSION ""
+| #define PACKAGE_STRING ""
+| #define PACKAGE_BUGREPORT ""
+| #define PACKAGE_URL ""
+| #define STDC_HEADERS 1
+| #define HAVE_SYS_TYPES_H 1
+| #define HAVE_SYS_STAT_H 1
+| #define HAVE_STDLIB_H 1
+| #define HAVE_STRING_H 1
+| #define HAVE_MEMORY_H 1
+| #define HAVE_STRINGS_H 1
+| #define HAVE_INTTYPES_H 1
+| #define HAVE_STDINT_H 1
+| #define HAVE_UNISTD_H 1
+| #define SIZEOF_VOID_P 4
+| #define LG_SIZEOF_PTR 2
+| #define SIZEOF_INT 4
+| #define LG_SIZEOF_INT 2
+| #define SIZEOF_LONG 4
+| #define LG_SIZEOF_LONG 2
+| #define CPU_SPINWAIT
+| #define JEMALLOC_PURGE_MADVISE_DONTNEED 1
+| #define JEMALLOC_HAVE_ATTR
+| #define JEMALLOC_MREMAP_FIXED 1
+| #define JEMALLOC_TINY
+| #define JEMALLOC_TCACHE
+| #define STATIC_PAGE_SHIFT 12
+| #define HAVE_PTHREAD_H 1
+| #define HAVE_DLFCN_H 1
+| #define JEMALLOC_LAZY_LOCK
+| /* end confdefs.h.  */
+| /* Define ffsl to an innocuous variant, in case <limits.h> declares ffsl.
+|    For example, HP-UX 11i <limits.h> declares gettimeofday.  */
+| #define ffsl innocuous_ffsl
+|
+| /* System header to define __stub macros and hopefully few prototypes,
+|     which can conflict with char ffsl (); below.
+|     Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+|     <limits.h> exists even on freestanding compilers.  */
+|
+| #ifdef __STDC__
+
+| # include <limits.h>
+| #else
+| # include <assert.h>
+| #endif
+|
+| #undef ffsl
+|
+| /* Override any GCC internal prototype to avoid an error.
+|    Use char because int might match the return type of a GCC
+|    builtin and then its argument prototype would still apply.  */
+| #ifdef __cplusplus
+| extern "C"
+| #endif
+| char ffsl ();
+| /* The GNU C library defines this for functions which it implements
+|     to always fail with ENOSYS.  Some functions are actually named
+|     something starting with __ and the normal name is an alias.  */
+| #if defined __stub_ffsl || defined __stub___ffsl
+| choke me
+| #endif
+|
+| int
+| main ()
+
+| {
+| return ffsl ();
+|   ;
+|   return 0;
+| }
+
+
+Seems like autoconf has its own idea where ffsl should be found.
+According to manual pages on my Fedora desktop, ffsl should be found
+in string.h if _GNU_SOURCE is defined.
+Any idea what is going on here?
+
+/Andreas
+
+
+From jasone at canonware.com  Fri Apr 15 09:20:51 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 15 Apr 2011 09:20:51 -0700
+Subject: Cross-compiling and configure.ac macros
+In-Reply-To: <BANLkTi=GGM+H6S6MyN8etJEh3OdXv4T81Q@mail.gmail.com>
+References: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>	<4DA7E183.8000900@canonware.com>
+	<BANLkTi=GGM+H6S6MyN8etJEh3OdXv4T81Q@mail.gmail.com>
+Message-ID: <4DA87063.5000403@canonware.com>
+
+On 04/15/2011 06:48 AM, Andreas Vinsander wrote:
+> Yes, the STATIC_PAGE_SHIFT test.
+> Shouldn't that be possible to find out in runtime. Or is that what
+> --enable-dynamic-page-shift is doing? In that case shouldn't the
+> configure.ac script ignore the STATIC_PAGE_SHIFT if
+> --enable-dynamic-page-shift was specified?
+
+There are read-only data structures that depend on STATIC_PAGE_SHIFT 
+even if --enable-dynamic-page-shift is specified, so STATIC_PAGE_SHIFT 
+still needs to be set (even if the value happens to be wrong).
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Fri Apr 15 09:24:28 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 15 Apr 2011 09:24:28 -0700
+Subject: Cross-compiling and configure.ac macros
+In-Reply-To: <BANLkTimZz1_t-qxArotak7iPMJiV3A+T_w@mail.gmail.com>
+References: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+	<BANLkTimZz1_t-qxArotak7iPMJiV3A+T_w@mail.gmail.com>
+Message-ID: <4DA8713C.9040109@canonware.com>
+
+On 04/15/2011 07:07 AM, Andreas Vinsander wrote:
+> Seems like autoconf has its own idea where ffsl should be found.
+> According to manual pages on my Fedora desktop, ffsl should be found
+> in string.h if _GNU_SOURCE is defined.
+> Any idea what is going on here?
+
+Wow, that looks like a mess.  Maybe the cleanest solution is to switch 
+the test to a simple JE_COMPILABLE() program.
+
+Thanks,
+Jason
+
+
+From wongdani at usc.edu  Fri Apr 15 18:27:57 2011
+From: wongdani at usc.edu (Daniel Wong)
+Date: Fri, 15 Apr 2011 18:27:57 -0700
+Subject: Persistent Memory Allocator
+Message-ID: <BANLkTi=5P81WSeXX5B9=HVfH=wS=adKCRw@mail.gmail.com>
+
+Hi,
+
+I'm trying to setup jemalloc as a persistent memory allocator. Basically,
+variables that I allocated can survive across program runs.
+Would this be achievable by using --enable-swap, set swap.fds though mallctl
+and set opt.overcommit to false?
+
+Thanks,
+Daniel W
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110415/b3749312/attachment.html>
+
+From jasone at canonware.com  Sat Apr 16 19:47:36 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 16 Apr 2011 19:47:36 -0700
+Subject: Persistent Memory Allocator
+In-Reply-To: <BANLkTi=5P81WSeXX5B9=HVfH=wS=adKCRw@mail.gmail.com>
+References: <BANLkTi=5P81WSeXX5B9=HVfH=wS=adKCRw@mail.gmail.com>
+Message-ID: <4DAA54C8.3080203@canonware.com>
+
+On 04/15/2011 06:27 PM, Daniel Wong wrote:
+> I'm trying to setup jemalloc as a persistent memory allocator.
+> Basically, variables that I allocated can survive across program runs.
+> Would this be achievable by using --enable-swap, set swap.fds though
+> mallctl and set opt.overcommit to false?
+
+This is sufficient if your use case is merely to continue accessing 
+objects that were allocated during the previous program run.  However, 
+it won't allow you to call realloc(), free(), etc. on those objects. 
+Making that work would be non-trivial.
+
+Jason
+
+
+From mdevan.foobar at gmail.com  Sat Apr 16 09:10:30 2011
+From: mdevan.foobar at gmail.com (Mahadevan R)
+Date: Sat, 16 Apr 2011 21:40:30 +0530
+Subject: Configuring jemalloc on FreeBSD.
+Message-ID: <BANLkTikZ3X6uFS0V5JTgaMAx4Z_T5gAT_A@mail.gmail.com>
+
+Hi.
+
+jemalloc 2.2.1 tarball fails to ./configure on FreeBSD 8.2 (!),
+because of attempting to check for dlopen() in libdl (this is in libc
+for FreeBSD). The patch below fixes this.
+
+Cheers,
+-Mahadevan.
+
+diff --git a/jemalloc/configure.ac b/jemalloc/configure.ac
+index 412d3d1..c543f2d 100644
+--- a/jemalloc/configure.ac
++++ b/jemalloc/configure.ac
+@@ -727,8 +727,8 @@ fi
+ )
+ if test "x$enable_lazy_lock" = "x1" ; then
+   AC_CHECK_HEADERS([dlfcn.h], , [AC_MSG_ERROR([dlfcn.h is missing])])
+-  AC_CHECK_LIB([dl], [dlopen], [LIBS="$LIBS -ldl"],
+-               [AC_MSG_ERROR([libdl is missing])])
++  AC_SEARCH_LIBS([dlopen], [dl], ,
++               [AC_MSG_ERROR([dlopen not found anywhere])])
+   AC_DEFINE([JEMALLOC_LAZY_LOCK], [ ])
+ fi
+ AC_SUBST([enable_lazy_lock])
+
+
+From jasone at canonware.com  Sat Apr 16 20:00:05 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 16 Apr 2011 20:00:05 -0700
+Subject: Configuring jemalloc on FreeBSD.
+In-Reply-To: <BANLkTikZ3X6uFS0V5JTgaMAx4Z_T5gAT_A@mail.gmail.com>
+References: <BANLkTikZ3X6uFS0V5JTgaMAx4Z_T5gAT_A@mail.gmail.com>
+Message-ID: <4DAA57B5.3060902@canonware.com>
+
+On 04/16/2011 09:10 AM, Mahadevan R wrote:
+> jemalloc 2.2.1 tarball fails to ./configure on FreeBSD 8.2 (!),
+> because of attempting to check for dlopen() in libdl (this is in libc
+> for FreeBSD). The patch below fixes this.
+
+The situation is actually quite a bit worse than this for the 
+stand-alone jemalloc on FreeBSD, mainly because the pthreads 
+implementation dynamically allocates many data structures, which makes 
+allocator bootstrapping hard.  I recently spent a weekend working 
+through porting issues for FreeBSD, and tentatively came to the 
+conclusion that the best solution is to add a simple bootstrap allocator 
+facility to jemalloc.  I haven't gotten as far as implementing that 
+though, so right now my development branch for FreeBSD still deadlocks 
+when calling pthread_key_create().
+
+By the way, my general plan is to make it so that the stand-alone 
+jemalloc can be used via FreeBSD ports with no modifications, and can be 
+embedded in libc with only minimal glue.  The stand-alone jemalloc is so 
+divergent from what is currently in FreeBSD's libc that I can't stomach 
+the prospect of back-porting optimizations, of which there are many at 
+this point.
+
+Thanks,
+Jason
+
+
+From felipewd at taghos.com.br  Mon Apr 18 13:11:44 2011
+From: felipewd at taghos.com.br (Felipe Wilhelms Damasio - Taghos)
+Date: Mon, 18 Apr 2011 17:11:44 -0300
+Subject: Crash with jemalloc 2.2.1
+Message-ID: <4DAC9B00.7050104@taghos.com.br>
+
+Hi all,
+
+I'm using jemalloc to build a webcache system.
+
+I'm doing around 600-700 calloc/free per second. (a calloc-per-new-session).
+
+It's a linux machine with kernel 2.6.34 and glibc 2.11.2.
+
+jemalloc was compiled with:
+
+    ./configure  --enable-prof --enable-dss --enable-fill --enable-stats 
+--enable-xmalloc --enable-swap
+
+I have no malloc options file.
+
+At some point, my program crashed. I generated a core dump and a gdb bt
+showed this:
+
+#0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+src/arena.c:222
+222        size_t b_size = b->bits & ~PAGE_MASK;
+(gdb) bt
+#0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+src/arena.c:222
+#1  arena_avail_tree_nsearch (arena=0x1000a80, size=36864, large=true,
+zero=true) at src/arena.c:249
+#2  arena_run_alloc (arena=0x1000a80, size=36864, large=true, zero=true) at
+src/arena.c:593
+#3  0x00007fe240427b20 in arena_malloc_large (arena=0x1000a80, size=36864,
+zero=80) at src/arena.c:1474
+#4  0x00007fe240422007 in icalloc (num=<value optimized out>, size=35472) at
+include/jemalloc/internal/jemalloc_internal.h:620
+#5  calloc (num=<value optimized out>, size=35472) at src/jemalloc.c:1185
+#6  0x0000000000408a76 in SES_new (fd=11191) at cache_session.c:11
+#7  0x000000000041563e in main (argc=3, argv=0x7fff357085c8) at server.c:2261
+
+Is this indication of a bug in jemalloc or in my program?
+
+What other info can I provide to help track this down?
+
+Thanks,
+
+-- 
+
+Felipe Wilhelms Damasio
+
+
+TAGHOS - Tecnologia
+
+Rua Prof. Alvaro Alvim, 211
+
+Porto Alegre - RS - (51) 3239-3180
+
+www.taghos.com.br <http://www.taghos.com.br/>
+
+
+
+
+From felipewd at taghos.com.br  Mon Apr 18 13:22:55 2011
+From: felipewd at taghos.com.br (Felipe Wilhelms Damasio - Taghos)
+Date: Mon, 18 Apr 2011 17:22:55 -0300
+Subject: Crash with jemalloc 2.2.1
+In-Reply-To: <4DAC9B00.7050104@taghos.com.br>
+References: <4DAC9B00.7050104@taghos.com.br>
+Message-ID: <4DAC9D9F.5080307@taghos.com.br>
+
+    Hi Again,
+
+    I don't know if this helps, but here it is with "bt full":
+
+#0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+src/arena.c:222
+        b_size = 0
+#1  arena_avail_tree_nsearch (arena=0x1000a80, size=36864, large=true,
+zero=true) at src/arena.c:249
+        cmp = 1
+#2  arena_run_alloc (arena=0x1000a80, size=36864, large=true, zero=true) at
+src/arena.c:593
+        chunk = <value optimized out>
+        run = <value optimized out>
+        mapelm = 0x0
+        key = {u = {rb_link = {rbn_left = 0x17, rbn_right_red = 0x1},
+ql_link = {qre_next = 0x17, qre_prev = 0x1}}, bits = 36865}
+#3  0x00007fe240427b20 in arena_malloc_large (arena=0x1000a80, size=36864,
+zero=80) at src/arena.c:1474
+        ret = <value optimized out>
+#4  0x00007fe240422007 in icalloc (num=<value optimized out>, size=35472) at
+include/jemalloc/internal/jemalloc_internal.h:620
+No locals.
+#5  calloc (num=<value optimized out>, size=35472) at src/jemalloc.c:1185
+        ret = <value optimized out>
+        num_size = 0
+        usize = 36864
+#6  0x0000000000408a76 in SES_new (fd=11191) at cache_session.c:11
+        http = 0x4dac9495
+        t = 0x100000001
+#7  0x000000000041563e in main (argc=3, argv=0x7fff357085c8) at server.c:2261
+        tmp = 0x59c96000
+        opt = -1
+        hints = {ai_flags = 1, ai_family = 0, ai_socktype = 1, ai_protocol =
+0, ai_addrlen = 0, ai_addr = 0x0, ai_canonname = 0x0, ai_next = 0x0}
+        res = 0x1410680
+        r = 0x0
+        b = 1
+        a = 0x14106b0
+        serv_sock = 5
+        client_sock = 11191
+        client_length = 16
+        cont = 3
+        serv_address = {sin_family = 2, sin_port = 56581, sin_addr = {s_addr
+= 0}, sin_zero = "\000\000\000\000\000\000\000"}
+        client_address = {sin_family = 2, sin_port = 57593, sin_addr =
+{s_addr = 1363629243}, sin_zero = "\000\000\000\000\000\000\000"}
+        timeout_session_thread = 140566642198288
+        purge_backup_thread = 140566650590992
+        i = 16
+        tmp = 0x0
+        sac = {__sigaction_handler = {sa_handler = 0x1, sa_sigaction = 0x1},
+sa_mask = {__val = {0 <repeats 16 times>}}, sa_flags = 268435456,
+          sa_restorer = 0}
+        on = 1
+        attr = {__size = '\000' <repeats 17 times>, "\020", '\000' <repeats
+16 times>, "\b", '\000' <repeats 20 times>, __align = 0}
+        WSPoolThreads = 0x7fff35708270
+
+
+    Cheers,
+
+--
+Felipe Wilhelms Damasio
+
+
+TAGHOS - Tecnologia
+
+Rua Prof. Alvaro Alvim, 211
+
+Porto Alegre - RS - (51) 3239-3180
+
+www.taghos.com.br <http://www.taghos.com.br/>
+
+
+
+Em 18/04/2011 17:11, Felipe Wilhelms Damasio - Taghos escreveu:
+> Hi all,
+>
+> I'm using jemalloc to build a webcache system.
+>
+> I'm doing around 600-700 calloc/free per second. (a calloc-per-new-session).
+>
+> It's a linux machine with kernel 2.6.34 and glibc 2.11.2.
+>
+> jemalloc was compiled with:
+>
+>     ./configure  --enable-prof --enable-dss --enable-fill --enable-stats 
+> --enable-xmalloc --enable-swap
+>
+> I have no malloc options file.
+>
+> At some point, my program crashed. I generated a core dump and a gdb bt
+> showed this:
+>
+> #0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+> src/arena.c:222
+> 222        size_t b_size = b->bits & ~PAGE_MASK;
+> (gdb) bt
+> #0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+> src/arena.c:222
+> #1  arena_avail_tree_nsearch (arena=0x1000a80, size=36864, large=true,
+> zero=true) at src/arena.c:249
+> #2  arena_run_alloc (arena=0x1000a80, size=36864, large=true, zero=true) at
+> src/arena.c:593
+> #3  0x00007fe240427b20 in arena_malloc_large (arena=0x1000a80, size=36864,
+> zero=80) at src/arena.c:1474
+> #4  0x00007fe240422007 in icalloc (num=<value optimized out>, size=35472) at
+> include/jemalloc/internal/jemalloc_internal.h:620
+> #5  calloc (num=<value optimized out>, size=35472) at src/jemalloc.c:1185
+> #6  0x0000000000408a76 in SES_new (fd=11191) at cache_session.c:11
+> #7  0x000000000041563e in main (argc=3, argv=0x7fff357085c8) at server.c:2261
+>
+> Is this indication of a bug in jemalloc or in my program?
+>
+> What other info can I provide to help track this down?
+>
+> Thanks,
+>
+
+
+From ingvar at redpill-linpro.com  Tue Apr 19 06:45:00 2011
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Tue, 19 Apr 2011 15:45:00 +0200
+Subject: jemalloc on ppc32: Missing implementation for 32-bit atomic operations
+Message-ID: <4DAD91DC.8000400@redpill-linpro.com>
+
+Building a git checkout of jemalloc today on 32bit ppc:
+
+gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops 
+-fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o 
+src/jemalloc.pic.o src/jemalloc.c
+In file included from include/jemalloc/internal/jemalloc_internal.h:386,
+                  from src/jemalloc.c:2:
+include/jemalloc/internal/atomic.h:164:4: #error "Missing implementation 
+for 32-bit atomic operations"
+make: *** [src/jemalloc.pic.o] Error 1
+
+
+Seems to work fine on ppc64, though.
+
+Ingvar
+
+
+
+From jasone at canonware.com  Tue Apr 19 10:20:17 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 19 Apr 2011 10:20:17 -0700
+Subject: jemalloc on ppc32: Missing implementation for 32-bit atomic
+	operations
+In-Reply-To: <4DAD91DC.8000400@redpill-linpro.com>
+References: <4DAD91DC.8000400@redpill-linpro.com>
+Message-ID: <4DADC451.7030506@canonware.com>
+
+On 04/19/2011 06:45 AM, Ingvar Hagelund wrote:
+> Building a git checkout of jemalloc today on 32bit ppc:
+>
+> gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops
+> -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o
+> src/jemalloc.pic.o src/jemalloc.c
+> In file included from include/jemalloc/internal/jemalloc_internal.h:386,
+> from src/jemalloc.c:2:
+> include/jemalloc/internal/atomic.h:164:4: #error "Missing implementation
+> for 32-bit atomic operations"
+> make: *** [src/jemalloc.pic.o] Error 1
+>
+>
+> Seems to work fine on ppc64, though.
+
+gcc added intrinsics for atomic operations sometime in the 4.x series 
+(4.4.x certainly has them), which jemalloc tries to use, so chances are 
+that you are using a newer compiler on the ppc64 system than on the 
+32-bit system.  I added native implementations for x86/x64 systems, but 
+haven't had the time to do so for PowerPC (plus I don't have ppc 
+hardware anymore).
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Tue Apr 19 10:25:48 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 19 Apr 2011 10:25:48 -0700
+Subject: Crash with jemalloc 2.2.1
+In-Reply-To: <4DAC9B00.7050104@taghos.com.br>
+References: <4DAC9B00.7050104@taghos.com.br>
+Message-ID: <4DADC59C.1000003@canonware.com>
+
+On 04/18/2011 01:11 PM, Felipe Wilhelms Damasio - Taghos wrote:
+> I'm using jemalloc to build a webcache system.
+>
+> I'm doing around 600-700 calloc/free per second. (a calloc-per-new-session).
+>
+> It's a linux machine with kernel 2.6.34 and glibc 2.11.2.
+>
+> jemalloc was compiled with:
+>
+>      ./configure  --enable-prof --enable-dss --enable-fill --enable-stats
+> --enable-xmalloc --enable-swap
+>
+> I have no malloc options file.
+>
+> At some point, my program crashed. I generated a core dump and a gdb bt
+> showed this:
+>
+> #0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+> src/arena.c:222
+> 222        size_t b_size = b->bits&  ~PAGE_MASK;
+> (gdb) bt
+> #0  arena_avail_comp (arena=0x1000a80, size=36864, large=true, zero=true) at
+> src/arena.c:222
+> #1  arena_avail_tree_nsearch (arena=0x1000a80, size=36864, large=true,
+> zero=true) at src/arena.c:249
+> #2  arena_run_alloc (arena=0x1000a80, size=36864, large=true, zero=true) at
+> src/arena.c:593
+> #3  0x00007fe240427b20 in arena_malloc_large (arena=0x1000a80, size=36864,
+> zero=80) at src/arena.c:1474
+> #4  0x00007fe240422007 in icalloc (num=<value optimized out>, size=35472) at
+> include/jemalloc/internal/jemalloc_internal.h:620
+> #5  calloc (num=<value optimized out>, size=35472) at src/jemalloc.c:1185
+> #6  0x0000000000408a76 in SES_new (fd=11191) at cache_session.c:11
+> #7  0x000000000041563e in main (argc=3, argv=0x7fff357085c8) at server.c:2261
+>
+> Is this indication of a bug in jemalloc or in my program?
+>
+> What other info can I provide to help track this down?
+
+This is likely an application bug, e.g. a double free.  I'd suggest 
+testing with valgrind (without jemalloc linked in) if you can, or using 
+a debug build of jemalloc if valgrind isn't an option.  There are 
+assertions in debug builds of jemalloc that detect many (but not all) 
+application memory bugs.
+
+Thanks,
+Jason
+
+
+From ingvar at redpill-linpro.com  Tue Apr 19 11:45:03 2011
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Tue, 19 Apr 2011 20:45:03 +0200 (CEST)
+Subject: jemalloc on ppc32: Missing implementation for 32-bit atomic
+	operations
+In-Reply-To: <309902533.217365.1303238624058.JavaMail.root@claudius.linpro.no>
+Message-ID: <1570525933.217370.1303238703026.JavaMail.root@claudius.linpro.no>
+
+* Jason
+> gcc added intrinsics for atomic operations sometime in the 4.x series
+> (4.4.x certainly has them), which jemalloc tries to use
+
+Okay, no worries with fedora/rhel6 on ppc then.
+
+> so chances are that you are using a newer compiler on the ppc64
+> system than on the 32-bit system. 
+
+Yes, this ppc32 box is a virtual environment running rhel4.
+
+> I added native implementations for x86/x64 systems, but
+> haven't had the time to do so for PowerPC (plus I don't have ppc
+> hardware anymore).
+
+If the code appears, I can test it on my boxes.
+
+Ingvar
+
+
+From andreas+jemalloc at vinsander.se  Wed Apr 27 01:54:42 2011
+From: andreas+jemalloc at vinsander.se (Andreas Vinsander)
+Date: Wed, 27 Apr 2011 10:54:42 +0200
+Subject: Cross-compiling and configure.ac macros
+In-Reply-To: <4DA8713C.9040109@canonware.com>
+References: <BANLkTimnKR3sEvf0EH3SK-0JV5-zD4Ch2A@mail.gmail.com>
+	<BANLkTimZz1_t-qxArotak7iPMJiV3A+T_w@mail.gmail.com>
+	<4DA8713C.9040109@canonware.com>
+Message-ID: <BANLkTikuGkt4LuKhAcdWefPDOqCB8yoEbg@mail.gmail.com>
+
+2011/4/15 Jason Evans <jasone at canonware.com>:
+> On 04/15/2011 07:07 AM, Andreas Vinsander wrote:
+>>
+>> Seems like autoconf has its own idea where ffsl should be found.
+>> According to manual pages on my Fedora desktop, ffsl should be found
+>> in string.h if _GNU_SOURCE is defined.
+>> Any idea what is going on here?
+>
+> Wow, that looks like a mess. ?Maybe the cleanest solution is to switch the
+> test to a simple JE_COMPILABLE() program.
+
+I haven't had the time to work on this until now. I have something
+that compiles for both SH4 and mips now.
+My patches are attached to this mail, would be nice if someone could
+review them and maybe Jason will incorporate them into jemalloc in
+time for next release?
+I also attach my default autoconf cache used when cross compiling for
+the SH4 CPU.
+
+I have run a device (having an SH4 based CPU) and it seems to work
+when doing some rudimentary smoke testing. I still have to do some
+benchmark testing to decide if I should switch from the default uclibc
+allocator or not.
+
+Thanks,
+/Andreas
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: configure.ac.patch
+Type: text/x-patch
+Size: 5267 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc_internal.h.in.patch
+Type: text/x-patch
+Size: 527 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0001.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: fix_64bit_literals.patch
+Type: text/x-patch
+Size: 2959 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0002.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: atomic.h.patch
+Type: text/x-patch
+Size: 919 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment-0003.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: sh4.cache
+Type: application/octet-stream
+Size: 676 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20110427/61de1405/attachment.obj>
+

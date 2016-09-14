@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> standalone jemalloc is slower than glibc's malloc (ptmalloc)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20standalone%20jemalloc%20is%20slower%20than%20glibc%27s%20malloc%20%28ptmalloc%29&In-Reply-To=%3CCANUf%3DCBBXYGTmFbpUgk2EJ-Zgpd0f2rJ-7F1tag_DdSaVT3xyg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000243.html">
+   <LINK REL="Next"  HREF="000260.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>standalone jemalloc is slower than glibc's malloc (ptmalloc)</H1>
+    <B>amol pise</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20standalone%20jemalloc%20is%20slower%20than%20glibc%27s%20malloc%20%28ptmalloc%29&In-Reply-To=%3CCANUf%3DCBBXYGTmFbpUgk2EJ-Zgpd0f2rJ-7F1tag_DdSaVT3xyg%40mail.gmail.com%3E"
+       TITLE="standalone jemalloc is slower than glibc's malloc (ptmalloc)">amolpise15 at gmail.com
+       </A><BR>
+    <I>Thu Apr 12 05:32:39 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000243.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+        <LI>Next message: <A HREF="000260.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#259">[ date ]</a>
+              <a href="thread.html#259">[ thread ]</a>
+              <a href="subject.html#259">[ subject ]</a>
+              <a href="author.html#259">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Dear Jasone,
+
+With respect to my previous mail, I have performed few benchmark
+testing mentioned in the
+<A HREF="http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf">http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf</A> on
+MIPS target
+
+The results are as below:
+
+Benchmark Test:   CCA
+-----------------------------------
+ With glibc malloc (ptmalloc):
+{{{
+ # time ./bin/cca -f sample.c
+ real    0m12.668s
+user    0m12.172s
+sys     0m0.276s
+ }}}
+	
+With jemalloc:
+{{{
+# time LD_PRELOAD=/devel/usr/lib/jemalloc.so ./bin/cca -f sample.c
+real    0m13.451s
+user    0m12.948s
+sys     0m0.252s
+ }}}
+
+Here sample.c is the file of lines 17364.
+
+Benchmark Test:  sh6bench
+-----------------------------------------
+ With glibc malloc (ptmalloc):
+{{{
+#./sh6bench
+ Total elapsed time: 94.00 (94.6600 CPU)
+}}}
+
+With jemalloc:
+{{{	
+# LD_PRELOAD=/devel/usr/lib/libjemalloc.so ./sh6bench
+ Total elapsed time: 119.00 (119.4100 CPU)
+}}}
+
+Here, I build standalone jemalloc-2.2.5 library for MIPS architecture and used.
+
+The both the benchmark result shows &quot;jemalloc is slower than glibc's malloc&quot;.
+
+I wanted to use jemalloc library but these results disappointed me.
+
+Please let me know is there are any way to improve the performace of
+jemalloc in this regards.
+
+Please help me. Waiting for the reply.
+
+Thank You,
+Amol Pise
+
+
+
+
+On 4/11/12, amol pise &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">amolpise15 at gmail.com</A>&gt; wrote:
+&gt;<i> Dear All,
+</I>&gt;<i>
+</I>&gt;<i> I have check the performance of the jemalloc vs glibc's malloc
+</I>&gt;<i> (ptmalloc) using complex test in libxml2 package
+</I>&gt;<i> i.e. &quot;runtest&quot;. This program allocate many memory of different size
+</I>&gt;<i> and supported multi-thread.
+</I>&gt;<i>
+</I>&gt;<i> The results are seen as below:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> With glibc's malloc (ptmalloc):
+</I>&gt;<i> --------------------------------------------
+</I>&gt;<i>
+</I>&gt;<i> # LD_LIBRARY_PATH=.libs time .libs/runtest
+</I>&gt;<i> {{{
+</I>&gt;<i> ## XML regression tests
+</I>&gt;<i> ## XML regression tests on memory
+</I>&gt;<i> :
+</I>&gt;<i> &lt;snip&gt;
+</I>&gt;<i> Total 2820 tests, no errors
+</I>&gt;<i> 67.68user 54.96system 2:02.89elapsed 99%CPU (0avgtext+0avgdata
+</I>&gt;<i> 0maxresident)k
+</I>&gt;<i> }}}
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> With jemalloc:
+</I>&gt;<i> ------------------
+</I>&gt;<i> # LD_LIBRARY_PATH=.libs LD_PRELOAD=/devel/usr/lib/libjemalloc.so time
+</I>&gt;<i> .libs/runtest
+</I>&gt;<i> {{{
+</I>&gt;<i> ## XML regression tests
+</I>&gt;<i>
+</I>&gt;<i> ## XML regression tests on memory
+</I>&gt;<i>
+</I>&gt;<i> :
+</I>&gt;<i> &lt;snip&gt;
+</I>&gt;<i> Total 2820 tests, no errors
+</I>&gt;<i> 76.89user 55.70system 2:12.72elapsed 99%CPU (0avgtext+0avgdata
+</I>&gt;<i> 0maxresident)k
+</I>&gt;<i> 0inputs+0outputs (0major+0minor)pagefaults 0swaps
+</I>&gt;<i> }}}
+</I>&gt;<i>
+</I>&gt;<i> Here it is observed jemalloc seems slowers than glibc malloc (ptmalloc)
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> I used jemalloc-2.2.5 from <A HREF="http://www.canonware.com/download/jemalloc/">http://www.canonware.com/download/jemalloc/</A>
+</I>&gt;<i>
+</I>&gt;<i> Is it mean jemalloc() is slower than glibc's malloc ?
+</I>&gt;<i> Is there any way to improve the speed performance of jemalloc in this
+</I>&gt;<i> regard?
+</I>&gt;<i>
+</I>&gt;<i> I am waiting for the reply.
+</I>&gt;<i>
+</I>&gt;<i> Thank You,
+</I>&gt;<i> Amol Pise
+</I>&gt;<i>
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000243.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+	<LI>Next message: <A HREF="000260.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#259">[ date ]</a>
+              <a href="thread.html#259">[ thread ]</a>
+              <a href="subject.html#259">[ subject ]</a>
+              <a href="author.html#259">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

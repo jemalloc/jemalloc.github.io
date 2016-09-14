@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/2] Move zone registration to zone.c
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Move%20zone%20registration%20to%20zone.c&In-Reply-To=%3C20120402070327.GA3549%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000215.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/2] Move zone registration to zone.c</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Move%20zone%20registration%20to%20zone.c&In-Reply-To=%3C20120402070327.GA3549%40glandium.org%3E"
+       TITLE="[PATCH 1/2] Move zone registration to zone.c">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr  2 00:03:27 PDT 2012</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000215.html">[PATCH] Move last bit of zone initialization in zone.c,	and lazy-initialize
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#214">[ date ]</a>
+              <a href="thread.html#214">[ thread ]</a>
+              <a href="subject.html#214">[ subject ]</a>
+              <a href="author.html#214">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Fri, Mar 30, 2012 at 08:06:26PM +0200, Mike Hommey wrote:
+&gt;<i> On Fri, Mar 30, 2012 at 08:03:52PM +0200, Mike Hommey wrote:
+</I>&gt;<i> &gt; On Fri, Mar 30, 2012 at 10:54:36AM -0700, Jason Evans wrote:
+</I>&gt;<i> &gt; &gt; On Mar 27, 2012, at 5:46 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt; &gt; On Tue, Mar 27, 2012 at 02:20:12PM +0200, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt; &gt;&gt; @@ -743,8 +723,8 @@ void
+</I>&gt;<i> &gt; &gt; &gt;&gt; jemalloc_darwin_init(void)
+</I>&gt;<i> &gt; &gt; &gt;&gt; {
+</I>&gt;<i> &gt; &gt; &gt;&gt; 
+</I>&gt;<i> &gt; &gt; &gt;&gt; -	if (malloc_init_hard())
+</I>&gt;<i> &gt; &gt; &gt;&gt; -		abort();
+</I>&gt;<i> &gt; &gt; &gt;&gt; +	if (!malloc_init_hard())
+</I>&gt;<i> &gt; &gt; &gt;&gt; +		register_zone();
+</I>&gt;<i> &gt; &gt; &gt;&gt; }
+</I>&gt;<i> &gt; &gt; &gt;&gt; #endif
+</I>&gt;<i> &gt; &gt; &gt; 
+</I>&gt;<i> &gt; &gt; &gt; Please note that I first attempted to move this function too, and do
+</I>&gt;<i> &gt; &gt; &gt; lazy initialization of jemalloc, but that ends up in a dead lock because
+</I>&gt;<i> &gt; &gt; &gt; pthread_atfork calls malloc.
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; Now that pthread_atfork() isn't being called on Darwin, does deadlock
+</I>&gt;<i> &gt; &gt; still occur due to some other memory allocation during initialization?
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I haven't experienced deadlocks during initialization, even when
+</I>&gt;<i> &gt; pthread_atfork was called.
+</I>&gt;<i> 
+</I>&gt;<i> D'oh, I did. End of week confusion. Mmm I'll have to check. I guess it
+</I>&gt;<i> could work, now.
+</I>
+And it does. Patch incoming.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000215.html">[PATCH] Move last bit of zone initialization in zone.c,	and lazy-initialize
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#214">[ date ]</a>
+              <a href="thread.html#214">[ thread ]</a>
+              <a href="subject.html#214">[ subject ]</a>
+              <a href="author.html#214">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

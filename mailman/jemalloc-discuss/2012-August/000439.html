@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> hint on debugging what seems to be a deadlock
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20hint%20on%20debugging%20what%20seems%20to%20be%20a%20deadlock&In-Reply-To=%3C20120809123601.18906a76%40darkbook.lan.box%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000438.html">
+   <LINK REL="Next"  HREF="000440.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>hint on debugging what seems to be a deadlock</H1>
+    <B>Ricardo Nabinger Sanchez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20hint%20on%20debugging%20what%20seems%20to%20be%20a%20deadlock&In-Reply-To=%3C20120809123601.18906a76%40darkbook.lan.box%3E"
+       TITLE="hint on debugging what seems to be a deadlock">rnsanchez at wait4.org
+       </A><BR>
+    <I>Thu Aug  9 08:36:01 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000438.html">LG_QUANTUM hppa definition
+</A></li>
+        <LI>Next message: <A HREF="000440.html">hint on debugging what seems to be a deadlock
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#439">[ date ]</a>
+              <a href="thread.html#439">[ thread ]</a>
+              <a href="subject.html#439">[ subject ]</a>
+              <a href="author.html#439">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+While using jemalloc-3.0.0 on a busy server, glibc-2.15 (-r2, Gentoo),
+kernel 3.2.25, our application is frequently hitting this backtrace
+pasted below.  We'd appreciate tips on where to start looking for problems.
+
+(gdb) bt
+#0  0x00007f1e2b3ee304 in __lll_lock_wait () from /lib/libpthread.so.0
+#1  0x00007f1e2b3e9789 in _L_lock_534 () from /lib/libpthread.so.0
+#2  0x00007f1e2b3e959e in pthread_mutex_lock () from /lib/libpthread.so.0
+#3  0x00007f1e2b606e4d in malloc_mutex_lock (arena=0x7f1e2ac7f8c0, chunk=0x7df49fc00000, run=0x7df49ff8b000, bin=0x7f1e2ac7fa48)
+    at include/jemalloc/internal/mutex.h:77
+#4  arena_dalloc_bin_run (arena=0x7f1e2ac7f8c0, chunk=0x7df49fc00000, run=0x7df49ff8b000, bin=0x7f1e2ac7fa48) at src/arena.c:1520
+#5  0x00007f1e2b60782a in arena_dalloc_bin_locked (arena=0x7f1e2ac7f8c0, chunk=0x7df49fc00000, ptr=&lt;value optimized out&gt;, 
+    mapelm=&lt;value optimized out&gt;) at src/arena.c:1593
+#6  0x00007f1e2b61fa57 in tcache_bin_flush_small (tbin=0x7df48dc06048, binind=1, rem=35, tcache=0x7df48dc06000) at src/tcache.c:128
+#7  0x00007f1e2b61fdc5 in tcache_event_hard (tcache=0x7df48dc06000) at src/tcache.c:39
+#8  0x00007f1e2b600f18 in tcache_event (ptr=&lt;value optimized out&gt;) at include/jemalloc/internal/tcache.h:271
+#9  tcache_dalloc_large (ptr=&lt;value optimized out&gt;) at include/jemalloc/internal/tcache.h:435
+#10 arena_dalloc (ptr=&lt;value optimized out&gt;) at include/jemalloc/internal/arena.h:966
+#11 idalloc (ptr=&lt;value optimized out&gt;) at include/jemalloc/internal/jemalloc_internal.h:840
+#12 iqalloc (ptr=&lt;value optimized out&gt;) at include/jemalloc/internal/jemalloc_internal.h:852
+#13 free (ptr=&lt;value optimized out&gt;) at src/jemalloc.c:1212
+
+When this happens, most of our threads get stuck on what seems to be
+a deadlock among certain threads:
+
+(gdb) i thr
+  28 Thread 0x7f1e2c30c700 (LWP 30862)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  27 Thread 0x7df457fff700 (LWP 30870)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  26 Thread 0x7df4577fe700 (LWP 30871)  0x00007f1e2b0f64dd in nanosleep () from /lib/libc.so.6
+  25 Thread 0x7df456ffd700 (LWP 30872)  0x00007f1e2b3ef03d in nanosleep () from /lib/libpthread.so.0
+  24 Thread 0x7df4567fc700 (LWP 30873)  0x00007f1e2b3eeafd in accept () from /lib/libpthread.so.0
+  23 Thread 0x7df455ffb700 (LWP 30874)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  22 Thread 0x7df455f7a700 (LWP 30875)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  21 Thread 0x7df455ef9700 (LWP 30876)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  20 Thread 0x7df455e78700 (LWP 30877)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  19 Thread 0x7df455df7700 (LWP 30878)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  18 Thread 0x7df455d76700 (LWP 30879)  0x00007f1e2b3ee304 in __lll_lock_wait () from /lib/libpthread.so.0
+  17 Thread 0x7df455cf5700 (LWP 30880)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  16 Thread 0x7df455c74700 (LWP 30881)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  15 Thread 0x7df455bf3700 (LWP 30882)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  14 Thread 0x7df455b72700 (LWP 30883)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  13 Thread 0x7df455af1700 (LWP 30884)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  12 Thread 0x7df455a70700 (LWP 30885)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  11 Thread 0x7df4559ef700 (LWP 30886)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  10 Thread 0x7df45596e700 (LWP 30887)  0x00007f1e2b3ee304 in __lll_lock_wait () from /lib/libpthread.so.0
+  9 Thread 0x7df4558ed700 (LWP 30888)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  8 Thread 0x7df45586c700 (LWP 30889)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  7 Thread 0x7df4557eb700 (LWP 30890)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  6 Thread 0x7df45576a700 (LWP 30891)  0x00007f1e2b3ee304 in __lll_lock_wait () from /lib/libpthread.so.0
+  5 Thread 0x7df4556e9700 (LWP 30892)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  4 Thread 0x7df455668700 (LWP 30893)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  3 Thread 0x7df4555e7700 (LWP 30894)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  2 Thread 0x7df455566700 (LWP 30895)  0x00007f1e2b3ef03d in nanosleep () from /lib/libpthread.so.0
+* 1 Thread 0x7f1e2c30d740 (LWP 30861)  0x00007f1e2b1256a9 in syscall ()
+  from /lib/libc.so.6
+
+
+All threads on pthread_once() or __lll_lock_wait() are stuck and unresponsive
+to anything, and it requires us to fire a -KILL to the application.  We have
+*no* reason to suspect from jemalloc itself, but we cannot confirm using other
+libraries because they simply can't handle the load last we tried.
+
+Our application is not using pthread locks/mutexes anymore, so the pressure
+on them is much slower now.
+
+Perhaps I will be able to provide more info on this, if I can get my SSH
+connection to the server back up.
+
+Thank you for your attention.
+
+Regards
+
+-- 
+Ricardo Nabinger Sanchez           <A HREF="http://rnsanchez.wait4.org/">http://rnsanchez.wait4.org/</A>
+  &quot;Left to themselves, things tend to go from bad to worse.&quot;
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000438.html">LG_QUANTUM hppa definition
+</A></li>
+	<LI>Next message: <A HREF="000440.html">hint on debugging what seems to be a deadlock
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#439">[ date ]</a>
+              <a href="thread.html#439">[ thread ]</a>
+              <a href="subject.html#439">[ subject ]</a>
+              <a href="author.html#439">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

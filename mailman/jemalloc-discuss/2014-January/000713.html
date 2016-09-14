@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Deadlock during application startup (jemalloc with prof:true)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Deadlock%20during%20application%20startup%20%28jemalloc%20with%20prof%3Atrue%29&In-Reply-To=%3CCAO6Ho0fSJFxdw9GBApLv4y2UQHpQU_g4NBePpvnAT4jd2d5aSA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000708.html">
+   <LINK REL="Next"  HREF="000710.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Deadlock during application startup (jemalloc with prof:true)</H1>
+    <B>Evgeniy Ivanov</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Deadlock%20during%20application%20startup%20%28jemalloc%20with%20prof%3Atrue%29&In-Reply-To=%3CCAO6Ho0fSJFxdw9GBApLv4y2UQHpQU_g4NBePpvnAT4jd2d5aSA%40mail.gmail.com%3E"
+       TITLE="Deadlock during application startup (jemalloc with prof:true)">i at eivanov.com
+       </A><BR>
+    <I>Thu Jan 23 01:03:41 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000708.html">Deadlock during application startup (jemalloc with prof:true)
+</A></li>
+        <LI>Next message: <A HREF="000710.html">hang in jemalloc()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#713">[ date ]</a>
+              <a href="thread.html#713">[ thread ]</a>
+              <a href="subject.html#713">[ subject ]</a>
+              <a href="author.html#713">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Jason, thank you for explanation! We linked libquickfix against
+jemalloc and it helped because of changed initialization order.
+
+On Tue, Jan 21, 2014 at 10:12 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On Jan 20, 2014, at 1:03 AM, Evgeniy Ivanov &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">i at eivanov.com</A>&gt; wrote:
+</I>&gt;&gt;<i> I got a following deadlock:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> #0  __lll_lock_wait_private () at
+</I>&gt;&gt;<i> ../nptl/sysdeps/unix/sysv/linux/x86_64/lowlevellock.S:95
+</I>&gt;&gt;<i> #1  0x00007f6f72cc048f in _L_lock_16 () from
+</I>&gt;&gt;<i> /home/eiva/prefix/glibc-2.16/lib/libc.so.6
+</I>&gt;&gt;<i> #2  0x00007f6f72cc02d1 in __new_exitfn (listp=0x7f6f73030c80 &lt;lock&gt;)
+</I>&gt;&gt;<i> at cxa_atexit.c:78
+</I>&gt;&gt;<i> #3  0x00007f6f72cc0424 in __internal_atexit (func=0x7f6f7371aad0
+</I>&gt;&gt;<i> &lt;prof_fdump&gt;, arg=0x0, d=0x7f6f73932570, listp=&lt;optimized out&gt;) at
+</I>&gt;&gt;<i> cxa_atexit.c:34
+</I>&gt;&gt;<i> #4  0x00007f6f7371a9d7 in prof_boot2 () at
+</I>&gt;&gt;<i> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/prof.c:1212
+</I>&gt;&gt;<i> #5  0x00007f6f736f3c4e in malloc_init_hard () at
+</I>&gt;&gt;<i> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:790
+</I>&gt;&gt;<i> #6  0x00007f6f736effc4 in malloc_init () at
+</I>&gt;&gt;<i> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:306
+</I>&gt;&gt;<i> #7  0x00007f6f736f0698 in calloc (num=1, size=1040) at
+</I>&gt;&gt;<i> /export/home/eiva/git/thd/src/thirdparty/jemalloc/3.4.1/src/src/jemalloc.c:1036
+</I>&gt;&gt;<i> #8  0x00007f6f72cc03ba in __new_exitfn (listp=0x7f6f7302f5a8
+</I>&gt;&gt;<i> &lt;__exit_funcs&gt;) at cxa_atexit.c:100
+</I>&gt;&gt;<i> #9  0x00007f6f72cc0424 in __internal_atexit (func=0x3972062ae0
+</I>&gt;&gt;<i> &lt;std::ios_base::Init::~Init()&gt;, arg=0x7f6f736ea9c8 &lt;_ZStL8__ioinit&gt;,
+</I>&gt;&gt;<i> d=0x7f6f736df170, listp=&lt;optimized out&gt;) at cxa_atexit.c:34
+</I>&gt;&gt;<i> #10 0x00007f6f7342336e in __cxx_global_var_init () at
+</I>&gt;&gt;<i> /usr/lib/gcc/x86_64-redhat-linux/4.4.7/../../../../include/c++/4.4.7/iostream:72
+</I>&gt;&gt;<i> #11 0x00007f6f73423389 in global constructors keyed to a() () at
+</I>&gt;&gt;<i> /tb/builds/thd/sbn/2.6/src/thirdparty/quickfix/1.12.4/src/src/C++/SocketInitiator.cpp:54
+</I>&gt;&gt;<i> #12 0x00007f6f7348aa36 in __do_global_ctors_aux () from
+</I>&gt;&gt;<i> //home/eiva/git/tb/build.x86_64-unknown-linux/platform/lib64/libquickfix.so.10
+</I>&gt;&gt;<i> #13 0x00007f6f733cdb43 in _init () from
+</I>&gt;&gt;<i> //home/eiva/git/tb/build.x86_64-unknown-linux/platform/lib64/libquickfix.so.10
+</I>&gt;&gt;<i> #14 0x00007ffff9915058 in ?? ()
+</I>&gt;&gt;<i> #15 0x00007f6f73953849 in call_init (l=0x7f6f73b65540,
+</I>&gt;&gt;<i> argc=1936584824, argv=0x7ffff9915048, env=0x7ffff9915058) at
+</I>&gt;&gt;<i> dl-init.c:69
+</I>&gt;&gt;<i> #16 0x00007f6f73953987 in _dl_init (main_map=0x7f6f73b691c8, argc=1,
+</I>&gt;&gt;<i> argv=0x7ffff9915048, env=0x7ffff9915058) at dl-init.c:133
+</I>&gt;&gt;<i> #17 0x00007f6f73945b2a in _dl_start_user () from
+</I>&gt;&gt;<i> /home/eiva/prefix/glibc-2.16/lib/ld-2.16.so
+</I>&gt;&gt;<i> #18 0x0000000000000001 in ?? ()
+</I>&gt;&gt;<i> #19 0x00007ffff9917072 in ?? ()
+</I>&gt;&gt;<i> #20 0x0000000000000000 in ?? ()
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> It is always reproducible with libquickfix-1.12.4 linked against my
+</I>&gt;&gt;<i> application (libc-2.12 and libc-2.16).
+</I>&gt;&gt;<i> MALLOC_CONF=&quot;prof:true&quot;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Is it issue in jemalloc or in glibc?
+</I>&gt;<i>
+</I>&gt;<i> libquickfix is registering an atexit() function inside a library initializer, prior to any other allocation having triggered jemalloc initialization.  During jemalloc initialization, there are two potential atexit() calls, one for heap profiling and one for printing stats at exit.  The deadlock here is occurring due to glibc's atexit() code holding a lock during the calloc() call that triggers jemalloc initialization, and jemalloc trying to call back into the atexit() code.
+</I>&gt;<i>
+</I>&gt;<i> There's little jemalloc can do about this except to avoid atexit().  However, you may still be able to use heap profiling in conjunction with libquickfix.  I vaguely recall that it is possible to specify precedences for library initializers; you can probably free(malloc(1)) inside a high priority library initializer inside your own application code and cause jemalloc to be initialized prior to libquickfix, in which case the recursive atexit() deadlock will be avoided.
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>
+
+
+-- 
+Cheers,
+Evgeniy
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000708.html">Deadlock during application startup (jemalloc with prof:true)
+</A></li>
+	<LI>Next message: <A HREF="000710.html">hang in jemalloc()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#713">[ date ]</a>
+              <a href="thread.html#713">[ thread ]</a>
+              <a href="subject.html#713">[ subject ]</a>
+              <a href="author.html#713">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

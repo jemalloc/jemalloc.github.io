@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Is it safe to mix jemalloc with glibc malloc?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Is%20it%20safe%20to%20mix%20jemalloc%20with%20glibc%20malloc%3F&In-Reply-To=%3CCAFWcpZ57FCt7PETDo8CVfQA-NFd1_%3DLrYkNpmHoc7HJbRTT5dQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000104.html">
+   <LINK REL="Next"  HREF="000106.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Is it safe to mix jemalloc with glibc malloc?</H1>
+    <B>Justin Lebar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Is%20it%20safe%20to%20mix%20jemalloc%20with%20glibc%20malloc%3F&In-Reply-To=%3CCAFWcpZ57FCt7PETDo8CVfQA-NFd1_%3DLrYkNpmHoc7HJbRTT5dQ%40mail.gmail.com%3E"
+       TITLE="Is it safe to mix jemalloc with glibc malloc?">justin.lebar at gmail.com
+       </A><BR>
+    <I>Tue Feb 28 06:29:31 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000104.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+        <LI>Next message: <A HREF="000106.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#105">[ date ]</a>
+              <a href="thread.html#105">[ thread ]</a>
+              <a href="subject.html#105">[ subject ]</a>
+              <a href="author.html#105">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> 1. compile jemalloc with &quot;je_&quot; prefix and with &quot;--enable-swap&quot;,
+</I>&gt;<i> 2. in my application:
+</I>&gt;<i> ...
+</I>&gt;<i> void *big = je_malloc(10000);
+</I>&gt;<i> void *small = malloc(10);
+</I>&gt;<i> ...
+</I>&gt;<i> je_free(big);
+</I>&gt;<i> free(small);
+</I>
+Yes, this is safe.
+
+&gt;<i> There are plenty of small objects which will be freed soon, so I want to use
+</I>&gt;<i> the real
+</I>&gt;<i> memory for these temp objects to improve performance.
+</I>
+But I seriously doubt you're going to see a performance improvement by
+doing this.  IME, jemalloc is much faster than glibc malloc, for all
+allocation sizes.
+
+-Justin
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000104.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+	<LI>Next message: <A HREF="000106.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#105">[ date ]</a>
+              <a href="thread.html#105">[ thread ]</a>
+              <a href="subject.html#105">[ subject ]</a>
+              <a href="author.html#105">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

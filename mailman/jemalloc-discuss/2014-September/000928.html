@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Implicit malloc/free replacement on windows/MSVC
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Implicit%20malloc/free%20replacement%20on%20windows/MSVC&In-Reply-To=%3C07F99B18-4D69-4DE7-9512-1B7EC6D35E7A%40couchbase.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000935.html">
+   <LINK REL="Next"  HREF="000929.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Implicit malloc/free replacement on windows/MSVC</H1>
+    <B>David Rigby</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Implicit%20malloc/free%20replacement%20on%20windows/MSVC&In-Reply-To=%3C07F99B18-4D69-4DE7-9512-1B7EC6D35E7A%40couchbase.com%3E"
+       TITLE="Implicit malloc/free replacement on windows/MSVC">daver at couchbase.com
+       </A><BR>
+    <I>Wed Sep 24 02:04:39 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000935.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+        <LI>Next message: <A HREF="000929.html">Implicit malloc/free replacement on windows/MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#928">[ date ]</a>
+              <a href="thread.html#928">[ thread ]</a>
+              <a href="subject.html#928">[ subject ]</a>
+              <a href="author.html#928">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I&#8217;m investigating replacing our application's existing memory allocator (tcmalloc) with jemalloc, mainly due to jemalloc&#8217;s &#8220;lowest possible address&#8221; policy which facilities some application-level reallocation of long-lived objects to reduce heap fragmentation.
+
+The integration on Linux and OS X is working nicely, however I&#8217;ve come to Windows and I&#8217;ve hit a bit of an impasse in dealing with indirect uses of malloc (e.g. strdup()), and I wonder if anyone has any ideas.
+
+First - what does work:
+
+1) I can build jemalloc as a DLL and using a deffile (inspired by mozilla [1]) I can create malloc/calloc/realloc/free symbols pointing at their je_ prefix&#8217;d equivalents (inside jemalloc.dll) which my application will use when explicitly calling those functions - so far so good. 
+However, if the allocation indirectly calls malloc (for example via strdup()) then strdup uses the malloc symbol inside the CRT, and as soon as free() is called I get a segfault (not withstanding I also have two heaps in use now).
+
+2) Going down the statically-linked route [2], I can create a jemalloc_s.lib which has a null JE_PREFIX, and hence the application itself will again call jemalloc&#8217;s malloc/free functions. But again the strdup problem remains.
+
+The only solutions I can find to this are either:
+
+(A) runtime-patching the various CRT functions to jump to the custom allocators versions - as implemented by tcmalloc [3].
+(B) building a custom version of the CRT with the memory allocation functions removed, and statically linking this into the application - as implemented by mozilla [4].
+
+Does anyone know of a &#8220;third way&#8221; to solve this? 
+
+If not, I think the tcmalloc runtime-patching is fractionally the lesser of the two evils - would the list (Jason?) consider accepting a patch which ported that functionality to jemalloc? It&#8217;s written in C++ which may be undesirable, but it&#8217;s Windows only at least&#8230;
+
+
+Thanks,
+
+DaveR
+
+[1]: <A HREF="https://github.com/mozilla/gecko-dev/blob/master/mozglue/build/mozglue.def.in">https://github.com/mozilla/gecko-dev/blob/master/mozglue/build/mozglue.def.in</A>
+[2]: <A HREF="https://groups.google.com/forum/#!topic/google-perftools/Qc03EK-F5Xs">https://groups.google.com/forum/#!topic/google-perftools/Qc03EK-F5Xs</A>
+[3]: <A HREF="https://github.com/gperftools/gperftools/blob/master/src/windows/patch_functions.cc">https://github.com/gperftools/gperftools/blob/master/src/windows/patch_functions.cc</A>
+[4]: <A HREF="http://benjamin.smedbergs.us/blog/2008-01-10/patching-the-windows-crt/">http://benjamin.smedbergs.us/blog/2008-01-10/patching-the-windows-crt/</A>
+</PRE>
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000935.html">compilation error for client app w/ clang and 913e9a8
+</A></li>
+	<LI>Next message: <A HREF="000929.html">Implicit malloc/free replacement on windows/MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#928">[ date ]</a>
+              <a href="thread.html#928">[ thread ]</a>
+              <a href="subject.html#928">[ subject ]</a>
+              <a href="author.html#928">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> arena cache being reused
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20arena%20cache%20being%20reused&In-Reply-To=%3C6A643699-E6FC-477A-B708-B7F19D8E6915%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001129.html">
+   <LINK REL="Next"  HREF="001128.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>arena cache being reused</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20arena%20cache%20being%20reused&In-Reply-To=%3C6A643699-E6FC-477A-B708-B7F19D8E6915%40canonware.com%3E"
+       TITLE="arena cache being reused">jasone at canonware.com
+       </A><BR>
+    <I>Fri Aug 21 12:35:53 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001129.html">arena cache being reused
+</A></li>
+        <LI>Next message: <A HREF="001128.html">cross compiling - how do I figure out the correct value of	je_cv_static_page_shift
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1152">[ date ]</a>
+              <a href="thread.html#1152">[ thread ]</a>
+              <a href="subject.html#1152">[ subject ]</a>
+              <a href="author.html#1152">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Integrated:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/45e9f66c280e1ba8bebf7bed387a43bc9e45536d">https://github.com/jemalloc/jemalloc/commit/45e9f66c280e1ba8bebf7bed387a43bc9e45536d</A>
+
+I was able to trigger the bug and verify your fix by slightly modifying the tsd test.
+
+Thanks,
+Jason
+
+&gt;<i> On Aug 17, 2015, at 3:57 PM, Christopher Ferris &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cferris at google.com</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> Sorry, I meant to follow up before the release, but I didn't get a chance.
+</I>&gt;<i> 
+</I>&gt;<i> Yes, it only repros on 4.0.0 since I think this is the first time you've used the arenas_cache. It's a bit tricky to trigger, since you need to allocate memory from a pthread_key_destroy function. I don't have a good test case since I wasn't sure exactly what triggered the path to create the arenas_cache again. It's also tricky since the memory that gets corrupted is something in a small bin in my configuration (2 arenas, I also artificially constrained the number of tcache entries). So it's likely that most code would never trigger this exact problem.
+</I>&gt;<i> 
+</I>&gt;<i> Christopher
+</I>&gt;<i> 
+</I>&gt;<i> On Mon, Aug 17, 2015 at 3:20 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i> On Jul 8, 2015, at 3:42 PM, Christopher Ferris &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cferris at google.com</A>&gt; wrote:
+</I>&gt;<i> &gt; Using the current version of the dev jemalloc, I found a case where jemalloc reuses a previously freed pointer. Specifically, the arena cache pointer can get freed, but reused.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; This can happen when a thread is ending and the key destroy functions are being called. If the jemalloc key destroy function is called, the arena cache is destroyed. But if another key destroy function is called which allocates memory, the old arena cache pointer can be reused, and have the arena pointers written to it.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I think the fix is to change the arenas_cache_cleanup function to:
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; void
+</I>&gt;<i> &gt; arenas_cache_cleanup(tsd_t *tsd)
+</I>&gt;<i> &gt; {
+</I>&gt;<i> &gt;         arena_t **arenas_cache;
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;         arenas_cache = tsd_arenas_cache_get(tsd);
+</I>&gt;<i> &gt;         if (arenas_cache != NULL) {
+</I>&gt;<i> &gt;                 bool *arenas_cache_bypassp = tsd_arenas_cache_bypassp_get(tsd);
+</I>&gt;<i> &gt;                 *arenas_cache_bypassp = true;
+</I>&gt;<i> &gt;                 tsd_arenas_cache_set(tsd, NULL);
+</I>&gt;<i> &gt;                 a0dalloc(arenas_cache);
+</I>&gt;<i> &gt;         }
+</I>&gt;<i> &gt; }
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; I believe the bypass has to be set so that another arena cache is not allocated since that memory would be leaked since there is not going to be another call to the arenas_cache_cleanup function. I think this is the only possible way something could be reused when an allocation is made after the jemalloc key destroy function is called, but I might have missed something.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; This might be particular to the fact that my config uses pthread_key_create for the tsd data, but it might apply to other configs.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt; Does this solution seem reasonable?
+</I>&gt;<i> 
+</I>&gt;<i> Unfortunately I didn't see this email until after the 4.0.0 release, because the mailing lists haven't been delivering email for the past two months (ouch).  Does this problem still exist with 4.0.0?
+</I>&gt;<i> 
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Jason
+</I>&gt;<i> 
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001129.html">arena cache being reused
+</A></li>
+	<LI>Next message: <A HREF="001128.html">cross compiling - how do I figure out the correct value of	je_cv_static_page_shift
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1152">[ date ]</a>
+              <a href="thread.html#1152">[ thread ]</a>
+              <a href="subject.html#1152">[ subject ]</a>
+              <a href="author.html#1152">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

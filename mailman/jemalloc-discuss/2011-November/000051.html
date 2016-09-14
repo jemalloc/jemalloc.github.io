@@ -1,0 +1,230 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> ANNOUNCE: GDB 7.2+ pretty printers for jemalloc (FreeBSD version)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20ANNOUNCE%3A%20GDB%207.2%2B%20pretty%20printers%20for%20jemalloc%20%28FreeBSD%20version%29&In-Reply-To=%3CC337F1B9-EE0D-450C-9D60-8AF29A23FEBB%40netapp.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000052.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>ANNOUNCE: GDB 7.2+ pretty printers for jemalloc (FreeBSD version)</H1>
+    <B>Phillip Ezolt</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20ANNOUNCE%3A%20GDB%207.2%2B%20pretty%20printers%20for%20jemalloc%20%28FreeBSD%20version%29&In-Reply-To=%3CC337F1B9-EE0D-450C-9D60-8AF29A23FEBB%40netapp.com%3E"
+       TITLE="ANNOUNCE: GDB 7.2+ pretty printers for jemalloc (FreeBSD version)">ezolt at netapp.com
+       </A><BR>
+    <I>Tue Nov  1 10:45:42 PDT 2011</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000052.html">jemalloc shell wrapper
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#51">[ date ]</a>
+              <a href="thread.html#51">[ thread ]</a>
+              <a href="subject.html#51">[ subject ]</a>
+              <a href="author.html#51">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi All, 
+  At Netapp, we use a modified version of FreeBSD for our user-space environment. 
+
+We've hit a bunch OOM problems where we ONLY have a core... Solving them USED to be
+like wandering around in the dark... so I wrote some GDB pythons pretty printers to walk the heap and give breakdowns of how memory is used + 
+do some basic analysis of each piece of memory. 
+
+Those macros are attached and work on both cores &amp; live processes on both FreeBSD and 'jemlloc_linux' version of jemalloc under linux. (32-bit/64-bit both work.)
+
+Comments:
+1) These macros are released under the same license as jemalloc. 
+
+2) They (currently) only support the jemalloc datastrutures of the FreeBSD  version of jemalloc included in 7.X and 8.X FreeBSD
+   ===&gt;   (I haven't updated this to the latest jemalloc-2.X yet.)  &lt;====
+
+3) I have unit-tests to verify that program allocations and gdb reported allocations match. 
+
+   (If you're interested, we should figure how to integrate this with the jemalloc distribution.) 
+
+4) Fwiw.. These can be extended. 
+
+  The internal functions can retrieve pointers to EVERY in-use piece of memory allocated through jemalloc. 
+   RIght now, I use that to create the summary chart.  Also, I can do some rudimentary analysis. (Is it a string?)    
+   But.. motivated people could search for OTHER important data-structures.. 
+
+To Try on linux: 
+1) Build linux-jemalloc.
+2) load gdb-enabled python with 'env LD_PRELOAD=../libjemalloc.so.0  gdb7.2 -q -x heap.py &lt;YOUR APP&gt;' (*)
+3) run
+4) br and type 'heap'  
+
+Help: 
+(ugdb-amd64-7.2-02)help heap
+Show heap utilization for user-space cores and processes (BETA)
+
+       The code walks jemalloc heap datastructures to determine heap usage.
+
+       It splits the memory usage into buckets by size.
+
+       BETA: It is very memory intensive and can cause gdb to core.
+
+       Example:
+       (ugdb-amd64-7.2-02) heap
+
+       FreeBSD Heap Analysis
+       ---------------------
+       Searching process virtual address space for 'chunks' of the heap... DONE.
+
+       Calculating memory usage for 'chunks' in 5 heap arenas:
+         Walking Arena  0 (0x898f78) with   2 'chunks'...  DONE.
+         Walking Arena  1 (0x89a6f8) with   0 'chunks'...  DONE.
+         Walking Arena  2 (0x89b278) with   0 'chunks'...  DONE.
+         Walking Arena  3 (0x899b78) with  19 'chunks'...  DONE.
+         Walking Arena  4 (0x89bdf8) with   0 'chunks'...  DONE.
+
+         Heap allocation distribution (by size)
+         =================================================
+           2 bytes *         96 allocs ( 0%) =           192 bytes ( 0%)
+           4 bytes *         84 allocs ( 0%) =           336 bytes ( 0%)
+           8 bytes *       2544 allocs ( 1%) =         20352 bytes ( 0%)
+          16 bytes *       9569 allocs ( 4%) =        153104 bytes ( 0%)
+          32 bytes *      47567 allocs (20%) =       1522144 bytes ( 9%)
+          ...
+           ^                    ^        ^               ^            ^
+           |                    |        |               |            |
+          Bin Size       Num allocs    % all allocs  Total Bytes   % of total bytes
+
+       Paper describing jemalloc: <A HREF="http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf">http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf</A>
+       More jemalloc details: <A HREF="http://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919">http://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919</A>
+
+       'heap    stats [size]' =&gt; (default) Dump information about how the heap is used.
+       'heap     dump [size]' =&gt; Write all of the memory to appropriately sized files.
+       'heap  analyze [size]' =&gt; Try to the determine (and print) the objects located at the allocated memory.
+       'heap  examine [size]' =&gt; Examine region as if it was a bunch of pointers. (ie. 'x /2a 0xdeadbeef')
+
+...
+
+Hope you enjoy! 
+
+(FWIW.  Here's an example running a gnome app, FWIW: 'env LD_PRELOAD=../libjemalloc.so.0 gdb7.2 -q -x /u/ezolt,spin/heap.py gedit') 
+
+
+[<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ezolt at cyclptc11</A> test]$ env LD_PRELOAD=../libjemalloc.so.0 gdb7.2 -q -x /u/ezolt,spin/heap.py gedit
+Reading symbols from /usr/bin/gedit...(no debugging symbols found)...done.
+(gdb) run
+Starting program: /usr/bin/gedit 
+[Thread debugging using libthread_db enabled]
+
+Program received signal SIGTSTP, Stopped (user).
+0x00000038104cae0f in poll () from /lib64/libc.so.6
+(gdb) heap
+
+Jemalloc Heap Analysis
+----------------------
+Searching process virtual address space for 'chunks' of the heap... DONE.
+
+Calculating memory usage details for each 'chunks' in 1 heap arenas: 
+  Walking Arena  0 (0x2aaaaacb9040) with  11 'chunks'...  DONE.
+  Walking global 'Huge' allocations...  DONE.
+
+Heap allocation distribution (by size)
+=================================================
+       2 bytes *        276 allocs ( 0%) =           552 bytes ( 0%) 
+       4 bytes *        513 allocs ( 1%) =         2,052 bytes ( 0%) 
+       8 bytes *      1,458 allocs ( 4%) =        11,664 bytes ( 0%) 
+      16 bytes *      5,493 allocs (15%) =        87,888 bytes ( 0%) 
+      32 bytes *     12,237 allocs (34%) =       391,584 bytes ( 4%) 
+      48 bytes *      4,061 allocs (11%) =       194,928 bytes ( 2%) 
+      64 bytes *      4,076 allocs (11%) =       260,864 bytes ( 2%) 
+      80 bytes *      1,282 allocs ( 3%) =       102,560 bytes ( 1%) 
+      96 bytes *        596 allocs ( 1%) =        57,216 bytes ( 0%) 
+     112 bytes *        185 allocs ( 0%) =        20,720 bytes ( 0%) 
+     128 bytes *        119 allocs ( 0%) =        15,232 bytes ( 0%) 
+     192 bytes *        433 allocs ( 1%) =        83,136 bytes ( 0%) 
+     256 bytes *        283 allocs ( 0%) =        72,448 bytes ( 0%) 
+     320 bytes *      1,217 allocs ( 3%) =       389,440 bytes ( 4%) 
+     384 bytes *         73 allocs ( 0%) =        28,032 bytes ( 0%) 
+     448 bytes *         47 allocs ( 0%) =        21,056 bytes ( 0%) 
+     512 bytes *      1,210 allocs ( 3%) =       619,520 bytes ( 6%) 
+     768 bytes *        670 allocs ( 1%) =       514,560 bytes ( 5%) 
+    1024 bytes *        655 allocs ( 1%) =       670,720 bytes ( 6%) 
+    1280 bytes *         42 allocs ( 0%) =        53,760 bytes ( 0%) 
+    1536 bytes *         19 allocs ( 0%) =        29,184 bytes ( 0%) 
+    1792 bytes *         23 allocs ( 0%) =        41,216 bytes ( 0%) 
+    2048 bytes *         80 allocs ( 0%) =       163,840 bytes ( 1%) 
+    2304 bytes *         10 allocs ( 0%) =        23,040 bytes ( 0%) 
+    2560 bytes *         14 allocs ( 0%) =        35,840 bytes ( 0%) 
+    2816 bytes *          4 allocs ( 0%) =        11,264 bytes ( 0%) 
+    3072 bytes *        128 allocs ( 0%) =       393,216 bytes ( 4%) 
+    3328 bytes *          1 allocs ( 0%) =         3,328 bytes ( 0%) 
+    3584 bytes *          6 allocs ( 0%) =        21,504 bytes ( 0%) 
+    3840 bytes *          1 allocs ( 0%) =         3,840 bytes ( 0%) 
+    4096 bytes *         42 allocs ( 0%) =       172,032 bytes ( 1%) 
+---Type &lt;return&gt; to continue, or q &lt;return&gt; to quit---
+    8192 bytes *         34 allocs ( 0%) =       278,528 bytes ( 2%) 
+   12288 bytes *         50 allocs ( 0%) =       614,400 bytes ( 6%) 
+   16384 bytes *         16 allocs ( 0%) =       262,144 bytes ( 2%) 
+   20480 bytes *          1 allocs ( 0%) =        20,480 bytes ( 0%) 
+   24576 bytes *          1 allocs ( 0%) =        24,576 bytes ( 0%) 
+   28672 bytes *          1 allocs ( 0%) =        28,672 bytes ( 0%) 
+   45056 bytes *          2 allocs ( 0%) =        90,112 bytes ( 0%) 
+   49152 bytes *          3 allocs ( 0%) =       147,456 bytes ( 1%) 
+   65536 bytes *         10 allocs ( 0%) =       655,360 bytes ( 6%) 
+   98304 bytes *          1 allocs ( 0%) =        98,304 bytes ( 1%) 
+  262144 bytes *          8 allocs ( 0%) =     2,097,152 bytes (21%) 
+  786432 bytes *          1 allocs ( 0%) =       786,432 bytes ( 8%) 
+
+Heap: 35,382 allocs (9,599,852 bytes) 
+Total VM allocated by heap: 11,534,336 bytes (In-use by application: 9,599,852)
+(gdb) quit
+A debugging session is active.
+
+	Inferior 1 [process 7804] will be killed.
+
+Quit anyway? (y or n) y   
+
+Cheers,
+--Phil
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: heap.py
+Type: text/x-python-script
+Size: 52478 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment.bin</A>&gt;
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment-0001.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000052.html">jemalloc shell wrapper
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#51">[ date ]</a>
+              <a href="thread.html#51">[ thread ]</a>
+              <a href="subject.html#51">[ subject ]</a>
+              <a href="author.html#51">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

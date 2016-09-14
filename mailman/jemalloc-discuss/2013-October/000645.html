@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Segfault with jemalloc 3.4
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segfault%20with%20jemalloc%203.4&In-Reply-To=%3C502cff3b03ba487fac3caf40266b24e3%40EX13.iMesh.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000641.html">
+   <LINK REL="Next"  HREF="000640.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Segfault with jemalloc 3.4</H1>
+    <B>Ofer Samocha</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segfault%20with%20jemalloc%203.4&In-Reply-To=%3C502cff3b03ba487fac3caf40266b24e3%40EX13.iMesh.com%3E"
+       TITLE="Segfault with jemalloc 3.4">ofers at iMesh.com
+       </A><BR>
+    <I>Mon Oct 21 01:32:11 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000641.html">Segfault with jemalloc 3.4
+</A></li>
+        <LI>Next message: <A HREF="000640.html">[PATCH] malloc_conf_init: revert errno value when readlink(2)	fail.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#645">[ date ]</a>
+              <a href="thread.html#645">[ thread ]</a>
+              <a href="subject.html#645">[ subject ]</a>
+              <a href="author.html#645">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Jason,
+
+Thanks for your prompt reply.
+
+Here is some additional info on this matter:
+
+
+*         We get crashes with different stack traces in jemalloc. Here is another, different example then the original one we sent you. Here it looks like we start with area_dalloc and not area_ralloc.
+
+
+#0  0x0000000000aa4abe in arena_chunk_purge (arena=0x7f6bb14000c0, all=&lt;value optimized out&gt;) at src/arena.c:783
+#1  arena_purge (arena=0x7f6bb14000c0, all=&lt;value optimized out&gt;) at src/arena.c:952
+#2  0x0000000000aa56e7 in arena_dalloc_large_locked (arena=0x7f6bb14000c0, chunk=&lt;value optimized out&gt;, ptr=0x7f6b52248000) at src/arena.c:1770
+#3  arena_dalloc_large (arena=0x7f6bb14000c0, chunk=&lt;value optimized out&gt;, ptr=0x7f6b52248000) at src/arena.c:1778
+#4  0x00000000008ee9e8 in checked_delete&lt;IMsgDecoder&gt; (this=&lt;value optimized out&gt;, __in_chrg=&lt;value optimized out&gt;) at /usr/local/include/boost/checked_delete.hpp:34
+#5  CMsgSockHandlerImpl::~CMsgSockHandlerImpl (this=&lt;value optimized out&gt;, __in_chrg=&lt;value optimized out&gt;) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:252
+#6  0x00000000008f2942 in checked_delete&lt;CMsgSockHandlerImpl&gt; (this=&lt;value optimized out&gt;) at /usr/local/include/boost/checked_delete.hpp:34
+#7  operator() (this=&lt;value optimized out&gt;) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartPointers.h:21
+#8  boost::detail::sp_counted_impl_pd&lt;CMsgSockHandlerImpl*, sti::sti_deleter&lt;CMsgSockHandlerImpl&gt; &gt;::dispose (this=&lt;value optimized out&gt;) at /usr/local/include/boost/smart_ptr/detail/sp_counted_impl.hpp:148
+#9  0x00000000008e543c in release (this=0x7f6b8bf52780, __in_chrg=&lt;value optimized out&gt;) at /usr/local/include/boost/smart_ptr/detail/sp_counted_base_gcc_x86.hpp:145
+#10 ~shared_count (this=0x7f6b8bf52780, __in_chrg=&lt;value optimized out&gt;) at /usr/local/include/boost/smart_ptr/detail/shared_count.hpp:305
+#11 ~shared_ptr (this=0x7f6b8bf52780, __in_chrg=&lt;value optimized out&gt;) at /usr/local/include/boost/smart_ptr/shared_ptr.hpp:165
+#12 reset (this=0x7f6b8bf52780, __in_chrg=&lt;value optimized out&gt;) at /usr/local/include/boost/smart_ptr/shared_ptr.hpp:382
+#13 reset (this=0x7f6b8bf52780, __in_chrg=&lt;value optimized out&gt;) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartPointers.h:101
+#14 CMsgSockHandler::~CMsgSockHandler (this=0x7f6b8bf52780, __in_chrg=&lt;value optimized out&gt;) at /home/imesh/SFIM2Rel/src/comm/MsgSockHandler.cpp:40
+#15 0x00000000009cb591 in release (this=0x7f6bb102b300, sock=...) at /usr/local/include/boost/smart_ptr/detail/sp_counted_base_gcc_x86.hpp:145
+#16 ~shared_count (this=0x7f6bb102b300, sock=...) at /usr/local/include/boost/smart_ptr/detail/shared_count.hpp:305
+#17 ~shared_ptr (this=0x7f6bb102b300, sock=...) at /usr/local/include/boost/smart_ptr/shared_ptr.hpp:165
+#18 ~shared_ptr (this=0x7f6bb102b300, sock=...) at /home/imesh/SFIM2Rel/src/../ViberCore/include/sti/SmartPointers.h:57
+#19 sti::CDispatcher::doRemoveSocket (this=0x7f6bb102b300, sock=...) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:863
+#20 0x00000000009cb839 in sti::CDispatcher::RemoveDetachedSockets (this=0x7f6bb102b300) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:900
+#21 0x00000000009d7b09 in sti::CDispatcher::HandleEvents (this=0x7f6bb102b300, timeout=6) at /home/imesh/SFIM2Rel/src/infra/Dispatcher.cpp:590
+#22 0x000000000080db3b in CServerHelper::HandleEvents (this=0x7f6bb1021020) at /home/imesh/SFIM2Rel/src/servercomm/ServerHelper.cpp:397
+#23 0x00000000005c8e6e in main (argc=&lt;value optimized out&gt;, argv=&lt;value optimized out&gt;) at /home/imesh/SFIM2Rel/src/SN/SN.cpp:34
+
+
+
+*         Our application in single threaded. To be more accurate, there are two threads - one the main thread and the other the log4cplus thread that samples the logger file every minute.
+
+
+
+*         The compile flags we use are:
+
+
+enable_autogen='0'
+enable_debug='0'
+enable_dss='0'
+enable_experimental='0'
+enable_fill='0'
+enable_lazy_lock='0'
+enable_mremap='0'
+enable_munmap='0'
+enable_prof='0'
+enable_stats='0'
+enable_tcache='1'
+enable_tls='1'
+enable_utrace='0'
+enable_valgrind='0'
+enable_xmalloc='0'
+enable_zone_allocator=''
+
+
+
+Thanks,
+Ofer
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131021/bd5a739b/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131021/bd5a739b/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000641.html">Segfault with jemalloc 3.4
+</A></li>
+	<LI>Next message: <A HREF="000640.html">[PATCH] malloc_conf_init: revert errno value when readlink(2)	fail.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#645">[ date ]</a>
+              <a href="thread.html#645">[ thread ]</a>
+              <a href="subject.html#645">[ subject ]</a>
+              <a href="author.html#645">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

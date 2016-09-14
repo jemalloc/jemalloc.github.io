@@ -1,0 +1,23 @@
+From jasone at canonware.com  Sat Oct 24 08:10:36 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 24 Oct 2015 08:10:36 -0700
+Subject: jemalloc 4.0.4 released
+Message-ID: <3DDC6D7F-21F5-4136-AA43-14A36264A65E@canonware.com>
+
+jemalloc 4.0.4 is now available.  This bugfix release fixes another xallocx() regression. No other regressions have come to light in over a month, so this is likely a good starting point for people who prefer to wait for "dot one" releases with all the major issues shaken out.
+
+Bug fixes:
+- Fix xallocx(..., MALLOCX_ZERO to zero the last full trailing page of large allocations that have been randomly assigned an offset of 0 when --enable-cache-oblivious configure option is enabled.
+
+For the complete ChangeLog, see:
+	https://github.com/jemalloc/jemalloc/raw/4.0.4/ChangeLog
+
+Direct download:
+	https://github.com/jemalloc/jemalloc/releases/download/4.0.4/jemalloc-4.0.4.tar.bz2
+
+Starting point for general information:
+	http://www.canonware.com/jemalloc/
+
+Browsable revision history:
+	https://github.com/jemalloc/jemalloc/tree/4.0.4
+

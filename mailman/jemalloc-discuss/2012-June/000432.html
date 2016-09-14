@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> patches for jemalloc 3.0.0 with mingw-w64 
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20patches%20for%20jemalloc%203.0.0%20with%20mingw-w64%20&In-Reply-To=%3C20120611130932.151470%40gmx.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000431.html">
+   <LINK REL="Next"  HREF="000433.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>patches for jemalloc 3.0.0 with mingw-w64 </H1>
+    <B>Kai-Uwe Eckhardt</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20patches%20for%20jemalloc%203.0.0%20with%20mingw-w64%20&In-Reply-To=%3C20120611130932.151470%40gmx.net%3E"
+       TITLE="patches for jemalloc 3.0.0 with mingw-w64 ">kuehro at gmx.de
+       </A><BR>
+    <I>Mon Jun 11 06:09:32 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000431.html">dead lock in forked child
+</A></li>
+        <LI>Next message: <A HREF="000433.html">No subject
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#432">[ date ]</a>
+              <a href="thread.html#432">[ thread ]</a>
+              <a href="subject.html#432">[ subject ]</a>
+              <a href="author.html#432">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+with mingw-w64 (i686-w64-mingw32 4.7.0 rubenv and 4.6.3 from strawberry
+perl 5.16.0.1 win32) some patches are necessary.
+
+./configure --enable-debug --enable-fill fails in configure with:
+
+error: cannot determine value for STATIC_PAGE_SHIFT
+
+It builds and passes make check after saving the following patches
+in to a file in the build directory. If the patches are in fix.patch,
+then  patch -p1 &lt; fix.patch  applies the necessary patches.
+
+Kind regards,
+
+Kai-Uwe Eckhardt
+
+
+
+--- ./configure.orig	2012-06-11 11:38:01 +0000
++++ ./configure	2012-06-11 11:38:29 +0000
+@@ -5969,7 +5969,7 @@
+     if (result == -1) {
+ 	return 1;
+     }
+-    result = ffsl(result) - 1;
++    result = __builtin_ffsl(result) - 1;
+ 
+     f = fopen(&quot;conftest.out&quot;, &quot;w&quot;);
+     if (f == NULL) {
+--- ./include/jemalloc/internal/arena.h.orig	2012-06-11 11:30:05 +0000
++++ ./include/jemalloc/internal/arena.h	2012-06-11 11:32:16 +0000
+@@ -733,7 +733,7 @@
+ 
+ 	/* Rescale (factor powers of 2 out of the numerator and denominator). */
+ 	interval = bin_info-&gt;reg_interval;
+-	shift = ffs(interval) - 1;
++	shift = __builtin_ffs(interval) - 1;
+ 	diff &gt;&gt;= shift;
+ 	interval &gt;&gt;= shift;
+ 
+--- ./include/jemalloc/internal/bitmap.h.orig	2012-06-11 11:33:13 +0000
++++ ./include/jemalloc/internal/bitmap.h	2012-06-11 11:34:30 +0000
+@@ -130,11 +130,11 @@
+ 
+ 	i = binfo-&gt;nlevels - 1;
+ 	g = bitmap[binfo-&gt;levels[i].group_offset];
+-	bit = ffsl(g) - 1;
++	bit = __builtin_ffsl(g) - 1;
+ 	while (i &gt; 0) {
+ 		i--;
+ 		g = bitmap[binfo-&gt;levels[i].group_offset + bit];
+-		bit = (bit &lt;&lt; LG_BITMAP_GROUP_NBITS) + (ffsl(g) - 1);
++		bit = (bit &lt;&lt; LG_BITMAP_GROUP_NBITS) + (__builtin_ffsl(g) - 1);
+ 	}
+ 
+ 	bitmap_set(bitmap, binfo, bit);
+--- ./src/arena.c.orig	2012-06-11 11:32:32 +0000
++++ ./src/arena.c	2012-06-11 11:32:51 +0000
+@@ -2026,7 +2026,7 @@
+ 	 * be twice as large in order to maintain alignment.
+ 	 */
+ 	if (config_fill &amp;&amp; opt_redzone) {
+-		size_t align_min = ZU(1) &lt;&lt; (ffs(bin_info-&gt;reg_size) - 1);
++		size_t align_min = ZU(1) &lt;&lt; (__builtin_ffs(bin_info-&gt;reg_size) - 1);
+ 		if (align_min &lt;= REDZONE_MINSIZE) {
+ 			bin_info-&gt;redzone_size = REDZONE_MINSIZE;
+ 			pad_size = 0;
+--- ./src/rtree.c.orig	2012-06-11 11:35:23 +0000
++++ ./src/rtree.c	2012-06-11 11:35:46 +0000
+@@ -7,7 +7,7 @@
+ 	rtree_t *ret;
+ 	unsigned bits_per_level, height, i;
+ 
+-	bits_per_level = ffs(pow2_ceil((RTREE_NODESIZE / sizeof(void *)))) - 1;
++	bits_per_level = __builtin_ffs(pow2_ceil((RTREE_NODESIZE / sizeof(void *)))) - 1;
+ 	height = bits / bits_per_level;
+ 	if (height * bits_per_level != bits)
+ 		height++;
+--- ./include/jemalloc/jemalloc.h.in.orig	2012-06-11 12:52:15 +0000
++++ ./include/jemalloc/jemalloc.h.in	2012-06-11 12:53:01 +0000
+@@ -19,9 +19,9 @@
+ #ifdef JEMALLOC_EXPERIMENTAL
+ #define	ALLOCM_LG_ALIGN(la)	(la)
+ #if LG_SIZEOF_PTR == 2
+-#define	ALLOCM_ALIGN(a)	(ffs(a)-1)
++#define	ALLOCM_ALIGN(a)	(__builtin_ffs(a)-1)
+ #else
+-#define	ALLOCM_ALIGN(a)	((a &lt; (size_t)INT_MAX) ? ffs(a)-1 : ffs(a&gt;&gt;32)+31)
++#define	ALLOCM_ALIGN(a)	((a &lt; (size_t)INT_MAX) ? __builtin_ffs(a)-1 : __builtin_ffs(a&gt;&gt;32)+31)
+ #endif
+ #define	ALLOCM_ZERO	((int)0x40)
+ #define	ALLOCM_NO_MOVE	((int)0x80)
+
+-- 
+-- 
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000431.html">dead lock in forked child
+</A></li>
+	<LI>Next message: <A HREF="000433.html">No subject
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#432">[ date ]</a>
+              <a href="thread.html#432">[ thread ]</a>
+              <a href="subject.html#432">[ subject ]</a>
+              <a href="author.html#432">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

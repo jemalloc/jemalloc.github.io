@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Diagnosing an out-of-memory issue
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Diagnosing%20an%20out-of-memory%20issue&In-Reply-To=%3C5086BC01-A7B1-4E16-A24B-97372E793A0A%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001312.html">
+   <LINK REL="Next"  HREF="001314.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Diagnosing an out-of-memory issue</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Diagnosing%20an%20out-of-memory%20issue&In-Reply-To=%3C5086BC01-A7B1-4E16-A24B-97372E793A0A%40canonware.com%3E"
+       TITLE="Diagnosing an out-of-memory issue">jasone at canonware.com
+       </A><BR>
+    <I>Thu Jul  7 14:28:01 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001312.html">Jemalloc quickly OOMs with custom chunk_hooks that opt out of	purge
+</A></li>
+        <LI>Next message: <A HREF="001314.html">difference between used memory and that in profiled result
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1313">[ date ]</a>
+              <a href="thread.html#1313">[ thread ]</a>
+              <a href="subject.html#1313">[ subject ]</a>
+              <a href="author.html#1313">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 26, 2016, at 1:00 PM, Matthew Fleming &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mdf at purestorage.com</A>&gt; wrote:
+&gt;<i> I'm not sure which details will be relevant so I may be including too much info below.  I'm using jemalloc with custom hooks to manage about 54GB of virtual space under Linux on x86_64. The hooks manage the address space in 2MB chunks so I can use HUGETLB for the mappings. Slightly simplified, the hooks do the following (roughly as expected, I think):
+</I>&gt;<i> 
+</I>&gt;<i>     alloc: mmap size bytes, aligned appropriately
+</I>&gt;<i>     dalloc: munmap the space (not really, I recycle the memory internally, but it's logically the same)
+</I>&gt;<i>     commit: return false
+</I>&gt;<i>     decommit: return true
+</I>&gt;<i>     purge: return true
+</I>&gt;<i>     split: return false
+</I>&gt;<i>     merge: return false
+</I>&gt;<i> 
+</I>&gt;<i> We're experiencing some out-of-memory issues, mostly due to a known runaway allocation site that we're working to fix. However, while debugging this I'm seeing some numbers for jemalloc usage that leave me concerned.  At the time of the OOM, I can see that we indeed have 54GB of virtual space used (we're using rlimit to set a 54GB limit for the process).
+</I>&gt;<i> 
+</I>&gt;<i> However, I also see the following from je_malloc_stats_print at the time we cross the 54GB virtual threshold which seems low to me:
+</I>&gt;<i> 
+</I>&gt;<i> Allocated: 38825889776, active: 47743795200, metadata: 1304838720, resident: 50520985600, mapped: 56247713792
+</I>&gt;<i> Current active ceiling: 47758442496
+</I>&gt;<i> 
+</I>&gt;<i> [...]
+</I>&gt;<i> 
+</I>&gt;<i> Where I'm wondering if I'm mis-using jemalloc is in the allocated vs active vs mapped numbers. Allocated/active implies 0.813 utilization; is this expected? Active/mapped adds further gives a 0.848 utilization; is this expected? It seems somewhere between unfortunate and buggy that jemalloc calls my alloc hook for more virtual/physical space, when there's only 69% of the total mapped space used. This turns my 54GB vmem limit into something like a 37GB limit on actual allocations, a loss of 17GB!
+</I>
+0.813 utilization isn't great, but it isn't awful either.  You may be able to substantially improve this by decreasing the number of arenas, so that threads don't cause so much per arena usage fluctuation.
+
+Regarding low virtual memory utilization, I'm guessing that the chunks are too fragmented to service the 16 KiB requests that appear to be the most common size class in your application.
+
+&gt;<i> One thing I think I did wrong that I am fixing is that I had set opt.lg_tcache_max: 21; based on the actual use of the system I don't think I need to have a per-thread cache for anything over 16kB. I have no visibility (even slightly laggy) to how much memory is held in the tcache, though. This would be a nice addition to the available stats, even if the number isn't completely accurate.
+</I>
+We will hopefully have such stats in 5.x (see <A HREF="https://github.com/jemalloc/jemalloc/pull/380">https://github.com/jemalloc/jemalloc/pull/380</A>).
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001312.html">Jemalloc quickly OOMs with custom chunk_hooks that opt out of	purge
+</A></li>
+	<LI>Next message: <A HREF="001314.html">difference between used memory and that in profiled result
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1313">[ date ]</a>
+              <a href="thread.html#1313">[ thread ]</a>
+              <a href="subject.html#1313">[ subject ]</a>
+              <a href="author.html#1313">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

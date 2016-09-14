@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc problem when working with dynamic library
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20problem%20when%20working%20with%20dynamic%20library&In-Reply-To=%3C4EFEBEAA.4080802%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000066.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc problem when working with dynamic library</H1>
+    <B>jokea</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20problem%20when%20working%20with%20dynamic%20library&In-Reply-To=%3C4EFEBEAA.4080802%40gmail.com%3E"
+       TITLE="jemalloc problem when working with dynamic library">tfengjun at gmail.com
+       </A><BR>
+    <I>Fri Dec 30 23:50:02 PST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000066.html">jemalloc+zeromq segfault
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#67">[ date ]</a>
+              <a href="thread.html#67">[ thread ]</a>
+              <a href="subject.html#67">[ subject ]</a>
+              <a href="author.html#67">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>What's the recommend way of using jemalloc with dynamic library?
+
+I have a program which loads/unloads a liba.so many times using dlopen and dlclose.
+The program starts with, say liba.so.1.0.0, and every time when I update the dynamic library,
+say now it's liba.so.1.0.1, I send a message to the program, so it will call dlclose for liba.so.1.0.0 and
+load the new liba.so.1.0.1 with dlopen. By doing this I get zero downtime while doing upgrade.
+
+The code in liba.so contains many memory allocations and jemalloc(2.2.5) works better than tcmalloc and the
+glibc's default malloc.
+
+1. First I linked jemalloc against liba.so by compiling jemalloc using -fPIC flag.
+However, after about 50 times of load/unload, dlopen returns an error:
+&quot;cannot allocate memory in static TLS block&quot;.
+After some googling, I went to approach #2.
+
+2. I compiled jemalloc using --disable-tls flag and the problem no longer exists(I'm not sure
+disable tls will impact performance or not). However, this led to another problem,
+after each load/unload, the memory usage of the program grows continuesly and eventually it aborted with error:
+&quot;&lt;jemalloc&gt;: Error in pthread_key_create()&quot;
+and malloc returns NULL when the program's RSS reaches about 90MB, but there are plenty of free memory on
+the server when this happens.
+
+3. Then I compiled jemalloc without -fPIC and --disable-tls flag and linked it against main, it works fine
+this time. But in this way, I can not upgrade jemalloc if there's a newer version without terminating the main program.
+
+So I'm wondering if #3 is the only right way to use jemalloc in such situation, and if I'm doing anything wrong
+in #1 and #2.
+
+
+Thanks,
+Jokea
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000066.html">jemalloc+zeromq segfault
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#67">[ date ]</a>
+              <a href="thread.html#67">[ thread ]</a>
+              <a href="subject.html#67">[ subject ]</a>
+              <a href="author.html#67">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

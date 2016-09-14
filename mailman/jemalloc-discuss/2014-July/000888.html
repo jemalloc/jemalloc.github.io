@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Extracting%20the%20starting%20address%20of%20the%20arena_run_t%20from%20the%0A%09mapping%20information%20present%20in%20arena_chunk_t%20for%20each%20page&In-Reply-To=%3CF936BE66-6B00-43F1-AD8E-2CD044CA5499%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000887.html">
+   <LINK REL="Next"  HREF="000891.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Extracting%20the%20starting%20address%20of%20the%20arena_run_t%20from%20the%0A%09mapping%20information%20present%20in%20arena_chunk_t%20for%20each%20page&In-Reply-To=%3CF936BE66-6B00-43F1-AD8E-2CD044CA5499%40canonware.com%3E"
+       TITLE="Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page">jasone at canonware.com
+       </A><BR>
+    <I>Thu Jul 17 12:31:05 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000887.html">Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+</A></li>
+        <LI>Next message: <A HREF="000891.html">Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#888">[ date ]</a>
+              <a href="thread.html#888">[ thread ]</a>
+              <a href="subject.html#888">[ subject ]</a>
+              <a href="author.html#888">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jul 17, 2014, at 11:28 AM, shireesh bhat &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">shireeshbhat at yahoo.co.in</A>&gt; wrote:
+&gt;<i> Even if I find out the page's offset how do I find the address of arena_run_t, since I just know the mapping information for every page which is present in arena_chunk_t.
+</I>
+Take a close look at the header comments for struct arena_chunk_map_s.  The information is in the chunk's page map, which it sounds like you've already figured out how to access.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140717/35015533/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140717/35015533/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000887.html">Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+</A></li>
+	<LI>Next message: <A HREF="000891.html">Extracting the starting address of the arena_run_t from the	mapping information present in arena_chunk_t for each page
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#888">[ date ]</a>
+              <a href="thread.html#888">[ thread ]</a>
+              <a href="subject.html#888">[ subject ]</a>
+              <a href="author.html#888">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

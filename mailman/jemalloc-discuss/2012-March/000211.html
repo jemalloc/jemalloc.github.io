@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Crash in arenas_cleanup on linux x86-64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20in%20arenas_cleanup%20on%20linux%20x86-64&In-Reply-To=%3C7666DB67-6467-4A42-8D6B-37FA4E33B462%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000203.html">
+   <LINK REL="Next"  HREF="000212.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Crash in arenas_cleanup on linux x86-64</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20in%20arenas_cleanup%20on%20linux%20x86-64&In-Reply-To=%3C7666DB67-6467-4A42-8D6B-37FA4E33B462%40canonware.com%3E"
+       TITLE="Crash in arenas_cleanup on linux x86-64">jasone at canonware.com
+       </A><BR>
+    <I>Fri Mar 30 12:18:14 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000203.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+        <LI>Next message: <A HREF="000212.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#211">[ date ]</a>
+              <a href="thread.html#211">[ thread ]</a>
+              <a href="subject.html#211">[ subject ]</a>
+              <a href="author.html#211">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 29, 2012, at 8:34 AM, Mike Hommey wrote:
+&gt;<i> I haven't reproduced in a simpler testcase, but I could reproduce the
+</I>&gt;<i> failing circumstances in a local Firefox build, with a debugger, and
+</I>&gt;<i> here is roughly what happens:
+</I>&gt;<i> 
+</I>&gt;<i> [&#8230;]
+</I>
+Thank you very much for figuring this out!  I think this is now fixed by:
+
+	<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=09a0769ba7a3d139168e606e4295f8002861355f">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=09a0769ba7a3d139168e606e4295f8002861355f</A>
+
+Can you give it a try, please?
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000203.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+	<LI>Next message: <A HREF="000212.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#211">[ date ]</a>
+              <a href="thread.html#211">[ thread ]</a>
+              <a href="subject.html#211">[ subject ]</a>
+              <a href="author.html#211">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

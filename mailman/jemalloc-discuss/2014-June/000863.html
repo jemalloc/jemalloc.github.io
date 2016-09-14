@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Check for __builtin_ffsl before ffsl.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Check%20for%20__builtin_ffsl%20before%20ffsl.&In-Reply-To=%3CC429CDF7-A35F-4DB9-A026-D29A229F0434%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000860.html">
+   <LINK REL="Next"  HREF="000861.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Check for __builtin_ffsl before ffsl.</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Check%20for%20__builtin_ffsl%20before%20ffsl.&In-Reply-To=%3CC429CDF7-A35F-4DB9-A026-D29A229F0434%40canonware.com%3E"
+       TITLE="[PATCH] Check for __builtin_ffsl before ffsl.">jasone at canonware.com
+       </A><BR>
+    <I>Tue Jun  3 21:57:30 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000860.html">[PATCH] Check for __builtin_ffsl before ffsl.
+</A></li>
+        <LI>Next message: <A HREF="000861.html">[PATCH] Use JEMALLOC_INTERNAL_FFSL in STATIC_PAGE_SHIFT test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#863">[ date ]</a>
+              <a href="thread.html#863">[ thread ]</a>
+              <a href="subject.html#863">[ subject ]</a>
+              <a href="author.html#863">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 3, 2014, at 8:09 PM, Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh+jemalloc at glandium.org</A>&gt; wrote:
+&gt;<i> When building with -O0, GCC doesn't use builtins for ffs and ffsl calls,
+</I>&gt;<i> and uses library function calls instead. But the Android NDK doesn't have
+</I>&gt;<i> those functions exported from any library, leading to build failure.
+</I>&gt;<i> However, using __builtin_ffs* uses the builtin inlines.
+</I>&gt;<i> ---
+</I>&gt;<i> configure.ac | 27 ++++++++++++++-------------
+</I>&gt;<i> 1 file changed, 14 insertions(+), 13 deletions(-)
+</I>
+Integrated:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/1a3eafd1b045163f27e4a5acf01280edfe28c309">https://github.com/jemalloc/jemalloc/commit/1a3eafd1b045163f27e4a5acf01280edfe28c309</A>
+
+Thanks,
+Jason
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000860.html">[PATCH] Check for __builtin_ffsl before ffsl.
+</A></li>
+	<LI>Next message: <A HREF="000861.html">[PATCH] Use JEMALLOC_INTERNAL_FFSL in STATIC_PAGE_SHIFT test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#863">[ date ]</a>
+              <a href="thread.html#863">[ thread ]</a>
+              <a href="subject.html#863">[ subject ]</a>
+              <a href="author.html#863">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

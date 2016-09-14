@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc debug mode
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20debug%20mode&In-Reply-To=%3C54D025F7.8020300%40cnnic.cn%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001010.html">
+   <LINK REL="Next"  HREF="001012.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc debug mode</H1>
+    <B>Nan WANG</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20debug%20mode&In-Reply-To=%3C54D025F7.8020300%40cnnic.cn%3E"
+       TITLE="Jemalloc debug mode">wangnan at cnnic.cn
+       </A><BR>
+    <I>Mon Feb  2 17:35:51 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001010.html">Jemalloc debug mode
+</A></li>
+        <LI>Next message: <A HREF="001012.html">Jemalloc debug mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1011">[ date ]</a>
+              <a href="thread.html#1011">[ thread ]</a>
+              <a href="subject.html#1011">[ subject ]</a>
+              <a href="author.html#1011">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I encounted the same problem, double free was not detected while linking 
+with jemalloc.
+&#22312; 2015-2-3 1:21, Rogier 'DocWilco' Mulhuijzen &#20889;&#36947;:
+&gt;<i>
+</I>&gt;<i> Are you sure you have linked to jemalloc? That's something I've messed 
+</I>&gt;<i> up in the past.
+</I>&gt;<i>
+</I>&gt;<i> On 2 Feb 2015 06:24, &quot;SNL&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A> 
+</I>&gt;<i> &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt;&gt; wrote:
+</I>&gt;<i>
+</I>&gt;<i>     Any inputs will be really helpful.
+</I>&gt;<i>
+</I>&gt;<i>     On Fri, Jan 30, 2015 at 8:48 PM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>
+</I>&gt;<i>     &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt;&gt; wrote:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>         Two questions:
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>         1. I am using jemalloc-dev version and configured it as follows
+</I>&gt;<i>
+</I>&gt;<i>         ./configure --enable-debug --enable-fill --enable-ivsalloc
+</I>&gt;<i>         --disable-tcache
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>         I am running following simple test case but double free is not
+</I>&gt;<i>         detected, what am I missing ?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>         int main()
+</I>&gt;<i>         {
+</I>&gt;<i>             char * ptr = malloc(1024);
+</I>&gt;<i>             free(ptr);
+</I>&gt;<i>             free(ptr);
+</I>&gt;<i>             return 0;
+</I>&gt;<i>         }
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>         2.  Is quarantine basically a per thread free list ? How does
+</I>&gt;<i>         it interact with tcache ?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>         Cheers.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>     -- 
+</I>&gt;<i>
+</I>&gt;<i>     Cheers,
+</I>&gt;<i>     Sunny.
+</I>&gt;<i>
+</I>&gt;<i>     _______________________________________________
+</I>&gt;<i>     jemalloc-discuss mailing list
+</I>&gt;<i>     <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A> &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>&gt;
+</I>&gt;<i>     <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>
+-- 
+&#29579;&#26976;    &#25216;&#26415;&#30740;&#21457;&#20013;&#24515;
+---------------------------------
+==&#19987;&#19994;&#183;&#36131;&#20219;&#183;&#26381;&#21153;==
+&#20013;&#22269;&#20114;&#32852;&#32593;&#32476;&#20449;&#24687;&#20013;&#24515; CNNIC
+&#32593; &#22336;: www.cnnic.cn
+&#20013;&#22269;&#20114;&#32852;&#32593;&#32476;&#20449;&#24687;&#20013;&#24515;.&#20013;&#22269;
+&#22320; &#22336;: &#21271;&#20140;&#24066;&#28023;&#28096;&#21306;&#20013;&#20851;&#26449;&#21335;4&#34903;4&#21495;
+&#21271;&#20140;349&#20449;&#31665;6&#20998;&#31665;&#65288;100080&#65289;
+---------------------------------
+Nan WANG
+Research&amp;Development Center
+= =Profession &#8226; Responsibility &#8226; Service= =
+China Internet Network Information Center &#65288;CNNIC&#65289;
+Website: www.cnnic.cn
+          &#20013;&#22269;&#20114;&#32852;&#32593;&#32476;&#20449;&#24687;&#20013;&#24515;.&#20013;&#22269;
+Add: 4th Zhongguancun Nansijie, Haidian District, Beijing 100190, China
+POB: Beijing 349, Branch 6
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/826795aa/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/826795aa/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001010.html">Jemalloc debug mode
+</A></li>
+	<LI>Next message: <A HREF="001012.html">Jemalloc debug mode
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1011">[ date ]</a>
+              <a href="thread.html#1011">[ thread ]</a>
+              <a href="subject.html#1011">[ subject ]</a>
+              <a href="author.html#1011">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

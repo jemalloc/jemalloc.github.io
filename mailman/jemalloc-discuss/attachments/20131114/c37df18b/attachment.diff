@@ -1,0 +1,15 @@
+diff --git a/src/arena.c b/src/arena.c
+index 145de86..c07ca4b 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -1413,6 +1413,10 @@ arena_tcache_fill_small(arena_t *arena, tcache_bin_t *tbin, size_t binind,
+ 		tbin->tstats.nrequests = 0;
+ 	}
+ 	malloc_mutex_unlock(&bin->lock);
++	if (i && i < nfill) {
++	        memmove(tbin->avail, &tbin->avail[nfill - i],
++			i * sizeof(void *));
++	}
+ 	tbin->ncached = i;
+ }
+ 

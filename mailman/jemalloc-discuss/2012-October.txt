@@ -1,0 +1,3871 @@
+From jacob.benoit.1 at gmail.com  Fri Oct  5 22:28:23 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Sat, 6 Oct 2012 01:28:23 -0400
+Subject: Patch: enumerate all live blocks
+Message-ID: <CAJTmd9qd4x9aYSfdzT-NneqSst6DUu712mXr6SaU3-5a7WsuAA@mail.gmail.com>
+
+Hello,
+
+The attached patch instruments jemalloc 3.0, adding the ability to
+enumerate all live blocks.
+
+Currently, the only information stored about blocks is their (payload)
+address and size, but the plan is to also store their allocation call
+stack.
+
+This is achieved by allocating larger blocks than requested, and using
+the extra space to store doubly linked list elements.
+
+ This is provided just in case it might be useful to anyone, not
+considered ready for inclusion in jemalloc. It's been tested for 15
+minutes in a Firefox build.
+
+Details about the overhead, and how it could be reduced:
+ * Memory overhead is, per block: 32 bytes on 32-bit systems, 48 bytes
+on 64-bit systems (assuming size_t == uintptr_t). Could easily be
+reduced to 16 bytes in both cases (by using a XOR linked list and
+assuming that no block exceeds 4G).
+ * Slowness overhead is essentially an additional mutex to lock on
+every malloc/free call. Could be solved in various ways, either
+copying what jemalloc does internally, or by using a lock-free list.
+
+If you want to test it out, currently the only built-in way to output
+the list of blocks is to call je_dump_list_of_blocks(void) e.g. from
+your debugger. See its code to see the relevant calls. Sample output
+from Firefox:
+
+...snip...
+Block 193965:  real block = 0x7fffba218580,  payload = 0x7fffba2185b0,
+ payload size = 64
+Block 193966:  real block = 0x7fffc02dd000,  payload = 0x7fffc02dd030,
+ payload size = 1024
+Block 193967:  real block = 0x7fffc2053ce0,  payload = 0x7fffc2053d10,
+ payload size = 24
+Block 193968:  real block = 0x7fffc5b4ed80,  payload = 0x7fffc5b4edb0,
+ payload size = 80
+Block 193969:  real block = 0x7fffd119e240,  payload = 0x7fffd119e270,
+ payload size = 64
+Block 193970:  real block = 0x7fffcfb4aa60,  payload = 0x7fffcfb4aa90,
+ payload size = 24
+Block 193971:  real block = 0x7fffbb85e1f0,  payload = 0x7fffbb85e220,
+ payload size = 24
+Block 193972:  real block = 0x7fffe20a62e0,  payload = 0x7fffe20a6310,
+ payload size = 32
+
+End enumeration of 193973 jemalloc blocks.
+
+Cheers,
+Benoit
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc-patch
+Type: application/octet-stream
+Size: 18895 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121006/40a054b3/attachment.obj>
+
+From antirez at gmail.com  Sat Oct  6 00:37:12 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Sat, 6 Oct 2012 09:37:12 +0200
+Subject: Patch: enumerate all live blocks
+In-Reply-To: <CAJTmd9qd4x9aYSfdzT-NneqSst6DUu712mXr6SaU3-5a7WsuAA@mail.gmail.com>
+References: <CAJTmd9qd4x9aYSfdzT-NneqSst6DUu712mXr6SaU3-5a7WsuAA@mail.gmail.com>
+Message-ID: <CA+XzkVdtUfQb-pA30k11jui9_nKYAwS2bo0azZuF6czUcYN_-g@mail.gmail.com>
+
+Hello,
+
+what is the advantage of this approach compared to doing it entirely
+in the application code just wrapping malloc/realloc/free?
+Basically wrappered_malloc() allocates a bit more space accordingly to
+the metadata to store, store this metadata at the start of the block,
+and then returns the pointer advanced to the start of the empty space.
+
+Doing it in the context of the application makes it
+malloc-implementation agnostic that can be an advantage.
+
+Regards,
+Salvatore
+
+On Sat, Oct 6, 2012 at 7:28 AM, Benoit Jacob <jacob.benoit.1 at gmail.com> wrote:
+> Hello,
+>
+> The attached patch instruments jemalloc 3.0, adding the ability to
+> enumerate all live blocks.
+>
+> Currently, the only information stored about blocks is their (payload)
+> address and size, but the plan is to also store their allocation call
+> stack.
+>
+> This is achieved by allocating larger blocks than requested, and using
+> the extra space to store doubly linked list elements.
+>
+>  This is provided just in case it might be useful to anyone, not
+> considered ready for inclusion in jemalloc. It's been tested for 15
+> minutes in a Firefox build.
+>
+> Details about the overhead, and how it could be reduced:
+>  * Memory overhead is, per block: 32 bytes on 32-bit systems, 48 bytes
+> on 64-bit systems (assuming size_t == uintptr_t). Could easily be
+> reduced to 16 bytes in both cases (by using a XOR linked list and
+> assuming that no block exceeds 4G).
+>  * Slowness overhead is essentially an additional mutex to lock on
+> every malloc/free call. Could be solved in various ways, either
+> copying what jemalloc does internally, or by using a lock-free list.
+>
+> If you want to test it out, currently the only built-in way to output
+> the list of blocks is to call je_dump_list_of_blocks(void) e.g. from
+> your debugger. See its code to see the relevant calls. Sample output
+> from Firefox:
+>
+> ...snip...
+> Block 193965:  real block = 0x7fffba218580,  payload = 0x7fffba2185b0,
+>  payload size = 64
+> Block 193966:  real block = 0x7fffc02dd000,  payload = 0x7fffc02dd030,
+>  payload size = 1024
+> Block 193967:  real block = 0x7fffc2053ce0,  payload = 0x7fffc2053d10,
+>  payload size = 24
+> Block 193968:  real block = 0x7fffc5b4ed80,  payload = 0x7fffc5b4edb0,
+>  payload size = 80
+> Block 193969:  real block = 0x7fffd119e240,  payload = 0x7fffd119e270,
+>  payload size = 64
+> Block 193970:  real block = 0x7fffcfb4aa60,  payload = 0x7fffcfb4aa90,
+>  payload size = 24
+> Block 193971:  real block = 0x7fffbb85e1f0,  payload = 0x7fffbb85e220,
+>  payload size = 24
+> Block 193972:  real block = 0x7fffe20a62e0,  payload = 0x7fffe20a6310,
+>  payload size = 32
+>
+> End enumeration of 193973 jemalloc blocks.
+>
+> Cheers,
+> Benoit
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       ? David Gelernter
+
+
+From jacob.benoit.1 at gmail.com  Sat Oct  6 08:51:42 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Sat, 6 Oct 2012 11:51:42 -0400
+Subject: Patch: enumerate all live blocks
+In-Reply-To: <CA+XzkVdtUfQb-pA30k11jui9_nKYAwS2bo0azZuF6czUcYN_-g@mail.gmail.com>
+References: <CAJTmd9qd4x9aYSfdzT-NneqSst6DUu712mXr6SaU3-5a7WsuAA@mail.gmail.com>
+	<CA+XzkVdtUfQb-pA30k11jui9_nKYAwS2bo0azZuF6czUcYN_-g@mail.gmail.com>
+Message-ID: <CAJTmd9rxOxfhkQ6XpSrKo-8+aA6JFNTxGZPUMamSiJWK2G6dpA@mail.gmail.com>
+
+It is equivalent, as long as you can ensure that _all_ allocations go
+through your wrappered malloc. The terror of anyone making such a
+wrappered malloc is that some allocations might escape it, such as:
+allocations made by libraries that your application uses, etc. Not
+being familiar with the field, I just found it easier to be confident
+that all allocations would be correctly wrappered by doing it in the
+memory allocator itself, since if any allocation did not go through
+it, we would have allocator mismatches anyway.
+
+Here is an example of what scared me away from trying to do it in the
+application: this is a comment in jemalloc 3.0's src/jemalloc.c:
+
+#if ((is_malloc(je_malloc) == 1) && defined(__GLIBC__) && !defined(__UCLIBC__))
+/*
+ * glibc provides the RTLD_DEEPBIND flag for dlopen which can make it possible
+ * to inconsistently reference libc's malloc(3)-compatible functions
+ * (https://bugzilla.mozilla.org/show_bug.cgi?id=493541).
+ *
+ * These definitions interpose hooks in glibc.  The functions are actually
+ * passed an extra argument for the caller return address, which will be
+ * ignored.
+ */
+JEMALLOC_EXPORT void (* const __free_hook)(void *ptr) = je_free;
+JEMALLOC_EXPORT void *(* const __malloc_hook)(size_t size) = je_malloc;
+JEMALLOC_EXPORT void *(* const __realloc_hook)(void *ptr, size_t size) =
+    je_realloc;
+JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
+    je_memalign;
+#endif
+
+Benoit
+
+2012/10/6 Salvatore Sanfilippo <antirez at gmail.com>:
+> Hello,
+>
+> what is the advantage of this approach compared to doing it entirely
+> in the application code just wrapping malloc/realloc/free?
+> Basically wrappered_malloc() allocates a bit more space accordingly to
+> the metadata to store, store this metadata at the start of the block,
+> and then returns the pointer advanced to the start of the empty space.
+>
+> Doing it in the context of the application makes it
+> malloc-implementation agnostic that can be an advantage.
+>
+> Regards,
+> Salvatore
+>
+> On Sat, Oct 6, 2012 at 7:28 AM, Benoit Jacob <jacob.benoit.1 at gmail.com> wrote:
+>> Hello,
+>>
+>> The attached patch instruments jemalloc 3.0, adding the ability to
+>> enumerate all live blocks.
+>>
+>> Currently, the only information stored about blocks is their (payload)
+>> address and size, but the plan is to also store their allocation call
+>> stack.
+>>
+>> This is achieved by allocating larger blocks than requested, and using
+>> the extra space to store doubly linked list elements.
+>>
+>>  This is provided just in case it might be useful to anyone, not
+>> considered ready for inclusion in jemalloc. It's been tested for 15
+>> minutes in a Firefox build.
+>>
+>> Details about the overhead, and how it could be reduced:
+>>  * Memory overhead is, per block: 32 bytes on 32-bit systems, 48 bytes
+>> on 64-bit systems (assuming size_t == uintptr_t). Could easily be
+>> reduced to 16 bytes in both cases (by using a XOR linked list and
+>> assuming that no block exceeds 4G).
+>>  * Slowness overhead is essentially an additional mutex to lock on
+>> every malloc/free call. Could be solved in various ways, either
+>> copying what jemalloc does internally, or by using a lock-free list.
+>>
+>> If you want to test it out, currently the only built-in way to output
+>> the list of blocks is to call je_dump_list_of_blocks(void) e.g. from
+>> your debugger. See its code to see the relevant calls. Sample output
+>> from Firefox:
+>>
+>> ...snip...
+>> Block 193965:  real block = 0x7fffba218580,  payload = 0x7fffba2185b0,
+>>  payload size = 64
+>> Block 193966:  real block = 0x7fffc02dd000,  payload = 0x7fffc02dd030,
+>>  payload size = 1024
+>> Block 193967:  real block = 0x7fffc2053ce0,  payload = 0x7fffc2053d10,
+>>  payload size = 24
+>> Block 193968:  real block = 0x7fffc5b4ed80,  payload = 0x7fffc5b4edb0,
+>>  payload size = 80
+>> Block 193969:  real block = 0x7fffd119e240,  payload = 0x7fffd119e270,
+>>  payload size = 64
+>> Block 193970:  real block = 0x7fffcfb4aa60,  payload = 0x7fffcfb4aa90,
+>>  payload size = 24
+>> Block 193971:  real block = 0x7fffbb85e1f0,  payload = 0x7fffbb85e220,
+>>  payload size = 24
+>> Block 193972:  real block = 0x7fffe20a62e0,  payload = 0x7fffe20a6310,
+>>  payload size = 32
+>>
+>> End enumeration of 193973 jemalloc blocks.
+>>
+>> Cheers,
+>> Benoit
+>>
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>
+>
+>
+> --
+> Salvatore 'antirez' Sanfilippo
+> open source developer - VMware
+> http://invece.org
+>
+> Beauty is more important in computing than anywhere else in technology
+> because software is so complicated. Beauty is the ultimate defence
+> against complexity.
+>        ? David Gelernter
+
+
+From justin.lebar at gmail.com  Sat Oct  6 10:55:16 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Sat, 6 Oct 2012 13:55:16 -0400
+Subject: Patch: enumerate all live blocks
+In-Reply-To: <CAJTmd9rxOxfhkQ6XpSrKo-8+aA6JFNTxGZPUMamSiJWK2G6dpA@mail.gmail.com>
+References: <CAJTmd9qd4x9aYSfdzT-NneqSst6DUu712mXr6SaU3-5a7WsuAA@mail.gmail.com>
+	<CA+XzkVdtUfQb-pA30k11jui9_nKYAwS2bo0azZuF6czUcYN_-g@mail.gmail.com>
+	<CAJTmd9rxOxfhkQ6XpSrKo-8+aA6JFNTxGZPUMamSiJWK2G6dpA@mail.gmail.com>
+Message-ID: <CAFWcpZ5fSMXaf7noKVuDQcnGKgW5ed0fW0H8eOsNsXRkkb9FdA@mail.gmail.com>
+
+> It is equivalent, as long as you can ensure that _all_ allocations go
+> through your wrappered malloc.
+
+For the purposes of the live-block-walker, does it matter if we miss
+the occasional malloc()/free()?
+
+On Sat, Oct 6, 2012 at 11:51 AM, Benoit Jacob <jacob.benoit.1 at gmail.com> wrote:
+> It is equivalent, as long as you can ensure that _all_ allocations go
+> through your wrappered malloc. The terror of anyone making such a
+> wrappered malloc is that some allocations might escape it, such as:
+> allocations made by libraries that your application uses, etc. Not
+> being familiar with the field, I just found it easier to be confident
+> that all allocations would be correctly wrappered by doing it in the
+> memory allocator itself, since if any allocation did not go through
+> it, we would have allocator mismatches anyway.
+>
+> Here is an example of what scared me away from trying to do it in the
+> application: this is a comment in jemalloc 3.0's src/jemalloc.c:
+>
+> #if ((is_malloc(je_malloc) == 1) && defined(__GLIBC__) && !defined(__UCLIBC__))
+> /*
+>  * glibc provides the RTLD_DEEPBIND flag for dlopen which can make it possible
+>  * to inconsistently reference libc's malloc(3)-compatible functions
+>  * (https://bugzilla.mozilla.org/show_bug.cgi?id=493541).
+>  *
+>  * These definitions interpose hooks in glibc.  The functions are actually
+>  * passed an extra argument for the caller return address, which will be
+>  * ignored.
+>  */
+> JEMALLOC_EXPORT void (* const __free_hook)(void *ptr) = je_free;
+> JEMALLOC_EXPORT void *(* const __malloc_hook)(size_t size) = je_malloc;
+> JEMALLOC_EXPORT void *(* const __realloc_hook)(void *ptr, size_t size) =
+>     je_realloc;
+> JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
+>     je_memalign;
+> #endif
+>
+> Benoit
+>
+> 2012/10/6 Salvatore Sanfilippo <antirez at gmail.com>:
+>> Hello,
+>>
+>> what is the advantage of this approach compared to doing it entirely
+>> in the application code just wrapping malloc/realloc/free?
+>> Basically wrappered_malloc() allocates a bit more space accordingly to
+>> the metadata to store, store this metadata at the start of the block,
+>> and then returns the pointer advanced to the start of the empty space.
+>>
+>> Doing it in the context of the application makes it
+>> malloc-implementation agnostic that can be an advantage.
+>>
+>> Regards,
+>> Salvatore
+>>
+>> On Sat, Oct 6, 2012 at 7:28 AM, Benoit Jacob <jacob.benoit.1 at gmail.com> wrote:
+>>> Hello,
+>>>
+>>> The attached patch instruments jemalloc 3.0, adding the ability to
+>>> enumerate all live blocks.
+>>>
+>>> Currently, the only information stored about blocks is their (payload)
+>>> address and size, but the plan is to also store their allocation call
+>>> stack.
+>>>
+>>> This is achieved by allocating larger blocks than requested, and using
+>>> the extra space to store doubly linked list elements.
+>>>
+>>>  This is provided just in case it might be useful to anyone, not
+>>> considered ready for inclusion in jemalloc. It's been tested for 15
+>>> minutes in a Firefox build.
+>>>
+>>> Details about the overhead, and how it could be reduced:
+>>>  * Memory overhead is, per block: 32 bytes on 32-bit systems, 48 bytes
+>>> on 64-bit systems (assuming size_t == uintptr_t). Could easily be
+>>> reduced to 16 bytes in both cases (by using a XOR linked list and
+>>> assuming that no block exceeds 4G).
+>>>  * Slowness overhead is essentially an additional mutex to lock on
+>>> every malloc/free call. Could be solved in various ways, either
+>>> copying what jemalloc does internally, or by using a lock-free list.
+>>>
+>>> If you want to test it out, currently the only built-in way to output
+>>> the list of blocks is to call je_dump_list_of_blocks(void) e.g. from
+>>> your debugger. See its code to see the relevant calls. Sample output
+>>> from Firefox:
+>>>
+>>> ...snip...
+>>> Block 193965:  real block = 0x7fffba218580,  payload = 0x7fffba2185b0,
+>>>  payload size = 64
+>>> Block 193966:  real block = 0x7fffc02dd000,  payload = 0x7fffc02dd030,
+>>>  payload size = 1024
+>>> Block 193967:  real block = 0x7fffc2053ce0,  payload = 0x7fffc2053d10,
+>>>  payload size = 24
+>>> Block 193968:  real block = 0x7fffc5b4ed80,  payload = 0x7fffc5b4edb0,
+>>>  payload size = 80
+>>> Block 193969:  real block = 0x7fffd119e240,  payload = 0x7fffd119e270,
+>>>  payload size = 64
+>>> Block 193970:  real block = 0x7fffcfb4aa60,  payload = 0x7fffcfb4aa90,
+>>>  payload size = 24
+>>> Block 193971:  real block = 0x7fffbb85e1f0,  payload = 0x7fffbb85e220,
+>>>  payload size = 24
+>>> Block 193972:  real block = 0x7fffe20a62e0,  payload = 0x7fffe20a6310,
+>>>  payload size = 32
+>>>
+>>> End enumeration of 193973 jemalloc blocks.
+>>>
+>>> Cheers,
+>>> Benoit
+>>>
+>>> _______________________________________________
+>>> jemalloc-discuss mailing list
+>>> jemalloc-discuss at canonware.com
+>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>>
+>>
+>>
+>>
+>> --
+>> Salvatore 'antirez' Sanfilippo
+>> open source developer - VMware
+>> http://invece.org
+>>
+>> Beauty is more important in computing than anywhere else in technology
+>> because software is so complicated. Beauty is the ultimate defence
+>> against complexity.
+>>        ? David Gelernter
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From jacob.benoit.1 at gmail.com  Sat Oct  6 11:42:02 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Sat, 6 Oct 2012 14:42:02 -0400
+Subject: Patch: enumerate all live blocks
+In-Reply-To: <CAFWcpZ5fSMXaf7noKVuDQcnGKgW5ed0fW0H8eOsNsXRkkb9FdA@mail.gmail.com>
+References: <CAJTmd9qd4x9aYSfdzT-NneqSst6DUu712mXr6SaU3-5a7WsuAA@mail.gmail.com>
+	<CA+XzkVdtUfQb-pA30k11jui9_nKYAwS2bo0azZuF6czUcYN_-g@mail.gmail.com>
+	<CAJTmd9rxOxfhkQ6XpSrKo-8+aA6JFNTxGZPUMamSiJWK2G6dpA@mail.gmail.com>
+	<CAFWcpZ5fSMXaf7noKVuDQcnGKgW5ed0fW0H8eOsNsXRkkb9FdA@mail.gmail.com>
+Message-ID: <CAJTmd9qWVR5p3pn3wRs_tPrXNR=Cv=Qn=Yb4ESYWzDeTnW2=Ug@mail.gmail.com>
+
+2012/10/6 Justin Lebar <justin.lebar at gmail.com>:
+>> It is equivalent, as long as you can ensure that _all_ allocations go
+>> through your wrappered malloc.
+>
+> For the purposes of the live-block-walker, does it matter if we miss
+> the occasional malloc()/free()?
+
+It matters for just being able to run at all without crashing: a
+mismatch between wrappered and non-wrappered functions would cause a
+crash or corruption like allocator mismatches typically do.
+
+Benoit
+
+>
+> On Sat, Oct 6, 2012 at 11:51 AM, Benoit Jacob <jacob.benoit.1 at gmail.com> wrote:
+>> It is equivalent, as long as you can ensure that _all_ allocations go
+>> through your wrappered malloc. The terror of anyone making such a
+>> wrappered malloc is that some allocations might escape it, such as:
+>> allocations made by libraries that your application uses, etc. Not
+>> being familiar with the field, I just found it easier to be confident
+>> that all allocations would be correctly wrappered by doing it in the
+>> memory allocator itself, since if any allocation did not go through
+>> it, we would have allocator mismatches anyway.
+>>
+>> Here is an example of what scared me away from trying to do it in the
+>> application: this is a comment in jemalloc 3.0's src/jemalloc.c:
+>>
+>> #if ((is_malloc(je_malloc) == 1) && defined(__GLIBC__) && !defined(__UCLIBC__))
+>> /*
+>>  * glibc provides the RTLD_DEEPBIND flag for dlopen which can make it possible
+>>  * to inconsistently reference libc's malloc(3)-compatible functions
+>>  * (https://bugzilla.mozilla.org/show_bug.cgi?id=493541).
+>>  *
+>>  * These definitions interpose hooks in glibc.  The functions are actually
+>>  * passed an extra argument for the caller return address, which will be
+>>  * ignored.
+>>  */
+>> JEMALLOC_EXPORT void (* const __free_hook)(void *ptr) = je_free;
+>> JEMALLOC_EXPORT void *(* const __malloc_hook)(size_t size) = je_malloc;
+>> JEMALLOC_EXPORT void *(* const __realloc_hook)(void *ptr, size_t size) =
+>>     je_realloc;
+>> JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
+>>     je_memalign;
+>> #endif
+>>
+>> Benoit
+>>
+>> 2012/10/6 Salvatore Sanfilippo <antirez at gmail.com>:
+>>> Hello,
+>>>
+>>> what is the advantage of this approach compared to doing it entirely
+>>> in the application code just wrapping malloc/realloc/free?
+>>> Basically wrappered_malloc() allocates a bit more space accordingly to
+>>> the metadata to store, store this metadata at the start of the block,
+>>> and then returns the pointer advanced to the start of the empty space.
+>>>
+>>> Doing it in the context of the application makes it
+>>> malloc-implementation agnostic that can be an advantage.
+>>>
+>>> Regards,
+>>> Salvatore
+>>>
+>>> On Sat, Oct 6, 2012 at 7:28 AM, Benoit Jacob <jacob.benoit.1 at gmail.com> wrote:
+>>>> Hello,
+>>>>
+>>>> The attached patch instruments jemalloc 3.0, adding the ability to
+>>>> enumerate all live blocks.
+>>>>
+>>>> Currently, the only information stored about blocks is their (payload)
+>>>> address and size, but the plan is to also store their allocation call
+>>>> stack.
+>>>>
+>>>> This is achieved by allocating larger blocks than requested, and using
+>>>> the extra space to store doubly linked list elements.
+>>>>
+>>>>  This is provided just in case it might be useful to anyone, not
+>>>> considered ready for inclusion in jemalloc. It's been tested for 15
+>>>> minutes in a Firefox build.
+>>>>
+>>>> Details about the overhead, and how it could be reduced:
+>>>>  * Memory overhead is, per block: 32 bytes on 32-bit systems, 48 bytes
+>>>> on 64-bit systems (assuming size_t == uintptr_t). Could easily be
+>>>> reduced to 16 bytes in both cases (by using a XOR linked list and
+>>>> assuming that no block exceeds 4G).
+>>>>  * Slowness overhead is essentially an additional mutex to lock on
+>>>> every malloc/free call. Could be solved in various ways, either
+>>>> copying what jemalloc does internally, or by using a lock-free list.
+>>>>
+>>>> If you want to test it out, currently the only built-in way to output
+>>>> the list of blocks is to call je_dump_list_of_blocks(void) e.g. from
+>>>> your debugger. See its code to see the relevant calls. Sample output
+>>>> from Firefox:
+>>>>
+>>>> ...snip...
+>>>> Block 193965:  real block = 0x7fffba218580,  payload = 0x7fffba2185b0,
+>>>>  payload size = 64
+>>>> Block 193966:  real block = 0x7fffc02dd000,  payload = 0x7fffc02dd030,
+>>>>  payload size = 1024
+>>>> Block 193967:  real block = 0x7fffc2053ce0,  payload = 0x7fffc2053d10,
+>>>>  payload size = 24
+>>>> Block 193968:  real block = 0x7fffc5b4ed80,  payload = 0x7fffc5b4edb0,
+>>>>  payload size = 80
+>>>> Block 193969:  real block = 0x7fffd119e240,  payload = 0x7fffd119e270,
+>>>>  payload size = 64
+>>>> Block 193970:  real block = 0x7fffcfb4aa60,  payload = 0x7fffcfb4aa90,
+>>>>  payload size = 24
+>>>> Block 193971:  real block = 0x7fffbb85e1f0,  payload = 0x7fffbb85e220,
+>>>>  payload size = 24
+>>>> Block 193972:  real block = 0x7fffe20a62e0,  payload = 0x7fffe20a6310,
+>>>>  payload size = 32
+>>>>
+>>>> End enumeration of 193973 jemalloc blocks.
+>>>>
+>>>> Cheers,
+>>>> Benoit
+>>>>
+>>>> _______________________________________________
+>>>> jemalloc-discuss mailing list
+>>>> jemalloc-discuss at canonware.com
+>>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>>>
+>>>
+>>>
+>>>
+>>> --
+>>> Salvatore 'antirez' Sanfilippo
+>>> open source developer - VMware
+>>> http://invece.org
+>>>
+>>> Beauty is more important in computing than anywhere else in technology
+>>> because software is so complicated. Beauty is the ultimate defence
+>>> against complexity.
+>>>        ? David Gelernter
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From jasone at canonware.com  Mon Oct  8 15:43:13 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 8 Oct 2012 15:43:13 -0700
+Subject: LG_QUANTUM hppa definition
+In-Reply-To: <501EBBAF.5050707@gentoo.org>
+References: <501EBBAF.5050707@gentoo.org>
+Message-ID: <EA5D6B46-60AF-4741-BF67-E7027630ACE7@canonware.com>
+
+On Aug 5, 2012, at 11:30 AM, Jory A. Pratt wrote:
+> Please find attached hppa support for LG_QUANTUM
+
+Committed.
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Mon Oct  8 23:11:26 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 8 Oct 2012 23:11:26 -0700
+Subject: jemalloc and STL
+In-Reply-To: <CACSmO4Z0apatOM3D36L07KGEQ=YcNDEKXU6HsJkYUsVMgW-aXw@mail.gmail.com>
+References: <CACSmO4Z0apatOM3D36L07KGEQ=YcNDEKXU6HsJkYUsVMgW-aXw@mail.gmail.com>
+Message-ID: <4FBFEF2E-192E-4221-9F29-A2252E09C667@canonware.com>
+
+On Sep 26, 2012, at 8:13 AM, Aaron Evers <eversa at gmail.com> wrote:
+> Is it sufficient to link in jemalloc at compile time (i.e. -ljemalloc)
+> if I want it to be used by STL containers?  Or do I need to specify
+> the allocator, as in:
+> typedef std::list<int, malloc_alloc> mylist;
+
+It should be sufficient to link in jemalloc.  Note however that as far as I know, glibc still has what amounts to a huge stl memory leak that can be worked around by defining GLIBCXX_FORCE_NEW=1 in the environment when running your application.  tcmalloc does this automatically, but jemalloc does not.
+
+Jason
+
+From mh+jemalloc at glandium.org  Tue Oct  9 02:21:14 2012
+From: mh+jemalloc at glandium.org (mh+jemalloc at glandium.org)
+Date: Tue,  9 Oct 2012 11:21:14 +0200
+Subject: [PATCH] Fix malloc_usable_size definition
+Message-ID: <1349774474-26819-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+The function declaration in system headers uses void * instead of const void *, and
+that can lead to conflicts when building against recent Android NDKs, where string.h
+includes malloc.h, which contains that conflicting definition.
+---
+ include/jemalloc/jemalloc.h.in |    2 +-
+ src/jemalloc.c                 |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+index ad06948..f210a0b 100644
+--- a/include/jemalloc/jemalloc.h.in
++++ b/include/jemalloc/jemalloc.h.in
+@@ -59,7 +59,7 @@ JEMALLOC_EXPORT void *	je_memalign(size_t alignment, size_t size)
+ JEMALLOC_EXPORT void *	je_valloc(size_t size) JEMALLOC_ATTR(malloc);
+ #endif
+ 
+-JEMALLOC_EXPORT size_t	je_malloc_usable_size(const void *ptr);
++JEMALLOC_EXPORT size_t	je_malloc_usable_size(void *ptr);
+ JEMALLOC_EXPORT void	je_malloc_stats_print(void (*write_cb)(void *,
+     const char *), void *je_cbopaque, const char *opts);
+ JEMALLOC_EXPORT int	je_mallctl(const char *name, void *oldp,
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index bc54cd7..9125236 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -1279,7 +1279,7 @@ JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
+  */
+ 
+ size_t
+-je_malloc_usable_size(const void *ptr)
++je_malloc_usable_size(void *ptr)
+ {
+ 	size_t ret;
+ 
+-- 
+1.7.10.4
+
+
+
+From jasone at canonware.com  Tue Oct  9 10:16:07 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 9 Oct 2012 10:16:07 -0700
+Subject: [PATCH] Fix malloc_usable_size definition
+In-Reply-To: <1349774474-26819-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1349774474-26819-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <FF2215BF-F99E-4A8B-A2A2-4839F1D5EABF@canonware.com>
+
+On Oct 9, 2012, at 2:21 AM, mh+jemalloc at glandium.org wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> The function declaration in system headers uses void * instead of const void *, and
+> that can lead to conflicts when building against recent Android NDKs, where string.h
+> includes malloc.h, which contains that conflicting definition.
+> ---
+> include/jemalloc/jemalloc.h.in |    2 +-
+> src/jemalloc.c                 |    2 +-
+> 2 files changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+> index ad06948..f210a0b 100644
+> --- a/include/jemalloc/jemalloc.h.in
+> +++ b/include/jemalloc/jemalloc.h.in
+> @@ -59,7 +59,7 @@ JEMALLOC_EXPORT void *	je_memalign(size_t alignment, size_t size)
+> JEMALLOC_EXPORT void *	je_valloc(size_t size) JEMALLOC_ATTR(malloc);
+> #endif
+> 
+> -JEMALLOC_EXPORT size_t	je_malloc_usable_size(const void *ptr);
+> +JEMALLOC_EXPORT size_t	je_malloc_usable_size(void *ptr);
+> JEMALLOC_EXPORT void	je_malloc_stats_print(void (*write_cb)(void *,
+>     const char *), void *je_cbopaque, const char *opts);
+> JEMALLOC_EXPORT int	je_mallctl(const char *name, void *oldp,
+> diff --git a/src/jemalloc.c b/src/jemalloc.c
+> index bc54cd7..9125236 100644
+> --- a/src/jemalloc.c
+> +++ b/src/jemalloc.c
+> @@ -1279,7 +1279,7 @@ JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
+>  */
+> 
+> size_t
+> -je_malloc_usable_size(const void *ptr)
+> +je_malloc_usable_size(void *ptr)
+> {
+> 	size_t ret;
+> 
+> -- 
+> 1.7.10.4
+
+FreeBSD's malloc_usable_size() uses (const void *ptr) as its argument, so I'd like to get a fix in for this that doesn't require patching jemalloc for FreeBSD.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Oct  9 15:36:58 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 9 Oct 2012 15:36:58 -0700
+Subject: dead lock in forked child
+In-Reply-To: <1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+Message-ID: <AF1CD14B-2401-4266-8BEA-66EFBD07EE69@canonware.com>
+
+On Jun 1, 2012, at 11:31 AM, Jason Evans wrote:
+> On May 25, 2012, at 2:02 AM, Jokea wrote:
+>> I've found that a forked child runs into dead lock in a multithreaded application.
+> 
+> jemalloc calls pthread_atfork() during initialization, but the test program does no allocation in the main thread before forking, and it launches threads that race with it.  It appears that one of those threads gets part way through allocator initialization before the fork occurs, which leaves the allocator in an inconsistent state (init_lock locked, but initialization incomplete).  The simple workaround is to allocate something before forking.
+> 
+> A general fix in jemalloc is messy at best.  The possibilities that come to mind are 1) intercepting pthread_create() (or all fork-like system calls) much as the lazy locking code in mutex.c does and forcing allocator initialization, or 2) using a library initializer (function specified via compiler attribute to be run during library load) to force allocator initialization.  Both of these approaches are somewhat fragile; dlsym(RTLD_NEXT, ?) can break if other libraries play similar games, and library initializers don't run early enough to prevent all possible failures.  In any case, I'll make a note to experiment with (2).
+
+I just committed a fix for this bug:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=20f1fc95adb35ea63dc61f47f2b0ffbd37d39f32
+
+It turned out that there were also some mutex acquire/release calls missing in the prefork/postfork functions, but most applications would not have exercised the code necessary to cause related deadlocks.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121009/42f93079/attachment.html>
+
+From antirez at gmail.com  Tue Oct  9 15:41:36 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Wed, 10 Oct 2012 00:41:36 +0200
+Subject: dead lock in forked child
+In-Reply-To: <AF1CD14B-2401-4266-8BEA-66EFBD07EE69@canonware.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+	<AF1CD14B-2401-4266-8BEA-66EFBD07EE69@canonware.com>
+Message-ID: <CA+XzkVdy4j36NvVXq9VciOySh9PMftGQ67DDP330m7zj=b+PoQ@mail.gmail.com>
+
+Thank you Jason, I think we'll merge the fix in the Redis 2.6 branch
+that is currently in release candidate.
+
+Cheers,
+Salvatore
+
+On Wed, Oct 10, 2012 at 12:36 AM, Jason Evans <jasone at canonware.com> wrote:
+> On Jun 1, 2012, at 11:31 AM, Jason Evans wrote:
+>
+> On May 25, 2012, at 2:02 AM, Jokea wrote:
+>
+> I've found that a forked child runs into dead lock in a multithreaded
+> application.
+>
+>
+> jemalloc calls pthread_atfork() during initialization, but the test program
+> does no allocation in the main thread before forking, and it launches
+> threads that race with it.  It appears that one of those threads gets part
+> way through allocator initialization before the fork occurs, which leaves
+> the allocator in an inconsistent state (init_lock locked, but initialization
+> incomplete).  The simple workaround is to allocate something before forking.
+>
+> A general fix in jemalloc is messy at best.  The possibilities that come to
+> mind are 1) intercepting pthread_create() (or all fork-like system calls)
+> much as the lazy locking code in mutex.c does and forcing allocator
+> initialization, or 2) using a library initializer (function specified via
+> compiler attribute to be run during library load) to force allocator
+> initialization.  Both of these approaches are somewhat fragile;
+> dlsym(RTLD_NEXT, ?) can break if other libraries play similar games, and
+> library initializers don't run early enough to prevent all possible
+> failures.  In any case, I'll make a note to experiment with (2).
+>
+>
+> I just committed a fix for this bug:
+>
+> http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=20f1fc95adb35ea63dc61f47f2b0ffbd37d39f32
+>
+> It turned out that there were also some mutex acquire/release calls missing
+> in the prefork/postfork functions, but most applications would not have
+> exercised the code necessary to cause related deadlocks.
+>
+> Jason
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       ? David Gelernter
+
+
+From antirez at gmail.com  Tue Oct  9 15:48:01 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Wed, 10 Oct 2012 00:48:01 +0200
+Subject: dead lock in forked child
+In-Reply-To: <CA+XzkVdy4j36NvVXq9VciOySh9PMftGQ67DDP330m7zj=b+PoQ@mail.gmail.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+	<AF1CD14B-2401-4266-8BEA-66EFBD07EE69@canonware.com>
+	<CA+XzkVdy4j36NvVXq9VciOySh9PMftGQ67DDP330m7zj=b+PoQ@mail.gmail.com>
+Message-ID: <CA+XzkVeKGcJzepHefS-T_bpX+b93NOKwvsSxKQ+UKjcHvzbG8g@mail.gmail.com>
+
+Sorry now I realize that we just always allocate something in main()
+before doing anything else, so there is no need to touch an RC for
+this.
+
+Looking forward to the next jemalloc release :-)
+Salvatore
+
+On Wed, Oct 10, 2012 at 12:41 AM, Salvatore Sanfilippo
+<antirez at gmail.com> wrote:
+> Thank you Jason, I think we'll merge the fix in the Redis 2.6 branch
+> that is currently in release candidate.
+>
+> Cheers,
+> Salvatore
+>
+> On Wed, Oct 10, 2012 at 12:36 AM, Jason Evans <jasone at canonware.com> wrote:
+>> On Jun 1, 2012, at 11:31 AM, Jason Evans wrote:
+>>
+>> On May 25, 2012, at 2:02 AM, Jokea wrote:
+>>
+>> I've found that a forked child runs into dead lock in a multithreaded
+>> application.
+>>
+>>
+>> jemalloc calls pthread_atfork() during initialization, but the test program
+>> does no allocation in the main thread before forking, and it launches
+>> threads that race with it.  It appears that one of those threads gets part
+>> way through allocator initialization before the fork occurs, which leaves
+>> the allocator in an inconsistent state (init_lock locked, but initialization
+>> incomplete).  The simple workaround is to allocate something before forking.
+>>
+>> A general fix in jemalloc is messy at best.  The possibilities that come to
+>> mind are 1) intercepting pthread_create() (or all fork-like system calls)
+>> much as the lazy locking code in mutex.c does and forcing allocator
+>> initialization, or 2) using a library initializer (function specified via
+>> compiler attribute to be run during library load) to force allocator
+>> initialization.  Both of these approaches are somewhat fragile;
+>> dlsym(RTLD_NEXT, ?) can break if other libraries play similar games, and
+>> library initializers don't run early enough to prevent all possible
+>> failures.  In any case, I'll make a note to experiment with (2).
+>>
+>>
+>> I just committed a fix for this bug:
+>>
+>> http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=20f1fc95adb35ea63dc61f47f2b0ffbd37d39f32
+>>
+>> It turned out that there were also some mutex acquire/release calls missing
+>> in the prefork/postfork functions, but most applications would not have
+>> exercised the code necessary to cause related deadlocks.
+>>
+>> Jason
+>>
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>
+>
+>
+> --
+> Salvatore 'antirez' Sanfilippo
+> open source developer - VMware
+> http://invece.org
+>
+> Beauty is more important in computing than anywhere else in technology
+> because software is so complicated. Beauty is the ultimate defence
+> against complexity.
+>        ? David Gelernter
+
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       ? David Gelernter
+
+
+From jasone at canonware.com  Tue Oct  9 16:27:32 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 9 Oct 2012 16:27:32 -0700
+Subject: [PATCH] Fix malloc_usable_size definition
+In-Reply-To: <FF2215BF-F99E-4A8B-A2A2-4839F1D5EABF@canonware.com>
+References: <1349774474-26819-1-git-send-email-mh+jemalloc@glandium.org>
+	<FF2215BF-F99E-4A8B-A2A2-4839F1D5EABF@canonware.com>
+Message-ID: <FE3E5AA9-B39B-47CC-829A-BFE170F43B47@canonware.com>
+
+On Oct 9, 2012, at 10:16 AM, Jason Evans wrote:
+> FreeBSD's malloc_usable_size() uses (const void *ptr) as its argument, so I'd like to get a fix in for this that doesn't require patching jemalloc for FreeBSD.
+
+I committed a fix that removes the const only for Linux:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=247d1248478561c669a85d831e9758089f93a076
+
+Let me know if this doesn't do the right thing for Android.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Oct  9 18:07:05 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 9 Oct 2012 18:07:05 -0700
+Subject: dead lock in forked child
+In-Reply-To: <04D653F92BE8DD4FBD2C6ABD06B413190C73CA7B@SACEXCMBX03-PRD.hq.netapp.com>
+References: <04D653F92BE8DD4FBD2C6ABD06B413190C73CA7B@SACEXCMBX03-PRD.hq.netapp.com>
+Message-ID: <95FA3531-4D0A-4584-A12B-8B380AD2EBDB@canonware.com>
+
+On Oct 9, 2012, at 5:53 PM, "Mowry, Robert" <Robert.Mowry at netapp.com> wrote:
+> I can understand the motivation behind wanting this to work, but when I
+> read the POSIX spec for threaded programs that call fork(), it seems
+> pretty clear that malloc() and free() etc are not defined to be safe to
+> call in the child process:
+> 
+> http://pubs.opengroup.org/onlinepubs/9699919799/functions/fork.html
+> 
+> [?]
+> 
+> Is is that people want to go beyond what the spec calls out - and hence
+> the request to fix issues like this?  Or are folks not aware they are
+> attempting to do something that's not really kosher?
+
+In an idea world I would prefer to make no accommodation for such dangerous application behavior.  However, I've heard many times, "But it works with [insert OS/allocator here]!"  Thus, the problem is that there's a lot of dangerous code in the world that mostly works, and if jemalloc doesn't go to some extra trouble, it ends up not being a viable general purpose alternative.
+
+That said, I tend to play whack-a-mole with fork-related issues, because I personally don't think it's important enough to spend a bunch of time providing a rock-solid solution. =)
+
+Jason
+
+From mh+jemalloc at glandium.org  Tue Oct  9 23:54:23 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 10 Oct 2012 08:54:23 +0200
+Subject: mark _pthread_mutex_init_calloc_cb as public explicitly
+In-Reply-To: <1TDx6L-000Als-9z@internal.tormail.org>
+References: <1TDx6L-000Als-9z@internal.tormail.org>
+Message-ID: <20121010065423.GA27638@glandium.org>
+
+Jason, could you apply this patch?
+
+Thanks
+
+Mike
+
+On Tue, Sep 18, 2012 at 07:40:31AM -0500, Jan Beich wrote:
+> Mozilla build hides everything by default using visibility pragma and
+> unhides only explicitly listed headers. But this doesn't work on FreeBSD
+> because _pthread_mutex_init_calloc_cb is neither documented nor exposed
+> via any header.
+> 
+> diff --git a/src/mutex.c b/src/mutex.c
+> index 37a843e..55e18c2 100644
+> --- a/src/mutex.c
+> +++ b/src/mutex.c
+> @@ -64,7 +64,7 @@ pthread_create(pthread_t *__restrict thread,
+>  /******************************************************************************/
+>  
+>  #ifdef JEMALLOC_MUTEX_INIT_CB
+> -int	_pthread_mutex_init_calloc_cb(pthread_mutex_t *mutex,
+> +JEMALLOC_EXPORT int	_pthread_mutex_init_calloc_cb(pthread_mutex_t *mutex,
+>      void *(calloc_cb)(size_t, size_t));
+>  #endif
+>  
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From antirez at gmail.com  Wed Oct 10 01:03:31 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Wed, 10 Oct 2012 10:03:31 +0200
+Subject: dead lock in forked child
+In-Reply-To: <04D653F92BE8DD4FBD2C6ABD06B413190C73CA7B@SACEXCMBX03-PRD.hq.netapp.com>
+References: <CA+XzkVeKGcJzepHefS-T_bpX+b93NOKwvsSxKQ+UKjcHvzbG8g@mail.gmail.com>
+	<04D653F92BE8DD4FBD2C6ABD06B413190C73CA7B@SACEXCMBX03-PRD.hq.netapp.com>
+Message-ID: <CA+XzkVcK1BNV1SnYoseUzX02r1A0g0ZoMsrmj-PAN_Y5Lb1dPA@mail.gmail.com>
+
+On Wed, Oct 10, 2012 at 2:53 AM, Mowry, Robert <Robert.Mowry at netapp.com> wrote:
+> I can understand the motivation behind wanting this to work, but when I
+> read the POSIX spec for threaded programs that call fork(), it seems
+> pretty clear that malloc() and free() etc are not defined to be safe to
+> call in the child process:
+
+Hi Robert,
+
+you are absolutely right, and I agree that avoiding to rely on this
+kind of behaviour is safe for most applications.
+
+However Redis is system software, and for it to work properly and at
+the best of what current hardware can do, we actually rely on many
+things that are common in modern unix-like operating systems and are
+not specified by the POSIX standard (including the behaviour of the
+virtual memory that must support copy on write).
+
+So to write more complex and convoluted code to escape the
+malloc+threads+fork problem is pointless in the case of Redis since
+there are anyway bigger problems to make it a truly portable software.
+As long as we are sure that the systems we support more closely
+(Linux, Darwin, and *BSD basically) provide a version of malloc() that
+is safe in this context, we try to be pragmatic and go forward with
+it.
+
+That said Redis is *almost* single threaded, but we use a few threads
+to call system calls such as close(2) that may block our main thread
+resulting into latency spikes. At the same time we need to fork() as
+fork is used by Redis to dump the DB file on disk in the case of the
+RDB persistence, or to rewrite the append only file (that is a
+different persistence method). So we have a big advantage in this
+setup that can not be easily simulated by other means... as long as it
+works in a reliable way, we need to say at the limits (and over) of
+POSIX...
+
+However we ship Redis with a copy of jemalloc inside our source tree
+that is used when building on Linux. As long as jemalloc is safe, we
+are safe under Linux that is where 99.9% of deployments happen. So at
+least we are not subject to random glibc changes and behaviours that
+are outside of our control.
+
+Cheers,
+Salvatore
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       ? David Gelernter
+
+
+From mh+jemalloc at glandium.org  Wed Oct 10 01:06:05 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 10 Oct 2012 10:06:05 +0200
+Subject: Version number in dev branch builds is wrong
+Message-ID: <20121010080605.GA21677@glandium.org>
+
+Hi,
+
+I just noticed that the version put in VERSION and used to fill
+JEMALLOC_VERSION* macros is wrong on the dev branch.
+The version is in the form 1.0.0-n-gcommittish. This happens because the
+3.0.0 tag is nowhere in the dev branch history. The master branch should
+be merged into the dev branch after a release.
+
+Cheers,
+
+Mike
+
+
+From antirez at gmail.com  Wed Oct 10 01:07:11 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Wed, 10 Oct 2012 10:07:11 +0200
+Subject: dead lock in forked child
+In-Reply-To: <95FA3531-4D0A-4584-A12B-8B380AD2EBDB@canonware.com>
+References: <04D653F92BE8DD4FBD2C6ABD06B413190C73CA7B@SACEXCMBX03-PRD.hq.netapp.com>
+	<95FA3531-4D0A-4584-A12B-8B380AD2EBDB@canonware.com>
+Message-ID: <CA+XzkVdVjqq7SJJG5Em0_SuLdV2M6P-NH8u54ZP414VVtp110g@mail.gmail.com>
+
+On Wed, Oct 10, 2012 at 3:07 AM, Jason Evans <jasone at canonware.com> wrote:
+
+> That said, I tend to play whack-a-mole with fork-related issues, because I personally don't think it's important enough to spend a bunch of time providing a rock-solid solution. =)
+
+I understand this sentiment and I take this tradeoffs myself when
+developing software, however there may be the case that while we are
+speaking an important percentage of all the allocations performed by
+jemalloc are happening inside Redis processes :-)
+In short so far we rely on jemalloc a lot!
+
+Cheers,
+Salvatore
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       ? David Gelernter
+
+
+From jasone at canonware.com  Wed Oct 10 09:16:35 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 10 Oct 2012 09:16:35 -0700
+Subject: mark _pthread_mutex_init_calloc_cb as public explicitly
+In-Reply-To: <1TDx6L-000Als-9z@internal.tormail.org>
+References: <1TDx6L-000Als-9z@internal.tormail.org>
+Message-ID: <DE3928D3-C499-4594-86B2-3BBE6AD64499@canonware.com>
+
+On Sep 18, 2012, at 5:40 AM, Jan Beich wrote:
+> Mozilla build hides everything by default using visibility pragma and
+> unhides only explicitly listed headers. But this doesn't work on FreeBSD
+> because _pthread_mutex_init_calloc_cb is neither documented nor exposed
+> via any header.
+> 
+> [?]
+
+Committed.
+
+Thanks,
+Jason
+
+From Robert.Mowry at netapp.com  Tue Oct  9 17:53:32 2012
+From: Robert.Mowry at netapp.com (Mowry, Robert)
+Date: Wed, 10 Oct 2012 00:53:32 +0000
+Subject: dead lock in forked child
+In-Reply-To: <CA+XzkVeKGcJzepHefS-T_bpX+b93NOKwvsSxKQ+UKjcHvzbG8g@mail.gmail.com>
+Message-ID: <04D653F92BE8DD4FBD2C6ABD06B413190C73CA7B@SACEXCMBX03-PRD.hq.netapp.com>
+
+I can understand the motivation behind wanting this to work, but when I
+read the POSIX spec for threaded programs that call fork(), it seems
+pretty clear that malloc() and free() etc are not defined to be safe to
+call in the child process:
+
+http://pubs.opengroup.org/onlinepubs/9699919799/functions/fork.html
+
+which says in part:
+
+A process shall be created with a single thread. If a multi-threaded
+process calls fork(), the new process shall contain a replica of the
+calling thread and its entire address space, possibly including the states
+of mutexes and other resources. Consequently, to avoid errors, the child
+process may only execute async-signal-safe operations until such time as
+one of the exec 
+<http://pubs.opengroup.org/onlinepubs/9699919799/functions/exec.html>functi
+ons is called. Fork handlers may be established by means of the
+pthread_atfork() 
+<http://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_atfork.h
+tml> function in order to maintain application invariants across fork()
+calls.
+
+The list of async-signal-safe functions is defined here:
+
+http://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#ta
+g_15_04
+
+(it's a long way down the page)
+
+Is is that people want to go beyond what the spec calls out - and hence
+the request to fix issues like this?  Or are folks not aware they are
+attempting to do something that's not really kosher?
+
+
+-bob
+
+On 10/9/12 6:48 PM, "Salvatore Sanfilippo" <antirez at gmail.com> wrote:
+
+>Sorry now I realize that we just always allocate something in main()
+>before doing anything else, so there is no need to touch an RC for
+>this.
+>
+>Looking forward to the next jemalloc release :-)
+>Salvatore
+>
+>On Wed, Oct 10, 2012 at 12:41 AM, Salvatore Sanfilippo
+><antirez at gmail.com> wrote:
+>> Thank you Jason, I think we'll merge the fix in the Redis 2.6 branch
+>> that is currently in release candidate.
+>>
+>> Cheers,
+>> Salvatore
+>>
+>> On Wed, Oct 10, 2012 at 12:36 AM, Jason Evans <jasone at canonware.com>
+>>wrote:
+>>> On Jun 1, 2012, at 11:31 AM, Jason Evans wrote:
+>>>
+>>> On May 25, 2012, at 2:02 AM, Jokea wrote:
+>>>
+>>> I've found that a forked child runs into dead lock in a multithreaded
+>>> application.
+>>>
+>>>
+>>> jemalloc calls pthread_atfork() during initialization, but the test
+>>>program
+>>> does no allocation in the main thread before forking, and it launches
+>>> threads that race with it.  It appears that one of those threads gets
+>>>part
+>>> way through allocator initialization before the fork occurs, which
+>>>leaves
+>>> the allocator in an inconsistent state (init_lock locked, but
+>>>initialization
+>>> incomplete).  The simple workaround is to allocate something before
+>>>forking.
+>>>
+>>> A general fix in jemalloc is messy at best.  The possibilities that
+>>>come to
+>>> mind are 1) intercepting pthread_create() (or all fork-like system
+>>>calls)
+>>> much as the lazy locking code in mutex.c does and forcing allocator
+>>> initialization, or 2) using a library initializer (function specified
+>>>via
+>>> compiler attribute to be run during library load) to force allocator
+>>> initialization.  Both of these approaches are somewhat fragile;
+>>> dlsym(RTLD_NEXT, ?) can break if other libraries play similar games,
+>>>and
+>>> library initializers don't run early enough to prevent all possible
+>>> failures.  In any case, I'll make a note to experiment with (2).
+>>>
+>>>
+>>> I just committed a fix for this bug:
+>>>
+>>> 
+>>>http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;
+>>>h=20f1fc95adb35ea63dc61f47f2b0ffbd37d39f32
+>>>
+>>> It turned out that there were also some mutex acquire/release calls
+>>>missing
+>>> in the prefork/postfork functions, but most applications would not have
+>>> exercised the code necessary to cause related deadlocks.
+>>>
+>>> Jason
+>>>
+>>> _______________________________________________
+>>> jemalloc-discuss mailing list
+>>> jemalloc-discuss at canonware.com
+>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>>
+>>
+>>
+>>
+>> --
+>> Salvatore 'antirez' Sanfilippo
+>> open source developer - VMware
+>> http://invece.org
+>>
+>> Beauty is more important in computing than anywhere else in technology
+>> because software is so complicated. Beauty is the ultimate defence
+>> against complexity.
+>>        ? David Gelernter
+>
+>
+>
+>-- 
+>Salvatore 'antirez' Sanfilippo
+>open source developer - VMware
+>http://invece.org
+>
+>Beauty is more important in computing than anywhere else in technology
+>because software is so complicated. Beauty is the ultimate defence
+>against complexity.
+>       ? David Gelernter
+>_______________________________________________
+>jemalloc-discuss mailing list
+>jemalloc-discuss at canonware.com
+>http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+
+From jbeich at tormail.org  Wed Oct 17 13:06:32 2012
+From: jbeich at tormail.org (Jan Beich)
+Date: Thu, 18 Oct 2012 00:06:32 +0400
+Subject: document what stats.active does not track
+Message-ID: <1TOZuV-000Azw-5L@internal.tormail.org>
+
+Based on http://www.canonware.com/pipermail/jemalloc-discuss/2012-March/000164.html
+---
+ doc/jemalloc.xml.in | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/doc/jemalloc.xml.in b/doc/jemalloc.xml.in
+index 441c1a4..f1ae576 100644
+--- a/doc/jemalloc.xml.in
++++ b/doc/jemalloc.xml.in
+@@ -1503,25 +1503,27 @@ malloc_conf = "xmalloc:true";]]></programlisting>
+ 
+       <varlistentry id="stats.active">
+         <term>
+           <mallctl>stats.active</mallctl>
+           (<type>size_t</type>)
+           <literal>r-</literal>
+           [<option>--enable-stats</option>]
+         </term>
+         <listitem><para>Total number of bytes in active pages allocated by the
+         application.  This is a multiple of the page size, and greater than or
+         equal to <link
+         linkend="stats.allocated"><mallctl>stats.allocated</mallctl></link>.
+-        </para></listitem>
++        This does not include <link linkend="stats.arenas.i.pdirty">
++        <mallctl>stats.arenas.&lt;i&gt;.pdirty</mallctl></link> and pages
++        entirely devoted to allocator metadata.</para></listitem>
+       </varlistentry>
+ 
+       <varlistentry>
+         <term>
+           <mallctl>stats.mapped</mallctl>
+           (<type>size_t</type>)
+           <literal>r-</literal>
+           [<option>--enable-stats</option>]
+         </term>
+         <listitem><para>Total number of bytes in chunks mapped on behalf of the
+         application.  This is a multiple of the chunk size, and is at least as
+         large as <link
+@@ -1619,25 +1621,25 @@ malloc_conf = "xmalloc:true";]]></programlisting>
+         arena.</para></listitem>
+       </varlistentry>
+ 
+       <varlistentry>
+         <term>
+           <mallctl>stats.arenas.&lt;i&gt;.pactive</mallctl>
+           (<type>size_t</type>)
+           <literal>r-</literal>
+         </term>
+         <listitem><para>Number of pages in active runs.</para></listitem>
+       </varlistentry>
+ 
+-      <varlistentry>
++      <varlistentry id="stats.arenas.i.pdirty">
+         <term>
+           <mallctl>stats.arenas.&lt;i&gt;.pdirty</mallctl>
+           (<type>size_t</type>)
+           <literal>r-</literal>
+         </term>
+         <listitem><para>Number of pages within unused runs that are potentially
+         dirty, and for which <function>madvise<parameter>...</parameter>
+         <parameter><constant>MADV_DONTNEED</constant></parameter></function> or
+         similar has not been called.</para></listitem>
+       </varlistentry>
+ 
+       <varlistentry>
+
+
+From mh+jemalloc at glandium.org  Mon Oct 22 23:42:48 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 23 Oct 2012 08:42:48 +0200
+Subject: [PATCH] Don't register jemalloc's zone allocator if something else
+	already replaced the system default zone
+Message-ID: <1350974568-20081-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ src/zone.c |   12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/src/zone.c b/src/zone.c
+index cde5d49..c62c183 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -171,6 +171,16 @@ void
+ register_zone(void)
+ {
+ 
++	/*
++	 * If something else replaced the system default zone allocator, don't
++	 * register jemalloc's.
++	 */
++	malloc_zone_t *default_zone = malloc_default_zone();
++	if (!default_zone->zone_name ||
++	    strcmp(default_zone->zone_name, "DefaultMallocZone") != 0) {
++		return;
++	}
++
+ 	zone.size = (void *)zone_size;
+ 	zone.malloc = (void *)zone_malloc;
+ 	zone.calloc = (void *)zone_calloc;
+@@ -241,7 +251,7 @@ register_zone(void)
+ 	 * then becomes the default.
+ 	 */
+ 	do {
+-		malloc_zone_t *default_zone = malloc_default_zone();
++		default_zone = malloc_default_zone();
+ 		malloc_zone_unregister(default_zone);
+ 		malloc_zone_register(default_zone);
+ 	} while (malloc_default_zone() != &zone);
+-- 
+1.7.10.4
+
+
+
+From mh+jemalloc at glandium.org  Mon Oct 22 23:47:13 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 23 Oct 2012 08:47:13 +0200
+Subject: [PATCH] Don't register jemalloc's zone allocator if something
+	else already replaced the system default zone
+In-Reply-To: <1350974568-20081-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1350974568-20081-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <20121023064713.GA20263@glandium.org>
+
+On Tue, Oct 23, 2012 at 08:42:48AM +0200, Mike Hommey wrote:
+> +	/*
+> +	 * If something else replaced the system default zone allocator, don't
+> +	 * register jemalloc's.
+> +	 */
+> +	malloc_zone_t *default_zone = malloc_default_zone();
+> +	if (!default_zone->zone_name ||
+> +	    strcmp(default_zone->zone_name, "DefaultMallocZone") != 0) {
+> +		return;
+> +	}
+
+We're interested in hooking in between callers and jemalloc for Firefox
+debug builds, which, on mac, means registering the hooks as a zone
+allocator, but we can't allow jemalloc to hijack us (esp. when we're
+trying to hijack it).
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Wed Oct 24 12:36:54 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 24 Oct 2012 21:36:54 +0200
+Subject: Memory usage regression
+Message-ID: <20121024193654.GA26607@glandium.org>
+
+Hi,
+
+One of the reasons Firefox has not switched to jemalloc 3 yet, despite
+the efforts to get it building against it, is that when we tested memory
+consumption, we observed a regression in memory usage, compared to the
+jemalloc fork we're currently using.
+
+I recently started to check what makes the difference, and I now have a
+500MB compressed log of malloc/calloc/realloc/memalign/free calls from a
+Firefox session doing a lot of things, with a few checkpoints. I can
+replay the log against both our old fork and the new jemalloc, stopping
+at any of the checkpoints. This allows to compare a strictly identical
+workload. This will also allow to possibly test the workload with older
+intermediate versions of jemalloc, as well as different config options,
+and possible fixes.
+
+With that replayed workload, I can see two main things:
+- The amount of resident memory used by jemalloc 3 is greater than that
+  of mozjemalloc after freeing big parts of what was allocated (in
+  Firefox, after closing all tabs, waiting for a settle, and forcing GC).
+  This is most likely due to different allocation patterns leading to
+  some kind of fragmentation after freeing part of the allocated memory.
+  See http://i.imgur.com/fQKi4.png for a graphical representation of
+  what happens to the RSS value at the different checkpoints during the
+  Firefox workload.
+- The amount of mmap()ed memory is dangerously increasing during the
+  workload. It almost (but not quite) looks like jemalloc don't reuse
+  pages it purged. See http://i.imgur.com/klfJv.png ; VmData is
+  essentially the sum of all anonymous ranges of memory in the process.
+  Such an increase in VmData means we'd eventually exhaust the 32-bits
+  address space on 32-bits OSes, even though the resident memory usage
+  is pretty low.
+
+The data was gathered with commit 609ae59 ; mozjemalloc is our fork.
+
+Please tell me what kind of data could be useful to you ; for instance,
+I can provide a jemalloc stats dump at each step. I'm also going to try
+to get more data between the checkpoints, because, for instance, the
+peak RSS is around 350MB, which doesn't show up on the graph.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Wed Oct 24 14:22:07 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 24 Oct 2012 23:22:07 +0200
+Subject: Memory usage regression
+In-Reply-To: <20121024193654.GA26607@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+Message-ID: <20121024212207.GA12999@glandium.org>
+
+On Wed, Oct 24, 2012 at 09:36:54PM +0200, Mike Hommey wrote:
+> With that replayed workload, I can see two main things:
+> - The amount of resident memory used by jemalloc 3 is greater than that
+>   of mozjemalloc after freeing big parts of what was allocated (in
+>   Firefox, after closing all tabs, waiting for a settle, and forcing GC).
+>   This is most likely due to different allocation patterns leading to
+>   some kind of fragmentation after freeing part of the allocated memory.
+>   See http://i.imgur.com/fQKi4.png for a graphical representation of
+>   what happens to the RSS value at the different checkpoints during the
+>   Firefox workload.
+> - The amount of mmap()ed memory is dangerously increasing during the
+>   workload. It almost (but not quite) looks like jemalloc don't reuse
+>   pages it purged. See http://i.imgur.com/klfJv.png ; VmData is
+>   essentially the sum of all anonymous ranges of memory in the process.
+>   Such an increase in VmData means we'd eventually exhaust the 32-bits
+>   address space on 32-bits OSes, even though the resident memory usage
+>   is pretty low.
+
+FWIW, both jemalloc 2.0.0 and 1.0.3 have the same behaviour as jemalloc
+3, both for VmRSS and VmData.
+
+Mike
+
+
+From jasone at canonware.com  Wed Oct 24 15:06:25 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 24 Oct 2012 15:06:25 -0700
+Subject: Memory usage regression
+In-Reply-To: <20121024193654.GA26607@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+Message-ID: <43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+
+On Oct 24, 2012, at 12:36 PM, Mike Hommey wrote:
+> With that replayed workload, I can see two main things:
+> - The amount of resident memory used by jemalloc 3 is greater than that
+>  of mozjemalloc after freeing big parts of what was allocated (in
+>  Firefox, after closing all tabs, waiting for a settle, and forcing GC).
+>  This is most likely due to different allocation patterns leading to
+>  some kind of fragmentation after freeing part of the allocated memory.
+>  See http://i.imgur.com/fQKi4.png for a graphical representation of
+>  what happens to the RSS value at the different checkpoints during the
+>  Firefox workload.
+
+This difference may be inherent, due to something like size class changes.  Are there any configuration differences between mozjemalloc and jemalloc 3 besides tcache that weren't removed?  In particular, narenas is an important one.
+
+> - The amount of mmap()ed memory is dangerously increasing during the
+>  workload. It almost (but not quite) looks like jemalloc don't reuse
+>  pages it purged. See http://i.imgur.com/klfJv.png ; VmData is
+>  essentially the sum of all anonymous ranges of memory in the process.
+>  Such an increase in VmData means we'd eventually exhaust the 32-bits
+>  address space on 32-bits OSes, even though the resident memory usage
+>  is pretty low.
+
+This looks pretty bad.  The only legitimate potential explanation I can think of is that jemalloc now partitions dirty and clean pages (and jemalloc 3 is much less aggressive than mozjemalloc about purging), so it's possible to have to allocate a new chunk for a large object, even though there would be enough room in an existing chunk if clean and dirty available runs were coalesced.  This increases run fragmentation in general, but it tends to dramatically reduce the number of pages that are dirtied.  I'd like to see the output of malloc_stats_print() for two adjacent points along the x axis, like "After iteration 5" and its predecessor.  I'd also be curious if the VM size increases continue after many grow/shrink cycles (if so, it might be due to an outright bug in jemalloc).
+
+Thanks,
+Jason
+
+
+
+From mh+jemalloc at glandium.org  Fri Oct 26 02:45:32 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Fri, 26 Oct 2012 11:45:32 +0200
+Subject: Memory usage regression
+In-Reply-To: <20121025064211.GA16176@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+Message-ID: <20121026094532.GA21738@glandium.org>
+
+(FYI, the message I'm quoting here is still in the list moderation queue)
+
+On Thu, Oct 25, 2012 at 08:42:11AM +0200, Mike Hommey wrote:
+> In the 3 jemalloc cases, narenas = 1 (like mozjemalloc). The chunk size
+> for mozjemalloc is 1MB, which is why I tested with that chunk size as
+> well, and also tried without tcache. There's still a large difference
+> between jemalloc 3 and mozjemalloc with similar config.
+
+http://i.imgur.com/UBxob.png
+It turns out 1MB vs 4MB chunks are not making a great deal of a difference
+on RSS, it however does on how VmData progresses. The bumps at the
+beginning of each iteration is bigger with 1MB chunks.
+
+Note: horizontal axis is not time, it's alloc operation number ;
+basically the line number in the alloc log.
+
+> I did try hacking jemalloc 3 to use the same size classes but didn't get
+> much different results, although retrospectively, I think I was only
+> looking at the VmData numbers, then. I'll respin, looking at VmRSS.
+
+http://i.imgur.com/Ijf5u.png
+Interestingly, jemalloc 3 with the mozjemalloc size classes uses more
+RSS than jemalloc 3 (using 1MB chunks in both cases).
+
+> > This looks pretty bad.  The only legitimate potential explanation I
+> > can think of is that jemalloc now partitions dirty and clean pages
+> > (and jemalloc 3 is much less aggressive than mozjemalloc about
+> > purging), so it's possible to have to allocate a new chunk for a large
+> > object, even though there would be enough room in an existing chunk if
+> > clean and dirty available runs were coalesced.  This increases run
+> > fragmentation in general, but it tends to dramatically reduce the
+> > number of pages that are dirtied.  I'd like to see the output of
+> > malloc_stats_print() for two adjacent points along the x axis, like
+> > "After iteration 5" and its predecessor.  I'd also be curious if the
+> > VM size increases continue after many grow/shrink cycles (if so, it
+> > might be due to an outright bug in jemalloc).
+
+Some more data:
+
+http://i.imgur.com/3Q2js.png
+This is zooming on the big bump at the beginning of iteration 2. Looking
+at the corresponding allocation log, this corresponds to > 1MB
+allocations with memalign, but turning them into mallocs doesn't change
+the result, so it's not a memalign problem.
+
+Looking more globally at the data, there is /some/ correlation with >
+1MB allocations, but occasionally, 128KB allocations do trigger the same
+behaviour, as well as 64KB. One interesting fact is that it's only a
+limited subset of these big allocations that trigger this. The vast
+majority of them don't.
+
+For reference, the unzoomed graph looks like this:
+http://i.imgur.com/PViYm.png
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Fri Oct 26 08:03:35 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Fri, 26 Oct 2012 17:03:35 +0200
+Subject: Memory usage regression
+In-Reply-To: <20121026094532.GA21738@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+Message-ID: <20121026150335.GA7121@glandium.org>
+
+On Fri, Oct 26, 2012 at 11:45:32AM +0200, Mike Hommey wrote:
+> Some more data:
+> 
+> http://i.imgur.com/3Q2js.png
+> This is zooming on the big bump at the beginning of iteration 2. Looking
+> at the corresponding allocation log, this corresponds to > 1MB
+> allocations with memalign, but turning them into mallocs doesn't change
+> the result, so it's not a memalign problem.
+> 
+> Looking more globally at the data, there is /some/ correlation with >
+> 1MB allocations, but occasionally, 128KB allocations do trigger the same
+> behaviour, as well as 64KB. One interesting fact is that it's only a
+> limited subset of these big allocations that trigger this. The vast
+> majority of them don't.
+> 
+> For reference, the unzoomed graph looks like this:
+> http://i.imgur.com/PViYm.png
+
+I rediscovered --enable-munmap, and tried again with that, thinking it
+could be related, and it did change something, but it's still growing:
+http://i.imgur.com/lWzhG.png
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Fri Oct 26 08:08:24 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Fri, 26 Oct 2012 17:08:24 +0200
+Subject: Memory usage regression
+In-Reply-To: <20121026150335.GA7121@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+Message-ID: <20121026150824.GA7292@glandium.org>
+
+On Fri, Oct 26, 2012 at 05:03:35PM +0200, Mike Hommey wrote:
+> On Fri, Oct 26, 2012 at 11:45:32AM +0200, Mike Hommey wrote:
+> > Some more data:
+> > 
+> > http://i.imgur.com/3Q2js.png
+> > This is zooming on the big bump at the beginning of iteration 2. Looking
+> > at the corresponding allocation log, this corresponds to > 1MB
+> > allocations with memalign, but turning them into mallocs doesn't change
+> > the result, so it's not a memalign problem.
+> > 
+> > Looking more globally at the data, there is /some/ correlation with >
+> > 1MB allocations, but occasionally, 128KB allocations do trigger the same
+> > behaviour, as well as 64KB. One interesting fact is that it's only a
+> > limited subset of these big allocations that trigger this. The vast
+> > majority of them don't.
+> > 
+> > For reference, the unzoomed graph looks like this:
+> > http://i.imgur.com/PViYm.png
+> 
+> I rediscovered --enable-munmap, and tried again with that, thinking it
+> could be related, and it did change something, but it's still growing:
+> http://i.imgur.com/lWzhG.png
+
+Needless to say, the increases I was observing closely on the the zoomed
+graph without a matching decrease was entirely due to munmap. Now I need
+to find the remainder...
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Fri Oct 26 09:10:13 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Fri, 26 Oct 2012 18:10:13 +0200
+Subject: Memory usage regression
+In-Reply-To: <20121026150824.GA7292@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+Message-ID: <20121026161013.GA12265@glandium.org>
+
+On Fri, Oct 26, 2012 at 05:08:24PM +0200, Mike Hommey wrote:
+> On Fri, Oct 26, 2012 at 05:03:35PM +0200, Mike Hommey wrote:
+> > On Fri, Oct 26, 2012 at 11:45:32AM +0200, Mike Hommey wrote:
+> > > Some more data:
+> > > 
+> > > http://i.imgur.com/3Q2js.png
+> > > This is zooming on the big bump at the beginning of iteration 2. Looking
+> > > at the corresponding allocation log, this corresponds to > 1MB
+> > > allocations with memalign, but turning them into mallocs doesn't change
+> > > the result, so it's not a memalign problem.
+> > > 
+> > > Looking more globally at the data, there is /some/ correlation with >
+> > > 1MB allocations, but occasionally, 128KB allocations do trigger the same
+> > > behaviour, as well as 64KB. One interesting fact is that it's only a
+> > > limited subset of these big allocations that trigger this. The vast
+> > > majority of them don't.
+> > > 
+> > > For reference, the unzoomed graph looks like this:
+> > > http://i.imgur.com/PViYm.png
+> > 
+> > I rediscovered --enable-munmap, and tried again with that, thinking it
+> > could be related, and it did change something, but it's still growing:
+> > http://i.imgur.com/lWzhG.png
+> 
+> Needless to say, the increases I was observing closely on the the zoomed
+> graph without a matching decrease was entirely due to munmap. Now I need
+> to find the remainder...
+
+I tested size class independently, and none would cause the VM leak
+alone. Combining small and large classes do, but large + huge or small +
+huge don't.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Wed Oct 24 23:42:11 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 25 Oct 2012 08:42:11 +0200
+Subject: Memory usage regression
+In-Reply-To: <43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+Message-ID: <20121025064211.GA16176@glandium.org>
+
+On Wed, Oct 24, 2012 at 03:06:25PM -0700, Jason Evans wrote:
+> On Oct 24, 2012, at 12:36 PM, Mike Hommey wrote:
+> > With that replayed workload, I can see two main things: - The amount
+> > of resident memory used by jemalloc 3 is greater than that of
+> > mozjemalloc after freeing big parts of what was allocated (in
+> > Firefox, after closing all tabs, waiting for a settle, and forcing
+> > GC).  This is most likely due to different allocation patterns
+> > leading to some kind of fragmentation after freeing part of the
+> > allocated memory.  See http://i.imgur.com/fQKi4.png for a graphical
+> > representation of what happens to the RSS value at the different
+> > checkpoints during the Firefox workload.
+> 
+> This difference may be inherent, due to something like size class
+> changes.  Are there any configuration differences between mozjemalloc
+> and jemalloc 3 besides tcache that weren't removed?  In particular,
+> narenas is an important one.
+
+In the 3 jemalloc cases, narenas = 1 (like mozjemalloc). The chunk size
+for mozjemalloc is 1MB, which is why I tested with that chunk size as
+well, and also tried without tcache. There's still a large difference
+between jemalloc 3 and mozjemalloc with similar config.
+
+I did try hacking jemalloc 3 to use the same size classes but didn't get
+much different results, although retrospectively, I think I was only
+looking at the VmData numbers, then. I'll respin, looking at VmRSS.
+
+> > - The amount of mmap()ed memory is dangerously increasing during the
+> > workload. It almost (but not quite) looks like jemalloc don't reuse
+> > pages it purged. See http://i.imgur.com/klfJv.png ; VmData is
+> > essentially the sum of all anonymous ranges of memory in the
+> > process.  Such an increase in VmData means we'd eventually exhaust
+> > the 32-bits address space on 32-bits OSes, even though the resident
+> > memory usage is pretty low.
+> 
+> This looks pretty bad.  The only legitimate potential explanation I
+> can think of is that jemalloc now partitions dirty and clean pages
+> (and jemalloc 3 is much less aggressive than mozjemalloc about
+> purging), so it's possible to have to allocate a new chunk for a large
+> object, even though there would be enough room in an existing chunk if
+> clean and dirty available runs were coalesced.  This increases run
+> fragmentation in general, but it tends to dramatically reduce the
+> number of pages that are dirtied.  I'd like to see the output of
+> malloc_stats_print() for two adjacent points along the x axis, like
+> "After iteration 5" and its predecessor.  I'd also be curious if the
+> VM size increases continue after many grow/shrink cycles (if so, it
+> might be due to an outright bug in jemalloc).
+
+Here you are, for narenas=1 and no other option:
+- After Iteration 4, tabs closed [+30s, forced GC]
+
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 22
+  opt.dss: "secondary"
+  opt.narenas: 1
+  opt.lg_dirty_mult: 5
+  opt.stats_print: true
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+  opt.valgrind: false
+  opt.tcache: true
+  opt.lg_tcache_max: 15
+CPUs: 8
+Arenas: 1
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 32:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 45575704, active: 132845568, mapped: 658505728
+Current active ceiling: 134217728
+chunks: nchunks   highchunks    curchunks
+            556          160          157
+huge: nmalloc      ndalloc    allocated
+          142          142            0
+
+arenas[0]:
+assigned threads: 1
+dss allocation precedence: disabled
+dirty pages: 32433:0 active:dirty, 23561 sweeps, 120394 madvises, 1529816 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:       25923096     27391093     27157263     73118117
+large:       19652608       346991       346124       740122
+total:       45575704     27738084     27503387     73858239
+active:     132845568
+mapped:     654311424
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc    nrequests       nfills     nflushes      newruns       reruns      curruns
+            0     8  501   1       275144       984384       949991      2407118        84093        13927          211        20156          166
+            1    16  252   1       319664      3968805      3948826      8525510       174274        42536         3312       101027          751
+            2    32  126   1      1405376      6780517      6736599     22938791       156402        69545        11912       304796         2041
+            3    48   84   1      1430304      3748262      3718464      7794311       189965        47227         5942       226834         1972
+            4    64   63   1      1877632      2235624      2206286      5221262        80644        37041         8044       140284         2022
+            5    80   50   1      1549040      2799626      2780263      4873441       129605        58420        37865        93296         1121
+            6    96   84   2       741408       789407       781684      2115504        59595        13195         1266        45934          314
+            7   112   72   2       454384       689097       685040      1547015        49192        13315         2797        44443          321
+            8   128   63   2      1709056      2068970      2055618      3564319        93440        35608        14020        89247         1528
+            9   160   51   2       907040       659323       653654      4872237        69086        16193         1856        79120          309
+           10   192   63   3       713088       467964       464250       869869        36038        11400         2309        30493          199
+           11   224   72   4       639520       371744       368889       764056        38136         9540          949        30700          184
+           12   256   63   4       756736       371527       368571       857072        39551        10526          793        43024          276
+           13   320   63   5       933440       180504       177587      1087101        22646         8020          625        16817          127
+           14   384   63   6      1077120       152607       149802       591724        21143         7680          463        18564          179
+           15   448   63   7       481600        91051        89976       227821        19817         7284          322         8804           43
+           16   512   63   8      1209856       266356       263993       726737        37640         9239          499        29978          183
+           17   640   51   8       680960       103736       102672      1685905        17562         7568          393        16828           70
+           18   768   47   9       579840        71510        70755       202734        15729         7009          310        10938           71
+           19   896   45  10       307328        37940        37597       137150        10462         6408          232         6701           26
+           20  1024   63  16      2723840       270881       268221      1391361        53243         9375          917        24824          160
+           21  1280   51  16       775680        76967        76361       142722        16471         7035          238        10515           44
+           22  1536   42  16       603648        23228        22835        69854         7823         5563           59         5170           28
+           23  1792   38  17       559104        16254        15942        30236         6098         4332           85         2956           19
+           24  2048   65  33      2146304       108302       107254       283506        44797         7332          112        10761           57
+           25  2560   52  33       478720        33426        33239       109814        18785         5413          202         3805           18
+           26  3072   43  33       497664        15274        15112        43290         5624         5106           48         3743           16
+           27  3584   39  35        89600         7807         7782        37657         4145         3722           39         1364            6
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+         4096     1        69918        69784       213448          134
+         8192     2        63723        63332       196312          391
+        12288     3         9401         9313        32214           88
+        16384     4         8967         8939        51350           28
+        20480     5         7576         7567        26531            9
+        24576     6         4681         4666         8585           15
+        28672     7         3309         3308        10206            1
+        32768     8        35136        35098        57196           38
+        36864     9        21622        21527        21622           95
+        40960    10         3115         3111         3115            4
+        45056    11         2312         2311         2312            1
+        49152    12         3194         3190         3194            4
+        53248    13         3349         3345         3349            4
+        57344    14         1089         1089         1089            0
+        61440    15          876          876          876            0
+        65536    16        33869        33850        33869           19
+        69632    17         1463         1463         1463            0
+        73728    18          987          987          987            0
+        77824    19          793          793          793            0
+        81920    20          708          708          708            0
+        86016    21          397          397          397            0
+        90112    22          535          535          535            0
+        94208    23          466          466          466            0
+        98304    24          646          644          646            2
+       102400    25          861          861          861            0
+       106496    26          348          348          348            0
+       110592    27          306          306          306            0
+       114688    28          224          224          224            0
+       118784    29          365          365          365            0
+       122880    30          238          238          238            0
+       126976    31          229          229          229            0
+       131072    32        55419        55398        55419           21
+       135168    33          580          580          580            0
+       139264    34          200          200          200            0
+       143360    35          146          146          146            0
+       147456    36          269          269          269            0
+       151552    37          113          113          113            0
+       155648    38          114          114          114            0
+       159744    39          196          196          196            0
+       163840    40          175          173          175            2
+       167936    41          109          109          109            0
+       172032    42          199          198          199            1
+       176128    43          132          132          132            0
+       180224    44          117          117          117            0
+       184320    45          135          135          135            0
+       188416    46          124          124          124            0
+       192512    47          677          677          677            0
+       196608    48          149          148          149            1
+       200704    49          101          101          101            0
+       204800    50          104          104          104            0
+       208896    51          140          140          140            0
+       212992    52           82           82           82            0
+       217088    53           68           67           68            1
+       221184    54          122          122          122            0
+       225280    55           82           82           82            0
+       229376    56          189          189          189            0
+       233472    57          202          201          202            1
+       237568    58           62           62           62            0
+       241664    59           84           84           84            0
+       245760    60           71           71           71            0
+       249856    61           90           90           90            0
+       253952    62          117          117          117            0
+       258048    63           73           73           73            0
+       262144    64          352          350          352            2
+       266240    65         1061         1061         1061            0
+       270336    66           62           62           62            0
+       274432    67          114          114          114            0
+       278528    68           62           62           62            0
+       282624    69           45           44           45            1
+       286720    70           38           38           38            0
+       290816    71           59           59           59            0
+       294912    72           43           43           43            0
+       299008    73           42           42           42            0
+       303104    74           66           66           66            0
+       307200    75           63           63           63            0
+       311296    76           41           41           41            0
+       315392    77           31           31           31            0
+       319488    78           55           55           55            0
+       323584    79           31           31           31            0
+       327680    80          117          116          117            1
+       331776    81           33           33           33            0
+       335872    82           34           34           34            0
+       339968    83           39           39           39            0
+       344064    84           66           66           66            0
+       348160    85           24           24           24            0
+       352256    86           47           47           47            0
+       356352    87           16           16           16            0
+       360448    88           36           36           36            0
+       364544    89           32           32           32            0
+       368640    90           36           36           36            0
+       372736    91           36           36           36            0
+       376832    92           25           25           25            0
+       380928    93           50           49           50            1
+       385024    94           26           26           26            0
+       389120    95           33           33           33            0
+       393216    96           26           26           26            0
+       397312    97           32           32           32            0
+       401408    98           23           23           23            0
+       405504    99           16           16           16            0
+       409600   100           31           31           31            0
+       413696   101           16           16           16            0
+       417792   102            9            9            9            0
+       421888   103           20           20           20            0
+       425984   104           17           17           17            0
+       430080   105           25           25           25            0
+       434176   106           41           41           41            0
+       438272   107           44           44           44            0
+       442368   108           32           32           32            0
+       446464   109           16           16           16            0
+       450560   110           12           12           12            0
+       454656   111           17           17           17            0
+       458752   112           28           28           28            0
+       462848   113            6            6            6            0
+       466944   114           30           30           30            0
+       471040   115            8            8            8            0
+       475136   116           29           29           29            0
+       479232   117           35           35           35            0
+       483328   118           60           60           60            0
+       487424   119           24           24           24            0
+       491520   120            7            7            7            0
+[1]
+       499712   122           17           17           17            0
+[1]
+       507904   124           10            9           10            1
+       512000   125           16           16           16            0
+       516096   126            1            1            1            0
+[1]
+       524288   128          644          644          644            0
+       528384   129           84           84           84            0
+       532480   130            9            9            9            0
+       536576   131           16           16           16            0
+       540672   132           21           21           21            0
+       544768   133           43           43           43            0
+       548864   134           11           11           11            0
+       552960   135           29           29           29            0
+       557056   136           19           19           19            0
+       561152   137           24           24           24            0
+       565248   138            9            9            9            0
+       569344   139           27           27           27            0
+       573440   140            8            8            8            0
+       577536   141           10           10           10            0
+       581632   142            3            3            3            0
+       585728   143            6            6            6            0
+       589824   144           19           19           19            0
+       593920   145            1            1            1            0
+       598016   146            1            1            1            0
+       602112   147           26           26           26            0
+       606208   148           13           13           13            0
+       610304   149            5            5            5            0
+       614400   150           26           26           26            0
+       618496   151            8            8            8            0
+       622592   152            9            9            9            0
+       626688   153           26           26           26            0
+       630784   154            5            5            5            0
+[1]
+       638976   156           33           33           33            0
+       643072   157           13           13           13            0
+       647168   158           29           29           29            0
+       651264   159           42           42           42            0
+       655360   160           15           15           15            0
+[1]
+       663552   162            8            8            8            0
+[2]
+[2]
+       675840   165            6            6            6            0
+[2]
+       688128   168           12           12           12            0
+       692224   169           21           21           21            0
+[1]
+       700416   171            4            4            4            0
+[2]
+       712704   174            4            4            4            0
+       716800   175            6            6            6            0
+[1]
+       724992   177            8            8            8            0
+       729088   178            8            8            8            0
+[3]
+       745472   182            4            4            4            0
+       749568   183            5            5            5            0
+       753664   184           28           28           28            0
+       757760   185           14           14           14            0
+[1]
+       765952   187            6            6            6            0
+       770048   188            4            4            4            0
+[1]
+       778240   190            4            4            4            0
+[1]
+       786432   192            6            6            6            0
+       790528   193           16           16           16            0
+[2]
+       802816   196           20           20           20            0
+       806912   197            6            6            6            0
+       811008   198            6            6            6            0
+[1]
+       819200   200            4            4            4            0
+[1]
+       827392   202           36           36           36            0
+[1]
+       835584   204            6            6            6            0
+[1]
+       843776   206            1            1            1            0
+       847872   207            8            8            8            0
+[2]
+       860160   210            1            1            1            0
+       864256   211            4            4            4            0
+       868352   212            4            4            4            0
+[2]
+       880640   215            1            1            1            0
+       884736   216            4            4            4            0
+[4]
+       905216   221            5            5            5            0
+[1]
+       913408   223            3            3            3            0
+[1]
+       921600   225           96           96           96            0
+       925696   226           52           52           52            0
+[3]
+       942080   230            5            5            5            0
+[4]
+       962560   235           20           20           20            0
+       966656   236            8            8            8            0
+[3]
+       983040   240            8            8            8            0
+[1]
+       991232   242           11           11           11            0
+       995328   243            6            6            6            0
+[1]
+      1003520   245            7            7            7            0
+      1007616   246            5            5            5            0
+      1011712   247            1            1            1            0
+[2]
+      1024000   250            8            8            8            0
+      1028096   251            8            8            8            0
+[3]
+      1044480   255            8            8            8            0
+      1048576   256           61           60           61            1
+      1052672   257           12           12           12            0
+[1]
+      1060864   259           16           16           16            0
+[3]
+      1077248   263           17           17           17            0
+[2]
+      1089536   266            8            8            8            0
+[2]
+      1101824   269            8            8            8            0
+[7]
+      1134592   277           11           11           11            0
+[4]
+      1155072   282            1            1            1            0
+[1]
+      1163264   284            1            1            1            0
+[6]
+      1191936   291            1            1            1            0
+[1]
+      1200128   293            1            1            1            0
+[3]
+      1216512   297            4            4            4            0
+[1]
+      1224704   299            6            6            6            0
+      1228800   300            8            8            8            0
+[4]
+      1249280   305            1            1            1            0
+      1253376   306            7            7            7            0
+      1257472   307           16           16           16            0
+      1261568   308            8            8            8            0
+[2]
+      1273856   311            4            4            4            0
+[2]
+      1286144   314            5            5            5            0
+[2]
+      1298432   317            1            1            1            0
+      1302528   318            6            6            6            0
+[1]
+      1310720   320            6            6            6            0
+[1]
+      1318912   322            4            4            4            0
+[2]
+      1331200   325           12           12           12            0
+      1335296   326            6            6            6            0
+[4]
+      1355776   331            8            8            8            0
+[2]
+      1368064   334            6            6            6            0
+[16]
+      1437696   351            8            8            8            0
+[4]
+      1458176   356            3            3            3            0
+[1]
+      1466368   358            6            6            6            0
+[8]
+      1503232   367          104          104          104            0
+      1507328   368           14           14           14            0
+      1511424   369            8            8            8            0
+[17]
+      1585152   387           60           60           60            0
+[11]
+      1634304   399            8            8            8            0
+[2]
+      1646592   402            2            2            2            0
+[4]
+      1667072   407            2            2            2            0
+[14]
+      1728512   422            6            6            6            0
+[12]
+      1781760   435            2            2            2            0
+[6]
+      1810432   442            3            3            3            0
+[14]
+      1871872   457            8            8            8            0
+[7]
+      1904640   465            1            1            1            0
+[3]
+      1921024   469           17           17           17            0
+[4]
+      1941504   474            6            6            6            0
+[9]
+      1982464   484            1            1            1            0
+      1986560   485            1            1            1            0
+[2]
+      1998848   488            1            1            1            0
+      2002944   489            1            1            1            0
+[3]
+      2019328   493            1            1            1            0
+[1]
+      2027520   495            1            1            1            0
+      2031616   496            1            1            1            0
+[3]
+      2048000   500            9            9            9            0
+[5]
+      2072576   506            1            1            1            0
+[1]
+      2080768   508            4            4            4            0
+[2]
+      2093056   511            4            4            4            0
+      2097152   512           24           24           24            0
+[15]
+      2162688   528            4            4            4            0
+      2166784   529            6            6            6            0
+[56]
+      2400256   586            4            4            4            0
+[7]
+      2433024   594            8            8            8            0
+[14]
+      2494464   609            8            8            8            0
+[60]
+      2744320   670            8            8            8            0
+[39]
+      2908160   710            8            8            8            0
+[7]
+      2940928   718            8            8            8            0
+[219]
+      3842048   938            4            4            4            0
+[28]
+      3960832   967            8            8            8            0
+[7]
+      3993600   975            8            8            8            0
+[1]
+      4001792   977            2            2            2            0
+[36]
+      4153344  1014            6            6            6            0
+[4]
+
+- After Iteration 5:
+
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 22
+  opt.dss: "secondary"
+  opt.narenas: 1
+  opt.lg_dirty_mult: 5
+  opt.stats_print: true
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+  opt.valgrind: false
+  opt.tcache: true
+  opt.lg_tcache_max: 15
+CPUs: 8
+Arenas: 1
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 32:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 290862080, active: 304779264, mapped: 729808896
+Current active ceiling: 306184192
+chunks: nchunks   highchunks    curchunks
+            663          177          174
+huge: nmalloc      ndalloc    allocated
+          174          174            0
+
+arenas[0]:
+assigned threads: 1
+dss allocation precedence: disabled
+dirty pages: 74409:0 active:dirty, 27196 sweeps, 134472 madvises, 1756180 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:      167171072     34000600     32301000     89294833
+large:      123691008       422306       414219       897295
+total:      290862080     34422906     32715219     90192128
+active:     304779264
+mapped:     725614592
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc    nrequests       nfills     nflushes      newruns       reruns      curruns
+            0     8  501   1       667088      1189199      1105813      2945456       101289        16392          214        24916          168
+            1    16  252   1      3114928      4964496      4769813     10580608       220037        51347         3546       126861          877
+            2    32  126   1     11524448      8449033      8088894     27208808       192841        83408        13694       386849         3120
+            3    48   84   1      9026304      4664158      4476110      9684214       246138        56861         6542       286026         2420
+            4    64   63   1     10496320      2772989      2608984      6452451        98227        43763         9219       174798         2792
+            5    80   50   1     21769440      3488869      3216751      6074744       159660        67696        47084       115542         5505
+            6    96   84   2      3793536       969388       929872      2625897        73680        15787         1479        56997          487
+            7   112   72   2      5995584       852625       799093      1911851        59691        15665         3376        55166          789
+            8   128   63   2     21236864      2577927      2412014      4428127       112833        41807        16366       112357         2804
+            9   160   51   2      3908480       805463       781035      5984966        79540        19399         2175        98544          493
+           10   192   63   3      6305472       573500       540659      1069360        42556        13438         2818        37645          522
+           11   224   72   4      4747008       458892       437700       940985        46466        11437         1100        38518          296
+           12   256   63   4      5120768       459529       439526      1055454        47367        12619          868        53252          336
+           13   320   63   5      4068480       216780       204066      1329174        26546         9580          723        20681          204
+           14   384   63   6      5132928       186337       172970       728013        24687         9187          511        23090          213
+           15   448   63   7      2151296       108676       103874       276235        22386         8741          365        11070           77
+           16   512   63   8      6482944       328600       315938       893868        46000        11118          549        37030          205
+           17   640   51   8      3685760       123967       118208      2092129        20810         9086          461        20778          113
+           18   768   47   9      3407616        87442        83005       247229        18946         8490          344        13553           95
+           19   896   45  10      1742720        46285        44340       168321        12716         7745          267         8464           46
+           20  1024   63  16     14713856       332415       318046      1723608        63005        11241         1056        31161          242
+           21  1280   51  16      3978240        94349        91241       174505        19515         8548          275        12977           67
+           22  1536   42  16      1721856        28589        27468        84844         9477         6790           63         6428           30
+           23  1792   38  17      1440768        19393        18589        35914         7132         5260           97         3627           23
+           24  2048   65  33      6623232       135271       132037       345895        55526         8966          123        13366           66
+           25  2560   52  33      1607680        37852        37224       132608        20471         6564          202         4698           18
+           26  3072   43  33      1947648        18962        18328        53274         6877         6252           52         4664           17
+           27  3584   39  35       759808         9614         9402        46295         5087         4553           52         1696            7
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+         4096     1        87473        86307       258112         1166
+         8192     2        78586        73329       241582         5257
+        12288     3        11660        11231        39720          429
+        16384     4        10876        10585        61461          291
+        20480     5         9030         8938        32353           92
+        24576     6         5772         5683        10406           89
+        28672     7         4106         4082        12410           24
+        32768     8        43623        43488        70071          135
+        36864     9        26446        26244        26446          202
+        40960    10         3788         3774         3788           14
+        45056    11         2755         2748         2755            7
+        49152    12         3862         3829         3862           33
+        53248    13         4217         4207         4217           10
+        57344    14         1337         1333         1337            4
+        61440    15         1053         1050         1053            3
+        65536    16        41348        41295        41348           53
+        69632    17         1798         1798         1798            0
+        73728    18         1164         1163         1164            1
+        77824    19          950          945          950            5
+        81920    20          861          858          861            3
+        86016    21          491          487          491            4
+        90112    22          654          654          654            0
+        94208    23          594          593          594            1
+        98304    24          788          780          788            8
+       102400    25         1030         1029         1030            1
+       106496    26          409          408          409            1
+       110592    27          379          379          379            0
+       114688    28          273          273          273            0
+       118784    29          431          430          431            1
+       122880    30          291          291          291            0
+       126976    31          282          281          282            1
+       131072    32        62925        62696        62925          229
+       135168    33          720          720          720            0
+       139264    34          246          246          246            0
+       143360    35          184          184          184            0
+       147456    36          340          340          340            0
+       151552    37          144          144          144            0
+       155648    38          135          135          135            0
+       159744    39          240          240          240            0
+       163840    40          211          210          211            1
+       167936    41          138          138          138            0
+       172032    42          246          245          246            1
+       176128    43          163          163          163            0
+       180224    44          143          143          143            0
+       184320    45          167          167          167            0
+       188416    46          158          158          158            0
+       192512    47          860          858          860            2
+       196608    48          173          170          173            3
+       200704    49          124          123          124            1
+       204800    50          127          127          127            0
+       208896    51          176          176          176            0
+       212992    52           98           98           98            0
+       217088    53           83           82           83            1
+       221184    54          149          149          149            0
+       225280    55          101          101          101            0
+       229376    56          229          229          229            0
+       233472    57          245          244          245            1
+       237568    58           76           76           76            0
+       241664    59          102          102          102            0
+       245760    60           88           88           88            0
+       249856    61          109          109          109            0
+       253952    62          136          136          136            0
+       258048    63           90           90           90            0
+       262144    64          435          430          435            5
+       266240    65         1197         1197         1197            0
+       270336    66           76           76           76            0
+       274432    67          135          135          135            0
+       278528    68           77           77           77            0
+       282624    69           55           54           55            1
+       286720    70           47           47           47            0
+       290816    71           71           71           71            0
+       294912    72           53           53           53            0
+       299008    73           52           52           52            0
+       303104    74           86           86           86            0
+       307200    75           75           75           75            0
+       311296    76           51           51           51            0
+       315392    77           38           38           38            0
+       319488    78           68           68           68            0
+       323584    79           38           38           38            0
+       327680    80          134          133          134            1
+       331776    81           41           41           41            0
+       335872    82           42           42           42            0
+       339968    83           48           48           48            0
+       344064    84           79           79           79            0
+       348160    85           30           30           30            0
+       352256    86           55           55           55            0
+       356352    87           20           20           20            0
+       360448    88           41           41           41            0
+       364544    89           40           40           40            0
+       368640    90           44           44           44            0
+       372736    91           45           45           45            0
+       376832    92           31           31           31            0
+       380928    93           61           60           61            1
+       385024    94           32           32           32            0
+       389120    95           40           40           40            0
+       393216    96           32           32           32            0
+       397312    97           40           40           40            0
+       401408    98           28           28           28            0
+       405504    99           20           20           20            0
+       409600   100           35           35           35            0
+       413696   101           20           20           20            0
+       417792   102           11           11           11            0
+       421888   103           25           25           25            0
+       425984   104           21           21           21            0
+       430080   105           31           31           31            0
+       434176   106           49           49           49            0
+       438272   107           55           55           55            0
+       442368   108           38           38           38            0
+       446464   109           20           20           20            0
+       450560   110           14           14           14            0
+       454656   111           21           21           21            0
+       458752   112           31           31           31            0
+       462848   113            7            7            7            0
+       466944   114           34           34           34            0
+       471040   115           10           10           10            0
+       475136   116           33           33           33            0
+       479232   117           41           41           41            0
+       483328   118           71           71           71            0
+       487424   119           29           29           29            0
+       491520   120            8            8            8            0
+[1]
+       499712   122           21           21           21            0
+[1]
+       507904   124           12           11           12            1
+       512000   125           20           20           20            0
+       516096   126            1            1            1            0
+[1]
+       524288   128          692          692          692            0
+       528384   129          105          105          105            0
+       532480   130           11           11           11            0
+       536576   131           20           20           20            0
+       540672   132           26           26           26            0
+       544768   133           50           50           50            0
+       548864   134           13           13           13            0
+       552960   135           36           36           36            0
+       557056   136           23           23           23            0
+       561152   137           28           28           28            0
+       565248   138           11           11           11            0
+       569344   139           33           33           33            0
+       573440   140           11           11           11            0
+       577536   141           12           12           12            0
+       581632   142            3            3            3            0
+       585728   143            7            7            7            0
+       589824   144           22           22           22            0
+       593920   145            1            1            1            0
+       598016   146            1            1            1            0
+       602112   147           30           30           30            0
+       606208   148           15           15           15            0
+       610304   149            6            6            6            0
+       614400   150           30           30           30            0
+       618496   151           10            9           10            1
+       622592   152           11           11           11            0
+       626688   153           32           32           32            0
+       630784   154            6            6            6            0
+[1]
+       638976   156           41           41           41            0
+       643072   157           16           16           16            0
+       647168   158           31           31           31            0
+       651264   159           52           52           52            0
+       655360   160           16           16           16            0
+[1]
+       663552   162           10           10           10            0
+[2]
+       675840   165            7            7            7            0
+[2]
+       688128   168           14           14           14            0
+       692224   169           24           24           24            0
+[1]
+       700416   171            5            5            5            0
+[2]
+       712704   174            5            5            5            0
+       716800   175            7            7            7            0
+[1]
+       724992   177           10           10           10            0
+       729088   178           10           10           10            0
+[3]
+       745472   182            5            5            5            0
+       749568   183            5            5            5            0
+       753664   184           33           33           33            0
+       757760   185           17           17           17            0
+[1]
+       765952   187            7            7            7            0
+       770048   188            5            5            5            0
+[1]
+       778240   190            5            5            5            0
+[1]
+       786432   192            7            7            7            0
+       790528   193           20           20           20            0
+[2]
+       802816   196           25           25           25            0
+       806912   197            6            6            6            0
+       811008   198            7            7            7            0
+[1]
+       819200   200            5            5            5            0
+[1]
+       827392   202           38           38           38            0
+[1]
+       835584   204            7            7            7            0
+[1]
+       843776   206            1            1            1            0
+       847872   207           10           10           10            0
+[2]
+       860160   210            1            1            1            0
+       864256   211            5            5            5            0
+       868352   212            5            5            5            0
+[2]
+       880640   215            1            1            1            0
+       884736   216            5            5            5            0
+[4]
+       905216   221            5            5            5            0
+[1]
+       913408   223            3            3            3            0
+[1]
+       921600   225          102          102          102            0
+       925696   226           56           56           56            0
+[3]
+       942080   230            5            5            5            0
+[4]
+       962560   235           25           25           25            0
+       966656   236           10           10           10            0
+[3]
+       983040   240           10           10           10            0
+[1]
+       991232   242           13           13           13            0
+       995328   243            7            7            7            0
+[1]
+      1003520   245            8            8            8            0
+      1007616   246            5            5            5            0
+      1011712   247            1            1            1            0
+[2]
+      1024000   250           10           10           10            0
+      1028096   251           10           10           10            0
+[3]
+      1044480   255           10           10           10            0
+      1048576   256           70           69           70            1
+      1052672   257           15           15           15            0
+[1]
+      1060864   259           20           20           20            0
+[3]
+      1077248   263           19           19           19            0
+[2]
+      1089536   266           10           10           10            0
+[2]
+      1101824   269           10           10           10            0
+[7]
+      1134592   277           13           13           13            0
+[4]
+      1155072   282            1            1            1            0
+[1]
+      1163264   284            1            1            1            0
+[6]
+      1191936   291            1            1            1            0
+[1]
+      1200128   293            1            1            1            0
+[3]
+      1216512   297            5            5            5            0
+[1]
+      1224704   299            7            7            7            0
+      1228800   300           10           10           10            0
+[4]
+      1249280   305            1            1            1            0
+      1253376   306            7            7            7            0
+      1257472   307           18           18           18            0
+      1261568   308           10           10           10            0
+[2]
+      1273856   311            5            5            5            0
+[2]
+      1286144   314            5            5            5            0
+[2]
+      1298432   317            1            1            1            0
+      1302528   318            7            7            7            0
+[1]
+      1310720   320            7            6            7            1
+[1]
+      1318912   322            5            5            5            0
+[2]
+      1331200   325           14           14           14            0
+      1335296   326            7            7            7            0
+[4]
+      1355776   331           10           10           10            0
+[2]
+      1368064   334            7            7            7            0
+[16]
+      1437696   351            9            9            9            0
+[4]
+      1458176   356            3            3            3            0
+[1]
+      1466368   358            7            7            7            0
+[8]
+      1503232   367          122          122          122            0
+      1507328   368           17           17           17            0
+      1511424   369           10           10           10            0
+[17]
+      1585152   387           70           70           70            0
+[11]
+      1634304   399           10           10           10            0
+[2]
+      1646592   402            2            2            2            0
+[4]
+      1667072   407            2            2            2            0
+[14]
+      1728512   422            7            7            7            0
+[12]
+      1781760   435            2            2            2            0
+[6]
+      1810432   442            3            3            3            0
+[14]
+      1871872   457           10           10           10            0
+[7]
+      1904640   465            1            1            1            0
+[3]
+      1921024   469           21           21           21            0
+[4]
+      1941504   474            7            7            7            0
+[9]
+      1982464   484            1            1            1            0
+      1986560   485            1            1            1            0
+[2]
+      1998848   488            1            1            1            0
+      2002944   489            1            1            1            0
+[3]
+      2019328   493            1            1            1            0
+[1]
+      2027520   495            1            1            1            0
+      2031616   496            1            1            1            0
+[3]
+      2048000   500           11           11           11            0
+[5]
+      2072576   506            1            1            1            0
+[1]
+      2080768   508            5            5            5            0
+[2]
+      2093056   511            5            5            5            0
+      2097152   512           25           24           25            1
+[15]
+      2162688   528            5            5            5            0
+      2166784   529            7            7            7            0
+[56]
+      2400256   586            5            5            5            0
+[7]
+      2433024   594           10           10           10            0
+[14]
+      2494464   609           10           10           10            0
+[60]
+      2744320   670           10           10           10            0
+[39]
+      2908160   710           10           10           10            0
+[7]
+      2940928   718           10           10           10            0
+[219]
+      3842048   938            5            5            5            0
+[28]
+      3960832   967           10           10           10            0
+[7]
+      3993600   975           10           10           10            0
+[1]
+      4001792   977            2            2            2            0
+[36]
+      4153344  1014            7            7            7            0
+[4]
+
+Cheers,
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Tue Oct 30 08:35:02 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 30 Oct 2012 16:35:02 +0100
+Subject: Memory usage regression
+In-Reply-To: <20121026161013.GA12265@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+Message-ID: <20121030153502.GA16321@glandium.org>
+
+On Fri, Oct 26, 2012 at 06:10:13PM +0200, Mike Hommey wrote:
+> > > > For reference, the unzoomed graph looks like this:
+> > > > http://i.imgur.com/PViYm.png
+> > > 
+> > > I rediscovered --enable-munmap, and tried again with that, thinking it
+> > > could be related, and it did change something, but it's still growing:
+> > > http://i.imgur.com/lWzhG.png
+> > 
+> > Needless to say, the increases I was observing closely on the the zoomed
+> > graph without a matching decrease was entirely due to munmap. Now I need
+> > to find the remainder...
+> 
+> I tested size class independently, and none would cause the VM leak
+> alone. Combining small and large classes do, but large + huge or small +
+> huge don't.
+
+Some more data: all non-unmapped chunks *are* used to some extent. The
+following is a dump of the number of requested and usable bytes in each
+chunk ; that's 18M spread across 600M... that sounds like a really bad
+case of fragmentation.
+
+Total          17775010 19274192
+0x7fffc9d00000 9256 12288
+0x7fffca400000 227199 230304
+0x7fffca500000 74269 77904
+0x7fffca600000 37888 40960
+0x7fffca700000 69336 69504
+0x7fffca900000 179834 180960
+0x7fffcaa00000 2950 3760
+0x7fffcab00000 31939 32400
+0x7fffcac00000 35215 35392
+0x7fffcad00000 12286 12512
+0x7fffcae00000 43560 49664
+0x7fffcaf00000 32036 32512
+0x7fffcb000000 15738 17936
+0x7fffcb100000 112 128
+0x7fffcb200000 540 576
+0x7fffcb300000 514 576
+0x7fffcb600000 200 224
+0x7fffcb700000 5120 8192
+0x7fffcb900000 416 464
+0x7fffcba00000 20560 32768
+0x7fffcbc00000 4328 4448
+0x7fffcbd00000 956 992
+0x7fffcbe00000 4992 4992
+0x7fffcbf00000 6948 10768
+0x7fffcc000000 10082 16800
+0x7fffcc100000 160 160
+0x7fffcc400000 4216 4224
+0x7fffcc500000 5400 8448
+0x7fffcc600000 19008 24704
+0x7fffcc700000 4964 8592
+0x7fffcc800000 98412 98976
+0x7fffcc900000 5272 8320
+0x7fffcca00000 25612 28560
+0x7fffccd00000 25560 25968
+0x7fffcce00000 18624 19360
+0x7fffccf00000 5908 9024
+0x7fffcd000000 202124 205168
+0x7fffcd100000 74278 89680
+0x7fffcd200000 44 64
+0x7fffcd300000 18400 20736
+0x7fffcd400000 51612 55120
+0x7fffcd500000 3120 3328
+0x7fffcd800000 1777 1824
+0x7fffcd900000 245152 255072
+0x7fffcde00000 16507 21712
+0x7fffce000000 1480 1600
+0x7fffce200000 12488 19984
+0x7fffce300000 8548 11840
+0x7fffce400000 5516 9264
+0x7fffce500000 25929 35616
+0x7fffce600000 13549 20416
+0x7fffce700000 8991 11328
+0x7fffce800000 35848 38896
+0x7fffce900000 27638 32192
+0x7fffcea00000 15619 24736
+0x7fffceb00000 5438 8512
+0x7fffcec00000 7808 8000
+0x7fffced00000 12376 19664
+0x7fffcee00000 25415 29888
+0x7fffcef00000 15664 25440
+0x7fffcf000000 4584 8192
+0x7fffcf100000 7384 9440
+0x7fffcf200000 11032 17136
+0x7fffcf300000 11660 14256
+0x7fffcf400000 7442 10592
+0x7fffcf500000 2568 2704
+0x7fffcf600000 25588 31200
+0x7fffcf700000 6012 9088
+0x7fffcf800000 39 48
+0x7fffcf900000 28456 34560
+0x7fffcfa00000 10723 16848
+0x7fffcfb00000 12491 18608
+0x7fffcfc00000 6580 7072
+0x7fffcfd00000 6384 6496
+0x7fffcff00000 3779 4160
+0x7fffd0000000 170 192
+0x7fffd0100000 17996 21168
+0x7fffd0200000 5328 8368
+0x7fffd0300000 14226 20416
+0x7fffd0600000 7472 10592
+0x7fffd0700000 5280 8320
+0x7fffd0800000 39149 48440
+0x7fffd0900000 38540 45376
+0x7fffd0a00000 44906 51152
+0x7fffd0c00000 2612 2736
+0x7fffd0d00000 16468 25632
+0x7fffd0e00000 2498 2560
+0x7fffd0f00000 9442 12704
+0x7fffd1000000 13824 19328
+0x7fffd1100000 10984 17104
+0x7fffd1200000 10368 16432
+0x7fffd1300000 928 1072
+0x7fffd1500000 432 480
+0x7fffd1600000 2072 2176
+0x7fffd1700000 6360 9536
+0x7fffd1800000 1065 1216
+0x7fffd1900000 7816 10976
+0x7fffd1a00000 5388 8448
+0x7fffd1b00000 1184 1264
+0x7fffd1c00000 1990 2208
+0x7fffd1d00000 11944 18048
+0x7fffd1e00000 5236 8272
+0x7fffd1f00000 286 304
+0x7fffd2100000 5486 8544
+0x7fffd2200000 529 576
+0x7fffd2400000 164 192
+0x7fffd2500000 4468 4656
+0x7fffd2700000 236 256
+0x7fffd2800000 784 864
+0x7fffd2900000 13164 19472
+0x7fffd2a00000 7142 10432
+0x7fffd2c00000 8195 11472
+0x7fffd2d00000 2722 2848
+0x7fffd2f00000 108 112
+0x7fffd3000000 5728 8768
+0x7fffd3100000 336 336
+0x7fffd3200000 163 176
+0x7fffd3300000 651 704
+0x7fffd3400000 531046 534256
+0x7fffd3500000 2074 2144
+0x7fffd3700000 1952 2160
+0x7fffd3900000 10896 16960
+0x7fffd3b00000 10904 12984
+0x7fffd3d00000 822 920
+0x7fffd3f00000 5256 8288
+0x7fffd4000000 1980 2128
+0x7fffd4100000 904 960
+0x7fffd4200000 2334 2352
+0x7fffd4300000 6772 9872
+0x7fffd4400000 736 784
+0x7fffd4500000 9542 13056
+0x7fffd4600000 5552 5568
+0x7fffd4700000 2792 2944
+0x7fffd4900000 20216 24320
+0x7fffd4a00000 3448 3584
+0x7fffd4b00000 5296 8336
+0x7fffd4c00000 58000 58464
+0x7fffd4e00000 5417 5968
+0x7fffd4f00000 4124 4848
+0x7fffd5000000 5951 8400
+0x7fffd5100000 1024 1104
+0x7fffd5200000 562 592
+0x7fffd5300000 2529 2816
+0x7fffd5400000 2090 2112
+0x7fffd5500000 369 448
+0x7fffd5600000 5160 8192
+0x7fffd5800000 1314 1344
+0x7fffd5900000 1762 1920
+0x7fffd5b00000 2466 2624
+0x7fffd5c00000 15512 17216
+0x7fffd5d00000 462 464
+0x7fffd5e00000 144 144
+0x7fffd5f00000 162 176
+0x7fffd6000000 264 272
+0x7fffd6300000 1404 1472
+0x7fffd6400000 1760 1920
+0x7fffd6500000 66663 68128
+0x7fffd6600000 271 320
+0x7fffd6800000 191 224
+0x7fffd6900000 96 96
+0x7fffd6c00000 992 1088
+0x7fffd6d00000 1413 1520
+0x7fffd6e00000 720 720
+0x7fffd7000000 1102 1120
+0x7fffd7100000 1672 1760
+0x7fffd7200000 416 432
+0x7fffd7300000 3706 4304
+0x7fffd7400000 682 720
+0x7fffd7500000 328 352
+0x7fffd7600000 2372 2544
+0x7fffd7700000 3588 3824
+0x7fffd7800000 328 336
+0x7fffd7900000 859 880
+0x7fffd7a00000 7750 10880
+0x7fffd7e00000 4009 4192
+0x7fffd7f00000 384 384
+0x7fffd8000000 2064 2208
+0x7fffd8100000 856 864
+0x7fffd8200000 1024 1072
+0x7fffd8300000 224 224
+0x7fffd8400000 614 704
+0x7fffd8600000 640 672
+0x7fffd8700000 938 1024
+0x7fffd8800000 2328 2400
+0x7fffd8900000 5160 8192
+0x7fffd8a00000 546 576
+0x7fffd8b00000 2360 2656
+0x7fffd8d00000 7503 10624
+0x7fffd8e00000 1146 1216
+0x7fffd8f00000 13126 13184
+0x7fffd9000000 96 96
+0x7fffd9100000 10830 16960
+0x7fffd9200000 1744 1920
+0x7fffd9300000 3230 3648
+0x7fffd9400000 11346 14640
+0x7fffd9500000 12128 18464
+0x7fffd9600000 2649 2768
+0x7fffd9700000 53748 56096
+0x7fffd9800000 584 624
+0x7fffd9900000 1048 1072
+0x7fffd9a00000 1104 1104
+0x7fffd9b00000 232 240
+0x7fffd9d00000 336 352
+0x7fffd9e00000 808 832
+0x7fffd9f00000 60208 66288
+0x7fffda000000 432 432
+0x7fffda100000 1762 1856
+0x7fffda200000 62 64
+0x7fffda300000 516 576
+0x7fffda400000 282 320
+0x7fffda500000 6696 9792
+0x7fffda600000 828 848
+0x7fffda700000 144 176
+0x7fffda800000 280 288
+0x7fffda900000 512 512
+0x7fffdab00000 576 576
+0x7fffdac00000 304 304
+0x7fffdad00000 192 192
+0x7fffdae00000 184 192
+0x7fffdaf00000 132 176
+0x7fffdb000000 88 112
+0x7fffdb100000 5350 8400
+0x7fffdb200000 1640 1696
+0x7fffdb400000 3022 3200
+0x7fffdb500000 796 816
+0x7fffdb600000 24 32
+0x7fffdb800000 15024 18096
+0x7fffdba00000 1600 1648
+0x7fffdbb00000 192 192
+0x7fffdbc00000 51164 53536
+0x7fffdbd00000 550 704
+0x7fffdbe00000 24 32
+0x7fffdbf00000 33860 34048
+0x7fffdc000000 7360 7952
+0x7fffdc200000 2068 2120
+0x7fffdc300000 6310 6320
+0x7fffdc400000 1424 1504
+0x7fffdc500000 848 912
+0x7fffdc600000 2112 2160
+0x7fffdc800000 49248 49248
+0x7fffdca00000 704 744
+0x7fffdcc00000 8400 12480
+0x7fffdce00000 2540 2584
+0x7fffdcf00000 5178 5408
+0x7fffdd000000 1006 1072
+0x7fffdd100000 792 848
+0x7fffdd300000 828 928
+0x7fffdd400000 9612 10080
+0x7fffdd500000 2096 2256
+0x7fffdd600000 15889 16864
+0x7fffdd700000 2928 3216
+0x7fffdd800000 948 976
+0x7fffdd900000 5968 6064
+0x7fffdda00000 17128 17168
+0x7fffddb00000 576 600
+0x7fffddc00000 1578 1680
+0x7fffddd00000 744 768
+0x7fffdde00000 532 544
+0x7fffddf00000 8980 13072
+0x7fffde000000 5496 8528
+0x7fffde100000 824 896
+0x7fffde200000 3072 3232
+0x7fffde300000 2004 2176
+0x7fffde400000 768 768
+0x7fffde500000 10736 14976
+0x7fffde600000 344 384
+0x7fffde700000 960 976
+0x7fffde800000 784 848
+0x7fffde900000 1280 1296
+0x7fffdeb00000 48 48
+0x7fffdec00000 5028 5128
+0x7fffded00000 1040 1072
+0x7fffdee00000 1290 1392
+0x7fffdef00000 1024 1024
+0x7fffdf100000 1320 1344
+0x7fffdf200000 256 272
+0x7fffdf500000 1935 2240
+0x7fffdf600000 24 32
+0x7fffdf700000 1814 1872
+0x7fffdf800000 208 240
+0x7fffdf900000 476 496
+0x7fffdfa00000 2312 2336
+0x7fffdfb00000 3752 3888
+0x7fffdfc00000 16024 16032
+0x7fffdfd00000 6568 6576
+0x7fffdfe00000 848 864
+0x7fffdff00000 48 48
+0x7fffe0000000 2671 3072
+0x7fffe0100000 288 304
+0x7fffe0200000 2412 2624
+0x7fffe0300000 2344 2464
+0x7fffe0400000 1904 2048
+0x7fffe0500000 1540 1632
+0x7fffe0600000 2696 2960
+0x7fffe0700000 4828 5312
+0x7fffe0900000 12151 16000
+0x7fffe0a00000 793 864
+0x7fffe0b00000 1738 1952
+0x7fffe0c00000 4404 4704
+0x7fffe0d00000 48 48
+0x7fffe0e00000 11018 14112
+0x7fffe0f00000 600 640
+0x7fffe1000000 9936 12992
+0x7fffe1100000 3820 4000
+0x7fffe1200000 136 144
+0x7fffe1400000 1871 2016
+0x7fffe1500000 192 192
+0x7fffe1600000 1686 1792
+0x7fffe1700000 624 624
+0x7fffe1800000 1072 1152
+0x7fffe1900000 288 288
+0x7fffe1a00000 1162 1200
+0x7fffe1b00000 2096 2096
+0x7fffe1c00000 46 64
+0x7fffe1d00000 2384 2384
+0x7fffe1f00000 1472 1520
+0x7fffe2000000 10191 13440
+0x7fffe2200000 2072 2080
+0x7fffe2300000 48 48
+0x7fffe2500000 1357 1408
+0x7fffe2600000 8216 12288
+0x7fffe2700000 5317 5792
+0x7fffe2800000 262 288
+0x7fffe2900000 1591 1664
+0x7fffe2b00000 1020 1064
+0x7fffe2c00000 1430 1600
+0x7fffe2d00000 2806 3072
+0x7fffe2e00000 2073 2312
+0x7fffe2f00000 574 608
+0x7fffe3000000 11196 12096
+0x7fffe3100000 1176 1216
+0x7fffe3200000 192 192
+0x7fffe3300000 4167 4256
+0x7fffe3400000 301 320
+0x7fffe3500000 4272 4304
+0x7fffe3600000 2544 2592
+0x7fffe3700000 3468 3952
+0x7fffe3900000 2135 2320
+0x7fffe3a00000 6662 6928
+0x7fffe3b00000 1167 1328
+0x7fffe3c00000 3771 3856
+0x7fffe3d00000 9554 13680
+0x7fffe3f00000 1337 1408
+0x7fffe4000000 76 80
+0x7fffe4100000 1332 1376
+0x7fffe4200000 450 496
+0x7fffe4300000 792 816
+0x7fffe4400000 2794 2848
+0x7fffe4500000 944 944
+0x7fffe4600000 1189 1232
+0x7fffe4700000 740 816
+0x7fffe4800000 8888 12984
+0x7fffe4900000 4277 4784
+0x7fffe4a00000 32 48
+0x7fffe4c00000 117 144
+0x7fffe4d00000 8856 12944
+0x7fffe4f00000 4629 4808
+0x7fffe5000000 840 928
+0x7fffe5200000 2840 3088
+0x7fffe5300000 5720 5968
+0x7fffe5400000 7822 7984
+0x7fffe5500000 2116 2256
+0x7fffe5600000 9130 13296
+0x7fffe5900000 140 176
+0x7fffe5a00000 4576 4576
+0x7fffe5b00000 3166 3216
+0x7fffe5c00000 1852 2000
+0x7fffe5d00000 318 336
+0x7fffe5e00000 3452 3680
+0x7fffe5f00000 3637 3744
+0x7fffe6000000 9960 11088
+0x7fffe6100000 3173 3280
+0x7fffe6200000 12221 12496
+0x7fffe6400000 912 976
+0x7fffe6500000 8752 11920
+0x7fffe6600000 448 448
+0x7fffe6700000 964 992
+0x7fffe6800000 2092 2112
+0x7fffe6900000 202 224
+0x7fffe6a00000 140 192
+0x7fffe6b00000 467 480
+0x7fffe6c00000 2088 2096
+0x7fffe6d00000 20638 23488
+0x7fffe6e00000 9634 13952
+0x7fffe6f00000 10182 14368
+0x7fffe7000000 168 208
+0x7fffe7100000 1578 1656
+0x7fffe7200000 3434 3488
+0x7fffe7500000 10060 14144
+0x7fffe7600000 86 112
+0x7fffe7700000 16744 22512
+0x7fffe7800000 10748 15056
+0x7fffe7900000 6198 6496
+0x7fffe7a00000 179 200
+0x7fffe7b00000 1763 1792
+0x7fffe7c00000 9267 9504
+0x7fffe7d00000 1356 1456
+0x7fffe7e00000 2627 2728
+0x7fffe7f00000 3884 4000
+0x7fffe8000000 9835 10448
+0x7fffe8100000 936 976
+0x7fffe8200000 24208 24224
+0x7fffe8300000 15289 15552
+0x7fffe8400000 4815 4960
+0x7fffe8600000 6542 8648
+0x7fffe8700000 2029 2144
+0x7fffe8800000 2594 2688
+0x7fffe8900000 2696 2752
+0x7fffe8a00000 4570 4736
+0x7fffe8b00000 2873 3048
+0x7fffe8c00000 824 864
+0x7fffe8d00000 11827 16960
+0x7fffe8e00000 52611 56560
+0x7fffe8f00000 2066 2080
+0x7fffe9000000 295 304
+0x7fffe9100000 1241 1384
+0x7fffe9200000 1606 1792
+0x7fffe9300000 15386 20144
+0x7fffe9400000 992 1024
+0x7fffe9500000 10745 15040
+0x7fffe9700000 4194 4456
+0x7fffe9800000 16174 16240
+0x7fffe9900000 28125 32240
+0x7fffe9a00000 4499 5040
+0x7fffe9b00000 917 1024
+0x7fffe9d00000 8886 9344
+0x7fffe9e00000 6977 7512
+0x7fffe9f00000 6957 7288
+0x7fffea000000 3278 3360
+0x7fffea100000 384 416
+0x7fffea300000 1122 1264
+0x7fffea400000 9431 13568
+0x7fffea500000 1271 1392
+0x7fffea700000 4045 4176
+0x7fffea800000 4231 5048
+0x7fffeaa00000 1671 1920
+0x7fffeab00000 3209 3248
+0x7fffeac00000 1893 2120
+0x7fffead00000 140 176
+0x7fffeae00000 8388 12480
+0x7fffeaf00000 9073 13184
+0x7fffeb000000 3944 4112
+0x7fffeb100000 720 768
+0x7fffeb200000 23896 28176
+0x7fffeb300000 1176 1216
+0x7fffeb400000 8728 12816
+0x7fffeb500000 10094 10160
+0x7fffeb600000 321 352
+0x7fffeb700000 1305 1344
+0x7fffeb800000 4544 4544
+0x7fffeb900000 14949 19112
+0x7fffeba00000 9484 13584
+0x7fffebb00000 76407 80584
+0x7fffebc00000 1088 1104
+0x7fffebd00000 23516 33792
+0x7fffebf00000 12708 16864
+0x7fffec000000 12222 12272
+0x7fffec100000 9335 9504
+0x7fffec200000 4193 4360
+0x7fffec300000 2664 3008
+0x7fffec400000 837 944
+0x7fffec500000 987 1056
+0x7fffec700000 570 616
+0x7fffec800000 6289 7040
+0x7fffec900000 2528 2624
+0x7fffeca00000 9089 13296
+0x7fffecb00000 1456 1520
+0x7fffecd00000 5710 5792
+0x7fffece00000 2035 2232
+0x7fffecf00000 240 272
+0x7fffed000000 8418 12512
+0x7fffed100000 662 720
+0x7fffed200000 1938 2304
+0x7fffed300000 7401 10776
+0x7fffed400000 272 384
+0x7fffed500000 1178 1240
+0x7fffed600000 410 512
+0x7fffed700000 3556 3600
+0x7fffed900000 11648 15744
+0x7fffeda00000 8352 12432
+0x7fffedb00000 8480 12560
+0x7fffedc00000 78 80
+0x7fffedd00000 1494 1536
+0x7fffede00000 147 160
+0x7fffedf00000 1586 1720
+0x7fffee000000 2367 2416
+0x7fffee200000 626 640
+0x7fffee300000 820 896
+0x7fffee400000 4854 4992
+0x7fffee500000 4459 4816
+0x7fffee600000 4208 4600
+0x7fffee800000 9865 14016
+0x7fffee900000 8289 8504
+0x7fffeea00000 2292 2432
+0x7fffeec00000 108934 113312
+0x7fffeed00000 3624 3712
+0x7fffeef00000 200 256
+0x7fffef000000 1536 1584
+0x7fffef100000 3402 3504
+0x7fffef200000 3633 3728
+0x7fffef300000 8789 12880
+0x7fffef400000 2027 2080
+0x7fffef500000 1096 1200
+0x7fffef600000 2800 2928
+0x7fffef800000 1562 1584
+0x7fffef900000 9212 13360
+0x7fffefa00000 547 600
+0x7fffefc00000 15466 19712
+0x7fffefd00000 1969 2064
+0x7fffeff00000 3625 3672
+0x7ffff0000000 3617 3856
+0x7ffff0100000 4391 4448
+0x7ffff0200000 7779 7984
+0x7ffff0300000 679 768
+0x7ffff0400000 20910 25488
+0x7ffff0500000 400 416
+0x7ffff0700000 103 128
+0x7ffff0800000 3442 3536
+0x7ffff0900000 13294 13992
+0x7ffff0a00000 2699 2848
+0x7ffff0b00000 4930 5120
+0x7ffff0d00000 3415 3584
+0x7ffff0e00000 1144 1368
+0x7ffff0f00000 5999 6136
+0x7ffff1000000 262 320
+0x7ffff1200000 475 520
+0x7ffff1300000 10972 15168
+0x7ffff1500000 9207 9352
+0x7ffff1600000 3177 3232
+0x7ffff1700000 1943 2032
+0x7ffff1800000 9582 13792
+0x7ffff1900000 13063 13792
+0x7ffff1a00000 4125 4296
+0x7ffff1b00000 3745 4000
+0x7ffff1c00000 8916 9040
+0x7ffff1d00000 11332 12008
+0x7ffff1f00000 4474 4880
+0x7ffff2000000 28100 28856
+0x7ffff2100000 28128 28712
+0x7ffff2200000 4719 5072
+0x7ffff2300000 12907 13312
+0x7ffff2400000 199185 204264
+0x7ffff2500000 78610 79008
+0x7ffff2600000 19306 21200
+0x7ffff2800000 27222 29088
+0x7ffff2a00000 57133 61184
+0x7ffff2b00000 80276 86944
+0x7ffff2c00000 77393 81712
+0x7ffff2d00000 13990 14576
+0x7ffff2e00000 66713 68416
+0x7ffff2f00000 30021 31232
+0x7ffff3000000 26749 28472
+0x7ffff3200000 44083 48880
+0x7ffff3300000 77406 88464
+0x7ffff3400000 42028 45504
+0x7ffff3500000 123067 130704
+0x7ffff3600000 388411 433344
+0x7ffff3700000 395081 430416
+0x7ffff3900000 380507 414240
+0x7ffff3a00000 527976 567536
+0x7ffff3b00000 708191 768544
+0x7ffff3c00000 205120 208896
+0x7ffff3d00000 148049 160072
+0x7ffff3e00000 24953 25616
+0x7ffff3f00000 106595 119072
+0x7ffff4100000 337114 354976
+0x7ffff4200000 440608 475552
+0x7ffff4300000 431193 460304
+0x7ffff4400000 186405 193344
+0x7ffff4500000 338115 371912
+0x7ffff4600000 360147 384888
+0x7ffff4800000 431303 470800
+0x7ffff4900000 499848 543760
+0x7ffff4b00000 163631 176672
+0x7ffff4c00000 59282 60464
+0x7ffff4d00000 50310 57584
+0x7ffff4e00000 105842 116624
+0x7ffff4f00000 16718 17808
+0x7ffff5000000 41049 42576
+0x7ffff5100000 20971 22592
+0x7ffff5200000 25411 31344
+0x7ffff5400000 204285 220016
+0x7ffff5500000 166705 178128
+0x7ffff5700000 121964 135328
+0x7ffff5800000 30275 32016
+0x7ffff5900000 37462 40336
+0x7ffff5a00000 105017 116672
+0x7ffff5b00000 270094 290112
+0x7ffff5c00000 69549 79648
+0x7ffff5d00000 77453 84128
+0x7ffff5e00000 15851 17288
+0x7ffff5f00000 108060 117696
+0x7ffff6000000 539778 549008
+0x7ffff6200000 540620 580592
+0x7ffff6300000 893387 902352
+0x7ffff6400000 1000202 1006432
+0x7ffff6500000 397745 432464
+0x7ffff6e00000 670342 714544
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Tue Oct 30 08:36:58 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 30 Oct 2012 16:36:58 +0100
+Subject: Memory usage regression
+In-Reply-To: <20121030153502.GA16321@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+Message-ID: <20121030153658.GB16321@glandium.org>
+
+On Tue, Oct 30, 2012 at 04:35:02PM +0100, Mike Hommey wrote:
+> On Fri, Oct 26, 2012 at 06:10:13PM +0200, Mike Hommey wrote:
+> > > > > For reference, the unzoomed graph looks like this:
+> > > > > http://i.imgur.com/PViYm.png
+> > > > 
+> > > > I rediscovered --enable-munmap, and tried again with that, thinking it
+> > > > could be related, and it did change something, but it's still growing:
+> > > > http://i.imgur.com/lWzhG.png
+> > > 
+> > > Needless to say, the increases I was observing closely on the the zoomed
+> > > graph without a matching decrease was entirely due to munmap. Now I need
+> > > to find the remainder...
+> > 
+> > I tested size class independently, and none would cause the VM leak
+> > alone. Combining small and large classes do, but large + huge or small +
+> > huge don't.
+> 
+> Some more data: all non-unmapped chunks *are* used to some extent. The
+> following is a dump of the number of requested and usable bytes in each
+> chunk ; that's 18M spread across 600M... that sounds like a really bad
+> case of fragmentation.
+
+BTW, it does seem to grow forever: I went up to 1.3GB with more
+iterations before stopping.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Tue Oct 30 09:03:38 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 30 Oct 2012 17:03:38 +0100
+Subject: Memory usage regression
+In-Reply-To: <20121030153658.GB16321@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+Message-ID: <20121030160338.GA22169@glandium.org>
+
+On Tue, Oct 30, 2012 at 04:36:58PM +0100, Mike Hommey wrote:
+> On Tue, Oct 30, 2012 at 04:35:02PM +0100, Mike Hommey wrote:
+> > On Fri, Oct 26, 2012 at 06:10:13PM +0200, Mike Hommey wrote:
+> > > > > > For reference, the unzoomed graph looks like this:
+> > > > > > http://i.imgur.com/PViYm.png
+> > > > > 
+> > > > > I rediscovered --enable-munmap, and tried again with that, thinking it
+> > > > > could be related, and it did change something, but it's still growing:
+> > > > > http://i.imgur.com/lWzhG.png
+> > > > 
+> > > > Needless to say, the increases I was observing closely on the the zoomed
+> > > > graph without a matching decrease was entirely due to munmap. Now I need
+> > > > to find the remainder...
+> > > 
+> > > I tested size class independently, and none would cause the VM leak
+> > > alone. Combining small and large classes do, but large + huge or small +
+> > > huge don't.
+> > 
+> > Some more data: all non-unmapped chunks *are* used to some extent. The
+> > following is a dump of the number of requested and usable bytes in each
+> > chunk ; that's 18M spread across 600M... that sounds like a really bad
+> > case of fragmentation.
+> 
+> BTW, it does seem to grow forever: I went up to 1.3GB with more
+> iterations before stopping.
+
+So, what seems to be happening is that because of that fragmentation, when
+requesting big allocations, jemalloc has to allocate and use new chunks.
+When these big allocations are freed, the new chunk tends to be used
+more often than the other free chunks, adding to the fragmentation, thus
+requiring more new chunks for big allocations.
+
+The following dumb patch essentially plugs the leak for the Firefox usecase:
+
+diff --git a/src/arena.c b/src/arena.c
+index 1e6964a..38079d7 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -471,7 +471,7 @@ arena_run_alloc_helper(arena_t *arena, size_t size, bool large, size_t binind,
+        arena_chunk_map_t *mapelm, key;
+ 
+        key.bits = size | CHUNK_MAP_KEY;
+-       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_dirty, &key);
++       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_clean, &key);
+        if (mapelm != NULL) {
+                arena_chunk_t *run_chunk = CHUNK_ADDR2BASE(mapelm);
+                size_t pageind = (((uintptr_t)mapelm -
+@@ -483,7 +483,7 @@ arena_run_alloc_helper(arena_t *arena, size_t size, bool large, size_t binind,
+                arena_run_split(arena, run, size, large, binind, zero);
+                return (run);
+        }
+-       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_clean, &key);
++       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_dirty, &key);
+        if (mapelm != NULL) {
+                arena_chunk_t *run_chunk = CHUNK_ADDR2BASE(mapelm);
+                size_t pageind = (((uintptr_t)mapelm -
+
+
+My test program changed in the meanwhile, so i can't do accurate
+comparisons with mozjemalloc without re-running more tests. I'll post
+again when I have more data.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Tue Oct 30 11:01:21 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 30 Oct 2012 19:01:21 +0100
+Subject: Memory usage regression
+In-Reply-To: <20121030160338.GA22169@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+Message-ID: <20121030180121.GA921@glandium.org>
+
+On Tue, Oct 30, 2012 at 05:03:38PM +0100, Mike Hommey wrote:
+> So, what seems to be happening is that because of that fragmentation, when
+> requesting big allocations, jemalloc has to allocate and use new chunks.
+> When these big allocations are freed, the new chunk tends to be used
+> more often than the other free chunks, adding to the fragmentation, thus
+> requiring more new chunks for big allocations.
+> 
+> The following dumb patch essentially plugs the leak for the Firefox usecase:
+> 
+> diff --git a/src/arena.c b/src/arena.c
+> index 1e6964a..38079d7 100644
+> --- a/src/arena.c
+> +++ b/src/arena.c
+> @@ -471,7 +471,7 @@ arena_run_alloc_helper(arena_t *arena, size_t size, bool large, size_t binind,
+>         arena_chunk_map_t *mapelm, key;
+>  
+>         key.bits = size | CHUNK_MAP_KEY;
+> -       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_dirty, &key);
+> +       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_clean, &key);
+>         if (mapelm != NULL) {
+>                 arena_chunk_t *run_chunk = CHUNK_ADDR2BASE(mapelm);
+>                 size_t pageind = (((uintptr_t)mapelm -
+> @@ -483,7 +483,7 @@ arena_run_alloc_helper(arena_t *arena, size_t size, bool large, size_t binind,
+>                 arena_run_split(arena, run, size, large, binind, zero);
+>                 return (run);
+>         }
+> -       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_clean, &key);
+> +       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_dirty, &key);
+>         if (mapelm != NULL) {
+>                 arena_chunk_t *run_chunk = CHUNK_ADDR2BASE(mapelm);
+>                 size_t pageind = (((uintptr_t)mapelm -
+> 
+> 
+> My test program changed in the meanwhile, so i can't do accurate
+> comparisons with mozjemalloc without re-running more tests. I'll post
+> again when I have more data.
+
+Here's some comparison between jemalloc3 (tcache=false, narenas=1,
+lg_chunk=20) with the patch above and mozjemalloc.
+The graph shows (mozjemalloc - jemalloc3) / jemalloc3 for each value.
+
+mozjemalloc has a lower rss after closing tabs, but jemalloc3 has a
+lower rss when all tabs are opened. VmData difference is in an
+acceptable range.
+"Usable" is the total of malloc_usable_size() for all allocations, which
+means jemalloc allocates more "unrequested" memory than mozjemalloc.
+That could certainly contribute to some additional fragmentation and
+to the RSS difference, by extension.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Tue Oct 30 11:11:53 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 30 Oct 2012 19:11:53 +0100
+Subject: Memory usage regression
+In-Reply-To: <20121030180121.GA921@glandium.org>
+References: <43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+	<20121030180121.GA921@glandium.org>
+Message-ID: <20121030181153.GB921@glandium.org>
+
+On Tue, Oct 30, 2012 at 07:01:21PM +0100, Mike Hommey wrote:
+> On Tue, Oct 30, 2012 at 05:03:38PM +0100, Mike Hommey wrote:
+> > So, what seems to be happening is that because of that fragmentation, when
+> > requesting big allocations, jemalloc has to allocate and use new chunks.
+> > When these big allocations are freed, the new chunk tends to be used
+> > more often than the other free chunks, adding to the fragmentation, thus
+> > requiring more new chunks for big allocations.
+> > 
+> > The following dumb patch essentially plugs the leak for the Firefox usecase:
+> > 
+> > diff --git a/src/arena.c b/src/arena.c
+> > index 1e6964a..38079d7 100644
+> > --- a/src/arena.c
+> > +++ b/src/arena.c
+> > @@ -471,7 +471,7 @@ arena_run_alloc_helper(arena_t *arena, size_t size, bool large, size_t binind,
+> >         arena_chunk_map_t *mapelm, key;
+> >  
+> >         key.bits = size | CHUNK_MAP_KEY;
+> > -       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_dirty, &key);
+> > +       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_clean, &key);
+> >         if (mapelm != NULL) {
+> >                 arena_chunk_t *run_chunk = CHUNK_ADDR2BASE(mapelm);
+> >                 size_t pageind = (((uintptr_t)mapelm -
+> > @@ -483,7 +483,7 @@ arena_run_alloc_helper(arena_t *arena, size_t size, bool large, size_t binind,
+> >                 arena_run_split(arena, run, size, large, binind, zero);
+> >                 return (run);
+> >         }
+> > -       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_clean, &key);
+> > +       mapelm = arena_avail_tree_nsearch(&arena->runs_avail_dirty, &key);
+> >         if (mapelm != NULL) {
+> >                 arena_chunk_t *run_chunk = CHUNK_ADDR2BASE(mapelm);
+> >                 size_t pageind = (((uintptr_t)mapelm -
+> > 
+> > 
+> > My test program changed in the meanwhile, so i can't do accurate
+> > comparisons with mozjemalloc without re-running more tests. I'll post
+> > again when I have more data.
+
+Oops. There was supposed to be an url around here:
+http://i.imgur.com/A0len.png
+
+> Here's some comparison between jemalloc3 (tcache=false, narenas=1,
+> lg_chunk=20) with the patch above and mozjemalloc.
+> The graph shows (mozjemalloc - jemalloc3) / jemalloc3 for each value.
+> 
+> mozjemalloc has a lower rss after closing tabs, but jemalloc3 has a
+> lower rss when all tabs are opened. VmData difference is in an
+> acceptable range.
+> "Usable" is the total of malloc_usable_size() for all allocations, which
+> means jemalloc allocates more "unrequested" memory than mozjemalloc.
+> That could certainly contribute to some additional fragmentation and
+> to the RSS difference, by extension.
+> 
+> Mike
+
+
+From jasone at canonware.com  Tue Oct 30 12:49:27 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 30 Oct 2012 12:49:27 -0700
+Subject: Memory usage regression
+In-Reply-To: <20121030160338.GA22169@glandium.org>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+Message-ID: <BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+
+On Oct 30, 2012, at 9:03 AM, Mike Hommey wrote:
+> On Tue, Oct 30, 2012 at 04:36:58PM +0100, Mike Hommey wrote:
+>> On Tue, Oct 30, 2012 at 04:35:02PM +0100, Mike Hommey wrote:
+>>> On Fri, Oct 26, 2012 at 06:10:13PM +0200, Mike Hommey wrote:
+>>>>>>> For reference, the unzoomed graph looks like this:
+>>>>>>> http://i.imgur.com/PViYm.png
+>>>>>> 
+>>>>>> I rediscovered --enable-munmap, and tried again with that, thinking it
+>>>>>> could be related, and it did change something, but it's still growing:
+>>>>>> http://i.imgur.com/lWzhG.png
+>>>>> 
+>>>>> Needless to say, the increases I was observing closely on the the zoomed
+>>>>> graph without a matching decrease was entirely due to munmap. Now I need
+>>>>> to find the remainder...
+>>>> 
+>>>> I tested size class independently, and none would cause the VM leak
+>>>> alone. Combining small and large classes do, but large + huge or small +
+>>>> huge don't.
+>>> 
+>>> Some more data: all non-unmapped chunks *are* used to some extent. The
+>>> following is a dump of the number of requested and usable bytes in each
+>>> chunk ; that's 18M spread across 600M... that sounds like a really bad
+>>> case of fragmentation.
+>> 
+>> BTW, it does seem to grow forever: I went up to 1.3GB with more
+>> iterations before stopping.
+> 
+> So, what seems to be happening is that because of that fragmentation, when
+> requesting big allocations, jemalloc has to allocate and use new chunks.
+> When these big allocations are freed, the new chunk tends to be used
+> more often than the other free chunks, adding to the fragmentation, thus
+> requiring more new chunks for big allocations.
+
+
+The preference for allocating dirty runs was a solution to excessive dirty page purging.  However, the purging policy (as of jemalloc 3.0.0) is round-robin, justified only as a strategy for allowing dirty pages to accumulate in chunks before going to the considerable effort (including arena mutex operations) of scanning a chunk for dirty pages.  In retrospect I'm thinking maybe this was a bad choice, and that we should go back to scanning downward through memory to purge dirty pages.  The danger is that the linear scanning overhead for scanning each chunk will cause a measurable performance degradation if high chunks routinely have many runs, only a few of which are unused dirty runs.  I think that problem can be solved with slightly more sophisticated hysteresis though.
+
+I'll work on a diff for you to test, and see how it affects Firefox.  I'll do some testing with Facebook server loads too (quite different behavior from Firefox).  If this causes a major reduction in virtual memory usage for both workloads, it's probably the right thing to do, even speed-wise.
+
+Thanks,
+Jason
+
+From jkuhn at avvasi.com  Tue Oct 30 13:14:49 2012
+From: jkuhn at avvasi.com (Jim Kuhn)
+Date: Tue, 30 Oct 2012 16:14:49 -0400
+Subject: Memory usage regression
+In-Reply-To: <BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>,
+	<BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+Message-ID: <77F42B4A75C8E94597470241D340426D02508A7534@air.MATTER.LOCAL>
+
+On Oct 30, 2012, at 3:49 PM, Jason Evans wrote:
+
+> The preference for allocating dirty runs was a solution to excessive dirty page purging.  However, the purging policy (as of jemalloc 3.0.0) is round-robin,
+> justified only as a strategy for allowing dirty pages to accumulate in chunks before going to the considerable effort (including arena mutex operations)
+> of scanning a chunk for dirty pages.  In retrospect I'm thinking maybe this was a bad choice, and that we should go back to scanning downward through
+> memory to purge dirty pages.  The danger is that the linear scanning overhead for scanning each chunk will cause a measurable performance degradation
+> if high chunks routinely have many runs, only a few of which are unused dirty runs.  I think that problem can be solved with slightly more sophisticated
+> hysteresis though.
+
+> I'll work on a diff for you to test, and see how it affects Firefox.  I'll do some testing with Facebook server loads too (quite different behavior from Firefox).
+> If this causes a major reduction in virtual memory usage for both workloads, it's probably the right thing to do, even speed-wise.
+
+[...]
+
+Jason (and Mike),
+
+I've been following this closely, as I've been experiencing the exact same issue with our use of jemalloc 3.  Our application does a large number of
+varied-size allocations and "leaks" several GB of VM each day due to the fragmentation...  When you have a diff, I can provide a third data point.
+
+Thanks, 
+
+Jim Kuhn
+
+
+From jasone at canonware.com  Tue Oct 30 16:35:53 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 30 Oct 2012 16:35:53 -0700
+Subject: Memory usage regression
+In-Reply-To: <BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+References: <20121024193654.GA26607@glandium.org>
+	<43E344DB-E967-4667-8D6C-D96F1CB16503@canonware.com>
+	<20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+	<BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+Message-ID: <387B3CEF-78CF-4E9D-A3B1-BC6390C0F314@canonware.com>
+
+On Oct 30, 2012, at 12:49 PM, Jason Evans wrote:
+> The preference for allocating dirty runs was a solution to excessive dirty page purging.  However, the purging policy (as of jemalloc 3.0.0) is round-robin, justified only as a strategy for allowing dirty pages to accumulate in chunks before going to the considerable effort (including arena mutex operations) of scanning a chunk for dirty pages.  In retrospect I'm thinking maybe this was a bad choice, and that we should go back to scanning downward through memory to purge dirty pages.  The danger is that the linear scanning overhead for scanning each chunk will cause a measurable performance degradation if high chunks routinely have many runs, only a few of which are unused dirty runs.  I think that problem can be solved with slightly more sophisticated hysteresis though.
+> 
+> I'll work on a diff for you to test, and see how it affects Firefox.  I'll do some testing with Facebook server loads too (quite different behavior from Firefox).  If this causes a major reduction in virtual memory usage for both workloads, it's probably the right thing to do, even speed-wise.
+
+Here's a very lightly tested patch.  Apologies if it's buggy, but I'm out of time for today.
+
+Jason
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: purge.patch
+Type: application/octet-stream
+Size: 8100 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121030/be917236/attachment.obj>
+
+From mh+jemalloc at glandium.org  Wed Oct 31 00:00:11 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 31 Oct 2012 08:00:11 +0100
+Subject: Memory usage regression
+In-Reply-To: <387B3CEF-78CF-4E9D-A3B1-BC6390C0F314@canonware.com>
+References: <20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+	<BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+	<387B3CEF-78CF-4E9D-A3B1-BC6390C0F314@canonware.com>
+Message-ID: <20121031070011.GA6923@glandium.org>
+
+On Tue, Oct 30, 2012 at 04:35:53PM -0700, Jason Evans wrote:
+> On Oct 30, 2012, at 12:49 PM, Jason Evans wrote:
+> > The preference for allocating dirty runs was a solution to excessive
+> > dirty page purging.  However, the purging policy (as of jemalloc
+> > 3.0.0) is round-robin, justified only as a strategy for allowing
+> > dirty pages to accumulate in chunks before going to the considerable
+> > effort (including arena mutex operations) of scanning a chunk for
+> > dirty pages.  In retrospect I'm thinking maybe this was a bad
+> > choice, and that we should go back to scanning downward through
+> > memory to purge dirty pages.  The danger is that the linear scanning
+> > overhead for scanning each chunk will cause a measurable performance
+> > degradation if high chunks routinely have many runs, only a few of
+> > which are unused dirty runs.  I think that problem can be solved
+> > with slightly more sophisticated hysteresis though.
+> > 
+> > I'll work on a diff for you to test, and see how it affects Firefox.
+> > I'll do some testing with Facebook server loads too (quite different
+> > behavior from Firefox).  If this causes a major reduction in virtual
+> > memory usage for both workloads, it's probably the right thing to
+> > do, even speed-wise.
+> 
+> Here's a very lightly tested patch.  Apologies if it's buggy, but I'm
+> out of time for today.
+
+It's unfortunately only slightly better.
+http://i.imgur.com/hN1Cj.png
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Wed Oct 31 01:38:18 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 31 Oct 2012 09:38:18 +0100
+Subject: mallctl("arenas.purge") dead-locks
+Message-ID: <20121031083818.GA11679@glandium.org>
+
+Hi,
+
+When i tried using arenas.purge, it appeared that it is dead-locking.
+This is due to both arenas_purge_ctl and arena_purge getting the
+ctl_mtx mutex.
+I know arena.i.purge replaces arenas.purge, but arenas.purge is still
+more convenient, since it doesn't require to retrieve narenas.
+
+Mike
+
+
+From rjp_email at yahoo.com  Wed Oct 31 07:19:43 2012
+From: rjp_email at yahoo.com (Bob Price)
+Date: Wed, 31 Oct 2012 07:19:43 -0700 (PDT)
+Subject: how to compile using Visual Studio?
+Message-ID: <1351693183.77096.YahooMailNeo@web160301.mail.bf1.yahoo.com>
+
+I have been trying unsuccessfully to compile jemalloc with Visual Studio 10.0 and 11.0 with no luck.
+
+The files and website mention mingw and windows separately, and the msvc_compat headers seem targeted for this, so I assume that it is possible.
+
+What I want to do is setup jemalloc with a unique prefix on the public methods and compile it to a static library to be able to use it as the memory allocator for just one part of a larger 64-bit application.
+
+Can anyone give me some guidance here?
+
+What I have tried so far is as follows, using the current 3.1.0 download:
+
+Since I couldn't find a way to do this on Windows, I used a 64-bit Linux box and ran ./configure --with-jemalloc-prefix=je_ --with-private-namespace=jeint_ to (hopefully) get all the header files in the desired state.? Then I copied everything over to a 64-bit Windows7 with the MS SDK and Visual Studio installed, and I borrowed a makefile I use on another C library and updated the options to include the jemalloc include and include/msvc_compat directories, and to ensure that _WIN32 is defined, and set it up to compile all C code in src. 
+
+When I run this and it tries to compile arena.c I get all kinds of redefinition errors and warnings from msvc_compat\stdint.h and then many syntax errors in include\jemalloc\internal\jemalloc.h.
+
+I suspect that the issue results from the configure on a Linux system, but instead of spending hours trying to understand how to manually do this for Windows VS I hope that someone here can get me going much more quickly.
+
+Thanks for any help you can provide!
+
+Bob
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121031/2fd37de0/attachment.html>
+
+From mh+jemalloc at glandium.org  Wed Oct 31 08:10:13 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 31 Oct 2012 16:10:13 +0100
+Subject: how to compile using Visual Studio?
+In-Reply-To: <1351693183.77096.YahooMailNeo@web160301.mail.bf1.yahoo.com>
+References: <1351693183.77096.YahooMailNeo@web160301.mail.bf1.yahoo.com>
+Message-ID: <20121031151013.GA5292@glandium.org>
+
+On Wed, Oct 31, 2012 at 07:19:43AM -0700, Bob Price wrote:
+> I have been trying unsuccessfully to compile jemalloc with Visual
+> Studio 10.0 and 11.0 with no luck.
+> 
+> The files and website mention mingw and windows separately, and the
+> msvc_compat headers seem targeted for this, so I assume that it is
+> possible.
+> 
+> What I want to do is setup jemalloc with a unique prefix on the public
+> methods and compile it to a static library to be able to use it as the
+> memory allocator for just one part of a larger 64-bit application.
+> 
+> Can anyone give me some guidance here?
+> 
+> What I have tried so far is as follows, using the current 3.1.0
+> download:
+> 
+> Since I couldn't find a way to do this on Windows, I used a 64-bit
+> Linux box and ran ./configure --with-jemalloc-prefix=je_
+> --with-private-namespace=jeint_ to (hopefully) get all the header
+> files in the desired state.? Then I copied everything over to a 64-bit
+> Windows7 with the MS SDK and Visual Studio installed, and I borrowed a
+> makefile I use on another C library and updated the options to include
+> the jemalloc include and include/msvc_compat directories, and to
+> ensure that _WIN32 is defined, and set it up to compile all C code in
+> src. 
+> 
+> When I run this and it tries to compile arena.c I get all kinds of
+> redefinition errors and warnings from msvc_compat\stdint.h and then
+> many syntax errors in include\jemalloc\internal\jemalloc.h.
+> 
+> I suspect that the issue results from the configure on a Linux system,
+> but instead of spending hours trying to understand how to manually do
+> this for Windows VS I hope that someone here can get me going much
+> more quickly.
+
+You need a shell environment on your windows box. I don't think cygwin
+is supported, so you might have to install msys. From a msys shell, just
+run the configure script, making sure cl.exe is in the PATH. IIRC,
+that's about all you need.
+
+Mike
+
+
+From gnurizen at gmail.com  Wed Oct 31 12:36:34 2012
+From: gnurizen at gmail.com (Tommy Reilly)
+Date: Wed, 31 Oct 2012 15:36:34 -0400
+Subject: how to compile using Visual Studio?
+In-Reply-To: <1351693183.77096.YahooMailNeo@web160301.mail.bf1.yahoo.com>
+References: <1351693183.77096.YahooMailNeo@web160301.mail.bf1.yahoo.com>
+Message-ID: <CANAJUdNKwa5idhnCD65aUw8KD=8Sj-L0DCoiMLawdAT8RS846w@mail.gmail.com>
+
+I battled with this recently, this recipe seemed to work:
+
+start cmd with vs10 shortcut
+set PATH=%PATH%;C:\cygwin\bin
+set SHELLOPTS=igncr
+bash
+echo $SHELLOPTS # check for igncr
+cd jemalloc
+CPPFLAGS=-Iinclude/msvc_compat ./configure
+
+I had to hack the configure script to treat cygwin and mingw the same,
+you'd probably have better luck with mingw.   Preparing a patch is on
+my TODO list, hope this helps.
+
+

@@ -1,0 +1,43 @@
+diff --git src/jemalloc.c src/jemalloc.c
+index ae56db6..23e24b2 100644
+--- src/jemalloc.c
++++ src/jemalloc.c
+@@ -695,17 +695,6 @@ malloc_init_hard(void)
+ 
+ 	malloc_conf_init();
+ 
+-#if (!defined(JEMALLOC_MUTEX_INIT_CB) && !defined(JEMALLOC_ZONE) \
+-    && !defined(_WIN32))
+-	/* Register fork handlers. */
+-	if (pthread_atfork(jemalloc_prefork, jemalloc_postfork_parent,
+-	    jemalloc_postfork_child) != 0) {
+-		malloc_write("<jemalloc>: Error in pthread_atfork()\n");
+-		if (opt_abort)
+-			abort();
+-	}
+-#endif
+-
+ 	if (opt_stats_print) {
+ 		/* Print statistics at exit. */
+ 		if (atexit(stats_print_atexit) != 0) {
+@@ -841,6 +830,18 @@ malloc_init_hard(void)
+ 
+ 	malloc_initialized = true;
+ 	malloc_mutex_unlock(&init_lock);
++
++#if (!defined(JEMALLOC_MUTEX_INIT_CB) && !defined(JEMALLOC_ZONE) \
++    && !defined(_WIN32))
++	/* Register fork handlers late, because they might allocate memory. */
++	if (pthread_atfork(jemalloc_prefork, jemalloc_postfork_parent,
++	    jemalloc_postfork_child) != 0) {
++		malloc_write("<jemalloc>: Error in pthread_atfork()\n");
++		if (opt_abort)
++			abort();
++	}
++#endif
++
+ 	return (false);
+ }
+ 
+
+

@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3.2.0 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%203.2.0%20released&In-Reply-To=%3C6424B4FD-7A46-4FA8-8500-11CA95C70E0D%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3.2.0 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%203.2.0%20released&In-Reply-To=%3C6424B4FD-7A46-4FA8-8500-11CA95C70E0D%40canonware.com%3E"
+       TITLE="jemalloc 3.2.0 released">jasone at canonware.com
+       </A><BR>
+    <I>Fri Nov  9 12:43:43 PST 2012</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#8">[ date ]</a>
+              <a href="thread.html#8">[ thread ]</a>
+              <a href="subject.html#8">[ subject ]</a>
+              <a href="author.html#8">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 3.2.0 is now available.  In addition to a couple of bug fixes, this version modifies page run allocation and dirty page purging algorithms in order to better control page-level virtual memory fragmentation.
+
+Incompatible changes:
+- Change the &quot;opt.lg_dirty_mult&quot; default from 5 to 3 (32:1 to 8:1).
+
+Bug fixes:
+- Fix dss/mmap allocation precedence code to use recyclable mmap memory only after primary dss allocation fails.
+- Fix deadlock in the &quot;arenas.purge&quot; mallctl.  This regression was introduced in 3.1.0 by the addition of the &quot;arena.&lt;i&gt;.purge&quot; mallctl.
+
+For the complete ChangeLog, see:
+	<A HREF="http://www.canonware.com/jemalloc/ChangeLog.html">http://www.canonware.com/jemalloc/ChangeLog.html</A>
+
+Direct download:
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-3.2.0.tar.bz2">http://www.canonware.com/download/jemalloc/jemalloc-3.2.0.tar.bz2</A>
+
+Starting point for general information:
+	<A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+
+Browsable revision history:
+	<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#8">[ date ]</a>
+              <a href="thread.html#8">[ thread ]</a>
+              <a href="subject.html#8">[ subject ]</a>
+              <a href="author.html#8">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

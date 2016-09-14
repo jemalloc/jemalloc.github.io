@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc performance for very small allocations
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20performance%20for%20very%20small%20allocations&In-Reply-To=%3CBAY154-W9B3BAD9EE8460662090C2EFBA0%40phx.gbl%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000589.html">
+   <LINK REL="Next"  HREF="000590.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc performance for very small allocations</H1>
+    <B>Rajat Garg</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20performance%20for%20very%20small%20allocations&In-Reply-To=%3CBAY154-W9B3BAD9EE8460662090C2EFBA0%40phx.gbl%3E"
+       TITLE="jemalloc performance for very small allocations">garg_rajat at hotmail.com
+       </A><BR>
+    <I>Tue May  7 16:14:58 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000589.html">Workload causes significant internal fragmentation
+</A></li>
+        <LI>Next message: <A HREF="000590.html">which version of libunwind is recommended? 
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#588">[ date ]</a>
+              <a href="thread.html#588">[ thread ]</a>
+              <a href="subject.html#588">[ subject ]</a>
+              <a href="author.html#588">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Thanks for the explantion/comments.  The increase in the TCACHE_NSLOTS_SMALL_MAX (which undercovers is limited to 1002 and 504 as you say) does help quit a bit in this case as I ran some profiles:
+
+default setting ==&gt;
+Excl.     Incl.      Name
+User CPU  User CPU
+    sec.      sec.
+ 390.275   481.712   jepvt_arena_dalloc_bin_locked
+ 217.540   769.057   je_free
+ 201.956   488.113   jepvt_arena_tcache_fill_small
+ 199.592   283.012   arena_bin_malloc_hard
+  75.292   712.736   je_malloc
+
+callee for je_free  (most of runtime if in jepvt_tcache_bin_flush_small) 
+217.540   *je_free
+551.517    jepvt_tcache_bin_flush_small
+
+new setting  ==&gt;
+Excl.     Incl.      Name
+User CPU  User CPU
+    sec.      sec.
+ 234.378   234.730   je_free
+ 154.511   307.229   jepvt_arena_malloc
+  78.713   385.964   je_malloc
+  57.772    70.838   jepvt_arena_dalloc_bin_locked
+
+callee info for jepvt_arena_malloc:
+Attr.      Name
+User CPU
+   sec.
+154.511   *jepvt_arena_malloc
+ 82.232    jepvt_tcache_event_hard
+ 70.486    jepvt_tcache_alloc_small_hard
+
+
+So we get quite a bit of runtime improvement --  but for our case the runtime in je_malloc and je_free is still quite high. Given above profile do you think modifying bin_info_run_size_calc() to use a larger initial min_run_size help? 
+
+thanks a lot,
+--rajat 
+
+
+Subject: Re: jemalloc performance for very small allocations
+From: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>
+Date: Tue, 30 Apr 2013 22:52:24 -0700
+CC: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+To: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">garg_rajat at hotmail.com</A>
+
+On Apr 26, 2013, at 9:39 AM, Rajat Garg &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">garg_rajat at hotmail.com</A>&gt; wrote: I am using jemalloc 3.1.0, compiled with gcc 4.1.2 on CentOS release 5.6 for a compute intensive multithreaded application where bulk of allocations falls in 8-byte, 16-byte (stats below). We are seeing very high runtime in tcache_alloc_small_hard(), arena_tcache_fill_small() and arena_bin_malloc_hard().  The 8 and 16 bytes allocations happen in very large number. We probably want the allocations to come form tcache_alloc_easy() to not hit the locks and take less runtime.  The allocations are mostly temporary in nature -- especially 8-byte ones -- so some number of 8-byte allocations are done, then they are freed and then alloc/free process repeated. 
+
+The runs use 8 threads (so 48 arenas and all other jemalloc settings are default) and are on an Intel Xeon server with 12-cores (no hyperthreading and no other user so no contention with other user; the peak memory in application is ~6.5GB and server has 128GB memory so no memory shortage/swapping etc.); the jemalloc output at the end of run is given below. As we can see, pretty much 8 and 16 byte bins are overloaded.
+Only 8 of the 48 arenas are being used in your test case.  That said, the extra 40 are lazily initialized, so there's no need to change settings.
+A run with TCACHE_NSLOTS_SMALL_MAX=10000, LG_TCACHE_MAXCLASS_DEFAULT=10, changing small bins to hold only upto 224 bytes (NBINS=15),  and hardcoding 
+tcache_bin_info[i].ncached_max = TCACHE_NSLOTS_SMALL_MAX in tcache.c file improves runtime by about 16% (for overall application runtime) but increases peak memory from 6.5GB to 6.7GB. We want the runtime to at least improve by another 10% without preferably any increase in peak memory (so even 6.5GB to 6.7GB is not desirable). 
+Any suggestions on what changes to jemalloc settings to try?
+
+I don't think the TCACHE_NSLOTS_SMALL_MAX setting is having as much effect for your test case as you might expect.  Even with the setting of 10000, tcache is limited to 1002 and 504 regions for 8- and 16-byte regions, respectively.  If you want to further increase the tcache region count, you will need to either increase the logical page size, or modify bin_info_run_size_calc() to use a larger initial min_run_size.
+Jason 		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/ba5db24e/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/ba5db24e/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000589.html">Workload causes significant internal fragmentation
+</A></li>
+	<LI>Next message: <A HREF="000590.html">which version of libunwind is recommended? 
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#588">[ date ]</a>
+              <a href="thread.html#588">[ thread ]</a>
+              <a href="subject.html#588">[ subject ]</a>
+              <a href="author.html#588">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

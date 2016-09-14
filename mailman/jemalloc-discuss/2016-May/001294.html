@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Where do I modify jemalloc 3.5.0?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Where%20do%20I%20modify%20jemalloc%203.5.0%3F&In-Reply-To=%3C171A936B-6CAF-491B-8E70-65FAD9DC158C%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001293.html">
+   <LINK REL="Next"  HREF="001295.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Where do I modify jemalloc 3.5.0?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Where%20do%20I%20modify%20jemalloc%203.5.0%3F&In-Reply-To=%3C171A936B-6CAF-491B-8E70-65FAD9DC158C%40canonware.com%3E"
+       TITLE="Where do I modify jemalloc 3.5.0?">jasone at canonware.com
+       </A><BR>
+    <I>Tue May 10 16:48:34 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001293.html">Where do I modify jemalloc 3.5.0?
+</A></li>
+        <LI>Next message: <A HREF="001295.html">jemalloc memory slim
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1294">[ date ]</a>
+              <a href="thread.html#1294">[ thread ]</a>
+              <a href="subject.html#1294">[ subject ]</a>
+              <a href="author.html#1294">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 10, 2016, at 3:09 PM, sanjay khanna &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">khannasusa at gmail.com</A>&gt; wrote:
+&gt;<i> I am using jemalloc 3.5.0 on my platform.  I have my own API layer on top of Jemalloc.
+</I>&gt;<i> On this platform (freebsd based), when a page is sbrk()'ed in, it is set to all zeros. This is given.
+</I>&gt;<i> 
+</I>&gt;<i> My API guarantees when Alloc is done by user code, bytes are all zero'ed out. So the user does not have to memset() or call calloc() for allocated memory. This is also a requirement on my API layer. If my alloc finds non-zero bytes in the allocated memory in the debug mode, it asserts because I presume that it is a write after free.
+</I>&gt;<i> 
+</I>&gt;<i> When a free() is done, my API layer memset(0) all the allocated bytes before calling jemalloc_free().
+</I>&gt;<i> This is also a security guarantee given by my API layer.
+</I>&gt;<i> 
+</I>&gt;<i> Right now at Alloc time, I am forced to call memset(0) as sometimes I find that there are unwanted non-zero bytes in the allocated memory. If my layer memset(0) before jemalloc_free() is called, why &amp; where do these extra bytes appear from? These bytes are located in very high on a page address and look like jemalloc housekeeping.
+</I>&gt;<i> 
+</I>&gt;<i> Why do we do things like these?
+</I>&gt;<i>  Based on  my benchmark tests I know that it is taking me around 118ns (nanoseconds) to allocate a say 64 bytes using je_malloc() (without memset) and with a forced memset() this cost goes up to 240ns. That is almost double.and very expensive.
+</I>&gt;<i> 
+</I>&gt;<i> Since platform is already burning cpu to memset(0) on paging in a physical page first time, I think it is sub-optimal to  do additional memset(0) at alloc time.
+</I>&gt;<i> 
+</I>&gt;<i> If I were to modify/enhance jemalloc, where do I need to make changes? My list so far includes arena_run_split_large_helper(), arena_run_split_small() &amp; chunk_recycle().
+</I>
+If I understand correctly, you want to rely on an invariant that &quot;as long as all memory is zeroed prior to free(), subsequent malloc() calls will always return zeroed memory&quot;.  There are myriad ways this invariant is incompatible with jemalloc's internals.  Perhaps the most widely dispersed effect is that jemalloc calls e.g. imalloc() to allocate ephemeral metadata such as thread caches.  Another big issue is that runs used for small allocations directly embed metadata (no longer true in jemalloc 4).  Long story short, what you want to do isn't even close to being supported by vanilla jemalloc, and if you want to add such support you will need to audit pretty much the entirety of jemalloc to find ways it dirties memory, split APIs into internal/external versions, etc.
+
+Jason
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001293.html">Where do I modify jemalloc 3.5.0?
+</A></li>
+	<LI>Next message: <A HREF="001295.html">jemalloc memory slim
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1294">[ date ]</a>
+              <a href="thread.html#1294">[ thread ]</a>
+              <a href="subject.html#1294">[ subject ]</a>
+              <a href="author.html#1294">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

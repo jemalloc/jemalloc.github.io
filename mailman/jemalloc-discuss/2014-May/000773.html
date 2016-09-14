@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> keeping memory usage at certain limit
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C20140508105323.5d23252b%40darkbook.lan.box%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000770.html">
+   <LINK REL="Next"  HREF="000771.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>keeping memory usage at certain limit</H1>
+    <B>Ricardo Nabinger Sanchez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C20140508105323.5d23252b%40darkbook.lan.box%3E"
+       TITLE="keeping memory usage at certain limit">rnsanchez at wait4.org
+       </A><BR>
+    <I>Thu May  8 06:53:23 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000770.html">keeping memory usage at certain limit
+</A></li>
+        <LI>Next message: <A HREF="000771.html">[question] stats print and prof dump #79
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#773">[ date ]</a>
+              <a href="thread.html#773">[ thread ]</a>
+              <a href="subject.html#773">[ subject ]</a>
+              <a href="author.html#773">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Fri, 02 May 2014 11:30:10 +0400
+Antony Dovgal &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">antony.dovgal at gmail.com</A>&gt; wrote:
+
+&gt;<i> *sigh* now I'm out of theories.. =)
+</I>
+You haven't mentioned (or I completely overlooked it) whether your
+application makes use of mmap-based I/O.  If it does, you should see
+your PageTables counter (/proc/meminfo) rising up for about &gt; 1 GB per
+disk terabyte your application touches.  This memory is used by the
+kernel.
+
+Note that you could have a stable memory usage: your application just
+needs to free some memory, causing jemalloc to return it to the system,
+the kernel takes it for page tables, and then your application needs
+the memory it returned a moment ago, triggering OOM.
+
+This is easy to test: run your application, and monitor /proc/meminfo.
+The bad news is that hugepages do not work for disk-based mmaps.
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           <A HREF="http://rnsanchez.wait4.org/">http://rnsanchez.wait4.org/</A>
+  &quot;Left to themselves, things tend to go from bad to worse.&quot;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000770.html">keeping memory usage at certain limit
+</A></li>
+	<LI>Next message: <A HREF="000771.html">[question] stats print and prof dump #79
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#773">[ date ]</a>
+              <a href="thread.html#773">[ thread ]</a>
+              <a href="subject.html#773">[ subject ]</a>
+              <a href="author.html#773">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

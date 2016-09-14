@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage: jemalloc v/s libc allocator
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%3A%20jemalloc%20v/s%20libc%20allocator&In-Reply-To=%3C54F5E619.3060805%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001062.html">
+   <LINK REL="Next"  HREF="001064.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage: jemalloc v/s libc allocator</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%3A%20jemalloc%20v/s%20libc%20allocator&In-Reply-To=%3C54F5E619.3060805%40gmail.com%3E"
+       TITLE="Memory usage: jemalloc v/s libc allocator">danielmicay at gmail.com
+       </A><BR>
+    <I>Tue Mar  3 08:49:29 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001062.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+        <LI>Next message: <A HREF="001064.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1063">[ date ]</a>
+              <a href="thread.html#1063">[ thread ]</a>
+              <a href="subject.html#1063">[ subject ]</a>
+              <a href="author.html#1063">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 03/03/15 09:38 AM, Eduardo Silva wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> I got some reports about high memory usage by our open source project
+</I>&gt;<i> when jemalloc is enabled, to put you in context: Monkey HTTP Server[0]
+</I>&gt;<i> by default uses jemalloc in static linking mode, but optionally at
+</I>&gt;<i> build time can use the common system allocator.
+</I>&gt;<i> 
+</I>&gt;<i> When starting the server with jemalloc, the server uses an average of
+</I>&gt;<i> 8MB, when is disabled (common system allocator) it goes down to 174KB.
+</I>&gt;<i> This is a major concern when used on Embedded environments so I would
+</I>&gt;<i> like to know how can we reduce the space used by jemalloc initially.
+</I>&gt;<i> 
+</I>&gt;<i> If required I can provide steps to reproduce the scenario.
+</I>&gt;<i> 
+</I>&gt;<i> [0] <A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</I>&gt;<i> 
+</I>&gt;<i> thanks for your time,
+</I>
+How are you measuring memory usage?
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150303/3c758136/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150303/3c758136/attachment.sig</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001062.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+	<LI>Next message: <A HREF="001064.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1063">[ date ]</a>
+              <a href="thread.html#1063">[ thread ]</a>
+              <a href="subject.html#1063">[ subject ]</a>
+              <a href="author.html#1063">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

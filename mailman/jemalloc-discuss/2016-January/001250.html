@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc bug?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20bug%3F&In-Reply-To=%3CCAGQTitMQC7-DTMiCMgbVo7cBdgifxCThdNK-r8cBnyjT8FD-1Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001249.html">
+   <LINK REL="Next"  HREF="001251.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc bug?</H1>
+    <B>Roel Van de Paar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20bug%3F&In-Reply-To=%3CCAGQTitMQC7-DTMiCMgbVo7cBdgifxCThdNK-r8cBnyjT8FD-1Q%40mail.gmail.com%3E"
+       TITLE="Jemalloc bug?">roel.vandepaar at percona.com
+       </A><BR>
+    <I>Tue Jan 26 20:08:36 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001249.html">jemalloc hooks clarifications
+</A></li>
+        <LI>Next message: <A HREF="001251.html">Jemalloc bug?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1250">[ date ]</a>
+              <a href="thread.html#1250">[ thread ]</a>
+              <a href="subject.html#1250">[ subject ]</a>
+              <a href="author.html#1250">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi All,
+
+Crashing mysqld:
+
++bt
+#0  0x00007f01cabf5741 in __pthread_kill (threadid=&lt;optimized out&gt;,
+signo=11) at ../nptl/sysdeps/unix/sysv/linux/pthread_kill.c:61
+#1  0x0000000000793555 in handle_fatal_signal (sig=11) at
+/git/PS-5.7_opt/sql/signal_handler.cc:223
+#2  &lt;signal handler called&gt;
+#3  je_bitmap_set (bit=18446744073709551615, binfo=0x7f01cb037a28
+&lt;je_arena_bin_info+456&gt;, bitmap=0x7f016b423010) at
+include/jemalloc/internal/bitmap.h:105
+#4  je_bitmap_sfu (binfo=0x7f01cb037a28 &lt;je_arena_bin_info+456&gt;,
+bitmap=0x7f016b423010) at include/jemalloc/internal/bitmap.h:140
+#5  arena_run_reg_alloc (bin_info=0x7f01cb037a00 &lt;je_arena_bin_info+416&gt;,
+run=0x7f016b423000) at src/arena.c:291
+#6  je_arena_tcache_fill_small (arena=0x7f01c721f1c0,
+tbin=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">tbin at entry</A>=0x7f016b4060a8,
+binind=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">binind at entry</A>=4, prof_accumbytes=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">prof_accumbytes at entry</A>=0) at
+src/arena.c:1479
+#7  0x00007f01cae2b6ff in je_tcache_alloc_small_hard
+(tcache=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">tcache at entry</A>=0x7f016b406000,
+tbin=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">tbin at entry</A>=0x7f016b4060a8, binind=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">binind at entry</A>=4) at src/tcache.c:72
+#8  0x00007f01cae0b14f in je_tcache_alloc_small (zero=false, size=64,
+tcache=0x7f016b406000) at include/jemalloc/internal/tcache.h:303
+#9  je_arena_malloc (try_tcache=true, zero=false, size=&lt;optimized out&gt;,
+arena=0x0) at include/jemalloc/internal/arena.h:957
+#10 je_imalloct (arena=0x0, try_tcache=true, size=&lt;optimized out&gt;) at
+include/jemalloc/internal/jemalloc_internal.h:771
+#11 je_imalloc (size=&lt;optimized out&gt;) at
+include/jemalloc/internal/jemalloc_internal.h:780
+#12 malloc (size=&lt;optimized out&gt;) at src/jemalloc.c:929
+#13 0x00000000011ce169 in ut_allocator&lt;unsigned char&gt;::allocate
+(this=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">this at entry</A>=0x7f01977f7930, n_elements=32, file=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">file at entry</A>=0x159f298
+&quot;/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc&quot;, throw_on_error=false,
+set_to_zero=false, hint=0x0) at
+/git/PS-5.7_opt/storage/innobase/include/ut0new.h:349
+#14 0x00000000011d9e2d in fil_flush_file_spaces
+(purpose=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">purpose at entry</A>=FIL_TYPE_TABLESPACE)
+at /git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5946
+#15 0x00000000011685d9 in buf_dblwr_update (bpage=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">bpage at entry</A>=0x7f019cd07740,
+flush_type=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">flush_type at entry</A>=BUF_FLUSH_LIST) at
+/git/PS-5.7_opt/storage/innobase/buf/buf0dblwr.cc:750
+#16 0x0000000001177506 in buf_flush_write_complete
+(bpage=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">bpage at entry</A>=0x7f019cd07740)
+at /git/PS-5.7_opt/storage/innobase/buf/buf0flu.cc:809
+#17 0x000000000115f511 in buf_page_io_complete (bpage=0x7f019cd07740,
+evict=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">evict at entry</A>=false) at
+/git/PS-5.7_opt/storage/innobase/buf/buf0buf.cc:6030
+#18 0x00000000011d24af in fil_aio_wait (segment=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">segment at entry</A>=7) at
+/git/PS-5.7_opt/storage/innobase/fil/fil0fil.cc:5754
+#19 0x00000000010c07b0 in io_handler_thread (arg=&lt;optimized out&gt;) at
+/git/PS-5.7_opt/storage/innobase/srv/srv0start.cc:330
+#20 0x00007f01cabf0dc5 in start_thread (arg=0x7f01977f8700) at
+pthread_create.c:308
+#21 0x00007f01c904f21d in clone () at
+../sysdeps/unix/sysv/linux/x86_64/clone.S:113
+
+This looks highly like to be jemalloc bug - agreed?
+
+Can I provide any other info to report this? Is this list notification
+sufficient?
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: percona.rvandepaar
+<A HREF="http://www.percona.com/services.html">http://www.percona.com/services.html</A>
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+&lt;<A HREF="http://www.percona.com/software/percona-xtradb-cluster">http://www.percona.com/software/percona-xtradb-cluster</A>&gt;!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160127/3c093c32/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160127/3c093c32/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001249.html">jemalloc hooks clarifications
+</A></li>
+	<LI>Next message: <A HREF="001251.html">Jemalloc bug?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1250">[ date ]</a>
+              <a href="thread.html#1250">[ thread ]</a>
+              <a href="subject.html#1250">[ subject ]</a>
+              <a href="author.html#1250">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

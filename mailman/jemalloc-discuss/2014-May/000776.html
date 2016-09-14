@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Crash during malloc(), with profiling enabled
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20during%20malloc%28%29%2C%20with%20profiling%20enabled&In-Reply-To=%3CE8E5939F-8112-403C-94F9-7D8640AB39EB%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000774.html">
+   <LINK REL="Next"  HREF="000775.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Crash during malloc(), with profiling enabled</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20during%20malloc%28%29%2C%20with%20profiling%20enabled&In-Reply-To=%3CE8E5939F-8112-403C-94F9-7D8640AB39EB%40canonware.com%3E"
+       TITLE="Crash during malloc(), with profiling enabled">jasone at canonware.com
+       </A><BR>
+    <I>Thu May  8 09:00:45 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000774.html">Crash during malloc(), with profiling enabled
+</A></li>
+        <LI>Next message: <A HREF="000775.html">Managing pinned memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#776">[ date ]</a>
+              <a href="thread.html#776">[ thread ]</a>
+              <a href="subject.html#776">[ subject ]</a>
+              <a href="author.html#776">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 8, 2014, at 8:19 AM, Martin Ivanov &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">martin.ivanov at gmail.com</A>&gt; wrote:
+&gt;<i> I have been experimenting recently with jemalloc heap profiling, as way to debug memory leaks, but unfortunately it crashes quite frequently.
+</I>&gt;<i> CPU architecture is PPC , below is a typical backtraces I get - looks like the stack is corrupted.
+</I>&gt;<i> 
+</I>&gt;<i> Program terminated with signal 11, Segmentation fault.
+</I>&gt;<i> 
+</I>&gt;<i> #0  0x0ffaab14 in je_prof_backtrace (bt=dwarf2_read_address: Corrupted DWARF expression.
+</I>&gt;<i> ) at prof.c:398
+</I>&gt;<i> ..
+</I>&gt;<i> #3  0x0ff7691c in je_choose_arena (arena=&lt;value optimized out&gt;)
+</I>&gt;<i>     at src/jemalloc/internal/jemalloc_internal.h:711
+</I>&gt;<i> #4  je_tcache_get (create=&lt;value optimized out&gt;) at src/jemalloc/internal/tcache.h:242
+</I>&gt;<i> #5  je_arena_malloc (try_tcache=&lt;value optimized out&gt;, zero=&lt;value optimized out&gt;, size=&lt;value optimized out&gt;, 
+</I>&gt;<i>     arena=&lt;value optimized out&gt;) at src/jemalloc/internal/arena.h:956
+</I>&gt;<i> #6  je_imalloct (arena=&lt;value optimized out&gt;, try_tcache=&lt;value optimized out&gt;, size=&lt;value optimized out&gt;)
+</I>&gt;<i>     at src/jemalloc/internal/jemalloc_internal.h:771
+</I>&gt;<i> #7  imallocx (arena=&lt;value optimized out&gt;, try_tcache=&lt;value optimized out&gt;, zero=&lt;value optimized out&gt;, 
+</I>&gt;<i>     alignment=&lt;value optimized out&gt;, usize=&lt;value optimized out&gt;) at jemalloc.c:1421
+</I>&gt;<i> #8  imallocx_prof_sample (usize=dwarf2_read_address: Corrupted DWARF expression.
+</I>&gt;<i> ) at jemalloc.c:1436
+</I>&gt;<i> ...
+</I>&gt;<i> 
+</I>&gt;<i> Can anyone tell if this is a known problem and if can be overcome ?
+</I>
+This is probably due to buggy debug info generation in the compiler causing incorrect backtracing.  The only alternatives I&#8217;m aware of are to fix the debug info generation, or to make sure everything your application links against preserves frame pointers and use the implementation of prof_backtrace in jemalloc that relies on gcc intrinsics to walk the stack via frame pointers, e.g. configure with &#8212;disable-prof-libunwind &#8212;disable-prof-libgcc.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000774.html">Crash during malloc(), with profiling enabled
+</A></li>
+	<LI>Next message: <A HREF="000775.html">Managing pinned memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#776">[ date ]</a>
+              <a href="thread.html#776">[ thread ]</a>
+              <a href="subject.html#776">[ subject ]</a>
+              <a href="author.html#776">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

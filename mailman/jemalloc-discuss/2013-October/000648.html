@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 2/2] Add support for LinuxThreads.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/2%5D%20Add%20support%20for%20LinuxThreads.&In-Reply-To=%3C526598B0.5050204%40ixiacom.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000658.html">
+   <LINK REL="Next"  HREF="000649.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 2/2] Add support for LinuxThreads.</H1>
+    <B>Leonard Crestez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/2%5D%20Add%20support%20for%20LinuxThreads.&In-Reply-To=%3C526598B0.5050204%40ixiacom.com%3E"
+       TITLE="[PATCH 2/2] Add support for LinuxThreads.">lcrestez at ixiacom.com
+       </A><BR>
+    <I>Mon Oct 21 14:12:16 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000658.html">[PATCH 1/2] Delay pthread_atfork registering.
+</A></li>
+        <LI>Next message: <A HREF="000649.html">[PATCH 2/2] Add support for LinuxThreads.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#648">[ date ]</a>
+              <a href="thread.html#648">[ thread ]</a>
+              <a href="subject.html#648">[ subject ]</a>
+              <a href="author.html#648">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>When using LinuxThreads pthread_setspecific triggers recursive 
+allocation on all threads. Work around this by creating a global linked 
+list of in-progress tsd initializations.
+
+This modifies the _tsd_get_wrapper macro-generated function. When it has
+to initialize an TSD object it will push the item to the linked list
+first. If this causes a recursive allocation then the _get_wrapper
+request is satisfied from the list. When pthread_setspecific returns the 
+item is removed from the list.
+
+This effectively adds a very poor substitute for real TLS used only
+during pthread_setspecific allocation recursion.
+
+Signed-off-by: Crestez Dan Leonard &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">lcrestez at ixiacom.com</A>&gt;
+---
+   include/jemalloc/internal/tsd.h | 63 
++++++++++++++++++++++++++++++++++++++++++
+   1 file changed, 63 insertions(+)
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0002-Add-support-for-LinuxThreads.patch
+Type: text/x-patch
+Size: 3023 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131022/c22a5fd3/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131022/c22a5fd3/attachment.bin</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000658.html">[PATCH 1/2] Delay pthread_atfork registering.
+</A></li>
+	<LI>Next message: <A HREF="000649.html">[PATCH 2/2] Add support for LinuxThreads.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#648">[ date ]</a>
+              <a href="thread.html#648">[ thread ]</a>
+              <a href="subject.html#648">[ subject ]</a>
+              <a href="author.html#648">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

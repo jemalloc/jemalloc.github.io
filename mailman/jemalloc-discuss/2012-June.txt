@@ -1,0 +1,299 @@
+From jasone at canonware.com  Fri Jun  1 11:31:15 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 1 Jun 2012 11:31:15 -0700
+Subject: dead lock in forked child
+In-Reply-To: <4FBF4AA6.1000701@gmail.com>
+References: <4FBF4AA6.1000701@gmail.com>
+Message-ID: <1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+
+On May 25, 2012, at 2:02 AM, Jokea wrote:
+> I've found that a forked child runs into dead lock in a multithreaded application.
+
+jemalloc calls pthread_atfork() during initialization, but the test program does no allocation in the main thread before forking, and it launches threads that race with it.  It appears that one of those threads gets part way through allocator initialization before the fork occurs, which leaves the allocator in an inconsistent state (init_lock locked, but initialization incomplete).  The simple workaround is to allocate something before forking.
+
+A general fix in jemalloc is messy at best.  The possibilities that come to mind are 1) intercepting pthread_create() (or all fork-like system calls) much as the lazy locking code in mutex.c does and forcing allocator initialization, or 2) using a library initializer (function specified via compiler attribute to be run during library load) to force allocator initialization.  Both of these approaches are somewhat fragile; dlsym(RTLD_NEXT, ?) can break if other libraries play similar games, and library initializers don't run early enough to prevent all possible failures.  In any case, I'll make a note to experiment with (2).
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120601/15cc9c72/attachment.html>
+
+From antirez at gmail.com  Fri Jun  1 11:35:57 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Fri, 1 Jun 2012 20:35:57 +0200
+Subject: dead lock in forked child
+In-Reply-To: <1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+Message-ID: <CA+XzkVe8caMhCU0zE3BBkJpHBT66ZEfwQcc4S7not56jWXm9Ng@mail.gmail.com>
+
+Hi Jason,
+
+thanks for your reply. Redis is known to surely allocate something in
+the main thread before doing anything else, so this bug should not be
+possible in our case and maybe we were observing something else? Or
+actually Jemalloc < 3.0 had such an issue even if the main thread
+allocate something (I found some mention related to fork+exec in the
+3.0 changelog, we don't do exec btw.)? Thanks.
+
+Cheers,
+Salvatore
+
+On Fri, Jun 1, 2012 at 8:31 PM, Jason Evans <jasone at canonware.com> wrote:
+> On May 25, 2012, at 2:02 AM, Jokea wrote:
+>
+> I've found that a forked child runs into dead lock in a multithreaded
+> application.
+>
+>
+> jemalloc calls pthread_atfork() during initialization, but the test program
+> does no allocation in the main thread before forking, and it launches
+> threads that race with it. ?It appears that one of those threads gets part
+> way through allocator initialization before the fork occurs, which leaves
+> the allocator in an inconsistent state (init_lock locked, but initialization
+> incomplete). ?The simple workaround is to allocate something before forking.
+>
+> A general fix in jemalloc is messy at best. ?The possibilities that come to
+> mind are 1) intercepting pthread_create() (or all fork-like system calls)
+> much as the lazy locking code in mutex.c does and forcing allocator
+> initialization, or 2) using a library initializer (function specified via
+> compiler attribute to be run during library load) to force allocator
+> initialization. ?Both of these approaches are somewhat
+> fragile;?dlsym(RTLD_NEXT, ?) can break if other libraries play similar
+> games, and library initializers don't run early enough to prevent all
+> possible failures. ?In any case,?I'll make a note to experiment with (2).
+>
+> Thanks,
+> Jason
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+? ? ? ?? David Gelernter
+
+
+From jasone at canonware.com  Fri Jun  1 12:07:09 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 1 Jun 2012 12:07:09 -0700
+Subject: dead lock in forked child
+In-Reply-To: <CA+XzkVe8caMhCU0zE3BBkJpHBT66ZEfwQcc4S7not56jWXm9Ng@mail.gmail.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+	<CA+XzkVe8caMhCU0zE3BBkJpHBT66ZEfwQcc4S7not56jWXm9Ng@mail.gmail.com>
+Message-ID: <E7422A80-9C2E-48A3-8662-EC87D1D81049@canonware.com>
+
+On Jun 1, 2012, at 11:35 AM, Salvatore Sanfilippo wrote:
+> thanks for your reply. Redis is known to surely allocate something in
+> the main thread before doing anything else, so this bug should not be
+> possible in our case and maybe we were observing something else? Or
+> actually Jemalloc < 3.0 had such an issue even if the main thread
+> allocate something (I found some mention related to fork+exec in the
+> 3.0 changelog, we don't do exec btw.)? Thanks.
+
+It's likely that redis is hitting the bug that was fixed for jemalloc 3.0.0 by this change:
+
+http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=4e2e3dd9cf19ed5991938a708a8b50611aa5bbf8
+
+jemalloc changed to a finer-grained locking model shortly before the 1.0.0 release, but the fork-related support didn't have the necessary changes to lock all relevant mutexes until this change.
+
+Jason
+
+
+
+From antirez at gmail.com  Fri Jun  1 12:42:56 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Fri, 1 Jun 2012 21:42:56 +0200
+Subject: dead lock in forked child
+In-Reply-To: <E7422A80-9C2E-48A3-8662-EC87D1D81049@canonware.com>
+References: <4FBF4AA6.1000701@gmail.com>
+	<1D9CEAA0-FD58-464A-B5C9-F7D3F3595D64@canonware.com>
+	<CA+XzkVe8caMhCU0zE3BBkJpHBT66ZEfwQcc4S7not56jWXm9Ng@mail.gmail.com>
+	<E7422A80-9C2E-48A3-8662-EC87D1D81049@canonware.com>
+Message-ID: <CA+XzkVdAYsAHJOsTDmxM-80jTCJUCQhHijLan0CtiSXENwVWsA@mail.gmail.com>
+
+On Fri, Jun 1, 2012 at 9:07 PM, Jason Evans <jasone at canonware.com> wrote:
+> It's likely that redis is hitting the bug that was fixed for jemalloc 3.0.0 by this change:
+>
+> http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=4e2e3dd9cf19ed5991938a708a8b50611aa5bbf8
+>
+> jemalloc changed to a finer-grained locking model shortly before the 1.0.0 release, but the fork-related support didn't have the necessary changes to lock all relevant mutexes until this change.
+
+Thank you, I'll make sure to upgrade to Jemalloc 3.0.0 for the stable
+branch of Redis (already done into 2.6 / unstable).
+
+I want to say thank you for Jemalloc, it solved our fragmentation
+problems in an impressive way, basically after the jemalloc adoption
+we stopped receiving fragmentation reports at all (excluding the false
+positives about an RSS / sum_of_allocation that was high because the
+instance was emptied after a peak memory usage. But we can now detect
+this condition thanks to a new INFO field remembering the peak memory
+usage).
+
+Cheers,
+Salvatore
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+? ? ? ?? David Gelernter
+
+
+From kuehro at gmx.de  Mon Jun 11 06:09:32 2012
+From: kuehro at gmx.de (Kai-Uwe Eckhardt)
+Date: Mon, 11 Jun 2012 15:09:32 +0200
+Subject: patches for jemalloc 3.0.0 with mingw-w64 
+Message-ID: <20120611130932.151470@gmx.net>
+
+Hello,
+
+with mingw-w64 (i686-w64-mingw32 4.7.0 rubenv and 4.6.3 from strawberry
+perl 5.16.0.1 win32) some patches are necessary.
+
+./configure --enable-debug --enable-fill fails in configure with:
+
+error: cannot determine value for STATIC_PAGE_SHIFT
+
+It builds and passes make check after saving the following patches
+in to a file in the build directory. If the patches are in fix.patch,
+then  patch -p1 < fix.patch  applies the necessary patches.
+
+Kind regards,
+
+Kai-Uwe Eckhardt
+
+
+
+--- ./configure.orig	2012-06-11 11:38:01 +0000
++++ ./configure	2012-06-11 11:38:29 +0000
+@@ -5969,7 +5969,7 @@
+     if (result == -1) {
+ 	return 1;
+     }
+-    result = ffsl(result) - 1;
++    result = __builtin_ffsl(result) - 1;
+ 
+     f = fopen("conftest.out", "w");
+     if (f == NULL) {
+--- ./include/jemalloc/internal/arena.h.orig	2012-06-11 11:30:05 +0000
++++ ./include/jemalloc/internal/arena.h	2012-06-11 11:32:16 +0000
+@@ -733,7 +733,7 @@
+ 
+ 	/* Rescale (factor powers of 2 out of the numerator and denominator). */
+ 	interval = bin_info->reg_interval;
+-	shift = ffs(interval) - 1;
++	shift = __builtin_ffs(interval) - 1;
+ 	diff >>= shift;
+ 	interval >>= shift;
+ 
+--- ./include/jemalloc/internal/bitmap.h.orig	2012-06-11 11:33:13 +0000
++++ ./include/jemalloc/internal/bitmap.h	2012-06-11 11:34:30 +0000
+@@ -130,11 +130,11 @@
+ 
+ 	i = binfo->nlevels - 1;
+ 	g = bitmap[binfo->levels[i].group_offset];
+-	bit = ffsl(g) - 1;
++	bit = __builtin_ffsl(g) - 1;
+ 	while (i > 0) {
+ 		i--;
+ 		g = bitmap[binfo->levels[i].group_offset + bit];
+-		bit = (bit << LG_BITMAP_GROUP_NBITS) + (ffsl(g) - 1);
++		bit = (bit << LG_BITMAP_GROUP_NBITS) + (__builtin_ffsl(g) - 1);
+ 	}
+ 
+ 	bitmap_set(bitmap, binfo, bit);
+--- ./src/arena.c.orig	2012-06-11 11:32:32 +0000
++++ ./src/arena.c	2012-06-11 11:32:51 +0000
+@@ -2026,7 +2026,7 @@
+ 	 * be twice as large in order to maintain alignment.
+ 	 */
+ 	if (config_fill && opt_redzone) {
+-		size_t align_min = ZU(1) << (ffs(bin_info->reg_size) - 1);
++		size_t align_min = ZU(1) << (__builtin_ffs(bin_info->reg_size) - 1);
+ 		if (align_min <= REDZONE_MINSIZE) {
+ 			bin_info->redzone_size = REDZONE_MINSIZE;
+ 			pad_size = 0;
+--- ./src/rtree.c.orig	2012-06-11 11:35:23 +0000
++++ ./src/rtree.c	2012-06-11 11:35:46 +0000
+@@ -7,7 +7,7 @@
+ 	rtree_t *ret;
+ 	unsigned bits_per_level, height, i;
+ 
+-	bits_per_level = ffs(pow2_ceil((RTREE_NODESIZE / sizeof(void *)))) - 1;
++	bits_per_level = __builtin_ffs(pow2_ceil((RTREE_NODESIZE / sizeof(void *)))) - 1;
+ 	height = bits / bits_per_level;
+ 	if (height * bits_per_level != bits)
+ 		height++;
+--- ./include/jemalloc/jemalloc.h.in.orig	2012-06-11 12:52:15 +0000
++++ ./include/jemalloc/jemalloc.h.in	2012-06-11 12:53:01 +0000
+@@ -19,9 +19,9 @@
+ #ifdef JEMALLOC_EXPERIMENTAL
+ #define	ALLOCM_LG_ALIGN(la)	(la)
+ #if LG_SIZEOF_PTR == 2
+-#define	ALLOCM_ALIGN(a)	(ffs(a)-1)
++#define	ALLOCM_ALIGN(a)	(__builtin_ffs(a)-1)
+ #else
+-#define	ALLOCM_ALIGN(a)	((a < (size_t)INT_MAX) ? ffs(a)-1 : ffs(a>>32)+31)
++#define	ALLOCM_ALIGN(a)	((a < (size_t)INT_MAX) ? __builtin_ffs(a)-1 : __builtin_ffs(a>>32)+31)
+ #endif
+ #define	ALLOCM_ZERO	((int)0x40)
+ #define	ALLOCM_NO_MOVE	((int)0x80)
+
+-- 
+-- 
+
+
+
+
+From egmkang at gmail.com  Sat Jun 30 00:04:46 2012
+From: egmkang at gmail.com (egmkang.wang)
+Date: Sat, 30 Jun 2012 15:04:46 +0800
+Subject: No subject
+Message-ID: <CAKbZY2b8_zbq2QUr0uAT5BidrByFsOgEF0eDdGwC9iHNVUybng@mail.gmail.com>
+
+hi,all.
+i'm a new guy using jemalloc.
+there is a strange thing.when i *new* a objct and then *free* it,you
+know,mismatched free in valgrind, the jemalloc will crash under valgrind.
+code like this:
+#include <stdio.h>
+#include <stdlib.h>
+
+int  main()
+{
+    int *pInt = new int();
+    printf("%d\n",*pInt);
+    free(pInt);
+    return 0;
+}
+
+jemalloc output "src/jemalloc.c:1201: Failed assertion: "malloc_initialized
+|| IS_INITIALIZER", and then abort.
+
+my jemalloc version is 3.0,and debug enabled.
+
+but using another shared library my colleague compiled on red hat 4.3(x64)
+using gcc 3.x, it works well.
+my os is debian 6.0.5(x64),and gcc is 4.6.2.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120630/288a134d/attachment.html>
+

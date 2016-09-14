@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Move last bit of zone initialization in zone.c,	and lazy-initialize
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Move%20last%20bit%20of%20zone%20initialization%20in%20zone.c%2C%0A%09and%20lazy-initialize&In-Reply-To=%3C1333350294-4135-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000214.html">
+   <LINK REL="Next"  HREF="000218.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Move last bit of zone initialization in zone.c,	and lazy-initialize</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Move%20last%20bit%20of%20zone%20initialization%20in%20zone.c%2C%0A%09and%20lazy-initialize&In-Reply-To=%3C1333350294-4135-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Move last bit of zone initialization in zone.c,	and lazy-initialize">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr  2 00:04:54 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000214.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+        <LI>Next message: <A HREF="000218.html">[PATCH] Move last bit of zone initialization in zone.c,	and lazy-initialize
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#215">[ date ]</a>
+              <a href="thread.html#215">[ thread ]</a>
+              <a href="subject.html#215">[ subject ]</a>
+              <a href="author.html#215">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ include/jemalloc/internal/jemalloc_internal.h.in |   12 ------------
+ include/jemalloc/internal/zone.h                 |   22 ----------------------
+ src/jemalloc.c                                   |   11 -----------
+ src/zone.c                                       |    1 +
+ 4 files changed, 1 insertion(+), 45 deletions(-)
+ delete mode 100644 include/jemalloc/internal/zone.h
+
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index b7b8df8..f6924a4 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -304,9 +304,6 @@ static const bool config_ivsalloc =
+ #include &quot;jemalloc/internal/rtree.h&quot;
+ #include &quot;jemalloc/internal/tcache.h&quot;
+ #include &quot;jemalloc/internal/hash.h&quot;
+-#ifdef JEMALLOC_ZONE
+-#include &quot;jemalloc/internal/zone.h&quot;
+-#endif
+ #include &quot;jemalloc/internal/prof.h&quot;
+ 
+ #undef JEMALLOC_H_TYPES
+@@ -332,9 +329,6 @@ static const bool config_ivsalloc =
+ #include &quot;jemalloc/internal/rtree.h&quot;
+ #include &quot;jemalloc/internal/tcache.h&quot;
+ #include &quot;jemalloc/internal/hash.h&quot;
+-#ifdef JEMALLOC_ZONE
+-#include &quot;jemalloc/internal/zone.h&quot;
+-#endif
+ #include &quot;jemalloc/internal/prof.h&quot;
+ 
+ typedef struct {
+@@ -402,9 +396,6 @@ void	jemalloc_postfork_child(void);
+ #include &quot;jemalloc/internal/rtree.h&quot;
+ #include &quot;jemalloc/internal/tcache.h&quot;
+ #include &quot;jemalloc/internal/hash.h&quot;
+-#ifdef JEMALLOC_ZONE
+-#include &quot;jemalloc/internal/zone.h&quot;
+-#endif
+ #include &quot;jemalloc/internal/prof.h&quot;
+ 
+ #undef JEMALLOC_H_EXTERNS
+@@ -567,9 +558,6 @@ choose_arena(void)
+ #include &quot;jemalloc/internal/tcache.h&quot;
+ #include &quot;jemalloc/internal/arena.h&quot;
+ #include &quot;jemalloc/internal/hash.h&quot;
+-#ifdef JEMALLOC_ZONE
+-#include &quot;jemalloc/internal/zone.h&quot;
+-#endif
+ 
+ #ifndef JEMALLOC_ENABLE_INLINE
+ void	*imalloc(size_t size);
+diff --git a/include/jemalloc/internal/zone.h b/include/jemalloc/internal/zone.h
+deleted file mode 100644
+index 9eb4252..0000000
+--- a/include/jemalloc/internal/zone.h
++++ /dev/null
+@@ -1,22 +0,0 @@
+-#ifndef JEMALLOC_ZONE
+-#  error &quot;This source file is for zones on Darwin (OS X).&quot;
+-#endif
+-/******************************************************************************/
+-#ifdef JEMALLOC_H_TYPES
+-
+-#endif /* JEMALLOC_H_TYPES */
+-/******************************************************************************/
+-#ifdef JEMALLOC_H_STRUCTS
+-
+-#endif /* JEMALLOC_H_STRUCTS */
+-/******************************************************************************/
+-#ifdef JEMALLOC_H_EXTERNS
+-
+-void register_zone(void);
+-
+-#endif /* JEMALLOC_H_EXTERNS */
+-/******************************************************************************/
+-#ifdef JEMALLOC_H_INLINES
+-
+-#endif /* JEMALLOC_H_INLINES */
+-/******************************************************************************/
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index c0fe6c9..23541ae 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -717,17 +717,6 @@ malloc_init_hard(void)
+ 	return (false);
+ }
+ 
+-#ifdef JEMALLOC_ZONE
+-JEMALLOC_ATTR(constructor)
+-void
+-jemalloc_darwin_init(void)
+-{
+-
+-	if (malloc_init_hard() == false)
+-		register_zone();
+-}
+-#endif
+-
+ /*
+  * End initialization functions.
+  */
+diff --git a/src/zone.c b/src/zone.c
+index 9fc87bb..6c1e415 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -166,6 +166,7 @@ zone_force_unlock(malloc_zone_t *zone)
+ 		jemalloc_postfork_parent();
+ }
+ 
++JEMALLOC_ATTR(constructor)
+ void
+ register_zone(void)
+ {
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000214.html">[PATCH 1/2] Move zone registration to zone.c
+</A></li>
+	<LI>Next message: <A HREF="000218.html">[PATCH] Move last bit of zone initialization in zone.c,	and lazy-initialize
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#215">[ date ]</a>
+              <a href="thread.html#215">[ thread ]</a>
+              <a href="subject.html#215">[ subject ]</a>
+              <a href="author.html#215">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

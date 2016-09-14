@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Porting jemalloc to Android
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Porting%20jemalloc%20to%20Android&In-Reply-To=%3C32576018.349361371029296579.JavaMail.weblogic%40epml01%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000603.html">
+   <LINK REL="Next"  HREF="000607.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Porting jemalloc to Android</H1>
+    <B>&#52572;&#50689;&#51068;</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Porting%20jemalloc%20to%20Android&In-Reply-To=%3C32576018.349361371029296579.JavaMail.weblogic%40epml01%3E"
+       TITLE="Porting jemalloc to Android">duddlf.choi at samsung.com
+       </A><BR>
+    <I>Wed Jun 12 02:28:16 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000603.html">Frequent segfaults in 2.2.5
+</A></li>
+        <LI>Next message: <A HREF="000607.html">Enable valgrind support by default in Red Hat / Fedora package
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#606">[ date ]</a>
+              <a href="thread.html#606">[ thread ]</a>
+              <a href="subject.html#606">[ subject ]</a>
+              <a href="author.html#606">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+Hi,
+
+Anyone succeed to port Android ?
+
+I tried like below but got SEGV on simple malloc test program.
+
+- modify configure.ac to pass cross compile 
+957c957,958
+&lt;                              [je_cv_static_page_shift=undefined]))
+---
+&gt;<i>                              [je_cv_static_page_shift=undefined],
+</I>&gt;<i>                              [je_cv_static_page_shift=12]))
+</I>                   
+- configure with NDK
+
+configure --disable-experimental --build=x86_64-unknown-linux-gnu --host=arm-linux-androideabi EXTRA_CFLAGS=&quot;-fno-omit-frame-pointer -DUSE_UTF8 -O2 -fPIC -std=gnu99 &quot; LDFLAGS=&quot; -fPIC -std=gnu99&quot; CC=&quot;/opt/ndk_standalone/bin/arm-linux-androideabi-gcc&quot; CXX=&quot;/opt/ndk_standalone/bin/arm-linux-androideabi-g++&quot; AR=&quot;/opt/ndk_standalone/bin/arm-linux-androideabi-ar&quot;
+
+- Add dummy pthread_atfork.c
+
+int pthread_atfork(void (*prefork)(void),
+                   void (*postfork_parent)(void),
+                   void (*postfork_child)(void))
+{
+  return 0;
+}
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000603.html">Frequent segfaults in 2.2.5
+</A></li>
+	<LI>Next message: <A HREF="000607.html">Enable valgrind support by default in Red Hat / Fedora package
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#606">[ date ]</a>
+              <a href="thread.html#606">[ thread ]</a>
+              <a href="subject.html#606">[ subject ]</a>
+              <a href="author.html#606">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

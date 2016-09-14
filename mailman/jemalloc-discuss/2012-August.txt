@@ -1,0 +1,1317 @@
+From anarchy at gentoo.org  Sun Aug  5 11:30:07 2012
+From: anarchy at gentoo.org (Jory A. Pratt)
+Date: Sun, 05 Aug 2012 13:30:07 -0500
+Subject: LG_QUANTUM hppa definition
+Message-ID: <501EBBAF.5050707@gentoo.org>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Please find attached hppa support for LG_QUANTUM
+
+Thank You
+
+- ---------------------------------------------------------------
+Jory A. Pratt
+Gentoo Linux: Developer, Mozilla Lead
+E-Mail     : anarchy at gentoo.org
+GnuPG FP   : 1846 8624 BD44 FDAC 96E2  3E9E 8BBF 7F40 9019 241D
+- ---------------------------------------------------------------
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.19 (GNU/Linux)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iQEcBAEBAgAGBQJQHruvAAoJEIu/f0CQGSQd8VEH/jtXArdaungHOSlwbh0HfR2H
+ByJVc6VzVrymQAWxYEpWjLmplIP2JhiFlhFLc3iumUIEMv6H5XA5FBwaymUb+3lD
+hH+b+8Ub7oNMYr4DQquFA9mIXGZren0YyC2ftaxSXeoziXip3CIU3xRMkNzNWDhX
+cOVsZ3VRpUvRnG6WBToMl0oZsK/1c1UnP/03AwD44QAq6Up+E004c/JsEOd14Z9b
+NESQb2Gstj0Q06Lma15iWuEtlotcQlJDq+3VzVb3uI58PZi7IZnyxswyRqoPEqUq
+6aL3ChHkHpZf+RjSCMfEwbWf+wRQqiFa91JdXpnZJDqdmVc684zbsf9MxdEtxHA=
+=bqbC
+-----END PGP SIGNATURE-----
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc-3.0.0-hppa-LG_QUANTUM.patch
+Type: text/x-patch
+Size: 476 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120805/050f7b88/attachment.bin>
+
+From rnsanchez at wait4.org  Thu Aug  9 08:36:01 2012
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Thu, 9 Aug 2012 12:36:01 -0300
+Subject: hint on debugging what seems to be a deadlock
+Message-ID: <20120809123601.18906a76@darkbook.lan.box>
+
+Hello,
+
+While using jemalloc-3.0.0 on a busy server, glibc-2.15 (-r2, Gentoo),
+kernel 3.2.25, our application is frequently hitting this backtrace
+pasted below.  We'd appreciate tips on where to start looking for problems.
+
+(gdb) bt
+#0  0x00007f1e2b3ee304 in __lll_lock_wait () from /lib/libpthread.so.0
+#1  0x00007f1e2b3e9789 in _L_lock_534 () from /lib/libpthread.so.0
+#2  0x00007f1e2b3e959e in pthread_mutex_lock () from /lib/libpthread.so.0
+#3  0x00007f1e2b606e4d in malloc_mutex_lock (arena=0x7f1e2ac7f8c0, chunk=0x7df49fc00000, run=0x7df49ff8b000, bin=0x7f1e2ac7fa48)
+    at include/jemalloc/internal/mutex.h:77
+#4  arena_dalloc_bin_run (arena=0x7f1e2ac7f8c0, chunk=0x7df49fc00000, run=0x7df49ff8b000, bin=0x7f1e2ac7fa48) at src/arena.c:1520
+#5  0x00007f1e2b60782a in arena_dalloc_bin_locked (arena=0x7f1e2ac7f8c0, chunk=0x7df49fc00000, ptr=<value optimized out>, 
+    mapelm=<value optimized out>) at src/arena.c:1593
+#6  0x00007f1e2b61fa57 in tcache_bin_flush_small (tbin=0x7df48dc06048, binind=1, rem=35, tcache=0x7df48dc06000) at src/tcache.c:128
+#7  0x00007f1e2b61fdc5 in tcache_event_hard (tcache=0x7df48dc06000) at src/tcache.c:39
+#8  0x00007f1e2b600f18 in tcache_event (ptr=<value optimized out>) at include/jemalloc/internal/tcache.h:271
+#9  tcache_dalloc_large (ptr=<value optimized out>) at include/jemalloc/internal/tcache.h:435
+#10 arena_dalloc (ptr=<value optimized out>) at include/jemalloc/internal/arena.h:966
+#11 idalloc (ptr=<value optimized out>) at include/jemalloc/internal/jemalloc_internal.h:840
+#12 iqalloc (ptr=<value optimized out>) at include/jemalloc/internal/jemalloc_internal.h:852
+#13 free (ptr=<value optimized out>) at src/jemalloc.c:1212
+
+When this happens, most of our threads get stuck on what seems to be
+a deadlock among certain threads:
+
+(gdb) i thr
+  28 Thread 0x7f1e2c30c700 (LWP 30862)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  27 Thread 0x7df457fff700 (LWP 30870)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  26 Thread 0x7df4577fe700 (LWP 30871)  0x00007f1e2b0f64dd in nanosleep () from /lib/libc.so.6
+  25 Thread 0x7df456ffd700 (LWP 30872)  0x00007f1e2b3ef03d in nanosleep () from /lib/libpthread.so.0
+  24 Thread 0x7df4567fc700 (LWP 30873)  0x00007f1e2b3eeafd in accept () from /lib/libpthread.so.0
+  23 Thread 0x7df455ffb700 (LWP 30874)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  22 Thread 0x7df455f7a700 (LWP 30875)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  21 Thread 0x7df455ef9700 (LWP 30876)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  20 Thread 0x7df455e78700 (LWP 30877)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  19 Thread 0x7df455df7700 (LWP 30878)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  18 Thread 0x7df455d76700 (LWP 30879)  0x00007f1e2b3ee304 in __lll_lock_wait () from /lib/libpthread.so.0
+  17 Thread 0x7df455cf5700 (LWP 30880)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  16 Thread 0x7df455c74700 (LWP 30881)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  15 Thread 0x7df455bf3700 (LWP 30882)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  14 Thread 0x7df455b72700 (LWP 30883)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  13 Thread 0x7df455af1700 (LWP 30884)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  12 Thread 0x7df455a70700 (LWP 30885)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  11 Thread 0x7df4559ef700 (LWP 30886)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  10 Thread 0x7df45596e700 (LWP 30887)  0x00007f1e2b3ee304 in __lll_lock_wait () from /lib/libpthread.so.0
+  9 Thread 0x7df4558ed700 (LWP 30888)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  8 Thread 0x7df45586c700 (LWP 30889)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  7 Thread 0x7df4557eb700 (LWP 30890)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  6 Thread 0x7df45576a700 (LWP 30891)  0x00007f1e2b3ee304 in __lll_lock_wait () from /lib/libpthread.so.0
+  5 Thread 0x7df4556e9700 (LWP 30892)  0x00007f1e2b1256a9 in syscall () from /lib/libc.so.6
+  4 Thread 0x7df455668700 (LWP 30893)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  3 Thread 0x7df4555e7700 (LWP 30894)  0x00007f1e2b3ecd3b in pthread_once () from /lib/libpthread.so.0
+  2 Thread 0x7df455566700 (LWP 30895)  0x00007f1e2b3ef03d in nanosleep () from /lib/libpthread.so.0
+* 1 Thread 0x7f1e2c30d740 (LWP 30861)  0x00007f1e2b1256a9 in syscall ()
+  from /lib/libc.so.6
+
+
+All threads on pthread_once() or __lll_lock_wait() are stuck and unresponsive
+to anything, and it requires us to fire a -KILL to the application.  We have
+*no* reason to suspect from jemalloc itself, but we cannot confirm using other
+libraries because they simply can't handle the load last we tried.
+
+Our application is not using pthread locks/mutexes anymore, so the pressure
+on them is much slower now.
+
+Perhaps I will be able to provide more info on this, if I can get my SSH
+connection to the server back up.
+
+Thank you for your attention.
+
+Regards
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+
+From jasone at canonware.com  Thu Aug  9 11:48:10 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 9 Aug 2012 11:48:10 -0700
+Subject: hint on debugging what seems to be a deadlock
+In-Reply-To: <20120809123601.18906a76@darkbook.lan.box>
+References: <20120809123601.18906a76@darkbook.lan.box>
+Message-ID: <0066214C-A4DE-48BD-8E38-E0DAD26685E4@canonware.com>
+
+On Aug 9, 2012, at 8:36 AM, Ricardo Nabinger Sanchez wrote:
+> While using jemalloc-3.0.0 on a busy server, glibc-2.15 (-r2, Gentoo),
+> kernel 3.2.25, our application is frequently hitting this backtrace
+> pasted below.  We'd appreciate tips on where to start looking for problems.
+> 
+> (gdb) bt
+> [?]
+> 
+> When this happens, most of our threads get stuck on what seems to be
+> a deadlock among certain threads:
+> 
+> (gdb) i the
+> [?]
+> 
+> 
+> All threads on pthread_once() or __lll_lock_wait() are stuck and unresponsive
+> to anything, and it requires us to fire a -KILL to the application.  We have
+> *no* reason to suspect from jemalloc itself, but we cannot confirm using other
+> libraries because they simply can't handle the load last we tried.
+> 
+> Our application is not using pthread locks/mutexes anymore, so the pressure
+> on them is much slower now.
+> 
+> Perhaps I will be able to provide more info on this, if I can get my SSH
+> connection to the server back up.
+
+
+My experience with such deadlocks has been that either there's a bootstrapping issue due to jemalloc calling some library API that recursively allocates, or the application is trying to allocate inside a signal handler when a signal was raised due to memory corruption.  As far as I know, jemalloc's bootstrapping issues have been worked out, but I've been wrong about that a few times before. =/  In any case, bootstrapping is unlikely to be the issue here, given how far into execution your application has already gotten (assuming the pthread_once() call isn't initiated by jemalloc itself).
+
+Take a look at the gdb output from the following command and make sure you don't see any signs of recursive allocation.
+
+	t apply all bt
+
+If nothing pops out at you, I don't have any other immediate suggestions.  If you find that not all the mutex-related backtraces are the same as pasted above, there may be a deadlock bug in jemalloc that I can't spot from just one backtrace; feel free to send full gdb backtrace output my way if it's non-trivial to interpret.
+
+Thanks,
+Jason
+
+From rnsanchez at wait4.org  Thu Aug  9 12:10:52 2012
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Thu, 9 Aug 2012 16:10:52 -0300
+Subject: hint on debugging what seems to be a deadlock
+In-Reply-To: <0066214C-A4DE-48BD-8E38-E0DAD26685E4@canonware.com>
+References: <20120809123601.18906a76@darkbook.lan.box>
+	<0066214C-A4DE-48BD-8E38-E0DAD26685E4@canonware.com>
+Message-ID: <20120809161052.5da86885@darkbook.lan.box>
+
+Hello Jason,
+
+On Thu, 9 Aug 2012 11:48:10 -0700
+Jason Evans <jasone at canonware.com> wrote:
+
+> My experience with such deadlocks has been that either there's a bootstrapping issue due to jemalloc calling some library API that recursively allocates, or the application is trying to allocate inside a signal handler when a signal was raised due to memory corruption.  As far as I know, jemalloc's bootstrapping issues have been worked out, but I've been wrong about that a few times before. =/  In any case, bootstrapping is unlikely to be the issue here, given how far into execution your application has already gotten (assuming the pthread_once() call isn't initiated by jemalloc itself).
+> 
+> Take a look at the gdb output from the following command and make sure you don't see any signs of recursive allocation.
+> 
+> 	t apply all bt
+> 
+> If nothing pops out at you, I don't have any other immediate suggestions.  If you find that not all the mutex-related backtraces are the same as pasted above, there may be a deadlock bug in jemalloc that I can't spot from just one backtrace; feel free to send full gdb backtrace output my way if it's non-trivial to interpret.
+
+Thanks for the feedback.
+
+Right now I am suspecting that something abort()ed within the
+application, and there are paths that may dump a (glibc) backtrace()
+alongside a backtrace_symbols().  From the manpage and some bugzilla
+entries I've read thus far, it seems that backtrace_symbols could be
+triggering the deadlock, by allocating memory on its behalf.
+
+From an older ticket we have for tracking this, the backtrace()
+hypothesis seems to match the point you've raised about recursive
+allocation:
+
+(gdb) thread apply all bt   (most output removed for brevity)
+...
+
+Thread 27 (Thread 0x7e4d277ff700 (LWP 6122)):
+#0  0x00007f7703217d3b in pthread_once () from /lib/libpthread.so.0
+#1  0x00007f7702f6582c in backtrace () from /lib/libc.so.6
+#2  0x000000000041f79d in back () at server.c
+#3  0x000000000042ba92 in sig_crash (status=11) at server.c
+#4  <signal handler called>
+...
+
+Thread 18 (Thread 0x7f7702ce4700 (LWP 6132)):  (a few threads like this)
+#0  0x00007f7703219304 in __lll_lock_wait () from /lib/libpthread.so.0
+#1  0x00007f7703214789 in _L_lock_534 () from /lib/libpthread.so.0
+#2  0x00007f770321459e in pthread_mutex_lock ()
+from /lib/libpthread.so.0
+...
+
+Thread 16 (Thread 0x7e4d2577a700 (LWP 6134)):
+#0  0x00007f7703219304 in __lll_lock_wait () from /lib/libpthread.so.0
+#1  0x00007f7703214789 in _L_lock_534 () from /lib/libpthread.so.0
+#2  0x00007f770321459e in pthread_mutex_lock () from /lib/libpthread.so.0
+#3  0x00007f7703431e4d in malloc_mutex_lock (arena=0x7f77028645c0, chunk=0x7e4c87c00000, run=0x7e4c87c4f000, bin=0x7f7702864748)
+    at include/jemalloc/internal/mutex.h:77
+#4  arena_dalloc_bin_run (arena=0x7f77028645c0, chunk=0x7e4c87c00000, run=0x7e4c87c4f000, bin=0x7f7702864748) at src/arena.c:1520
+#5  0x00007f770343282a in arena_dalloc_bin_locked (arena=0x7f77028645c0, chunk=0x7e4c87c00000, ptr=<value optimized out>, 
+    mapelm=<value optimized out>) at src/arena.c:1593
+#6  0x00007f770344aa57 in tcache_bin_flush_small (tbin=0x7e4d62c06048, binind=1, rem=100, tcache=0x7e4d62c06000) at src/tcache.c:128
+#7  0x00007f770342bf85 in tcache_dalloc_small (ptr=0x7e4d27ad4530) at include/jemalloc/internal/tcache.h:399
+#8  arena_dalloc (ptr=0x7e4d27ad4530) at include/jemalloc/internal/arena.h:956
+#9  idalloc (ptr=0x7e4d27ad4530) at include/jemalloc/internal/jemalloc_internal.h:840
+#10 iqalloc (ptr=0x7e4d27ad4530) at include/jemalloc/internal/jemalloc_internal.h:852
+#11 free (ptr=0x7e4d27ad4530) at src/jemalloc.c:1212
+...
+
+Thread 12 (Thread 0x7e4d25576700 (LWP 6138)):
+#0  0x00007f7703217d3b in pthread_once () from /lib/libpthread.so.0
+#1  0x00007f7702f6582c in backtrace () from /lib/libc.so.6
+#2  0x000000000041f79d in back () at server.c
+#3  0x000000000042ba92 in sig_crash (status=11) at server.c
+#4  <signal handler called>
+
+So it would be a matter of making sure a crash-reporting code doesn't
+actually cause more harm than good.
+
+Thanks again for your insight into this.  :-)
+
+Regards
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+
+From a.pignotti at sssup.it  Mon Aug 20 04:51:39 2012
+From: a.pignotti at sssup.it (Alessandro Pignotti)
+Date: Mon, 20 Aug 2012 13:51:39 +0200
+Subject: Patch set: support for iterating over all objects allocated in a
+	certain arena
+Message-ID: <1345463499.18021.46.camel@avalon>
+
+Hi everyone,
+
+while working on Lightspark (an open source flash player implementation)
+I needed a way to keep track of all allocated objects. I though about
+integrating with jemalloc and I have wrote a few patches that makes it
+possible to iterate over all the regions allocated in a specified arena.
+
+Please note that the patches do not solve the whole problem of iterating
+over every object allocated by jemalloc, but only the smaller one of
+iterating over objects allocated in an arena. tcache and huge regions
+are not handled. Despite the limitations I think this is sufficient for
+my purposes and I would like to share my work, hoping it might be
+included upstream. This patch set, although limited, may be the base for
+a full blown solution.
+
+The last patch includes a simple test for the functionality. Still I
+don't know how to integrate it in the build system since it requires
+access to internal APIs only available in the statically linked version
+of the library, while other test cases seems to link to the dynamic
+version of it.
+
+Regards,
+Alessandro Pignotti
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Add-a-configuration-option-to-enable-iteration-over-.patch
+Type: text/x-patch
+Size: 2191 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120820/6b5326ad/attachment.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0002-Keep-track-of-all-allocated-chunks.patch
+Type: text/x-patch
+Size: 2506 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120820/6b5326ad/attachment-0001.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0003-Add-a-method-to-iterate-over-objects-allocated-in-an.patch
+Type: text/x-patch
+Size: 2859 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120820/6b5326ad/attachment-0002.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0004-Add-test-for-iterate-regions.patch
+Type: text/x-patch
+Size: 3344 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120820/6b5326ad/attachment-0003.bin>
+
+From jacob.benoit.1 at gmail.com  Tue Aug 21 12:34:31 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Tue, 21 Aug 2012 15:34:31 -0400
+Subject: Need help with patch allowing to iterate over all objects
+Message-ID: <CAJTmd9pQZkQNsgWbX8aKAfSN=gOtDOXJQ=fd9f=_hNdg91Oi1Q@mail.gmail.com>
+
+Hi,
+
+I am attaching a patch that allows to iterate over all objects.
+
+This is not a request for upstreaming: these patches cause crashes and I
+need help understanding these. And even if it didn't crash, this patch
+causes a severe overhead in memory usage and no attempt has been made to
+mitigate it. The goal of this effort is to allow custom developer builds of
+Firefox to introspect their own allocated blocks.
+
+The patch (attached to this email) works by renaming the public functions
+such as je_malloc() to real_je_malloc() and implementing custom je_malloc()
+to allocate a larger block, and use the extra space to store the data of a
+doubly-linked list element.
+
+In principle, this should be entirely transparent to the user (except for
+the increased memory usage), so I don't understand the crashes.
+
+The crashes aren't immediate: I can run Firefox (this patch if for
+Firefox's copy of jemalloc 3.0) for a while and browse a few pages without
+crashing.
+
+The crashes are assertion failures like this:
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000000000411605 in moz_abort ()
+    at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+116       MOZ_CRASH();
+(gdb) bt
+#0  0x0000000000411605 in moz_abort ()
+    at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+#1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+bin=0x7ffff6c007c8)
+    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+#2  0x000000000041b225 in arena_tcache_fill_small (arena=0x7ffff6c00180,
+    tbin=0x7ffff6b02148, binind=9, prof_accumbytes=0)
+    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1232
+#3  0x000000000043c239 in tcache_alloc_small_hard (tcache=0x7ffff6b02000,
+    tbin=0x7ffff6b02148, binind=9)
+    at /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:72
+#4  0x000000000043b7dc in tcache_alloc_small (tcache=0x7ffff6b02000,
+size=160, zero=false)
+    at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:302
+#5  0x0000000000412c26 in arena_malloc (arena=0x0, size=160, zero=false,
+try_tcache=true)
+    at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:869
+#6  0x000000000042dce8 in imalloc (size=160)
+    at src/include/jemalloc/internal/jemalloc_internal.h:735
+#7  0x000000000043111c in real_je_malloc (size=160)
+    at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:829
+#8  0x0000000000432fa3 in malloc (size=128)
+    at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1425
+#9  0x00007ffff7fe803c in moz_xmalloc (size=128)
+    at /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:57
+#10 0x00007ffff2dcb74d in nsTArrayInfallibleAllocator::Malloc (size=128)
+    at ../../dist/include/nsTArray.h:56
+...
+
+Printing some variables here:
+
+(gdb) up
+#1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+bin=0x7ffff6c007c8)
+    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+1189            assert(bin->runcur->nfree > 0);
+(gdb) p bin
+$1 = (arena_bin_t *) 0x7ffff6c007c8
+(gdb) p *bin
+$2 = {lock = {lock = {__data = {__lock = 1, __count = 0, __owner = 6469,
+__nusers = 1,
+        __kind = 0, __spins = 0, __list = {__prev = 0x0, __next = 0x0}},
+      __size = "\001\000\000\000\000\000\000\000E\031\000\000\001", '\000'
+<repeats 26 times>, __align = 1}}, runcur = 0x7fffc2ced000, runs =
+{rbt_root = 0x7fffca3004d8, rbt_nil = {{
+        u = {rb_link = {rbn_left = 0x7ffff6c00800, rbn_right_red =
+0x7ffff6c00800},
+          ql_link = {qre_next = 0x7ffff6c00800, qre_prev =
+0x7ffff6c00800}},
+        prof_ctx = 0x7ffff6c00800}, bits = 0}}, stats = {allocated =
+8896000,
+    nmalloc = 197757, ndalloc = 142157, nrequests = 300344, nfills = 5545,
+    nflushes = 2848, nruns = 2802, reruns = 5838, curruns = 1143}}
+(gdb) p bin->runcur
+$3 = (arena_run_t *) 0x7fffc2ced000
+(gdb) p *(bin->runcur)
+$4 = {bin = 0x7ffff6c007c8, nextind = 4544384, nfree = 0}
+
+Any help would be greatly appreciated.
+
+Thanks,
+Benoit
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120821/79d730e9/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc-instrument
+Type: application/octet-stream
+Size: 14337 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120821/79d730e9/attachment.obj>
+
+From jacob.benoit.1 at gmail.com  Fri Aug 24 12:37:33 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Fri, 24 Aug 2012 15:37:33 -0400
+Subject: Need help with patch allowing to iterate over all objects
+In-Reply-To: <CAJTmd9pQZkQNsgWbX8aKAfSN=gOtDOXJQ=fd9f=_hNdg91Oi1Q@mail.gmail.com>
+References: <CAJTmd9pQZkQNsgWbX8aKAfSN=gOtDOXJQ=fd9f=_hNdg91Oi1Q@mail.gmail.com>
+Message-ID: <CAJTmd9p2qaTS+Z9H8SVCBPaTDpChYO2fg4u6WXoCi=yh9eTsJg@mail.gmail.com>
+
+And another crash, also an assertion about nfree not having the expected value:
+
+<jemalloc>: /hack/mozilla-central/memory/jemalloc/src/src/arena.c:165:
+Failed assertion: "run->nfree < bin_info->nregs"
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000000000411605 in moz_abort () at
+/hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+116       MOZ_CRASH();
+(gdb) bt
+#0  0x0000000000411605 in moz_abort () at
+/hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+#1  0x000000000041743a in arena_run_reg_dalloc (run=0x7fffbe37f000,
+ptr=0x7fffbe38af00) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:165
+#2  0x000000000041c5e7 in arena_dalloc_bin_locked
+(arena=0x7ffff6c00180, chunk=0x7fffbe300000, ptr=0x7fffbe38af00,
+mapelm=0x7fffbe300ce8) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:1590
+#3  0x000000000043c583 in tcache_bin_flush_small (tbin=0x7ffff6b022c8,
+binind=21, rem=51, tcache=0x7ffff6b02000) at
+/hack/mozilla-central/memory/jemalloc/src/src/tcache.c:128
+#4  0x000000000043bdd3 in tcache_dalloc_small (tcache=0x7ffff6b02000,
+ptr=0x7fffca24ff00, binind=21) at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:399
+#5  0x00000000004132e8 in arena_dalloc (arena=0x7ffff6c00180,
+chunk=0x7fffca200000, ptr=0x7fffca24ff00, try_tcache=true) at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:956
+#6  0x000000000042e13d in idalloc (ptr=0x7fffca24ff00) at
+src/include/jemalloc/internal/jemalloc_internal.h:840
+#7  0x000000000042e18f in iqalloc (ptr=0x7fffca24ff00) at
+src/include/jemalloc/internal/jemalloc_internal.h:852
+#8  0x0000000000432a58 in real_je_free (ptr=0x7fffca24ff00) at
+/hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1212
+#9  0x00000000004330d8 in free (ptr=0x7fffca24ff20) at
+/hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1458
+#10 0x00007ffff7fe8022 in moz_free (ptr=0x7fffca24ff20) at
+/hack/mozilla-central/memory/mozalloc/mozalloc.cpp:51
+#11 0x00007ffff472490c in nsStringBuffer::Release
+(this=0x7fffca24ff20) at
+/hack/mozilla-central/xpcom/string/src/nsSubstring.cpp:161
+#12 0x00007ffff3e4c777 in FinalizeDOMString (fin=0x7ffff64b5058,
+chars=0x7fffca24ff28) at
+/hack/mozilla-central/js/xpconnect/src/XPCString.cpp:27
+#13 0x00007ffff514a137 in JSExternalString::finalize
+(this=0x7fffbf38d6c0, fop=0x7fffffffa000) at
+/hack/mozilla-central/js/src/vm/String-inl.h:439
+#14 0x00007ffff515f2a8 in js::gc::Arena::finalize<JSExternalString>
+(this=0x7fffbf38d000, fop=0x7fffffffa000,
+thingKind=js::gc::FINALIZE_EXTERNAL_STRING, thingSize=32) at
+/hack/mozilla-central/js/src/jsgc.cpp:319
+
+
+What can I do to help you help me?
+
+Could anyone at least give me a quick explanation of what these
+assertions are about?
+
+Thanks!
+Benoit
+
+
+2012/8/21 Benoit Jacob <jacob.benoit.1 at gmail.com>:
+> Hi,
+>
+> I am attaching a patch that allows to iterate over all objects.
+>
+> This is not a request for upstreaming: these patches cause crashes and I
+> need help understanding these. And even if it didn't crash, this patch
+> causes a severe overhead in memory usage and no attempt has been made to
+> mitigate it. The goal of this effort is to allow custom developer builds of
+> Firefox to introspect their own allocated blocks.
+>
+> The patch (attached to this email) works by renaming the public functions
+> such as je_malloc() to real_je_malloc() and implementing custom je_malloc()
+> to allocate a larger block, and use the extra space to store the data of a
+> doubly-linked list element.
+>
+> In principle, this should be entirely transparent to the user (except for
+> the increased memory usage), so I don't understand the crashes.
+>
+> The crashes aren't immediate: I can run Firefox (this patch if for Firefox's
+> copy of jemalloc 3.0) for a while and browse a few pages without crashing.
+>
+> The crashes are assertion failures like this:
+>
+> Program received signal SIGSEGV, Segmentation fault.
+> 0x0000000000411605 in moz_abort ()
+>     at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+> 116       MOZ_CRASH();
+> (gdb) bt
+> #0  0x0000000000411605 in moz_abort ()
+>     at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+> bin=0x7ffff6c007c8)
+>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+> #2  0x000000000041b225 in arena_tcache_fill_small (arena=0x7ffff6c00180,
+>     tbin=0x7ffff6b02148, binind=9, prof_accumbytes=0)
+>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1232
+> #3  0x000000000043c239 in tcache_alloc_small_hard (tcache=0x7ffff6b02000,
+>     tbin=0x7ffff6b02148, binind=9)
+>     at /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:72
+> #4  0x000000000043b7dc in tcache_alloc_small (tcache=0x7ffff6b02000,
+> size=160, zero=false)
+>     at
+> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:302
+> #5  0x0000000000412c26 in arena_malloc (arena=0x0, size=160, zero=false,
+> try_tcache=true)
+>     at
+> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:869
+> #6  0x000000000042dce8 in imalloc (size=160)
+>     at src/include/jemalloc/internal/jemalloc_internal.h:735
+> #7  0x000000000043111c in real_je_malloc (size=160)
+>     at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:829
+> #8  0x0000000000432fa3 in malloc (size=128)
+>     at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1425
+> #9  0x00007ffff7fe803c in moz_xmalloc (size=128)
+>     at /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:57
+> #10 0x00007ffff2dcb74d in nsTArrayInfallibleAllocator::Malloc (size=128)
+>     at ../../dist/include/nsTArray.h:56
+> ...
+>
+> Printing some variables here:
+>
+> (gdb) up
+> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+> bin=0x7ffff6c007c8)
+>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+> 1189            assert(bin->runcur->nfree > 0);
+> (gdb) p bin
+> $1 = (arena_bin_t *) 0x7ffff6c007c8
+> (gdb) p *bin
+> $2 = {lock = {lock = {__data = {__lock = 1, __count = 0, __owner = 6469,
+> __nusers = 1,
+>         __kind = 0, __spins = 0, __list = {__prev = 0x0, __next = 0x0}},
+>       __size = "\001\000\000\000\000\000\000\000E\031\000\000\001", '\000'
+> <repeats 26 times>, __align = 1}}, runcur = 0x7fffc2ced000, runs = {rbt_root
+> = 0x7fffca3004d8, rbt_nil = {{
+>         u = {rb_link = {rbn_left = 0x7ffff6c00800, rbn_right_red =
+> 0x7ffff6c00800},
+>           ql_link = {qre_next = 0x7ffff6c00800, qre_prev = 0x7ffff6c00800}},
+>         prof_ctx = 0x7ffff6c00800}, bits = 0}}, stats = {allocated =
+> 8896000,
+>     nmalloc = 197757, ndalloc = 142157, nrequests = 300344, nfills = 5545,
+>     nflushes = 2848, nruns = 2802, reruns = 5838, curruns = 1143}}
+> (gdb) p bin->runcur
+> $3 = (arena_run_t *) 0x7fffc2ced000
+> (gdb) p *(bin->runcur)
+> $4 = {bin = 0x7ffff6c007c8, nextind = 4544384, nfree = 0}
+>
+> Any help would be greatly appreciated.
+>
+> Thanks,
+> Benoit
+
+
+From jacob.benoit.1 at gmail.com  Fri Aug 24 12:53:59 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Fri, 24 Aug 2012 15:53:59 -0400
+Subject: Need help with patch allowing to iterate over all objects
+In-Reply-To: <CAJTmd9p2qaTS+Z9H8SVCBPaTDpChYO2fg4u6WXoCi=yh9eTsJg@mail.gmail.com>
+References: <CAJTmd9pQZkQNsgWbX8aKAfSN=gOtDOXJQ=fd9f=_hNdg91Oi1Q@mail.gmail.com>
+	<CAJTmd9p2qaTS+Z9H8SVCBPaTDpChYO2fg4u6WXoCi=yh9eTsJg@mail.gmail.com>
+Message-ID: <CAJTmd9q9t3j9M1YQwiZp4ZTXg4qff=H32m5V4HP7KScr2GisjA@mail.gmail.com>
+
+In the assertion failure in my last email, I have these local variables:
+
+(gdb) p run->nfree
+$1 = 32767
+(gdb) p bin_info->nregs
+$2 = 51
+
+Benoit
+
+2012/8/24 Benoit Jacob <jacob.benoit.1 at gmail.com>:
+> And another crash, also an assertion about nfree not having the expected value:
+>
+> <jemalloc>: /hack/mozilla-central/memory/jemalloc/src/src/arena.c:165:
+> Failed assertion: "run->nfree < bin_info->nregs"
+>
+> Program received signal SIGSEGV, Segmentation fault.
+> 0x0000000000411605 in moz_abort () at
+> /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+> 116       MOZ_CRASH();
+> (gdb) bt
+> #0  0x0000000000411605 in moz_abort () at
+> /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+> #1  0x000000000041743a in arena_run_reg_dalloc (run=0x7fffbe37f000,
+> ptr=0x7fffbe38af00) at
+> /hack/mozilla-central/memory/jemalloc/src/src/arena.c:165
+> #2  0x000000000041c5e7 in arena_dalloc_bin_locked
+> (arena=0x7ffff6c00180, chunk=0x7fffbe300000, ptr=0x7fffbe38af00,
+> mapelm=0x7fffbe300ce8) at
+> /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1590
+> #3  0x000000000043c583 in tcache_bin_flush_small (tbin=0x7ffff6b022c8,
+> binind=21, rem=51, tcache=0x7ffff6b02000) at
+> /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:128
+> #4  0x000000000043bdd3 in tcache_dalloc_small (tcache=0x7ffff6b02000,
+> ptr=0x7fffca24ff00, binind=21) at
+> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:399
+> #5  0x00000000004132e8 in arena_dalloc (arena=0x7ffff6c00180,
+> chunk=0x7fffca200000, ptr=0x7fffca24ff00, try_tcache=true) at
+> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:956
+> #6  0x000000000042e13d in idalloc (ptr=0x7fffca24ff00) at
+> src/include/jemalloc/internal/jemalloc_internal.h:840
+> #7  0x000000000042e18f in iqalloc (ptr=0x7fffca24ff00) at
+> src/include/jemalloc/internal/jemalloc_internal.h:852
+> #8  0x0000000000432a58 in real_je_free (ptr=0x7fffca24ff00) at
+> /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1212
+> #9  0x00000000004330d8 in free (ptr=0x7fffca24ff20) at
+> /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1458
+> #10 0x00007ffff7fe8022 in moz_free (ptr=0x7fffca24ff20) at
+> /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:51
+> #11 0x00007ffff472490c in nsStringBuffer::Release
+> (this=0x7fffca24ff20) at
+> /hack/mozilla-central/xpcom/string/src/nsSubstring.cpp:161
+> #12 0x00007ffff3e4c777 in FinalizeDOMString (fin=0x7ffff64b5058,
+> chars=0x7fffca24ff28) at
+> /hack/mozilla-central/js/xpconnect/src/XPCString.cpp:27
+> #13 0x00007ffff514a137 in JSExternalString::finalize
+> (this=0x7fffbf38d6c0, fop=0x7fffffffa000) at
+> /hack/mozilla-central/js/src/vm/String-inl.h:439
+> #14 0x00007ffff515f2a8 in js::gc::Arena::finalize<JSExternalString>
+> (this=0x7fffbf38d000, fop=0x7fffffffa000,
+> thingKind=js::gc::FINALIZE_EXTERNAL_STRING, thingSize=32) at
+> /hack/mozilla-central/js/src/jsgc.cpp:319
+>
+>
+> What can I do to help you help me?
+>
+> Could anyone at least give me a quick explanation of what these
+> assertions are about?
+>
+> Thanks!
+> Benoit
+>
+>
+> 2012/8/21 Benoit Jacob <jacob.benoit.1 at gmail.com>:
+>> Hi,
+>>
+>> I am attaching a patch that allows to iterate over all objects.
+>>
+>> This is not a request for upstreaming: these patches cause crashes and I
+>> need help understanding these. And even if it didn't crash, this patch
+>> causes a severe overhead in memory usage and no attempt has been made to
+>> mitigate it. The goal of this effort is to allow custom developer builds of
+>> Firefox to introspect their own allocated blocks.
+>>
+>> The patch (attached to this email) works by renaming the public functions
+>> such as je_malloc() to real_je_malloc() and implementing custom je_malloc()
+>> to allocate a larger block, and use the extra space to store the data of a
+>> doubly-linked list element.
+>>
+>> In principle, this should be entirely transparent to the user (except for
+>> the increased memory usage), so I don't understand the crashes.
+>>
+>> The crashes aren't immediate: I can run Firefox (this patch if for Firefox's
+>> copy of jemalloc 3.0) for a while and browse a few pages without crashing.
+>>
+>> The crashes are assertion failures like this:
+>>
+>> Program received signal SIGSEGV, Segmentation fault.
+>> 0x0000000000411605 in moz_abort ()
+>>     at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>> 116       MOZ_CRASH();
+>> (gdb) bt
+>> #0  0x0000000000411605 in moz_abort ()
+>>     at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+>> bin=0x7ffff6c007c8)
+>>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+>> #2  0x000000000041b225 in arena_tcache_fill_small (arena=0x7ffff6c00180,
+>>     tbin=0x7ffff6b02148, binind=9, prof_accumbytes=0)
+>>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1232
+>> #3  0x000000000043c239 in tcache_alloc_small_hard (tcache=0x7ffff6b02000,
+>>     tbin=0x7ffff6b02148, binind=9)
+>>     at /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:72
+>> #4  0x000000000043b7dc in tcache_alloc_small (tcache=0x7ffff6b02000,
+>> size=160, zero=false)
+>>     at
+>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:302
+>> #5  0x0000000000412c26 in arena_malloc (arena=0x0, size=160, zero=false,
+>> try_tcache=true)
+>>     at
+>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:869
+>> #6  0x000000000042dce8 in imalloc (size=160)
+>>     at src/include/jemalloc/internal/jemalloc_internal.h:735
+>> #7  0x000000000043111c in real_je_malloc (size=160)
+>>     at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:829
+>> #8  0x0000000000432fa3 in malloc (size=128)
+>>     at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1425
+>> #9  0x00007ffff7fe803c in moz_xmalloc (size=128)
+>>     at /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:57
+>> #10 0x00007ffff2dcb74d in nsTArrayInfallibleAllocator::Malloc (size=128)
+>>     at ../../dist/include/nsTArray.h:56
+>> ...
+>>
+>> Printing some variables here:
+>>
+>> (gdb) up
+>> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+>> bin=0x7ffff6c007c8)
+>>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+>> 1189            assert(bin->runcur->nfree > 0);
+>> (gdb) p bin
+>> $1 = (arena_bin_t *) 0x7ffff6c007c8
+>> (gdb) p *bin
+>> $2 = {lock = {lock = {__data = {__lock = 1, __count = 0, __owner = 6469,
+>> __nusers = 1,
+>>         __kind = 0, __spins = 0, __list = {__prev = 0x0, __next = 0x0}},
+>>       __size = "\001\000\000\000\000\000\000\000E\031\000\000\001", '\000'
+>> <repeats 26 times>, __align = 1}}, runcur = 0x7fffc2ced000, runs = {rbt_root
+>> = 0x7fffca3004d8, rbt_nil = {{
+>>         u = {rb_link = {rbn_left = 0x7ffff6c00800, rbn_right_red =
+>> 0x7ffff6c00800},
+>>           ql_link = {qre_next = 0x7ffff6c00800, qre_prev = 0x7ffff6c00800}},
+>>         prof_ctx = 0x7ffff6c00800}, bits = 0}}, stats = {allocated =
+>> 8896000,
+>>     nmalloc = 197757, ndalloc = 142157, nrequests = 300344, nfills = 5545,
+>>     nflushes = 2848, nruns = 2802, reruns = 5838, curruns = 1143}}
+>> (gdb) p bin->runcur
+>> $3 = (arena_run_t *) 0x7fffc2ced000
+>> (gdb) p *(bin->runcur)
+>> $4 = {bin = 0x7ffff6c007c8, nextind = 4544384, nfree = 0}
+>>
+>> Any help would be greatly appreciated.
+>>
+>> Thanks,
+>> Benoit
+
+
+From jasone at canonware.com  Fri Aug 24 15:26:44 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 24 Aug 2012 15:26:44 -0700
+Subject: Need help with patch allowing to iterate over all objects
+In-Reply-To: <CAJTmd9q9t3j9M1YQwiZp4ZTXg4qff=H32m5V4HP7KScr2GisjA@mail.gmail.com>
+References: <CAJTmd9pQZkQNsgWbX8aKAfSN=gOtDOXJQ=fd9f=_hNdg91Oi1Q@mail.gmail.com>
+	<CAJTmd9p2qaTS+Z9H8SVCBPaTDpChYO2fg4u6WXoCi=yh9eTsJg@mail.gmail.com>
+	<CAJTmd9q9t3j9M1YQwiZp4ZTXg4qff=H32m5V4HP7KScr2GisjA@mail.gmail.com>
+Message-ID: <58B7F295-88B9-40DC-9C83-EA6AA6A462F3@canonware.com>
+
+My guess is that the application is passing a bogus pointer to free(), perhaps one that had already been freed.
+
+Jason
+
+On Aug 24, 2012, at 12:53 PM, Benoit Jacob wrote:
+> In the assertion failure in my last email, I have these local variables:
+> 
+> (gdb) p run->nfree
+> $1 = 32767
+> (gdb) p bin_info->nregs
+> $2 = 51
+> 
+> Benoit
+> 
+> 2012/8/24 Benoit Jacob <jacob.benoit.1 at gmail.com>:
+>> And another crash, also an assertion about nfree not having the expected value:
+>> 
+>> <jemalloc>: /hack/mozilla-central/memory/jemalloc/src/src/arena.c:165:
+>> Failed assertion: "run->nfree < bin_info->nregs"
+>> 
+>> Program received signal SIGSEGV, Segmentation fault.
+>> 0x0000000000411605 in moz_abort () at
+>> /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>> 116       MOZ_CRASH();
+>> (gdb) bt
+>> #0  0x0000000000411605 in moz_abort () at
+>> /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>> #1  0x000000000041743a in arena_run_reg_dalloc (run=0x7fffbe37f000,
+>> ptr=0x7fffbe38af00) at
+>> /hack/mozilla-central/memory/jemalloc/src/src/arena.c:165
+>> #2  0x000000000041c5e7 in arena_dalloc_bin_locked
+>> (arena=0x7ffff6c00180, chunk=0x7fffbe300000, ptr=0x7fffbe38af00,
+>> mapelm=0x7fffbe300ce8) at
+>> /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1590
+>> #3  0x000000000043c583 in tcache_bin_flush_small (tbin=0x7ffff6b022c8,
+>> binind=21, rem=51, tcache=0x7ffff6b02000) at
+>> /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:128
+>> #4  0x000000000043bdd3 in tcache_dalloc_small (tcache=0x7ffff6b02000,
+>> ptr=0x7fffca24ff00, binind=21) at
+>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:399
+>> #5  0x00000000004132e8 in arena_dalloc (arena=0x7ffff6c00180,
+>> chunk=0x7fffca200000, ptr=0x7fffca24ff00, try_tcache=true) at
+>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:956
+>> #6  0x000000000042e13d in idalloc (ptr=0x7fffca24ff00) at
+>> src/include/jemalloc/internal/jemalloc_internal.h:840
+>> #7  0x000000000042e18f in iqalloc (ptr=0x7fffca24ff00) at
+>> src/include/jemalloc/internal/jemalloc_internal.h:852
+>> #8  0x0000000000432a58 in real_je_free (ptr=0x7fffca24ff00) at
+>> /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1212
+>> #9  0x00000000004330d8 in free (ptr=0x7fffca24ff20) at
+>> /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1458
+>> #10 0x00007ffff7fe8022 in moz_free (ptr=0x7fffca24ff20) at
+>> /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:51
+>> #11 0x00007ffff472490c in nsStringBuffer::Release
+>> (this=0x7fffca24ff20) at
+>> /hack/mozilla-central/xpcom/string/src/nsSubstring.cpp:161
+>> #12 0x00007ffff3e4c777 in FinalizeDOMString (fin=0x7ffff64b5058,
+>> chars=0x7fffca24ff28) at
+>> /hack/mozilla-central/js/xpconnect/src/XPCString.cpp:27
+>> #13 0x00007ffff514a137 in JSExternalString::finalize
+>> (this=0x7fffbf38d6c0, fop=0x7fffffffa000) at
+>> /hack/mozilla-central/js/src/vm/String-inl.h:439
+>> #14 0x00007ffff515f2a8 in js::gc::Arena::finalize<JSExternalString>
+>> (this=0x7fffbf38d000, fop=0x7fffffffa000,
+>> thingKind=js::gc::FINALIZE_EXTERNAL_STRING, thingSize=32) at
+>> /hack/mozilla-central/js/src/jsgc.cpp:319
+>> 
+>> 
+>> What can I do to help you help me?
+>> 
+>> Could anyone at least give me a quick explanation of what these
+>> assertions are about?
+>> 
+>> Thanks!
+>> Benoit
+>> 
+>> 
+>> 2012/8/21 Benoit Jacob <jacob.benoit.1 at gmail.com>:
+>>> Hi,
+>>> 
+>>> I am attaching a patch that allows to iterate over all objects.
+>>> 
+>>> This is not a request for upstreaming: these patches cause crashes and I
+>>> need help understanding these. And even if it didn't crash, this patch
+>>> causes a severe overhead in memory usage and no attempt has been made to
+>>> mitigate it. The goal of this effort is to allow custom developer builds of
+>>> Firefox to introspect their own allocated blocks.
+>>> 
+>>> The patch (attached to this email) works by renaming the public functions
+>>> such as je_malloc() to real_je_malloc() and implementing custom je_malloc()
+>>> to allocate a larger block, and use the extra space to store the data of a
+>>> doubly-linked list element.
+>>> 
+>>> In principle, this should be entirely transparent to the user (except for
+>>> the increased memory usage), so I don't understand the crashes.
+>>> 
+>>> The crashes aren't immediate: I can run Firefox (this patch if for Firefox's
+>>> copy of jemalloc 3.0) for a while and browse a few pages without crashing.
+>>> 
+>>> The crashes are assertion failures like this:
+>>> 
+>>> Program received signal SIGSEGV, Segmentation fault.
+>>> 0x0000000000411605 in moz_abort ()
+>>>    at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>>> 116       MOZ_CRASH();
+>>> (gdb) bt
+>>> #0  0x0000000000411605 in moz_abort ()
+>>>    at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>>> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+>>> bin=0x7ffff6c007c8)
+>>>    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+>>> #2  0x000000000041b225 in arena_tcache_fill_small (arena=0x7ffff6c00180,
+>>>    tbin=0x7ffff6b02148, binind=9, prof_accumbytes=0)
+>>>    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1232
+>>> #3  0x000000000043c239 in tcache_alloc_small_hard (tcache=0x7ffff6b02000,
+>>>    tbin=0x7ffff6b02148, binind=9)
+>>>    at /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:72
+>>> #4  0x000000000043b7dc in tcache_alloc_small (tcache=0x7ffff6b02000,
+>>> size=160, zero=false)
+>>>    at
+>>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:302
+>>> #5  0x0000000000412c26 in arena_malloc (arena=0x0, size=160, zero=false,
+>>> try_tcache=true)
+>>>    at
+>>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:869
+>>> #6  0x000000000042dce8 in imalloc (size=160)
+>>>    at src/include/jemalloc/internal/jemalloc_internal.h:735
+>>> #7  0x000000000043111c in real_je_malloc (size=160)
+>>>    at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:829
+>>> #8  0x0000000000432fa3 in malloc (size=128)
+>>>    at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1425
+>>> #9  0x00007ffff7fe803c in moz_xmalloc (size=128)
+>>>    at /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:57
+>>> #10 0x00007ffff2dcb74d in nsTArrayInfallibleAllocator::Malloc (size=128)
+>>>    at ../../dist/include/nsTArray.h:56
+>>> ...
+>>> 
+>>> Printing some variables here:
+>>> 
+>>> (gdb) up
+>>> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+>>> bin=0x7ffff6c007c8)
+>>>    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+>>> 1189            assert(bin->runcur->nfree > 0);
+>>> (gdb) p bin
+>>> $1 = (arena_bin_t *) 0x7ffff6c007c8
+>>> (gdb) p *bin
+>>> $2 = {lock = {lock = {__data = {__lock = 1, __count = 0, __owner = 6469,
+>>> __nusers = 1,
+>>>        __kind = 0, __spins = 0, __list = {__prev = 0x0, __next = 0x0}},
+>>>      __size = "\001\000\000\000\000\000\000\000E\031\000\000\001", '\000'
+>>> <repeats 26 times>, __align = 1}}, runcur = 0x7fffc2ced000, runs = {rbt_root
+>>> = 0x7fffca3004d8, rbt_nil = {{
+>>>        u = {rb_link = {rbn_left = 0x7ffff6c00800, rbn_right_red =
+>>> 0x7ffff6c00800},
+>>>          ql_link = {qre_next = 0x7ffff6c00800, qre_prev = 0x7ffff6c00800}},
+>>>        prof_ctx = 0x7ffff6c00800}, bits = 0}}, stats = {allocated =
+>>> 8896000,
+>>>    nmalloc = 197757, ndalloc = 142157, nrequests = 300344, nfills = 5545,
+>>>    nflushes = 2848, nruns = 2802, reruns = 5838, curruns = 1143}}
+>>> (gdb) p bin->runcur
+>>> $3 = (arena_run_t *) 0x7fffc2ced000
+>>> (gdb) p *(bin->runcur)
+>>> $4 = {bin = 0x7ffff6c007c8, nextind = 4544384, nfree = 0}
+>>> 
+>>> Any help would be greatly appreciated.
+>>> 
+>>> Thanks,
+>>> Benoit
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> 
+
+
+
+From jacob.benoit.1 at gmail.com  Fri Aug 24 16:33:05 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Fri, 24 Aug 2012 19:33:05 -0400
+Subject: Need help with patch allowing to iterate over all objects
+In-Reply-To: <58B7F295-88B9-40DC-9C83-EA6AA6A462F3@canonware.com>
+References: <CAJTmd9pQZkQNsgWbX8aKAfSN=gOtDOXJQ=fd9f=_hNdg91Oi1Q@mail.gmail.com>
+	<CAJTmd9p2qaTS+Z9H8SVCBPaTDpChYO2fg4u6WXoCi=yh9eTsJg@mail.gmail.com>
+	<CAJTmd9q9t3j9M1YQwiZp4ZTXg4qff=H32m5V4HP7KScr2GisjA@mail.gmail.com>
+	<58B7F295-88B9-40DC-9C83-EA6AA6A462F3@canonware.com>
+Message-ID: <CAJTmd9qWv1pLq9v2T=BWgi3L3UeLwFLicXFBK=joCpQ0QhKqyw@mail.gmail.com>
+
+Thanks Jason.
+
+The application (Firefox) doesn't crash without my patch, and I just
+got this different assertion failure, this time in malloc:
+
+
+(gdb) frame 1
+#1  0x00000000004175e7 in arena_chunk_validate_zeroed
+(chunk=0x7fffd5100000, run_ind=15) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:186
+186                     assert(p[i] == 0);
+(gdb) l
+181     {
+182             size_t i;
+183             UNUSED size_t *p = (size_t *)((uintptr_t)chunk +
+(run_ind << LG_PAGE));
+184
+185             for (i = 0; i < PAGE / sizeof(size_t); i++)
+186                     assert(p[i] == 0);
+187     }
+188
+189     static void
+190     arena_run_split(arena_t *arena, arena_run_t *run, size_t size,
+bool large,
+(gdb) bt
+#0  0x0000000000411605 in moz_abort () at
+/hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+#1  0x00000000004175e7 in arena_chunk_validate_zeroed
+(chunk=0x7fffd5100000, run_ind=15) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:186
+#2  0x0000000000417f27 in arena_run_split (arena=0x7ffff6c00180,
+run=0x7fffd510e000, size=8192, large=false, binind=7, zero=false) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:334
+#3  0x00000000004188e5 in arena_run_alloc_helper
+(arena=0x7ffff6c00180, size=8192, large=false, binind=7, zero=false)
+at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:495
+#4  0x0000000000418a0c in arena_run_alloc (arena=0x7ffff6c00180,
+size=8192, large=false, binind=7, zero=false) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:515
+#5  0x000000000041acc8 in arena_bin_nonfull_run_get
+(arena=0x7ffff6c00180, bin=0x7ffff6c00698) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:1108
+#6  0x000000000041ae93 in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+bin=0x7ffff6c00698) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:1156
+#7  0x000000000041b225 in arena_tcache_fill_small
+(arena=0x7ffff6c00180, tbin=0x7fffd44eb108, binind=7,
+prof_accumbytes=0) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:1232
+#8  0x000000000043c273 in tcache_alloc_small_hard
+(tcache=0x7fffd44eb000, tbin=0x7fffd44eb108, binind=7) at
+/hack/mozilla-central/memory/jemalloc/src/src/tcache.c:72
+#9  0x000000000043b816 in tcache_alloc_small (tcache=0x7fffd44eb000,
+size=104, zero=false) at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:302
+#10 0x0000000000412c26 in arena_malloc (arena=0x0, size=104,
+zero=false, try_tcache=true) at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:869
+#11 0x000000000042dce8 in imalloc (size=104) at
+src/include/jemalloc/internal/jemalloc_internal.h:735
+#12 0x000000000043111c in real_je_malloc (size=104) at
+/hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:829
+#13 0x0000000000432fdd in malloc (size=40) at
+/hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1429
+#14 0x00007ffff7fe803c in moz_xmalloc (size=40) at
+/hack/mozilla-central/memory/mozalloc/mozalloc.cpp:57
+#15 0x00007ffff3af3015 in operator new [] (size=40) at
+../../dist/include/mozilla/mozalloc.h:212
+#16 jArray<nsString*, int>::newJArray (len=5) at
+/hack/mozilla-central/parser/html/jArray.h:57
+#17 0x00007ffff3af2684 in nsHtml5HtmlAttributes::nsHtml5HtmlAttributes
+(this=0x7fffd510d080, mode=0) at
+/hack/mozilla-central/parser/html/nsHtml5HtmlAttributes.cpp:64
+#18 0x00007ffff3af4edc in nsHtml5Tokenizer::attributeNameComplete
+(this=0x7fffc78098c0) at
+/hack/mozilla-central/parser/html/nsHtml5Tokenizer.cpp:330
+#19 0x00007ffff3aff8a3 in
+nsHtml5Tokenizer::stateLoop<nsHtml5SilentPolicy> (this=0x7fffc78098c0,
+state=13, c=61, pos=583, buf=0x7fffc762a640, reconsume=false,
+returnState=2, endPos=1024)
+    at /hack/mozilla-central/parser/html/nsHtml5Tokenizer.cpp:666
+#20 0x00007ffff3af5232 in nsHtml5Tokenizer::tokenizeBuffer
+(this=0x7fffc78098c0, buffer=0x7fffc65a57c0) at
+/hack/mozilla-central/parser/html/nsHtml5Tokenizer.cpp:410
+#21 0x00007ffff3b272b5 in nsHtml5StreamParser::ParseAvailableData
+(this=0x7fffdd8e5240) at
+/hack/mozilla-central/parser/html/nsHtml5StreamParser.cpp:1360
+#22 0x00007ffff3b26322 in nsHtml5StreamParser::DoDataAvailable
+(this=0x7fffdd8e5240,
+    aBuffer=0x7fffc3a5f040
+"6-20120823ARTFIG00314-il-y-a-un-an-un-tremblement-de-terre-surprend-les-usa.php\">\273
+Il y a un an : un tremblement de terre surprend les USA</a></h1>\n\n
+   <h1><a href=\"/actualite-france/2012/08/22/010"..., aLength=34048)
+at /hack/mozilla-central/parser/html/nsHtml5StreamParser.cpp:1083
+#23 0x00007ffff3b264a2 in nsHtml5DataAvailable::Run
+(this=0x7fffdcd51590) at
+/hack/mozilla-central/parser/html/nsHtml5StreamParser.cpp:1115
+#24 0x00007ffff46f54f6 in nsThread::ProcessNextEvent
+(this=0x7fffd44a9180, mayWait=true, result=0x7fffd42fedaf) at
+/hack/mozilla-central/xpcom/threads/nsThread.cpp:624
+#25 0x00007ffff46897ae in NS_ProcessNextEvent_P
+(thread=0x7fffd44a9180, mayWait=true) at
+/hack/mozilla-central/obj-firefox-debug/xpcom/build/nsThreadUtils.cpp:220
+#26 0x00007ffff46f4412 in nsThread::ThreadFunc (arg=0x7fffd44a9180) at
+/hack/mozilla-central/xpcom/threads/nsThread.cpp:257
+#27 0x00007ffff7fb2e09 in _pt_root (arg=0x7fffd45f74c0) at
+/hack/mozilla-central/nsprpub/pr/src/pthreads/ptthread.c:156
+#28 0x00007ffff7bc4e9a in start_thread (arg=0x7fffd42ff700) at
+pthread_create.c:308
+#29 0x00007ffff70f44bd in clone () at
+../sysdeps/unix/sysv/linux/x86_64/clone.S:112
+#30 0x0000000000000000 in ?? ()
+
+Benoit
+
+2012/8/24 Jason Evans <jasone at canonware.com>:
+> My guess is that the application is passing a bogus pointer to free(), perhaps one that had already been freed.
+>
+> Jason
+>
+> On Aug 24, 2012, at 12:53 PM, Benoit Jacob wrote:
+>> In the assertion failure in my last email, I have these local variables:
+>>
+>> (gdb) p run->nfree
+>> $1 = 32767
+>> (gdb) p bin_info->nregs
+>> $2 = 51
+>>
+>> Benoit
+>>
+>> 2012/8/24 Benoit Jacob <jacob.benoit.1 at gmail.com>:
+>>> And another crash, also an assertion about nfree not having the expected value:
+>>>
+>>> <jemalloc>: /hack/mozilla-central/memory/jemalloc/src/src/arena.c:165:
+>>> Failed assertion: "run->nfree < bin_info->nregs"
+>>>
+>>> Program received signal SIGSEGV, Segmentation fault.
+>>> 0x0000000000411605 in moz_abort () at
+>>> /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>>> 116       MOZ_CRASH();
+>>> (gdb) bt
+>>> #0  0x0000000000411605 in moz_abort () at
+>>> /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>>> #1  0x000000000041743a in arena_run_reg_dalloc (run=0x7fffbe37f000,
+>>> ptr=0x7fffbe38af00) at
+>>> /hack/mozilla-central/memory/jemalloc/src/src/arena.c:165
+>>> #2  0x000000000041c5e7 in arena_dalloc_bin_locked
+>>> (arena=0x7ffff6c00180, chunk=0x7fffbe300000, ptr=0x7fffbe38af00,
+>>> mapelm=0x7fffbe300ce8) at
+>>> /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1590
+>>> #3  0x000000000043c583 in tcache_bin_flush_small (tbin=0x7ffff6b022c8,
+>>> binind=21, rem=51, tcache=0x7ffff6b02000) at
+>>> /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:128
+>>> #4  0x000000000043bdd3 in tcache_dalloc_small (tcache=0x7ffff6b02000,
+>>> ptr=0x7fffca24ff00, binind=21) at
+>>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:399
+>>> #5  0x00000000004132e8 in arena_dalloc (arena=0x7ffff6c00180,
+>>> chunk=0x7fffca200000, ptr=0x7fffca24ff00, try_tcache=true) at
+>>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:956
+>>> #6  0x000000000042e13d in idalloc (ptr=0x7fffca24ff00) at
+>>> src/include/jemalloc/internal/jemalloc_internal.h:840
+>>> #7  0x000000000042e18f in iqalloc (ptr=0x7fffca24ff00) at
+>>> src/include/jemalloc/internal/jemalloc_internal.h:852
+>>> #8  0x0000000000432a58 in real_je_free (ptr=0x7fffca24ff00) at
+>>> /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1212
+>>> #9  0x00000000004330d8 in free (ptr=0x7fffca24ff20) at
+>>> /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1458
+>>> #10 0x00007ffff7fe8022 in moz_free (ptr=0x7fffca24ff20) at
+>>> /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:51
+>>> #11 0x00007ffff472490c in nsStringBuffer::Release
+>>> (this=0x7fffca24ff20) at
+>>> /hack/mozilla-central/xpcom/string/src/nsSubstring.cpp:161
+>>> #12 0x00007ffff3e4c777 in FinalizeDOMString (fin=0x7ffff64b5058,
+>>> chars=0x7fffca24ff28) at
+>>> /hack/mozilla-central/js/xpconnect/src/XPCString.cpp:27
+>>> #13 0x00007ffff514a137 in JSExternalString::finalize
+>>> (this=0x7fffbf38d6c0, fop=0x7fffffffa000) at
+>>> /hack/mozilla-central/js/src/vm/String-inl.h:439
+>>> #14 0x00007ffff515f2a8 in js::gc::Arena::finalize<JSExternalString>
+>>> (this=0x7fffbf38d000, fop=0x7fffffffa000,
+>>> thingKind=js::gc::FINALIZE_EXTERNAL_STRING, thingSize=32) at
+>>> /hack/mozilla-central/js/src/jsgc.cpp:319
+>>>
+>>>
+>>> What can I do to help you help me?
+>>>
+>>> Could anyone at least give me a quick explanation of what these
+>>> assertions are about?
+>>>
+>>> Thanks!
+>>> Benoit
+>>>
+>>>
+>>> 2012/8/21 Benoit Jacob <jacob.benoit.1 at gmail.com>:
+>>>> Hi,
+>>>>
+>>>> I am attaching a patch that allows to iterate over all objects.
+>>>>
+>>>> This is not a request for upstreaming: these patches cause crashes and I
+>>>> need help understanding these. And even if it didn't crash, this patch
+>>>> causes a severe overhead in memory usage and no attempt has been made to
+>>>> mitigate it. The goal of this effort is to allow custom developer builds of
+>>>> Firefox to introspect their own allocated blocks.
+>>>>
+>>>> The patch (attached to this email) works by renaming the public functions
+>>>> such as je_malloc() to real_je_malloc() and implementing custom je_malloc()
+>>>> to allocate a larger block, and use the extra space to store the data of a
+>>>> doubly-linked list element.
+>>>>
+>>>> In principle, this should be entirely transparent to the user (except for
+>>>> the increased memory usage), so I don't understand the crashes.
+>>>>
+>>>> The crashes aren't immediate: I can run Firefox (this patch if for Firefox's
+>>>> copy of jemalloc 3.0) for a while and browse a few pages without crashing.
+>>>>
+>>>> The crashes are assertion failures like this:
+>>>>
+>>>> Program received signal SIGSEGV, Segmentation fault.
+>>>> 0x0000000000411605 in moz_abort ()
+>>>>    at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>>>> 116       MOZ_CRASH();
+>>>> (gdb) bt
+>>>> #0  0x0000000000411605 in moz_abort ()
+>>>>    at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+>>>> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+>>>> bin=0x7ffff6c007c8)
+>>>>    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+>>>> #2  0x000000000041b225 in arena_tcache_fill_small (arena=0x7ffff6c00180,
+>>>>    tbin=0x7ffff6b02148, binind=9, prof_accumbytes=0)
+>>>>    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1232
+>>>> #3  0x000000000043c239 in tcache_alloc_small_hard (tcache=0x7ffff6b02000,
+>>>>    tbin=0x7ffff6b02148, binind=9)
+>>>>    at /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:72
+>>>> #4  0x000000000043b7dc in tcache_alloc_small (tcache=0x7ffff6b02000,
+>>>> size=160, zero=false)
+>>>>    at
+>>>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:302
+>>>> #5  0x0000000000412c26 in arena_malloc (arena=0x0, size=160, zero=false,
+>>>> try_tcache=true)
+>>>>    at
+>>>> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:869
+>>>> #6  0x000000000042dce8 in imalloc (size=160)
+>>>>    at src/include/jemalloc/internal/jemalloc_internal.h:735
+>>>> #7  0x000000000043111c in real_je_malloc (size=160)
+>>>>    at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:829
+>>>> #8  0x0000000000432fa3 in malloc (size=128)
+>>>>    at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1425
+>>>> #9  0x00007ffff7fe803c in moz_xmalloc (size=128)
+>>>>    at /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:57
+>>>> #10 0x00007ffff2dcb74d in nsTArrayInfallibleAllocator::Malloc (size=128)
+>>>>    at ../../dist/include/nsTArray.h:56
+>>>> ...
+>>>>
+>>>> Printing some variables here:
+>>>>
+>>>> (gdb) up
+>>>> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+>>>> bin=0x7ffff6c007c8)
+>>>>    at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+>>>> 1189            assert(bin->runcur->nfree > 0);
+>>>> (gdb) p bin
+>>>> $1 = (arena_bin_t *) 0x7ffff6c007c8
+>>>> (gdb) p *bin
+>>>> $2 = {lock = {lock = {__data = {__lock = 1, __count = 0, __owner = 6469,
+>>>> __nusers = 1,
+>>>>        __kind = 0, __spins = 0, __list = {__prev = 0x0, __next = 0x0}},
+>>>>      __size = "\001\000\000\000\000\000\000\000E\031\000\000\001", '\000'
+>>>> <repeats 26 times>, __align = 1}}, runcur = 0x7fffc2ced000, runs = {rbt_root
+>>>> = 0x7fffca3004d8, rbt_nil = {{
+>>>>        u = {rb_link = {rbn_left = 0x7ffff6c00800, rbn_right_red =
+>>>> 0x7ffff6c00800},
+>>>>          ql_link = {qre_next = 0x7ffff6c00800, qre_prev = 0x7ffff6c00800}},
+>>>>        prof_ctx = 0x7ffff6c00800}, bits = 0}}, stats = {allocated =
+>>>> 8896000,
+>>>>    nmalloc = 197757, ndalloc = 142157, nrequests = 300344, nfills = 5545,
+>>>>    nflushes = 2848, nruns = 2802, reruns = 5838, curruns = 1143}}
+>>>> (gdb) p bin->runcur
+>>>> $3 = (arena_run_t *) 0x7fffc2ced000
+>>>> (gdb) p *(bin->runcur)
+>>>> $4 = {bin = 0x7ffff6c007c8, nextind = 4544384, nfree = 0}
+>>>>
+>>>> Any help would be greatly appreciated.
+>>>>
+>>>> Thanks,
+>>>> Benoit
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>
+
+
+From alexpigna.dev at gmail.com  Tue Aug 28 04:39:20 2012
+From: alexpigna.dev at gmail.com (Alessandro Pignotti)
+Date: Tue, 28 Aug 2012 13:39:20 +0200
+Subject: PATCH: Support to iterate over all regions in arena.
+Message-ID: <1346153960.19882.36.camel@avalon>
+
+Hi,
+
+I'm attaching an updated version of the patches I've sent some time ago.
+This new version have been tested on real world scenarios and seems to
+work correctly. I'd like to stress that the functionality is implemented
+with minimal overhead as it only needs to keep all allocated chunks in a
+list. Moreover, the support is totally opt-in at compile time.
+
+Please note that the patches do not solve the whole problem of iterating
+over every object allocated by jemalloc, but only the smaller one of
+iterating over objects allocated in an arena. tcache and huge regions
+are not handled. Despite the limitations I think this is sufficient for
+my purposes and I would like to share my work, hoping it might be
+included upstream. This patch set, although limited, may be the base for
+a full blown solution.
+
+The last patch includes a simple test for the functionality. Still I
+don't know how to integrate it in the build system since it requires
+access to internal APIs only available in the statically linked version
+of the library, while other test cases seems to link to the dynamic
+version of it.
+
+Hoping to receive some review,
+Alessandro Pignotti
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Add-a-configuration-option-to-enable-iteration-over-.patch
+Type: text/x-patch
+Size: 2191 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0002-Keep-track-of-all-allocated-chunks.patch
+Type: text/x-patch
+Size: 2506 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0001.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0003-Add-a-method-to-iterate-over-objects-allocated-in-an.patch
+Type: text/x-patch
+Size: 3147 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0002.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0004-Add-test-for-iterate-regions.patch
+Type: text/x-patch
+Size: 3344 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120828/5b5bdfc1/attachment-0003.bin>
+

@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc performance for very small allocations
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20performance%20for%20very%20small%20allocations&In-Reply-To=%3CF7B11C0C-EFC3-4104-BA1D-0677BD43369D%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000577.html">
+   <LINK REL="Next"  HREF="000578.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc performance for very small allocations</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20performance%20for%20very%20small%20allocations&In-Reply-To=%3CF7B11C0C-EFC3-4104-BA1D-0677BD43369D%40canonware.com%3E"
+       TITLE="jemalloc performance for very small allocations">jasone at canonware.com
+       </A><BR>
+    <I>Tue Apr 30 22:52:24 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000577.html">jemalloc performance for very small allocations
+</A></li>
+        <LI>Next message: <A HREF="000578.html">Excessive VM usage with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#580">[ date ]</a>
+              <a href="thread.html#580">[ thread ]</a>
+              <a href="subject.html#580">[ subject ]</a>
+              <a href="author.html#580">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 26, 2013, at 9:39 AM, Rajat Garg &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">garg_rajat at hotmail.com</A>&gt; wrote:
+&gt;<i>  I am using jemalloc 3.1.0, compiled with gcc 4.1.2 on CentOS release 5.6 for a compute intensive multithreaded application where bulk of allocations falls in 8-byte, 16-byte (stats below). We are seeing very high runtime in tcache_alloc_small_hard(), arena_tcache_fill_small() and arena_bin_malloc_hard().  The 8 and 16 bytes allocations happen in very large number. We probably want the allocations to come form tcache_alloc_easy() to not hit the locks and take less runtime.  The allocations are mostly temporary in nature -- especially 8-byte ones -- so some number of 8-byte allocations are done, then they are freed and then alloc/free process repeated. 
+</I>&gt;<i> 
+</I>&gt;<i> The runs use 8 threads (so 48 arenas and all other jemalloc settings are default) and are on an Intel Xeon server with 12-cores (no hyperthreading and no other user so no contention with other user; the peak memory in application is ~6.5GB and server has 128GB memory so no memory shortage/swapping etc.); the jemalloc output at the end of run is given below. As we can see, pretty much 8 and 16 byte bins are overloaded.
+</I>
+Only 8 of the 48 arenas are being used in your test case.  That said, the extra 40 are lazily initialized, so there's no need to change settings.
+
+&gt;<i> A run with TCACHE_NSLOTS_SMALL_MAX=10000, LG_TCACHE_MAXCLASS_DEFAULT=10, changing small bins to hold only upto 224 bytes (NBINS=15),  and hardcoding 
+</I>&gt;<i> tcache_bin_info[i].ncached_max = TCACHE_NSLOTS_SMALL_MAX in tcache.c file improves runtime by about 16% (for overall application runtime) but increases peak memory from 6.5GB to 6.7GB. We want the runtime to at least improve by another 10% without preferably any increase in peak memory (so even 6.5GB to 6.7GB is not desirable). 
+</I>&gt;<i> Any suggestions on what changes to jemalloc settings to try?
+</I>
+I don't think the TCACHE_NSLOTS_SMALL_MAX setting is having as much effect for your test case as you might expect.  Even with the setting of 10000, tcache is limited to 1002 and 504 regions for 8- and 16-byte regions, respectively.  If you want to further increase the tcache region count, you will need to either increase the logical page size, or modify bin_info_run_size_calc() to use a larger initial min_run_size.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130430/fbe3aeba/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130430/fbe3aeba/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000577.html">jemalloc performance for very small allocations
+</A></li>
+	<LI>Next message: <A HREF="000578.html">Excessive VM usage with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#580">[ date ]</a>
+              <a href="thread.html#580">[ thread ]</a>
+              <a href="subject.html#580">[ subject ]</a>
+              <a href="author.html#580">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

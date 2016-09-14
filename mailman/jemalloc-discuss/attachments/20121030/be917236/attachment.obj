@@ -1,0 +1,242 @@
+commit 3fafde4e4eeb8567d35f793cd505b1c39982998b
+Author: Jason Evans <je@fb.com>
+Date:   Tue Oct 30 15:42:37 2012
+
+    Purge unused dirty pages from high to low addresses.
+    
+    Purge unused dirty pages from high to low chunk addresses, rather than
+    in round-robin order.  Additionally, make sure to purge at least one
+    chunk worth of pages any time the purging occurs.
+
+diff --git a/include/jemalloc/internal/arena.h b/include/jemalloc/internal/arena.h
+index 49213e3..524581d 100644
+--- a/include/jemalloc/internal/arena.h
++++ b/include/jemalloc/internal/arena.h
+@@ -164,13 +164,13 @@ struct arena_chunk_s {
+ 	/* Arena that owns the chunk. */
+ 	arena_t		*arena;
+ 
+-	/* Linkage for the arena's chunks_dirty list. */
+-	ql_elm(arena_chunk_t) link_dirty;
++	/* Linkage for arena chunk trees. */
++	rb_node(arena_chunk_t)	rb_link;
+ 
+ 	/*
+-	 * True if the chunk is currently in the chunks_dirty list, due to
+-	 * having at some point contained one or more dirty pages.  Removal
+-	 * from chunks_dirty is lazy, so (dirtied && ndirty == 0) is possible.
++	 * True if the chunk is currently in chunks_dirty, due to having at
++	 * some point contained one or more dirty pages.  Removal from
++	 * chunks_dirty is lazy, so (dirtied && ndirty == 0) is possible.
+ 	 */
+ 	bool		dirtied;
+ 
+@@ -333,8 +333,8 @@ struct arena_s {
+ 
+ 	dss_prec_t		dss_prec;
+ 
+-	/* List of dirty-page-containing chunks this arena manages. */
+-	ql_head(arena_chunk_t)	chunks_dirty;
++	/* Tree of dirty-page-containing chunks this arena manages. */
++	arena_chunk_tree_t	chunks_dirty;
+ 
+ 	/*
+ 	 * In order to avoid rapid chunk allocation/deallocation when an arena
+diff --git a/src/arena.c b/src/arena.c
+index 1e6964a..0cba4d4 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -48,6 +48,8 @@ static arena_run_t	*arena_run_alloc_helper(arena_t *arena, size_t size,
+     bool large, size_t binind, bool zero);
+ static arena_run_t *arena_run_alloc(arena_t *arena, size_t size, bool large,
+     size_t binind, bool zero);
++static arena_chunk_t	*chunks_dirty_iter_cb(arena_chunk_tree_t *tree,
++    arena_chunk_t *chunk, void *arg);
+ static void	arena_purge(arena_t *arena, bool all);
+ static void	arena_run_dalloc(arena_t *arena, arena_run_t *run, bool dirty);
+ static void	arena_run_trim_head(arena_t *arena, arena_chunk_t *chunk,
+@@ -129,6 +131,22 @@ arena_avail_comp(arena_chunk_map_t *a, arena_chunk_map_t *b)
+ rb_gen(static UNUSED, arena_avail_tree_, arena_avail_tree_t, arena_chunk_map_t,
+     u.rb_link, arena_avail_comp)
+ 
++static inline int
++arena_chunk_comp(arena_chunk_t *a, arena_chunk_t *b)
++{
++	uintptr_t a_chunk = (uintptr_t)a;
++	uintptr_t b_chunk = (uintptr_t)b;
++
++	assert(a != NULL);
++	assert(b != NULL);
++
++	return ((a_chunk > b_chunk) - (a_chunk < b_chunk));
++}
++
++/* Generate red-black tree functions. */
++rb_gen(static UNUSED, arena_chunk_tree_, arena_chunk_tree_t, arena_chunk_t,
++    rb_link, arena_chunk_comp)
++
+ static inline void *
+ arena_run_reg_alloc(arena_run_t *run, arena_bin_info_t *bin_info)
+ {
+@@ -380,7 +398,7 @@ arena_chunk_alloc(arena_t *arena)
+ 			arena->stats.mapped += chunksize;
+ 
+ 		chunk->arena = arena;
+-		ql_elm_new(chunk, link_dirty);
++
+ 		chunk->dirtied = false;
+ 
+ 		/*
+@@ -450,8 +468,8 @@ arena_chunk_dealloc(arena_t *arena, arena_chunk_t *chunk)
+ 
+ 		arena->spare = chunk;
+ 		if (spare->dirtied) {
+-			ql_remove(&chunk->arena->chunks_dirty, spare,
+-			    link_dirty);
++			arena_chunk_tree_remove(&chunk->arena->chunks_dirty,
++			    spare);
+ 			arena->ndirty -= spare->ndirty;
+ 		}
+ 		malloc_mutex_unlock(&arena->lock);
+@@ -537,13 +555,27 @@ arena_run_alloc(arena_t *arena, size_t size, bool large, size_t binind,
+ static inline void
+ arena_maybe_purge(arena_t *arena)
+ {
++	size_t npurgeable, threshold;
++
++	/* Don't purge if the option is disabled. */
++	if (opt_lg_dirty_mult < 0)
++		return;
++	/* Don't purge if all dirty pages are already being purged. */
++	if (arena->ndirty <= arena->npurgatory)
++		return;
++	npurgeable = arena->ndirty - arena->npurgatory;
++	/* Don't purge unless a full chunk worth of pages can be purged. */
++	if (npurgeable <= chunk_npages)
++		return;
++	threshold = (arena->nactive >> opt_lg_dirty_mult);
++	/*
++	 * Don't purge unless the number of purgeable pages exceeds the
++	 * threshold.
++	 */
++	if (npurgeable <= threshold)
++		return;
+ 
+-	/* Enforce opt_lg_dirty_mult. */
+-	if (opt_lg_dirty_mult >= 0 && arena->ndirty > arena->npurgatory &&
+-	    (arena->ndirty - arena->npurgatory) > chunk_npages &&
+-	    (arena->nactive >> opt_lg_dirty_mult) < (arena->ndirty -
+-	    arena->npurgatory))
+-		arena_purge(arena, false);
++	arena_purge(arena, false);
+ }
+ 
+ static inline void
+@@ -648,7 +680,7 @@ arena_chunk_purge(arena_t *arena, arena_chunk_t *chunk)
+ 		arena->stats.purged += chunk->ndirty;
+ 	arena->ndirty -= chunk->ndirty;
+ 	chunk->ndirty = 0;
+-	ql_remove(&arena->chunks_dirty, chunk, link_dirty);
++	arena_chunk_tree_remove(&arena->chunks_dirty, chunk);
+ 	chunk->dirtied = false;
+ 
+ 	malloc_mutex_unlock(&arena->lock);
+@@ -704,6 +736,16 @@ arena_chunk_purge(arena_t *arena, arena_chunk_t *chunk)
+ 	}
+ }
+ 
++static arena_chunk_t *
++chunks_dirty_iter_cb(arena_chunk_tree_t *tree, arena_chunk_t *chunk, void *arg)
++{
++       size_t *ndirty = (size_t *)arg;
++
++       assert(chunk->dirtied);
++       *ndirty += chunk->ndirty;
++       return (NULL);
++}
++
+ static void
+ arena_purge(arena_t *arena, bool all)
+ {
+@@ -712,10 +754,8 @@ arena_purge(arena_t *arena, bool all)
+ 	if (config_debug) {
+ 		size_t ndirty = 0;
+ 
+-		ql_foreach(chunk, &arena->chunks_dirty, link_dirty) {
+-		    assert(chunk->dirtied);
+-		    ndirty += chunk->ndirty;
+-		}
++		arena_chunk_tree_iter(&arena->chunks_dirty, NULL,
++		    chunks_dirty_iter_cb, (void *)&ndirty);
+ 		assert(ndirty == arena->ndirty);
+ 	}
+ 	assert(arena->ndirty > arena->npurgatory || all);
+@@ -731,16 +771,33 @@ arena_purge(arena_t *arena, bool all)
+ 	 * purge, and add the result to arena->npurgatory.  This will keep
+ 	 * multiple threads from racing to reduce ndirty below the threshold.
+ 	 */
+-	npurgatory = arena->ndirty - arena->npurgatory;
+-	if (all == false) {
+-		assert(npurgatory >= arena->nactive >> opt_lg_dirty_mult);
+-		npurgatory -= arena->nactive >> opt_lg_dirty_mult;
++	{
++		size_t npurgeable = arena->ndirty - arena->npurgatory;
++
++		if (all == false) {
++			size_t threshold = (arena->nactive >>
++			    opt_lg_dirty_mult);
++
++			assert(npurgeable > threshold);
++			if (npurgeable - threshold < chunk_npages) {
++				/*
++				 * Purge a full chunk worth of pages for the
++				 * sake of hysteresis.  Otherwise it would be
++				 * possible to enter this function once per run
++				 * deallocation under some conditions.
++				 */
++				assert(npurgeable > chunk_npages);
++				npurgatory = chunk_npages;
++			} else
++				npurgatory = npurgeable - threshold;
++		} else
++			npurgatory = npurgeable;
+ 	}
+ 	arena->npurgatory += npurgatory;
+ 
+ 	while (npurgatory > 0) {
+ 		/* Get next chunk with dirty pages. */
+-		chunk = ql_first(&arena->chunks_dirty);
++		chunk = arena_chunk_tree_last(&arena->chunks_dirty);
+ 		if (chunk == NULL) {
+ 			/*
+ 			 * This thread was unable to purge as many pages as
+@@ -752,9 +809,9 @@ arena_purge(arena_t *arena, bool all)
+ 			return;
+ 		}
+ 		while (chunk->ndirty == 0) {
+-			ql_remove(&arena->chunks_dirty, chunk, link_dirty);
++			arena_chunk_tree_remove(&arena->chunks_dirty, chunk);
+ 			chunk->dirtied = false;
+-			chunk = ql_first(&arena->chunks_dirty);
++			chunk = arena_chunk_tree_last(&arena->chunks_dirty);
+ 			if (chunk == NULL) {
+ 				/* Same logic as for above. */
+ 				arena->npurgatory -= npurgatory;
+@@ -930,7 +987,7 @@ arena_run_dalloc(arena_t *arena, arena_run_t *run, bool dirty)
+ 		 * arena->ndirty are consistent.
+ 		 */
+ 		if (chunk->dirtied == false) {
+-			ql_tail_insert(&arena->chunks_dirty, chunk, link_dirty);
++			arena_chunk_tree_insert(&arena->chunks_dirty, chunk);
+ 			chunk->dirtied = true;
+ 		}
+ 	}
+@@ -1985,7 +2042,7 @@ arena_new(arena_t *arena, unsigned ind)
+ 	arena->dss_prec = chunk_dss_prec_get();
+ 
+ 	/* Initialize chunks. */
+-	ql_new(&arena->chunks_dirty);
++	arena_chunk_tree_new(&arena->chunks_dirty);
+ 	arena->spare = NULL;
+ 
+ 	arena->nactive = 0;

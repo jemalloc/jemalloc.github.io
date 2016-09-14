@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3C20120410175427.GA20755%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000234.html">
+   <LINK REL="Next"  HREF="000240.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3C20120410175427.GA20755%40glandium.org%3E"
+       TITLE="[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr 10 10:54:27 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000234.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+        <LI>Next message: <A HREF="000240.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#235">[ date ]</a>
+              <a href="thread.html#235">[ thread ]</a>
+              <a href="subject.html#235">[ subject ]</a>
+              <a href="author.html#235">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Apr 10, 2012 at 07:50:33PM +0200, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> ---
+</I>&gt;<i>  include/jemalloc/internal/chunk.h      |   15 ++++++++++-
+</I>&gt;<i>  include/jemalloc/internal/chunk_dss.h  |    2 +-
+</I>&gt;<i>  include/jemalloc/internal/chunk_mmap.h |    2 +-
+</I>&gt;<i>  src/chunk.c                            |    7 ++---
+</I>&gt;<i>  src/chunk_dss.c                        |   46 +++++++++++++++++++-------------
+</I>&gt;<i>  src/chunk_mmap.c                       |   28 +++++++++----------
+</I>&gt;<i>  src/huge.c                             |   33 ++---------------------
+</I>&gt;<i>  7 files changed, 63 insertions(+), 70 deletions(-)
+</I>
+The reason why I'm interested in this is that the way VirtualAlloc and
+VirtualFree work on Windows makes it cumbersome to do &quot;huge&quot; alignment,
+and would require going through hoops and repeating code between huge.c
+and chunk_mmap.c. It gets simpler if everything is handled in one place.
+
+I'm not sure how to best stress test the changes in chunk_dss.c, so I'm
+not sure it doesn't break in subtle ways. The changes in chunk_mmap.c
+are much more straightforward.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000234.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+	<LI>Next message: <A HREF="000240.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#235">[ date ]</a>
+              <a href="thread.html#235">[ thread ]</a>
+              <a href="subject.html#235">[ subject ]</a>
+              <a href="author.html#235">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

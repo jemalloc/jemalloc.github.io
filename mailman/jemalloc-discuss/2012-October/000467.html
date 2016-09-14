@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> dead lock in forked child
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20dead%20lock%20in%20forked%20child&In-Reply-To=%3C95FA3531-4D0A-4584-A12B-8B380AD2EBDB%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000469.html">
+   <LINK REL="Next"  HREF="000471.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>dead lock in forked child</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20dead%20lock%20in%20forked%20child&In-Reply-To=%3C95FA3531-4D0A-4584-A12B-8B380AD2EBDB%40canonware.com%3E"
+       TITLE="dead lock in forked child">jasone at canonware.com
+       </A><BR>
+    <I>Tue Oct  9 18:07:05 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000469.html">dead lock in forked child
+</A></li>
+        <LI>Next message: <A HREF="000471.html">dead lock in forked child
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#467">[ date ]</a>
+              <a href="thread.html#467">[ thread ]</a>
+              <a href="subject.html#467">[ subject ]</a>
+              <a href="author.html#467">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 9, 2012, at 5:53 PM, &quot;Mowry, Robert&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Robert.Mowry at netapp.com</A>&gt; wrote:
+&gt;<i> I can understand the motivation behind wanting this to work, but when I
+</I>&gt;<i> read the POSIX spec for threaded programs that call fork(), it seems
+</I>&gt;<i> pretty clear that malloc() and free() etc are not defined to be safe to
+</I>&gt;<i> call in the child process:
+</I>&gt;<i> 
+</I>&gt;<i> <A HREF="http://pubs.opengroup.org/onlinepubs/9699919799/functions/fork.html">http://pubs.opengroup.org/onlinepubs/9699919799/functions/fork.html</A>
+</I>&gt;<i> 
+</I>&gt;<i> [&#8230;]
+</I>&gt;<i> 
+</I>&gt;<i> Is is that people want to go beyond what the spec calls out - and hence
+</I>&gt;<i> the request to fix issues like this?  Or are folks not aware they are
+</I>&gt;<i> attempting to do something that's not really kosher?
+</I>
+In an idea world I would prefer to make no accommodation for such dangerous application behavior.  However, I've heard many times, &quot;But it works with [insert OS/allocator here]!&quot;  Thus, the problem is that there's a lot of dangerous code in the world that mostly works, and if jemalloc doesn't go to some extra trouble, it ends up not being a viable general purpose alternative.
+
+That said, I tend to play whack-a-mole with fork-related issues, because I personally don't think it's important enough to spend a bunch of time providing a rock-solid solution. =)
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000469.html">dead lock in forked child
+</A></li>
+	<LI>Next message: <A HREF="000471.html">dead lock in forked child
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#467">[ date ]</a>
+              <a href="thread.html#467">[ thread ]</a>
+              <a href="subject.html#467">[ subject ]</a>
+              <a href="author.html#467">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

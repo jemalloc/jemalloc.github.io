@@ -1,0 +1,408 @@
+From mayankum at cisco.com  Tue Jun  2 11:25:58 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Tue, 2 Jun 2015 18:25:58 +0000
+Subject: interpretation of malloc_stats_print() output
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C40764A@xmb-rcd-x07.cisco.com>
+
+Hi All
+I am trying to match output from malloc_stats with output from top and also trying to figure out total process virtual memory usage from stats.
+
+What fields in the stats should be added to get the total virtual memory for my process ?
+
+Also is this link an accurate measurement of fragmentation for my process?
+http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html
+
+from the link it seems active should be less than allocated, but I see otherwise. Is there a documentation somewhere to decipher this interesting output from jemalloc stats ?
+
+
+CPUs: 2
+Arenas: 8
+Pointer size: 4
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 8:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 251363184, active: 270594048, mapped: 415236096
+Current active ceiling: 1488977920
+chunks: nchunks   highchunks    curchunks
+            100           99           99
+huge: nmalloc      ndalloc    allocated
+            0            0            0
+
+Merged arenas stats:
+assigned threads: 21
+dss allocation precedence: N/A
+dirty pages: 66063:6587 active:dirty, 295 sweeps, 7009 madvises, 94136 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:      176254832      8893481      6427006     22584955
+large:       75108352         4791         2711         8062
+total:      251363184      8898272      6429717     22593017
+active:     270594048
+mapped:     411041792
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150602/f0381804/attachment.html>
+
+From jasone at canonware.com  Tue Jun  2 22:10:23 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 2 Jun 2015 22:10:23 -0700
+Subject: interpretation of malloc_stats_print() output
+In-Reply-To: <EDC505415B5EF74C80596BD24619C1032C40764A@xmb-rcd-x07.cisco.com>
+References: <EDC505415B5EF74C80596BD24619C1032C40764A@xmb-rcd-x07.cisco.com>
+Message-ID: <B91CF9B1-97B5-4273-A847-49A350CEAFB7@canonware.com>
+
+On Jun 2, 2015, at 11:25 AM, Mayank Kumar (mayankum) <mayankum at cisco.com <mailto:mayankum at cisco.com>> wrote:
+> I am trying to match output from malloc_stats with output from top and also trying to figure out total process virtual memory usage from stats.
+>  
+> What fields in the stats should be added to get the total virtual memory for my process ?
+
+For the version of jemalloc you're using, virtual memory can be computed by multiplying the number of chunks times the chunk size -- 396 MiB in this case.
+
+> Also is this link an accurate measurement of fragmentation for my process?
+> http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html <http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html>
+>  
+> from the link it seems active should be less than allocated, but I see otherwise. Is there a documentation somewhere to decipher this interesting output from jemalloc stats ?
+
+The jemalloc manual documents all the statistics:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html <http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html>
+
+
+> CPUs: 2
+> Arenas: 8
+> Pointer size: 4
+> Quantum size: 16
+> Page size: 4096
+> Min active:dirty page ratio per arena: 8:1
+> Maximum thread-cached size class: 32768
+> Chunk size: >>>4194304<<< (2^22)
+> Allocated: 251363184, active: 270594048, mapped: 415236096
+> Current active ceiling: 1488977920
+> chunks: nchunks   highchunks    curchunks
+>             100           99           >>>99<<<
+> huge: nmalloc      ndalloc    allocated
+>             0            0            0
+>  [...]
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150602/b20249c8/attachment.html>
+
+From mayankum at cisco.com  Tue Jun  2 23:42:11 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Wed, 3 Jun 2015 06:42:11 +0000
+Subject: interpretation of malloc_stats_print() output
+In-Reply-To: <B91CF9B1-97B5-4273-A847-49A350CEAFB7@canonware.com>
+References: <EDC505415B5EF74C80596BD24619C1032C40764A@xmb-rcd-x07.cisco.com>
+	<B91CF9B1-97B5-4273-A847-49A350CEAFB7@canonware.com>
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C407EDA@xmb-rcd-x07.cisco.com>
+
+Thanks Jason.
+
+From: Jason Evans [mailto:jasone at canonware.com]
+Sent: Tuesday, June 02, 2015 10:10 PM
+To: Mayank Kumar (mayankum)
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: interpretation of malloc_stats_print() output
+
+On Jun 2, 2015, at 11:25 AM, Mayank Kumar (mayankum) <mayankum at cisco.com<mailto:mayankum at cisco.com>> wrote:
+I am trying to match output from malloc_stats with output from top and also trying to figure out total process virtual memory usage from stats.
+
+What fields in the stats should be added to get the total virtual memory for my process ?
+
+For the version of jemalloc you're using, virtual memory can be computed by multiplying the number of chunks times the chunk size -- 396 MiB in this case.
+
+Also is this link an accurate measurement of fragmentation for my process?
+http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html
+
+from the link it seems active should be less than allocated, but I see otherwise. Is there a documentation somewhere to decipher this interesting output from jemalloc stats ?
+
+The jemalloc manual documents all the statistics:
+
+                http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html
+
+
+
+CPUs: 2
+Arenas: 8
+Pointer size: 4
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 8:1
+Maximum thread-cached size class: 32768
+Chunk size: >>>4194304<<< (2^22)
+Allocated: 251363184, active: 270594048, mapped: 415236096
+Current active ceiling: 1488977920
+chunks: nchunks   highchunks    curchunks
+            100           99           >>>99<<<
+huge: nmalloc      ndalloc    allocated
+            0            0            0
+ [...]
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150603/fcbc3a2e/attachment.html>
+
+From cferris at google.com  Mon Jun  8 14:15:53 2015
+From: cferris at google.com (Christopher Ferris)
+Date: Mon, 8 Jun 2015 14:15:53 -0700
+Subject: Bug in chunk allocation
+Message-ID: <CANtHk4=1qyB=MNh0oOeKjD2Gqtzw2=V1xH4eQ4Cv45PMfqn13Q@mail.gmail.com>
+
+Recently, it appears that there was a bug introduced in chunk allocation.
+The bug is exposed by this small snippet of code:
+
+  void* mem = malloc(128*1024*1024);
+  printf("mem address %p\n", mem);
+  free(mem);
+  void* large_alloc = malloc(0x80000081UL);
+  printf("large mem %p\n", large_alloc);
+  free(large_alloc);
+
+It looks like the bug is in the chunk_recycle code, in this piece of code:
+
+        if (new_addr != NULL) {
+                extent_node_t key;
+                extent_node_init(&key, arena, new_addr, alloc_size, false);
+                node = extent_tree_ad_search(chunks_ad, &key);
+        } else {
+                node = chunk_first_fit(arena, chunks_szad, chunks_ad,
+                    alloc_size);
+        }
+        if (node == NULL || (new_addr != NULL && extent_node_size_get(node)
+<
+            size)) {
+                malloc_mutex_unlock(&arena->chunks_mtx);
+                return (NULL);
+        }
+
+The problem is that new_addr == NULL, so the size check is not performed.
+In my testing, removing the new_addr != NULL check fixes the problem, but I
+don't know if that's the correct change.
+
+The first allocation after the free shows the problem, if you try and use
+the whole memory allocation it might segfault, or let you scribble all over
+someone else's memory.
+
+Christopher Ferris
+(cferris at google.com)
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150608/e2c735f1/attachment.html>
+
+From danielmicay at gmail.com  Mon Jun  8 14:56:31 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Mon, 08 Jun 2015 17:56:31 -0400
+Subject: Bug in chunk allocation
+In-Reply-To: <CANtHk4=1qyB=MNh0oOeKjD2Gqtzw2=V1xH4eQ4Cv45PMfqn13Q@mail.gmail.com>
+References: <CANtHk4=1qyB=MNh0oOeKjD2Gqtzw2=V1xH4eQ4Cv45PMfqn13Q@mail.gmail.com>
+Message-ID: <55760F8F.2070003@gmail.com>
+
+On 08/06/15 05:15 PM, Christopher Ferris wrote:
+> Recently, it appears that there was a bug introduced in chunk
+> allocation. The bug is exposed by this small snippet of code:
+> 
+>   void* mem = malloc(128*1024*1024);
+>   printf("mem address %p\n", mem);
+>   free(mem);
+>   void* large_alloc = malloc(0x80000081UL);
+>   printf("large mem %p\n", large_alloc);
+>   free(large_alloc);
+> 
+> It looks like the bug is in the chunk_recycle code, in this piece of code:
+> 
+>         if (new_addr != NULL) {
+>                 extent_node_t key;
+>                 extent_node_init(&key, arena, new_addr, alloc_size, false);
+>                 node = extent_tree_ad_search(chunks_ad, &key);
+>         } else {
+>                 node = chunk_first_fit(arena, chunks_szad, chunks_ad,
+>                     alloc_size);
+>         }
+>         if (node == NULL || (new_addr != NULL &&
+> extent_node_size_get(node) <
+>             size)) {
+>                 malloc_mutex_unlock(&arena->chunks_mtx);
+>                 return (NULL);
+>         }
+> 
+> The problem is that new_addr == NULL, so the size check is not
+> performed. In my testing, removing the new_addr != NULL check fixes the
+> problem, but I don't know if that's the correct change.
+> 
+> The first allocation after the free shows the problem, if you try and
+> use the whole memory allocation it might segfault, or let you scribble
+> all over someone else's memory.
+
+It only checks when new_addr isn't NULL because it does an address-based
+map lookup without taking into account the size. The real bug in this
+case would be inside chunk_first_fit(...) because it should only be
+returning nodes with a size greater than or equal to the requested size
+(or NULL).
+
+In the past, it also only did that size check for new_addr != NULL but
+it used first-best-fit instead of first-fit so it only had to do a
+single map lookup ordered by (size, addr) instead of calling that more
+complex new chunk_first_fit code.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150608/eb26bbef/attachment.sig>
+
+From cferris at google.com  Mon Jun 15 12:08:50 2015
+From: cferris at google.com (Christopher Ferris)
+Date: Mon, 15 Jun 2015 19:08:50 -0000
+Subject: Bug in chunk allocation
+In-Reply-To: <55760F8F.2070003@gmail.com>
+References: <CANtHk4=1qyB=MNh0oOeKjD2Gqtzw2=V1xH4eQ4Cv45PMfqn13Q@mail.gmail.com>
+	<55760F8F.2070003@gmail.com>
+Message-ID: <CANtHk4npas7J3dhDB_KszB+jQh3Buj4jS_vZsdoGqUasG052Vg@mail.gmail.com>
+
+So it appears a better fix is to modify chunk_first_fit to return NULL in
+this particular case. I'm not as familiar with exactly how the chunks are
+stored, so I don't know if I can propose the best fix. For example, it's
+possible to modify this check in chunk_first_fit:
+
+               if (node == NULL || (uintptr_t)extent_node_addr_get(curnode)
+<
+                    (uintptr_t)extent_node_addr_get(node))
+                        node = curnode;
+
+To be something like:
+
+                if (size <= extend_node_size_get(curnode) && (node == NULL
+||
+                    (uintptr_t)extent_node_addr_get(curnode) <
+                    (uintptr_t)extent_node_addr_get(node)))
+                        node = curnode;
+
+There might be a better way to do this given knowledge of how chunks are
+stored, but I'm not sure.
+
+Christopher
+
+On Mon, Jun 8, 2015 at 2:56 PM, Daniel Micay <danielmicay at gmail.com> wrote:
+
+> On 08/06/15 05:15 PM, Christopher Ferris wrote:
+> > Recently, it appears that there was a bug introduced in chunk
+> > allocation. The bug is exposed by this small snippet of code:
+> >
+> >   void* mem = malloc(128*1024*1024);
+> >   printf("mem address %p\n", mem);
+> >   free(mem);
+> >   void* large_alloc = malloc(0x80000081UL);
+> >   printf("large mem %p\n", large_alloc);
+> >   free(large_alloc);
+> >
+> > It looks like the bug is in the chunk_recycle code, in this piece of
+> code:
+> >
+> >         if (new_addr != NULL) {
+> >                 extent_node_t key;
+> >                 extent_node_init(&key, arena, new_addr, alloc_size,
+> false);
+> >                 node = extent_tree_ad_search(chunks_ad, &key);
+> >         } else {
+> >                 node = chunk_first_fit(arena, chunks_szad, chunks_ad,
+> >                     alloc_size);
+> >         }
+> >         if (node == NULL || (new_addr != NULL &&
+> > extent_node_size_get(node) <
+> >             size)) {
+> >                 malloc_mutex_unlock(&arena->chunks_mtx);
+> >                 return (NULL);
+> >         }
+> >
+> > The problem is that new_addr == NULL, so the size check is not
+> > performed. In my testing, removing the new_addr != NULL check fixes the
+> > problem, but I don't know if that's the correct change.
+> >
+> > The first allocation after the free shows the problem, if you try and
+> > use the whole memory allocation it might segfault, or let you scribble
+> > all over someone else's memory.
+>
+> It only checks when new_addr isn't NULL because it does an address-based
+> map lookup without taking into account the size. The real bug in this
+> case would be inside chunk_first_fit(...) because it should only be
+> returning nodes with a size greater than or equal to the requested size
+> (or NULL).
+>
+> In the past, it also only did that size check for new_addr != NULL but
+> it used first-best-fit instead of first-fit so it only had to do a
+> single map lookup ordered by (size, addr) instead of calling that more
+> complex new chunk_first_fit code.
+>
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150615/03a27b75/attachment.html>
+
+From stevecobb47 at yahoo.com  Fri Jun 19 16:03:03 2015
+From: stevecobb47 at yahoo.com (Steve Cobb)
+Date: Fri, 19 Jun 2015 23:03:03 -0000
+Subject: GDB scripts to display/dump heap from core file or live process
+Message-ID: <737048730.2624115.1434754981296.JavaMail.yahoo@mail.yahoo.com>
+
+
+Hi Folks,
+So - I am looking for some gdb scripts to walk/interpret the jemalloc heap.
+What I would very much like to do is to be able to display the heap contents from gdb. This would be either from a core file or live process.
+
+I have seen a script from a person at Netapp, but this is for a very different version of jemalloc than I am using - I am currently using jemalloc 3.6.0.
+If there is no script available, is there sufficient documentation about the heap layout to write such a script? Can please send pointer?
+Any help/pointers/comments will be greatly appreciated.
+Thanks//Steve
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150619/83613def/attachment.html>
+
+From MillerHenry at JohnDeere.com  Fri Jun 12 08:13:52 2015
+From: MillerHenry at JohnDeere.com (Miller Henry)
+Date: Fri, 12 Jun 2015 15:13:52 -0000
+Subject: cross compiling - how do I figure out the correct value of
+	je_cv_static_page_shift
+Message-ID: <35F6921410093E4CA40D524BD5C18D4C268A72A2@EDXMB57.jdnet.deere.com>
+
+I'm evaluating jemalloc on my embedded system, which we cross compile to several different processors.  Since I'm cross compiling, configure cannot figure out what the correct value of je_cv_static_page_shift should be.  No surprise, for early tests I just set it to 12 (based solely on some android searches showing a patch to hard code it to 12).  This works for early tests, but if I'm to go production I want the correct value, and I need to leave clear instructions to my successor on how to find this in case we add a new processor in the future.
+
+How can I figure this out?  Ideally I want a command I can run in a shell, but if I need to build a program I can do that.
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150612/80f8385d/attachment.html>
+
+From congcche at cisco.com  Wed Jun 17 16:19:01 2015
+From: congcche at cisco.com (Congcong Chen (congcche))
+Date: Wed, 17 Jun 2015 23:19:01 -0000
+Subject: Jemalloc GDB Heap profiling gdb script
+Message-ID: <9813546AD77D6C4EAB8311FA8A91A96830BD6B@xmb-rcd-x11.cisco.com>
+
+Hi all,
+
+I am trying to find some GDB heap profiling Python scripts that could print heap profile using core dump files or live process.
+
+I know that Jemalloc provides pprof Perl script for Leak Checking and Heap Profiling. However, pprof is not working with core dump files as well as GDB.
+
+Does anybody knows any existing Jemalloc GDB heap profiling python tools?
+
+Thanks.
+
+Best,
+Congcong Chen
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150617/aa226608/attachment.html>
+

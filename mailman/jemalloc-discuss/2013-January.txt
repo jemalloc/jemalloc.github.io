@@ -1,0 +1,177 @@
+From vapier at gentoo.org  Mon Jan 28 12:19:34 2013
+From: vapier at gentoo.org (Mike Frysinger)
+Date: Mon, 28 Jan 2013 15:19:34 -0500
+Subject: [PATCH] fix building for s390 systems
+Message-ID: <1359404374-18823-1-git-send-email-vapier@gentoo.org>
+
+Checking for __s390x__ means you work on s390x, but not s390 (32bit)
+systems.  So use __s390__ which works for both.
+
+With this, `make check` passes on s390.
+
+Signed-off-by: Mike Frysinger <vapier at gentoo.org>
+---
+ include/jemalloc/internal/jemalloc_internal.h.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index c606c12..74a8bd5 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -287,7 +287,7 @@ static const bool config_ivsalloc =
+ #  ifdef __powerpc__
+ #    define LG_QUANTUM		4
+ #  endif
+-#  ifdef __s390x__
++#  ifdef __s390__
+ #    define LG_QUANTUM		4
+ #  endif
+ #  ifdef __SH4__
+-- 
+1.8.0.2
+
+
+
+From vinay.ys at gmail.com  Tue Jan 29 11:01:18 2013
+From: vinay.ys at gmail.com (Vinay Y S)
+Date: Wed, 30 Jan 2013 00:31:18 +0530
+Subject: 2MB (hugetlb) page support on Linux
+Message-ID: <CAB6p_25CfnH5bnrhNV0zTqgn5zWmLSVG_DB7AazFKrvupzjSdA@mail.gmail.com>
+
+Hi,
+I'm trying to use jemalloc as the allocator for Membase (a
+persistent/replicated memcached) on x86_64 Linux. With 4KB page size, the
+overhead (fragmentation) for allocations greater than 4KB (say 5000 bytes)
+that fall into 8KB 'large' allocation class is pretty high.
+
+To make the wastage a bit less, we would need more classes in the 'small'
+size. Given how page purge works, I understand just adding more classes in
+there or faking a higher page size won't work.
+
+Luckily my target OS - x86_64 linux supports 2MB huge pages. Can jemalloc
+take advantage of this? Is there a way to enable this?
+
+Thanks,
+Vinay Y S
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130130/e1acc7ce/attachment.html>
+
+From tguilder at akamai.com  Wed Jan 30 09:43:10 2013
+From: tguilder at akamai.com (Tom Guilderson)
+Date: Wed, 30 Jan 2013 12:43:10 -0500
+Subject: [PATCH] include LDFLAGS when linking unit tests
+Message-ID: <20130130174310.GC19507@akamai.com>
+
+When building and running 32 bit x86 unit tests on x86_64 host, linker throws
+error:
+
+lib/libjemalloc.so: could not read symbols: File in wrong format
+
+This is caused by LDFLAGS not being passed to unit test linking step, the
+following patch fixes this issue.
+
+--- jemalloc-3.2.0/Makefile.in  2012-11-09 19:44:45.000000000 +0000
++++ jemalloc-3.2.0/Makefile.in  2013-01-16 19:02:39.000000000 +0000
+@@ -190,7 +190,7 @@
+ 
+ $(objroot)test/%$(EXE): $(objroot)test/%.$(O) $(objroot)src/util.$(O) $(DSOS)
+                         @mkdir -p $(@D)
+-                        $(CC) $(LDTARGET) $(filter %.$(O),$^) $(call RPATH,$(objroot)lib) $(objroot)lib/$(LIBJEMALLOC).$(IMPORTLIB) $(filter -lpthread,$(LIBS)) $(EXTRA_LDFLAGS)
++                        $(CC) $(LDTARGET) $(filter %.$(O),$^) $(call RPATH,$(objroot)lib) $(objroot)lib/$(LIBJEMALLOC).$(IMPORTLIB) $(LDFLAGS) $(filter -lpthread,$(LIBS)) $(EXTRA_LDFLAGS)
+ 
+ build_lib_shared: $(DSOS)
+ build_lib_static: $(STATIC_LIBS)
+
+
+
+
+From jasone at canonware.com  Wed Jan 30 15:46:16 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 30 Jan 2013 15:46:16 -0800
+Subject: 2MB (hugetlb) page support on Linux
+In-Reply-To: <CAB6p_25CfnH5bnrhNV0zTqgn5zWmLSVG_DB7AazFKrvupzjSdA@mail.gmail.com>
+References: <CAB6p_25CfnH5bnrhNV0zTqgn5zWmLSVG_DB7AazFKrvupzjSdA@mail.gmail.com>
+Message-ID: <09D7F747-773D-489D-AB26-06D48EFACC16@canonware.com>
+
+On Jan 29, 2013, at 11:01 AM, Vinay Y S wrote:
+> I'm trying to use jemalloc as the allocator for Membase (a persistent/replicated memcached) on x86_64 Linux. With 4KB page size, the overhead (fragmentation) for allocations greater than 4KB (say 5000 bytes) that fall into 8KB 'large' allocation class is pretty high.
+> 
+> To make the wastage a bit less, we would need more classes in the 'small' size. Given how page purge works, I understand just adding more classes in there or faking a higher page size won't work.
+> 
+> Luckily my target OS - x86_64 linux supports 2MB huge pages. Can jemalloc take advantage of this? Is there a way to enable this?
+
+Huge pages actually make the dirty page purging problems worse with regard to fragmentation, because in order to keep huge pages intact, purging has to be all or nothing.  It is possible with a bit of trickery to get Linux to use huge pages for memory that jemalloc allocates, but it only makes sense to do so if the memory is densely used (lots of malloc()s, few free()s).
+
+Jason
+
+From vinay.ys at gmail.com  Thu Jan 31 08:54:46 2013
+From: vinay.ys at gmail.com (Vinay Y S)
+Date: Thu, 31 Jan 2013 22:24:46 +0530
+Subject: 2MB (hugetlb) page support on Linux
+In-Reply-To: <09D7F747-773D-489D-AB26-06D48EFACC16@canonware.com>
+References: <CAB6p_25CfnH5bnrhNV0zTqgn5zWmLSVG_DB7AazFKrvupzjSdA@mail.gmail.com>
+	<09D7F747-773D-489D-AB26-06D48EFACC16@canonware.com>
+Message-ID: <CAB6p_2654tCj7GkQiArt9-cNyKQWkqTx9C7Kusp4QET_pA1jyw@mail.gmail.com>
+
+Ok, I understand that due to more allocations per page the probability of a
+page being released back to OS will reduce. But is it correct to say that
+wastage will reduce for 4KB-8KB (and other higher) class allocations and
+hence utilization will improve?
+
+I also saw the 'medium' size class in the git log as well as on this
+mailing list discussions. Is there a way to re-introduce that back with,
+maybe, build-time configurable tradeoffs for memory efficiency vs (?)
+lock-free purging?
+
+Thanks,
+Vinay
+
+On Thu, Jan 31, 2013 at 5:16 AM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Jan 29, 2013, at 11:01 AM, Vinay Y S wrote:
+> > I'm trying to use jemalloc as the allocator for Membase (a
+> persistent/replicated memcached) on x86_64 Linux. With 4KB page size, the
+> overhead (fragmentation) for allocations greater than 4KB (say 5000 bytes)
+> that fall into 8KB 'large' allocation class is pretty high.
+> >
+> > To make the wastage a bit less, we would need more classes in the
+> 'small' size. Given how page purge works, I understand just adding more
+> classes in there or faking a higher page size won't work.
+> >
+> > Luckily my target OS - x86_64 linux supports 2MB huge pages. Can
+> jemalloc take advantage of this? Is there a way to enable this?
+>
+> Huge pages actually make the dirty page purging problems worse with regard
+> to fragmentation, because in order to keep huge pages intact, purging has
+> to be all or nothing.  It is possible with a bit of trickery to get Linux
+> to use huge pages for memory that jemalloc allocates, but it only makes
+> sense to do so if the memory is densely used (lots of malloc()s, few
+> free()s).
+>
+> Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130131/5fb2e8e3/attachment.html>
+
+From jasone at canonware.com  Thu Jan 31 12:02:56 2013
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 31 Jan 2013 12:02:56 -0800
+Subject: 2MB (hugetlb) page support on Linux
+In-Reply-To: <CAB6p_2654tCj7GkQiArt9-cNyKQWkqTx9C7Kusp4QET_pA1jyw@mail.gmail.com>
+References: <CAB6p_25CfnH5bnrhNV0zTqgn5zWmLSVG_DB7AazFKrvupzjSdA@mail.gmail.com>
+	<09D7F747-773D-489D-AB26-06D48EFACC16@canonware.com>
+	<CAB6p_2654tCj7GkQiArt9-cNyKQWkqTx9C7Kusp4QET_pA1jyw@mail.gmail.com>
+Message-ID: <48E01FD9-F40B-479C-BC9E-17A9E03A727E@canonware.com>
+
+On Jan 31, 2013, at 8:54 AM, Vinay Y S wrote:
+> Ok, I understand that due to more allocations per page the probability of a page being released back to OS will reduce. But is it correct to say that wastage will reduce for 4KB-8KB (and other higher) class allocations and hence utilization will improve?
+
+Internal fragmentation would be reduced for 4-8 KiB allocations, but external fragmentation might increase substantially, depending on the application.
+
+> I also saw the 'medium' size class in the git log as well as on this mailing list discussions. Is there a way to re-introduce that back with, maybe, build-time configurable tradeoffs for memory efficiency vs (?) lock-free purging?
+
+As it happens, I've been working on ways to reintroduce medium size classes over the past few days.  The short synopsis is that I think it is possible to reintroduce medium size classes without dirty page purging sacrifices, but it is going to be complicated to maintain high concurrency between allocation/deallocation and dirty page purging.  The current code protects all dirty page tracking with the arena mutex, but dirty page purging for medium size classes will require a different approach, probably based on atomic operations.
+
+Jason
+

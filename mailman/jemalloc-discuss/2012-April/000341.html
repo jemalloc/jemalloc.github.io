@@ -1,0 +1,339 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Remove variable length arrays and declarations within code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Remove%20variable%20length%20arrays%20and%20declarations%20within%20code&In-Reply-To=%3C1334903923-4973-7-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000353.html">
+   <LINK REL="Next"  HREF="000349.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Remove variable length arrays and declarations within code</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Remove%20variable%20length%20arrays%20and%20declarations%20within%20code&In-Reply-To=%3C1334903923-4973-7-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 7/7] Remove variable length arrays and declarations within code">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 19 23:38:43 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000353.html">[PATCH 6/7] Avoid using a union for ctl_node_s
+</A></li>
+        <LI>Next message: <A HREF="000349.html">[PATCH 7/7] Remove variable length arrays and declarations within	code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#341">[ date ]</a>
+              <a href="thread.html#341">[ thread ]</a>
+              <a href="subject.html#341">[ subject ]</a>
+              <a href="author.html#341">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+MSVC doesn't support C99, and building as C++ to be able to use them is
+dangerous, as C++ and C99 are incompatible.
+---
+ include/jemalloc/internal/prof.h |    3 ++-
+ src/arena.c                      |   17 ++++++++++-------
+ src/chunk_mmap.c                 |    5 +++--
+ src/ctl.c                        |    6 ++++--
+ src/stats.c                      |   12 ++++++++----
+ src/tsd.c                        |    2 +-
+ test/bitmap.c                    |   12 ++++++++----
+ 7 files changed, 36 insertions(+), 21 deletions(-)
+
+diff --git a/include/jemalloc/internal/prof.h b/include/jemalloc/internal/prof.h
+index a4c563c..ee82d1c 100644
+--- a/include/jemalloc/internal/prof.h
++++ b/include/jemalloc/internal/prof.h
+@@ -501,8 +501,9 @@ prof_free(const void *ptr, size_t size)
+ 	cassert(config_prof);
+ 
+ 	if ((uintptr_t)ctx &gt; (uintptr_t)1) {
++		prof_thr_cnt_t *tcnt;
+ 		assert(size == isalloc(ptr, true));
+-		prof_thr_cnt_t *tcnt = prof_lookup(ctx-&gt;bt);
++		tcnt = prof_lookup(ctx-&gt;bt);
+ 
+ 		if (tcnt != NULL) {
+ 			tcnt-&gt;epoch++;
+diff --git a/src/arena.c b/src/arena.c
+index 6f28abe..877119a 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -642,12 +642,13 @@ arena_chunk_purge(arena_t *arena, arena_chunk_t *chunk)
+ 			else {
+ 				arena_run_t *run = (arena_run_t *)((uintptr_t)
+ 				    chunk + (uintptr_t)(pageind &lt;&lt; LG_PAGE));
++				size_t binind;
++				arena_bin_info_t *bin_info;
+ 
+ 				assert((mapelm-&gt;bits &gt;&gt; LG_PAGE) == 0);
+-				size_t binind = arena_bin_index(arena,
++				binind = arena_bin_index(arena,
+ 				    run-&gt;bin);
+-				arena_bin_info_t *bin_info =
+-				    &amp;arena_bin_info[binind];
++				bin_info = &amp;arena_bin_info[binind];
+ 				pageind += bin_info-&gt;run_size &gt;&gt; LG_PAGE;
+ 			}
+ 		}
+@@ -1056,11 +1057,12 @@ arena_bin_runs_first(arena_bin_t *bin)
+ 	if (mapelm != NULL) {
+ 		arena_chunk_t *chunk;
+ 		size_t pageind;
++		arena_run_t *run;
+ 
+ 		chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(mapelm);
+ 		pageind = ((((uintptr_t)mapelm - (uintptr_t)chunk-&gt;map) /
+ 		    sizeof(arena_chunk_map_t))) + map_bias;
+-		arena_run_t *run = (arena_run_t *)((uintptr_t)chunk +
++		run = (arena_run_t *)((uintptr_t)chunk +
+ 		    (uintptr_t)((pageind - (mapelm-&gt;bits &gt;&gt; LG_PAGE)) &lt;&lt;
+ 		    LG_PAGE));
+ 		return (run);
+@@ -1591,17 +1593,18 @@ void
+ arena_dalloc_bin(arena_t *arena, arena_chunk_t *chunk, void *ptr,
+     arena_chunk_map_t *mapelm)
+ {
+-	size_t pageind;
++	size_t pageind, binind;
+ 	arena_run_t *run;
+ 	arena_bin_t *bin;
++	arena_bin_info_t *bin_info;
+ 	size_t size;
+ 
+ 	pageind = ((uintptr_t)ptr - (uintptr_t)chunk) &gt;&gt; LG_PAGE;
+ 	run = (arena_run_t *)((uintptr_t)chunk + (uintptr_t)((pageind -
+ 	    (mapelm-&gt;bits &gt;&gt; LG_PAGE)) &lt;&lt; LG_PAGE));
+ 	bin = run-&gt;bin;
+-	size_t binind = arena_bin_index(arena, bin);
+-	arena_bin_info_t *bin_info = &amp;arena_bin_info[binind];
++	binind = arena_bin_index(arena, bin);
++	bin_info = &amp;arena_bin_info[binind];
+ 	if (config_fill || config_stats)
+ 		size = bin_info-&gt;reg_size;
+ 
+diff --git a/src/chunk_mmap.c b/src/chunk_mmap.c
+index fe618bd..84b83d2 100644
+--- a/src/chunk_mmap.c
++++ b/src/chunk_mmap.c
+@@ -96,13 +96,14 @@ pages_trim(void *addr, size_t alloc_size, size_t leadsize, size_t size)
+ {
+ 
+ 	void *ret = (void *)((uintptr_t)addr + leadsize);
+-#ifndef _WIN32
++#ifdef _WIN32
++	void *new_addr;
++#else
+ 	size_t trailsize;
+ #endif
+ 
+ 	assert(alloc_size &gt;= leadsize + size);
+ #ifdef _WIN32
+-	void *new_addr;
+ 	pages_unmap(addr, alloc_size);
+ 	new_addr = pages_map(ret, size);
+ 	if (new_addr == ret)
+diff --git a/src/ctl.c b/src/ctl.c
+index 60f4ae0..426351c 100644
+--- a/src/ctl.c
++++ b/src/ctl.c
+@@ -514,7 +514,7 @@ static void
+ ctl_refresh(void)
+ {
+ 	unsigned i;
+-	arena_t *tarenas[narenas];
++	arena_t **tarenas = malloc(sizeof(arena_t *) * narenas);
+ 
+ 	if (config_stats) {
+ 		malloc_mutex_lock(&amp;chunks_mtx);
+@@ -553,6 +553,7 @@ ctl_refresh(void)
+ 		if (initialized)
+ 			ctl_arena_refresh(tarenas[i], i);
+ 	}
++	free(tarenas);
+ 
+ 	if (config_stats) {
+ 		ctl_stats.allocated = ctl_stats.arenas[narenas].allocated_small
+@@ -1227,7 +1228,7 @@ arenas_purge_ctl(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
+ 		ret = EFAULT;
+ 		goto label_return;
+ 	} else {
+-		arena_t *tarenas[narenas];
++		arena_t **tarenas = malloc(sizeof(arena_t *) * narenas);
+ 
+ 		malloc_mutex_lock(&amp;arenas_lock);
+ 		memcpy(tarenas, arenas, sizeof(arena_t *) * narenas);
+@@ -1244,6 +1245,7 @@ arenas_purge_ctl(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
+ 			if (tarenas[arena] != NULL)
+ 				arena_purge_all(tarenas[arena]);
+ 		}
++		free(tarenas);
+ 	}
+ 
+ 	ret = 0;
+diff --git a/src/stats.c b/src/stats.c
+index 08f7098..ed9d890 100644
+--- a/src/stats.c
++++ b/src/stats.c
+@@ -498,17 +498,19 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 
+ 			CTL_GET(&quot;arenas.narenas&quot;, &amp;narenas, unsigned);
+ 			{
+-				bool initialized[narenas];
++				bool *initialized;
+ 				size_t isz;
+ 				unsigned i, ninitialized;
+ 
+-				isz = sizeof(initialized);
++				isz = sizeof(bool) * narenas;
++				initialized = malloc(isz);
+ 				xmallctl(&quot;arenas.initialized&quot;, initialized,
+ 				    &amp;isz, NULL, 0);
+ 				for (i = ninitialized = 0; i &lt; narenas; i++) {
+ 					if (initialized[i])
+ 						ninitialized++;
+ 				}
++				free(initialized);
+ 
+ 				if (ninitialized &gt; 1 || unmerged == false) {
+ 					/* Print merged arena stats. */
+@@ -527,11 +529,12 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 
+ 			CTL_GET(&quot;arenas.narenas&quot;, &amp;narenas, unsigned);
+ 			{
+-				bool initialized[narenas];
++				bool *initialized;
+ 				size_t isz;
+ 				unsigned i;
+ 
+-				isz = sizeof(initialized);
++				isz = sizeof(bool) * narenas;
++				initialized = malloc(isz);
+ 				xmallctl(&quot;arenas.initialized&quot;, initialized,
+ 				    &amp;isz, NULL, 0);
+ 
+@@ -544,6 +547,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 						    cbopaque, i, bins, large);
+ 					}
+ 				}
++				free(initialized);
+ 			}
+ 		}
+ 	}
+diff --git a/src/tsd.c b/src/tsd.c
+index 20f6430..452baa1 100644
+--- a/src/tsd.c
++++ b/src/tsd.c
+@@ -36,7 +36,7 @@ JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void
+ _malloc_thread_cleanup(void)
+ {
+-	bool pending[ncleanups], again;
++	bool pending[MALLOC_TSD_CLEANUPS_MAX], again;
+ 	unsigned i;
+ 
+ 	for (i = 0; i &lt; ncleanups; i++)
+diff --git a/test/bitmap.c b/test/bitmap.c
+index ff50ecb..e5941fd 100644
+--- a/test/bitmap.c
++++ b/test/bitmap.c
+@@ -30,12 +30,13 @@ test_bitmap_init(void)
+ 		bitmap_info_init(&amp;binfo, i);
+ 		{
+ 			size_t j;
+-			bitmap_t bitmap[bitmap_info_ngroups(&amp;binfo)];
++			bitmap_t *bitmap = malloc(sizeof(bitmap_t) * bitmap_info_ngroups(&amp;binfo));
+ 			bitmap_init(bitmap, &amp;binfo);
+ 
+ 			for (j = 0; j &lt; i; j++)
+ 				assert(bitmap_get(bitmap, &amp;binfo, j) == false);
+ 
++			free(bitmap);
+ 		}
+ 	}
+ }
+@@ -50,12 +51,13 @@ test_bitmap_set(void)
+ 		bitmap_info_init(&amp;binfo, i);
+ 		{
+ 			size_t j;
+-			bitmap_t bitmap[bitmap_info_ngroups(&amp;binfo)];
++			bitmap_t *bitmap = malloc(sizeof(bitmap_t) * bitmap_info_ngroups(&amp;binfo));
+ 			bitmap_init(bitmap, &amp;binfo);
+ 
+ 			for (j = 0; j &lt; i; j++)
+ 				bitmap_set(bitmap, &amp;binfo, j);
+ 			assert(bitmap_full(bitmap, &amp;binfo));
++			free(bitmap);
+ 		}
+ 	}
+ }
+@@ -70,7 +72,7 @@ test_bitmap_unset(void)
+ 		bitmap_info_init(&amp;binfo, i);
+ 		{
+ 			size_t j;
+-			bitmap_t bitmap[bitmap_info_ngroups(&amp;binfo)];
++			bitmap_t *bitmap = malloc(sizeof(bitmap_t) * bitmap_info_ngroups(&amp;binfo));
+ 			bitmap_init(bitmap, &amp;binfo);
+ 
+ 			for (j = 0; j &lt; i; j++)
+@@ -81,6 +83,7 @@ test_bitmap_unset(void)
+ 			for (j = 0; j &lt; i; j++)
+ 				bitmap_set(bitmap, &amp;binfo, j);
+ 			assert(bitmap_full(bitmap, &amp;binfo));
++			free(bitmap);
+ 		}
+ 	}
+ }
+@@ -95,7 +98,7 @@ test_bitmap_sfu(void)
+ 		bitmap_info_init(&amp;binfo, i);
+ 		{
+ 			ssize_t j;
+-			bitmap_t bitmap[bitmap_info_ngroups(&amp;binfo)];
++			bitmap_t *bitmap = malloc(sizeof(bitmap_t) * bitmap_info_ngroups(&amp;binfo));
+ 			bitmap_init(bitmap, &amp;binfo);
+ 
+ 			/* Iteratively set bits starting at the beginning. */
+@@ -125,6 +128,7 @@ test_bitmap_sfu(void)
+ 			}
+ 			assert(bitmap_sfu(bitmap, &amp;binfo) == i - 1);
+ 			assert(bitmap_full(bitmap, &amp;binfo));
++			free(bitmap);
+ 		}
+ 	}
+ }
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000353.html">[PATCH 6/7] Avoid using a union for ctl_node_s
+</A></li>
+	<LI>Next message: <A HREF="000349.html">[PATCH 7/7] Remove variable length arrays and declarations within	code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#341">[ date ]</a>
+              <a href="thread.html#341">[ thread ]</a>
+              <a href="subject.html#341">[ subject ]</a>
+              <a href="author.html#341">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

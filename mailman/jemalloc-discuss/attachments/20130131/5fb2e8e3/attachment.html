@@ -1,0 +1,23 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Ok,&nbsp;I&nbsp;understand&nbsp;that due&nbsp;to&nbsp;more&nbsp;allocations&nbsp;per&nbsp;page&nbsp;the probability&nbsp;of&nbsp;a&nbsp;page&nbsp;being&nbsp;released&nbsp;back&nbsp;to&nbsp;OS&nbsp;will&nbsp;reduce.&nbsp;But&nbsp;is&nbsp;it&nbsp;correct&nbsp;to&nbsp;say&nbsp;that&nbsp;wastage&nbsp;will&nbsp;reduce&nbsp;for&nbsp;4KB-8KB&nbsp;(and&nbsp;other&nbsp;higher)&nbsp;class&nbsp;allocations&nbsp;and&nbsp;hence&nbsp;utilization&nbsp;will&nbsp;improve?&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;<br>
+<br>
+&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;I&nbsp;also&nbsp;saw&nbsp;the&nbsp;&#39;medium&#39;&nbsp;size&nbsp;class&nbsp;in&nbsp;the&nbsp;git&nbsp;log&nbsp;as&nbsp;well&nbsp;as&nbsp;on&nbsp;this&nbsp;mailing&nbsp;list&nbsp;discussions.&nbsp;Is&nbsp;there&nbsp;a&nbsp;way&nbsp;to&nbsp;re-introduce&nbsp;that&nbsp;back&nbsp;with,&nbsp;maybe,&nbsp;build-time&nbsp;configurable&nbsp;tradeoffs&nbsp;for&nbsp;memory&nbsp;efficiency&nbsp;vs&nbsp;(?)&nbsp;lock-free&nbsp;purging?&lt;/div&gt;<br>
+<br>
+&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;Thanks,&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;Vinay&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Thu,&nbsp;Jan&nbsp;31,&nbsp;2013&nbsp;at&nbsp;5:16&nbsp;AM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;On&nbsp;Jan&nbsp;29,&nbsp;2013,&nbsp;at&nbsp;11:01&nbsp;AM,&nbsp;Vinay&nbsp;Y&nbsp;S&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;I&#39;m&nbsp;trying&nbsp;to&nbsp;use&nbsp;jemalloc&nbsp;as&nbsp;the&nbsp;allocator&nbsp;for&nbsp;Membase&nbsp;(a&nbsp;persistent/replicated&nbsp;memcached)&nbsp;on&nbsp;x86_64&nbsp;Linux.&nbsp;With&nbsp;4KB&nbsp;page&nbsp;size,&nbsp;the&nbsp;overhead&nbsp;(fragmentation)&nbsp;for&nbsp;allocations&nbsp;greater&nbsp;than&nbsp;4KB&nbsp;(say&nbsp;5000&nbsp;bytes)&nbsp;that&nbsp;fall&nbsp;into&nbsp;8KB&nbsp;&#39;large&#39;&nbsp;allocation&nbsp;class&nbsp;is&nbsp;pretty&nbsp;high.&lt;br&gt;<br>
+<br>
+<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;To&nbsp;make&nbsp;the&nbsp;wastage&nbsp;a&nbsp;bit&nbsp;less,&nbsp;we&nbsp;would&nbsp;need&nbsp;more&nbsp;classes&nbsp;in&nbsp;the&nbsp;&#39;small&#39;&nbsp;size.&nbsp;Given&nbsp;how&nbsp;page&nbsp;purge&nbsp;works,&nbsp;I&nbsp;understand&nbsp;just&nbsp;adding&nbsp;more&nbsp;classes&nbsp;in&nbsp;there&nbsp;or&nbsp;faking&nbsp;a&nbsp;higher&nbsp;page&nbsp;size&nbsp;won&#39;t&nbsp;work.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Luckily&nbsp;my&nbsp;target&nbsp;OS&nbsp;-&nbsp;x86_64&nbsp;linux&nbsp;supports&nbsp;2MB&nbsp;huge&nbsp;pages.&nbsp;Can&nbsp;jemalloc&nbsp;take&nbsp;advantage&nbsp;of&nbsp;this?&nbsp;Is&nbsp;there&nbsp;a&nbsp;way&nbsp;to&nbsp;enable&nbsp;this?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;&lt;/div&gt;Huge&nbsp;pages&nbsp;actually&nbsp;make&nbsp;the&nbsp;dirty&nbsp;page&nbsp;purging&nbsp;problems&nbsp;worse&nbsp;with&nbsp;regard&nbsp;to&nbsp;fragmentation,&nbsp;because&nbsp;in&nbsp;order&nbsp;to&nbsp;keep&nbsp;huge&nbsp;pages&nbsp;intact,&nbsp;purging&nbsp;has&nbsp;to&nbsp;be&nbsp;all&nbsp;or&nbsp;nothing.&nbsp; It&nbsp;is&nbsp;possible&nbsp;with&nbsp;a&nbsp;bit&nbsp;of&nbsp;trickery&nbsp;to&nbsp;get&nbsp;Linux&nbsp;to&nbsp;use&nbsp;huge&nbsp;pages&nbsp;for&nbsp;memory&nbsp;that&nbsp;jemalloc&nbsp;allocates,&nbsp;but&nbsp;it&nbsp;only&nbsp;makes&nbsp;sense&nbsp;to&nbsp;do&nbsp;so&nbsp;if&nbsp;the&nbsp;memory&nbsp;is&nbsp;densely&nbsp;used&nbsp;(lots&nbsp;of&nbsp;malloc()s,&nbsp;few&nbsp;free()s).&lt;br&gt;<br>
+<br>
+<br>
+&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+Jason&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

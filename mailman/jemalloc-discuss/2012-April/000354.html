@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Remove variable length arrays and declarations within	code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Remove%20variable%20length%20arrays%20and%20declarations%20within%0A%09code&In-Reply-To=%3CA7170D01-97D6-4AB0-8130-F2AFACA4C70E%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000351.html">
+   <LINK REL="Next"  HREF="000357.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Remove variable length arrays and declarations within	code</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Remove%20variable%20length%20arrays%20and%20declarations%20within%0A%09code&In-Reply-To=%3CA7170D01-97D6-4AB0-8130-F2AFACA4C70E%40canonware.com%3E"
+       TITLE="[PATCH 7/7] Remove variable length arrays and declarations within	code">jasone at canonware.com
+       </A><BR>
+    <I>Mon Apr 23 11:53:23 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000351.html">[PATCH 7/7] Remove variable length arrays and declarations	within code
+</A></li>
+        <LI>Next message: <A HREF="000357.html">[PATCH] Avoid variable length arrays and remove declarations within	code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#354">[ date ]</a>
+              <a href="thread.html#354">[ thread ]</a>
+              <a href="subject.html#354">[ subject ]</a>
+              <a href="author.html#354">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 22, 2012, at 1:46 AM, Mike Hommey wrote:
+&gt;<i> On Sun, Apr 22, 2012 at 01:08:19AM -0700, Jason Evans wrote:
+</I>&gt;&gt;<i> On Apr 19, 2012, at 11:38 PM, Mike Hommey wrote:
+</I>&gt;&gt;&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> MSVC doesn't support C99, and building as C++ to be able to use them is
+</I>&gt;&gt;&gt;<i> dangerous, as C++ and C99 are incompatible.
+</I>&gt;&gt;&gt;<i> ---
+</I>&gt;&gt;&gt;<i> include/jemalloc/internal/prof.h |    3 ++-
+</I>&gt;&gt;&gt;<i> src/arena.c                      |   17 ++++++++++-------
+</I>&gt;&gt;&gt;<i> src/chunk_mmap.c                 |    5 +++--
+</I>&gt;&gt;&gt;<i> src/ctl.c                        |    6 ++++--
+</I>&gt;&gt;&gt;<i> src/stats.c                      |   12 ++++++++----
+</I>&gt;&gt;&gt;<i> src/tsd.c                        |    2 +-
+</I>&gt;&gt;&gt;<i> test/bitmap.c                    |   12 ++++++++----
+</I>&gt;&gt;&gt;<i> 7 files changed, 36 insertions(+), 21 deletions(-)
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> This diff adds calls to malloc/free from within the allocator, which
+</I>&gt;&gt;<i> perturbs heap profiling.  imalloc/idalloc are probably what you want
+</I>&gt;&gt;<i> instead.
+</I>&gt;<i> 
+</I>&gt;<i> alloca might work, too, if you're okay using it. We could also have a
+</I>&gt;<i> helper macro using variable length arrays or alloca depending on the
+</I>&gt;<i> value of __STDC_VERSION__...
+</I>
+I kind of like the helper macro idea (use variable length arrays when available, otherwise use alloca()).
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000351.html">[PATCH 7/7] Remove variable length arrays and declarations	within code
+</A></li>
+	<LI>Next message: <A HREF="000357.html">[PATCH] Avoid variable length arrays and remove declarations within	code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#354">[ date ]</a>
+              <a href="thread.html#354">[ thread ]</a>
+              <a href="subject.html#354">[ subject ]</a>
+              <a href="author.html#354">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,370 @@
+From ca8c2659785bc06b572d05f9cf688ba8e991d7e2 Mon Sep 17 00:00:00 2001
+From: Douglas Creager <dcreager@dcreager.net>
+Date: Fri, 4 Nov 2011 10:28:37 -0400
+Subject: [PATCH] Update jemalloc to work on Mac OS X Lion
+
+There have been some changes to the malloc zone structures in Mac OS
+Lion.  The changes are based on Mozilla bug 694896 [1].
+
+[1] https://bugzilla.mozilla.org/show_bug.cgi?id=694896
+---
+ configure.ac                                  |   47 ++++++++-
+ include/jemalloc/internal/private_namespace.h |    1 -
+ include/jemalloc/internal/zone.h              |    1 -
+ src/jemalloc.c                                |    3 -
+ src/zone.c                                    |  144 +++++++------------------
+ 5 files changed, 82 insertions(+), 114 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 699f931..8dbfcaf 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -854,8 +854,9 @@ if test "x${abi}" = "xmacho" ; then
+   AC_DEFINE([JEMALLOC_ZONE])
+ 
+   dnl The szone version jumped from 3 to 6 between the OS X 10.5.x and 10.6
+-  dnl releases.  malloc_zone_t and malloc_introspection_t have new fields in
+-  dnl 10.6, which is the only source-level indication of the change.
++  dnl releases, and from 6 to 8 for 10.7.  malloc_zone_t and
++  dnl malloc_introspection_t have new fields in 10.6, which is the only
++  dnl source-level indication of the change.
+   AC_MSG_CHECKING([malloc zone version])
+   AC_TRY_COMPILE([#include <stdlib.h>
+ #include <malloc/malloc.h>], [
+@@ -876,6 +877,46 @@ if test "x${abi}" = "xmacho" ; then
+ 	zone.version = 6;
+ 	zone.memalign = NULL;
+ 	zone.free_definite_size = NULL;
++	zone.pressure_relief = NULL;
++
++	zone_introspect.enumerator = NULL;
++	zone_introspect.good_size = NULL;
++	zone_introspect.check = NULL;
++	zone_introspect.print = NULL;
++	zone_introspect.log = NULL;
++	zone_introspect.force_lock = NULL;
++	zone_introspect.force_unlock = NULL;
++	zone_introspect.statistics = NULL;
++	zone_introspect.zone_locked = NULL;
++	zone_introspect.enable_discharge_checking = NULL;
++	zone_introspect.disable_discharge_checking = NULL;
++	zone_introspect.discharge = NULL;
++#ifdef __BLOCKS__
++	zone_introspect.enumerate_discharged_pointers = NULL;
++#else
++	zone_introspect.enumerate_unavailable_without_blocks = NULL;
++#endif
++], [AC_DEFINE_UNQUOTED([JEMALLOC_ZONE_VERSION], [8])
++    AC_MSG_RESULT([8])],
++  AC_TRY_COMPILE([#include <stdlib.h>
++#include <malloc/malloc.h>], [
++	static malloc_zone_t zone;
++	static struct malloc_introspection_t zone_introspect;
++
++	zone.size = NULL;
++	zone.malloc = NULL;
++	zone.calloc = NULL;
++	zone.valloc = NULL;
++	zone.free = NULL;
++	zone.realloc = NULL;
++	zone.destroy = NULL;
++	zone.zone_name = "jemalloc_zone";
++	zone.batch_malloc = NULL;
++	zone.batch_free = NULL;
++	zone.introspect = &zone_introspect;
++	zone.version = 6;
++	zone.memalign = NULL;
++	zone.free_definite_size = NULL;
+ 
+ 	zone_introspect.enumerator = NULL;
+ 	zone_introspect.good_size = NULL;
+@@ -889,7 +930,7 @@ if test "x${abi}" = "xmacho" ; then
+ ], [AC_DEFINE_UNQUOTED([JEMALLOC_ZONE_VERSION], [6])
+     AC_MSG_RESULT([6])],
+    [AC_DEFINE_UNQUOTED([JEMALLOC_ZONE_VERSION], [3])
+-   AC_MSG_RESULT([3])])
++   AC_MSG_RESULT([3])]))
+ fi
+ 
+ dnl ============================================================================
+diff --git a/include/jemalloc/internal/private_namespace.h b/include/jemalloc/internal/private_namespace.h
+index d4f5f96..6b81860 100644
+--- a/include/jemalloc/internal/private_namespace.h
++++ b/include/jemalloc/internal/private_namespace.h
+@@ -77,7 +77,6 @@
+ #define	ckh_string_keycomp JEMALLOC_N(ckh_string_keycomp)
+ #define	ckh_try_bucket_insert JEMALLOC_N(ckh_try_bucket_insert)
+ #define	ckh_try_insert JEMALLOC_N(ckh_try_insert)
+-#define	create_zone JEMALLOC_N(create_zone)
+ #define	ctl_boot JEMALLOC_N(ctl_boot)
+ #define	ctl_bymib JEMALLOC_N(ctl_bymib)
+ #define	ctl_byname JEMALLOC_N(ctl_byname)
+diff --git a/include/jemalloc/internal/zone.h b/include/jemalloc/internal/zone.h
+index 859b529..cc4ced6 100644
+--- a/include/jemalloc/internal/zone.h
++++ b/include/jemalloc/internal/zone.h
+@@ -12,7 +12,6 @@
+ /******************************************************************************/
+ #ifdef JEMALLOC_H_EXTERNS
+ 
+-malloc_zone_t *create_zone(void);
+ void	szone2ozone(malloc_zone_t *zone);
+ 
+ #endif /* JEMALLOC_H_EXTERNS */
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index fd6b890..c3abde7 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -856,9 +856,6 @@ malloc_init_hard(void)
+ 	arenas[0] = init_arenas[0];
+ 
+ #ifdef JEMALLOC_ZONE
+-	/* Register the custom zone. */
+-	malloc_zone_register(create_zone());
+-
+ 	/*
+ 	 * Convert the default szone to an "overlay zone" that is capable of
+ 	 * deallocating szone-allocated objects, but allocating new objects
+diff --git a/src/zone.c b/src/zone.c
+index 2c1b231..ca0f861 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -3,31 +3,28 @@
+ #  error "This source file is for zones on Darwin (OS X)."
+ #endif
+ 
++#define LEOPARD_ZONE_VERSION 3
++#define SNOW_LEOPARD_ZONE_VERSION 6
++#define LION_ZONE_VERSION 8
++
+ /******************************************************************************/
+ /* Data. */
+ 
+-static malloc_zone_t zone, szone;
+-static struct malloc_introspection_t zone_introspect, ozone_introspect;
++static malloc_zone_t szone;
++static struct malloc_introspection_t ozone_introspect;
+ 
+ /******************************************************************************/
+ /* Function prototypes for non-inline static functions. */
+ 
+-static size_t	zone_size(malloc_zone_t *zone, void *ptr);
+ static void	*zone_malloc(malloc_zone_t *zone, size_t size);
+ static void	*zone_calloc(malloc_zone_t *zone, size_t num, size_t size);
+ static void	*zone_valloc(malloc_zone_t *zone, size_t size);
+-static void	zone_free(malloc_zone_t *zone, void *ptr);
+-static void	*zone_realloc(malloc_zone_t *zone, void *ptr, size_t size);
+-#if (JEMALLOC_ZONE_VERSION >= 6)
++#if (JEMALLOC_ZONE_VERSION >= SNOW_LEOPARD_ZONE_VERSION)
+ static void	*zone_memalign(malloc_zone_t *zone, size_t alignment,
+     size_t size);
+-static void	zone_free_definite_size(malloc_zone_t *zone, void *ptr,
+-    size_t size);
+ #endif
+ static void	*zone_destroy(malloc_zone_t *zone);
+ static size_t	zone_good_size(malloc_zone_t *zone, size_t size);
+-static void	zone_force_lock(malloc_zone_t *zone);
+-static void	zone_force_unlock(malloc_zone_t *zone);
+ static size_t	ozone_size(malloc_zone_t *zone, void *ptr);
+ static void	ozone_free(malloc_zone_t *zone, void *ptr);
+ static void	*ozone_realloc(malloc_zone_t *zone, void *ptr, size_t size);
+@@ -35,7 +32,7 @@ static unsigned	ozone_batch_malloc(malloc_zone_t *zone, size_t size,
+     void **results, unsigned num_requested);
+ static void	ozone_batch_free(malloc_zone_t *zone, void **to_be_freed,
+     unsigned num);
+-#if (JEMALLOC_ZONE_VERSION >= 6)
++#if (JEMALLOC_ZONE_VERSION >= SNOW_LEOPARD_ZONE_VERSION)
+ static void	ozone_free_definite_size(malloc_zone_t *zone, void *ptr,
+     size_t size);
+ #endif
+@@ -47,22 +44,6 @@ static void	ozone_force_unlock(malloc_zone_t *zone);
+  * Functions.
+  */
+ 
+-static size_t
+-zone_size(malloc_zone_t *zone, void *ptr)
+-{
+-
+-	/*
+-	 * There appear to be places within Darwin (such as setenv(3)) that
+-	 * cause calls to this function with pointers that *no* zone owns.  If
+-	 * we knew that all pointers were owned by *some* zone, we could split
+-	 * our zone into two parts, and use one as the default allocator and
+-	 * the other as the default deallocator/reallocator.  Since that will
+-	 * not work in practice, we must check all pointers to assure that they
+-	 * reside within a mapped chunk before determining size.
+-	 */
+-	return (ivsalloc(ptr));
+-}
+-
+ static void *
+ zone_malloc(malloc_zone_t *zone, size_t size)
+ {
+@@ -87,21 +68,7 @@ zone_valloc(malloc_zone_t *zone, size_t size)
+ 	return (ret);
+ }
+ 
+-static void
+-zone_free(malloc_zone_t *zone, void *ptr)
+-{
+-
+-	JEMALLOC_P(free)(ptr);
+-}
+-
+-static void *
+-zone_realloc(malloc_zone_t *zone, void *ptr, size_t size)
+-{
+-
+-	return (JEMALLOC_P(realloc)(ptr, size));
+-}
+-
+-#if (JEMALLOC_ZONE_VERSION >= 6)
++#if (JEMALLOC_ZONE_VERSION >= SNOW_LEOPARD_ZONE_VERSION)
+ static void *
+ zone_memalign(malloc_zone_t *zone, size_t alignment, size_t size)
+ {
+@@ -111,14 +78,6 @@ zone_memalign(malloc_zone_t *zone, size_t alignment, size_t size)
+ 
+ 	return (ret);
+ }
+-
+-static void
+-zone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
+-{
+-
+-	assert(ivsalloc(ptr) == size);
+-	JEMALLOC_P(free)(ptr);
+-}
+ #endif
+ 
+ static void *
+@@ -151,58 +110,6 @@ zone_good_size(malloc_zone_t *zone, size_t size)
+ 	return (ret);
+ }
+ 
+-static void
+-zone_force_lock(malloc_zone_t *zone)
+-{
+-
+-	if (isthreaded)
+-		jemalloc_prefork();
+-}
+-
+-static void
+-zone_force_unlock(malloc_zone_t *zone)
+-{
+-
+-	if (isthreaded)
+-		jemalloc_postfork();
+-}
+-
+-malloc_zone_t *
+-create_zone(void)
+-{
+-
+-	zone.size = (void *)zone_size;
+-	zone.malloc = (void *)zone_malloc;
+-	zone.calloc = (void *)zone_calloc;
+-	zone.valloc = (void *)zone_valloc;
+-	zone.free = (void *)zone_free;
+-	zone.realloc = (void *)zone_realloc;
+-	zone.destroy = (void *)zone_destroy;
+-	zone.zone_name = "jemalloc_zone";
+-	zone.batch_malloc = NULL;
+-	zone.batch_free = NULL;
+-	zone.introspect = &zone_introspect;
+-	zone.version = JEMALLOC_ZONE_VERSION;
+-#if (JEMALLOC_ZONE_VERSION >= 6)
+-	zone.memalign = zone_memalign;
+-	zone.free_definite_size = zone_free_definite_size;
+-#endif
+-
+-	zone_introspect.enumerator = NULL;
+-	zone_introspect.good_size = (void *)zone_good_size;
+-	zone_introspect.check = NULL;
+-	zone_introspect.print = NULL;
+-	zone_introspect.log = NULL;
+-	zone_introspect.force_lock = (void *)zone_force_lock;
+-	zone_introspect.force_unlock = (void *)zone_force_unlock;
+-	zone_introspect.statistics = NULL;
+-#if (JEMALLOC_ZONE_VERSION >= 6)
+-	zone_introspect.zone_locked = NULL;
+-#endif
+-
+-	return (&zone);
+-}
+-
+ static size_t
+ ozone_size(malloc_zone_t *zone, void *ptr)
+ {
+@@ -273,7 +180,7 @@ ozone_batch_free(malloc_zone_t *zone, void **to_be_freed, unsigned num)
+ 		ozone_free(zone, to_be_freed[i]);
+ }
+ 
+-#if (JEMALLOC_ZONE_VERSION >= 6)
++#if (JEMALLOC_ZONE_VERSION >= SNOW_LEOPARD_ZONE_VERSION)
+ static void
+ ozone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
+ {
+@@ -323,6 +230,14 @@ szone2ozone(malloc_zone_t *zone)
+ 	 */
+ 	memcpy(&szone, zone, sizeof(malloc_zone_t));
+ 
++	/*
++	 * OSX 10.7 allocates the default zone in protected memory.
++	 */
++#if (JEMALLOC_ZONE_VERSION >= LION_ZONE_VERSION)
++	void *start_of_page = (void *) ((size_t) (zone) & ~PAGE_MASK);
++	mprotect(start_of_page, sizeof(malloc_zone_t), PROT_READ | PROT_WRITE);
++#endif
++
+ 	zone->size = (void *)ozone_size;
+ 	zone->malloc = (void *)zone_malloc;
+ 	zone->calloc = (void *)zone_calloc;
+@@ -330,15 +245,22 @@ szone2ozone(malloc_zone_t *zone)
+ 	zone->free = (void *)ozone_free;
+ 	zone->realloc = (void *)ozone_realloc;
+ 	zone->destroy = (void *)zone_destroy;
+-	zone->zone_name = "jemalloc_ozone";
+ 	zone->batch_malloc = ozone_batch_malloc;
+ 	zone->batch_free = ozone_batch_free;
+ 	zone->introspect = &ozone_introspect;
+ 	zone->version = JEMALLOC_ZONE_VERSION;
+-#if (JEMALLOC_ZONE_VERSION >= 6)
++#if (JEMALLOC_ZONE_VERSION >= SNOW_LEOPARD_ZONE_VERSION)
+ 	zone->memalign = zone_memalign;
+ 	zone->free_definite_size = ozone_free_definite_size;
+ #endif
++#if (JEMALLOC_ZONE_VERSION >= LION_ZONE_VERSION)
++	zone->pressure_relief = NULL;
++#endif
++
++        /*
++         * Don't modify default_zone->zone_name; Mac libc may rely on
++         * the name being unchanged.  See Mozilla bug 694896.
++         */
+ 
+ 	ozone_introspect.enumerator = NULL;
+ 	ozone_introspect.good_size = (void *)zone_good_size;
+@@ -348,7 +270,17 @@ szone2ozone(malloc_zone_t *zone)
+ 	ozone_introspect.force_lock = (void *)ozone_force_lock;
+ 	ozone_introspect.force_unlock = (void *)ozone_force_unlock;
+ 	ozone_introspect.statistics = NULL;
+-#if (JEMALLOC_ZONE_VERSION >= 6)
++#if (JEMALLOC_ZONE_VERSION >= SNOW_LEOPARD_ZONE_VERSION)
+ 	ozone_introspect.zone_locked = NULL;
+ #endif
++#if (JEMALLOC_ZONE_VERSION >= LION_ZONE_VERSION)
++	ozone_introspect.enable_discharge_checking = NULL;
++	ozone_introspect.disable_discharge_checking = NULL;
++	ozone_introspect.discharge = NULL;
++#ifdef __BLOCKS__
++	ozone_introspect.enumerate_discharged_pointers = NULL;
++#else
++	ozone_introspect.enumerate_unavailable_without_blocks = NULL;
++#endif
++#endif
+ }
+-- 
+1.7.7.2
+

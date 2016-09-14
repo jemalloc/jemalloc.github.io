@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Semi-dual use of dynamic and static jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Semi-dual%20use%20of%20dynamic%20and%20static%20jemalloc&In-Reply-To=%3CCAGQTitNaLz1d4b9eicEy%3DHzd7zX8ikcLe_HE0%3DoFXZGU6zPDEA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001155.html">
+   <LINK REL="Next"  HREF="001159.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Semi-dual use of dynamic and static jemalloc</H1>
+    <B>Roel Van de Paar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Semi-dual%20use%20of%20dynamic%20and%20static%20jemalloc&In-Reply-To=%3CCAGQTitNaLz1d4b9eicEy%3DHzd7zX8ikcLe_HE0%3DoFXZGU6zPDEA%40mail.gmail.com%3E"
+       TITLE="Semi-dual use of dynamic and static jemalloc">roel.vandepaar at percona.com
+       </A><BR>
+    <I>Mon Aug 31 16:40:12 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001155.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+        <LI>Next message: <A HREF="001159.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1158">[ date ]</a>
+              <a href="thread.html#1158">[ thread ]</a>
+              <a href="subject.html#1158">[ subject ]</a>
+              <a href="author.html#1158">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi Florian, Others,
+
+Any ideas/suggestions? Thank you
+
+On Tue, Aug 25, 2015 at 10:24 AM, Roel Van de Paar &lt;
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">roel.vandepaar at percona.com</A>&gt; wrote:
+
+&gt;<i> Hi Florian,
+</I>&gt;<i>
+</I>&gt;<i> Thank you for the reply. My reply inline.
+</I>&gt;<i>
+</I>&gt;<i> On Tue, Aug 25, 2015 at 5:13 AM, Florian Weimer &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">fw at deneb.enyo.de</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> * Roel Van de Paar:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> &gt; What happens if jemalloc is LD_PRELOAD'ed for an executable where such
+</I>&gt;&gt;<i> &gt; executable uses a .so library, which in turn is statically linked with
+</I>&gt;&gt;<i> &gt; jemalloc?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> That depends on what kind of symbols the libary exports.  What does
+</I>&gt;&gt;<i> &#8220;eu-readelf -s&#8221; or &#8220;readelf -W -s&#8221; show?  If jemalloc symbols are
+</I>&gt;&gt;<i> listed there, quite bad things can happen.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> [<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">roel at localhost</A>
+</I>&gt;<i> Percona-Server-5.6.25-rel73.2-f9f2b02.Linux.x86_64-debug]$ readelf -W -s
+</I>&gt;<i> ./lib/mysql/plugin/ha_tokudb.so | grep jemalloc
+</I>&gt;<i>    219: 000000000048ed90     4 OBJECT  LOCAL  DEFAULT   27
+</I>&gt;<i> _ZL21tokudb_check_jemalloc
+</I>&gt;<i>    220: 000000000048d4e0    64 OBJECT  LOCAL  DEFAULT   26
+</I>&gt;<i> _ZL27mysql_sysvar_check_jemalloc
+</I>&gt;<i>    833: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS jemalloc.pic.o
+</I>&gt;<i>    840: 000000000009d710    94 FUNC    LOCAL  DEFAULT   11
+</I>&gt;<i> jemalloc_constructor
+</I>&gt;<i>   8370: 000000000009d0d0    90 FUNC    LOCAL  DEFAULT   11
+</I>&gt;<i> je_jemalloc_prefork
+</I>&gt;<i>   8494: 000000000009d010    89 FUNC    LOCAL  DEFAULT   11
+</I>&gt;<i> je_jemalloc_postfork_child
+</I>&gt;<i>   8659: 000000000009d070    89 FUNC    LOCAL  DEFAULT   11
+</I>&gt;<i> je_jemalloc_postfork_parent
+</I>&gt;<i>
+</I>&gt;<i> Are these jemalloc symbols?
+</I>&gt;<i>
+</I>&gt;<i> Also, anyone any idea on the other questions too?
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i>
+</I>&gt;<i> Kind Regards,
+</I>&gt;<i> God Bless,
+</I>&gt;<i> --
+</I>&gt;<i> Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+</I>&gt;<i> Tel: +61 2 8004 1288 (UTC+10)
+</I>&gt;<i> Mob: +61 427 141 635 (UTC+10)
+</I>&gt;<i> Skype: percona.rvandepaar
+</I>&gt;<i> <A HREF="http://www.percona.com/services.html">http://www.percona.com/services.html</A>
+</I>&gt;<i>
+</I>&gt;<i> Looking for Replication with Data Consistency?
+</I>&gt;<i> Try Percona XtraDB Cluster
+</I>&gt;<i> &lt;<A HREF="http://www.percona.com/software/percona-xtradb-cluster">http://www.percona.com/software/percona-xtradb-cluster</A>&gt;!
+</I>&gt;<i>
+</I>
+
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: percona.rvandepaar
+<A HREF="http://www.percona.com/services.html">http://www.percona.com/services.html</A>
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+&lt;<A HREF="http://www.percona.com/software/percona-xtradb-cluster">http://www.percona.com/software/percona-xtradb-cluster</A>&gt;!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150901/a89148ad/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150901/a89148ad/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001155.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+	<LI>Next message: <A HREF="001159.html">Semi-dual use of dynamic and static jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1158">[ date ]</a>
+              <a href="thread.html#1158">[ thread ]</a>
+              <a href="subject.html#1158">[ subject ]</a>
+              <a href="author.html#1158">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

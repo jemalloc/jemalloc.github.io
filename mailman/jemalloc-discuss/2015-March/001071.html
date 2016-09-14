@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Questions about jemalloc releasing memory to OS
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Questions%20about%20jemalloc%20releasing%20memory%20to%20OS&In-Reply-To=%3C291AEFE2-EFDF-46A4-8DDE-B8B9F3B10252%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001069.html">
+   <LINK REL="Next"  HREF="001070.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Questions about jemalloc releasing memory to OS</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Questions%20about%20jemalloc%20releasing%20memory%20to%20OS&In-Reply-To=%3C291AEFE2-EFDF-46A4-8DDE-B8B9F3B10252%40canonware.com%3E"
+       TITLE="Questions about jemalloc releasing memory to OS">jasone at canonware.com
+       </A><BR>
+    <I>Fri Mar 13 16:37:56 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001069.html">Questions about jemalloc releasing memory to OS
+</A></li>
+        <LI>Next message: <A HREF="001070.html">another bitrig fix
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1071">[ date ]</a>
+              <a href="thread.html#1071">[ thread ]</a>
+              <a href="subject.html#1071">[ subject ]</a>
+              <a href="author.html#1071">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 6, 2015, at 5:26 PM, Steve Cobb &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">stevecobb47 at yahoo.com</A>&gt; wrote:
+&gt;<i> I am busily reading web pages etc about tuning jemalloc etc, but would like to get some direct comments on how aggressive jemalloc is at releasing freed memory to the system - either by munmap or madvise(MADV_DONTNEED).
+</I>&gt;<i> 
+</I>&gt;<i> The problem we are facing - this is using glibc malloc, on embedded systems running Linux -  is that we have applications that can scale way up in size, then scale way down. These systems have no swap partition. Using some tools to dump the heaps of these applications, after the scale-down, we find large chunks of memory retained on malloc free lists, but none of that memory can be trimmed from the heap and unmapped. This is on the order of 100s of M free, with contiguous blocks of of 50M on the free lists.
+</I>&gt;<i> 
+</I>&gt;<i> It turns out that glibc malloc appears very reluctant to trim its arenas. Particularly, the &quot;main arena&quot; is allocated via sbrk, and that can obviously only shrink at the end of the sbrk value. But the mmap'd arena's, one would hope would be more easily trimmed, but that does not seem to be the case.
+</I>&gt;<i> 
+</I>&gt;<i> So we are looking at jemalloc in hopes of solving this problem. 
+</I>&gt;<i> 
+</I>&gt;<i> I hope I have made my question clear. Can someone point out the basic implementation details here - the bottom line question is: how aggresive is jemalloc at returning memory to the system, and are there any tuning knobs for this type of behavior.
+</I>
+jemalloc is moderately aggressive about returning memory to the system by default, and it can be tuned to be very aggressive.  See the lg_dirty_mult option for more information.
+
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_dirty_mult">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_dirty_mult</A> &lt;<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_dirty_mult">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_dirty_mult</A>&gt;
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150313/a7bcf4f8/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150313/a7bcf4f8/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001069.html">Questions about jemalloc releasing memory to OS
+</A></li>
+	<LI>Next message: <A HREF="001070.html">another bitrig fix
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1071">[ date ]</a>
+              <a href="thread.html#1071">[ thread ]</a>
+              <a href="subject.html#1071">[ subject ]</a>
+              <a href="author.html#1071">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

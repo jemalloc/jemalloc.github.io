@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Q] Strange hang in jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20hang%20in%20jemalloc&In-Reply-To=%3CCAH_X2fczSML5ZwZN8yb40k-5svDc_nhAtjnjasRh%2BXZy%3D-5%3DOA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000661.html">
+   <LINK REL="Next"  HREF="000657.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Q] Strange hang in jemalloc</H1>
+    <B>Taehwan Weon</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BQ%5D%20Strange%20hang%20in%20jemalloc&In-Reply-To=%3CCAH_X2fczSML5ZwZN8yb40k-5svDc_nhAtjnjasRh%2BXZy%3D-5%3DOA%40mail.gmail.com%3E"
+       TITLE="[Q] Strange hang in jemalloc">taehwan.weon at gmail.com
+       </A><BR>
+    <I>Wed Oct 23 20:11:04 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000661.html">[PATCH 2/2] Add support for LinuxThreads.
+</A></li>
+        <LI>Next message: <A HREF="000657.html">[Q] Strange hang in jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#655">[ date ]</a>
+              <a href="thread.html#655">[ thread ]</a>
+              <a href="subject.html#655">[ subject ]</a>
+              <a href="author.html#655">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I am using jemalloc-3.4.0 on Centos 6.3
+When my SEGV signal handler tried to dump call stacks, hang occurred as
+following.
+I don't know why libc's fork called jemalloc_prefork even if I didn't set
+LD_PRELOAD.
+
+
+
+#0  0x000000351d60d654 in __lll_lock_wait () from /lib64/libpthread.so.0
+#1  0x000000351d608f4a in _L_lock_1034 () from /lib64/libpthread.so.0
+#2  0x000000351d608e0c in pthread_mutex_lock () from /lib64/libpthread.so.0
+#3  0x00002b59a8055d6d in malloc_mutex_lock (mutex=0x2b59a84a4320) at
+include/jemalloc/internal/mutex.h:77
+#4  malloc_mutex_prefork (mutex=0x2b59a84a4320) at src/mutex.c:109
+#5  0x00002b59a8044c32 in arena_prefork (arena=0x2b59a84a3d40) at
+src/arena.c:2344
+#6  0x00002b59a803f555 in jemalloc_prefork () at src/jemalloc.c:1760
+#7  0x000000351ca9a2a6 in fork () from /lib64/libc.so.6
+#8  0x000000351ca6200d in _IO_proc_open@@GLIBC_2.2.5 () from
+/lib64/libc.so.6
+#9  0x000000351ca62269 in popen@@GLIBC_2.2.5 () from /lib64/libc.so.6
+#10 0x00002b59a71bc1f9 in backtrace_lineinfo (number=1, address=&lt;value
+optimized out&gt;, symbol=0x2b61f4000918 &quot;/usr/lib64/libnc.so.2
+[0x2b59a71bc3b1]&quot;) at cfs_apix.c:363
+#11 0x00002b59a71bc3ff in nc_dump_stack (sig=&lt;value optimized out&gt;) at
+cfs_apix.c:423
+#12 &lt;signal handler called&gt;
+#13 0x00002b59a8047332 in arena_dalloc_bin_locked (arena=0x2b59a84a3d40,
+chunk=0x2b61ef000000, ptr=&lt;value optimized out&gt;, mapelm=&lt;value optimized
+out&gt;) at src/arena.c:1717
+#14 0x00002b59a805fba4 in tcache_bin_flush_small (tbin=0x2b61ef107128,
+binind=8, rem=9, tcache=0x2b61ef107000) at src/tcache.c:127
+#15 0x00002b59a805fcd4 in tcache_event_hard (tcache=0x80) at src/tcache.c:39
+#16 0x00002b59a80428d9 in tcache_event (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/tcache.h:271
+#17 tcache_dalloc_small (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/tcache.h:408
+#18 arena_dalloc (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/arena.h:1003
+#19 idallocx (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/jemalloc_internal.h:913
+#20 iqallocx (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/jemalloc_internal.h:932
+#21 iqalloc (ptr=0x2b61efd26dc0) at
+include/jemalloc/internal/jemalloc_internal.h:939
+#22 jefree (ptr=0x2b61efd26dc0) at src/jemalloc.c:1272
+#23 0x00002b59a71c958b in __nc_free (p=0x2b61efd26dd0, file=&lt;value
+optimized out&gt;, lno=&lt;value optimized out&gt;) at util.c:1916
+#24 0x00002b59a71cb975 in tlcq_dequeue (q=0x2b59a9ee3210, msec=&lt;value
+optimized out&gt;) at tlc_queue.c:215
+#25 0x00002b59a71c154b in tp_worker (d=&lt;value optimized out&gt;) at
+threadpool.c:116
+#26 0x000000351d60683d in start_thread () from /lib64/libpthread.so.0
+#27 0x000000351cad503d in clone () from /lib64/libc.so.6
+
+
+Any hint will be highly appreciated.
+
+----------
+weon
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131024/62e159b3/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131024/62e159b3/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000661.html">[PATCH 2/2] Add support for LinuxThreads.
+</A></li>
+	<LI>Next message: <A HREF="000657.html">[Q] Strange hang in jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#655">[ date ]</a>
+              <a href="thread.html#655">[ thread ]</a>
+              <a href="subject.html#655">[ subject ]</a>
+              <a href="author.html#655">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

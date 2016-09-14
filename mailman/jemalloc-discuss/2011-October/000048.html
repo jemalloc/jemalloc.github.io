@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question about pthread_getspecific with jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20pthread_getspecific%20with%20jemalloc&In-Reply-To=%3C1319919313.47637.YahooMailNeo%40web122317.mail.ne1.yahoo.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000050.html">
+   <LINK REL="Next"  HREF="000049.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question about pthread_getspecific with jemalloc</H1>
+    <B>Kristen Eisenberg</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20pthread_getspecific%20with%20jemalloc&In-Reply-To=%3C1319919313.47637.YahooMailNeo%40web122317.mail.ne1.yahoo.com%3E"
+       TITLE="Question about pthread_getspecific with jemalloc">kristen.eisenberg at yahoo.com
+       </A><BR>
+    <I>Sat Oct 29 13:15:13 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000050.html">source code could not checkout on windows flatform
+</A></li>
+        <LI>Next message: <A HREF="000049.html">Question about pthread_getspecific with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#48">[ date ]</a>
+              <a href="thread.html#48">[ thread ]</a>
+              <a href="subject.html#48">[ subject ]</a>
+              <a href="author.html#48">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>link with jemalloc.  What happens is, after calling malloc(), the
+value of one of my keys seems to change out from under me.  Here is a
+small example that demonstrates this:
+<A HREF="http://itsapad.appspot.com/fancy/6.">http://itsapad.appspot.com/fancy/6.</A>  I am using jemalloc-2.2.1 on
+Linux.  If I compile the example with gcc (ver 4.4.3) using the
+following command: 'gcc -lpthread main.c' then both calls to
+pthread_getspecific return a NULL pointer as expected.  When I link
+with jemalloc, however, ('gcc -ljemalloc -lpthread main.c') then the
+second call to pthread_getspecific returns some non-NULL value.  Is
+this a known bug or am I doing something wrong?
+
+
+Kristen Eisenberg
+Billige Fl&#252;ge
+Marketing GmbH
+Emanuelstr. 3,
+10317 Berlin
+Deutschland
+Telefon: +49 (33)
+5310967
+Email:
+utebachmeier at
+gmail.com
+Site:
+<A HREF="http://flug.airego.de">http://flug.airego.de</A>
+- Billige Fl&#252;ge vergleichen
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111029/a21f22f9/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111029/a21f22f9/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000050.html">source code could not checkout on windows flatform
+</A></li>
+	<LI>Next message: <A HREF="000049.html">Question about pthread_getspecific with jemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#48">[ date ]</a>
+              <a href="thread.html#48">[ thread ]</a>
+              <a href="subject.html#48">[ subject ]</a>
+              <a href="author.html#48">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

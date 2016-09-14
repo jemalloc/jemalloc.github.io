@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question about the spare chunk
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20the%20spare%20chunk&In-Reply-To=%3CCAGXxSxXTGthF-_PBP8LuxPKxDdjeQXQqowyrdj5BnFw3TE%2B1zg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000970.html">
+   <LINK REL="Next"  HREF="000972.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question about the spare chunk</H1>
+    <B>cee1</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20the%20spare%20chunk&In-Reply-To=%3CCAGXxSxXTGthF-_PBP8LuxPKxDdjeQXQqowyrdj5BnFw3TE%2B1zg%40mail.gmail.com%3E"
+       TITLE="Question about the spare chunk">fykcee1 at gmail.com
+       </A><BR>
+    <I>Wed Dec  3 06:17:30 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000970.html">[PATCH] Fix test breakage on 32-bit systems
+</A></li>
+        <LI>Next message: <A HREF="000972.html">Question about the spare chunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#971">[ date ]</a>
+              <a href="thread.html#971">[ thread ]</a>
+              <a href="subject.html#971">[ subject ]</a>
+              <a href="author.html#971">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi, all
+
+I'm learning the code of jemalloc 3.6.0, I find in arena_run_dalloc()
+&quot;&quot;&quot;
+if (size == arena_maxclass)
+    arena_chunk_dealloc(arena, chunk);
+&quot;&quot;&quot;
+
+And in arena_chunk_dealloc():
+&quot;&quot;&quot;
+if (arena-&gt;spare != NULL) {
+    arena_chunk_t *spare = arena-&gt;spare;
+
+    arena-&gt;spare = chunk;
+    malloc_mutex_unlock(&amp;arena-&gt;lock);
+
+    chunk_dealloc((void *)spare, chunksize, true);
+
+    malloc_mutex_lock(&amp;arena-&gt;lock);
+&quot;&quot;&quot;
+
+Here the old spare chunk is replaced by the new one and dealloced.
+
+The deallocating process is done without the lock protection. In this
+lockless period, is it possible another arena_chunk_dealloc running in
+another thread replaces and deallocates ** our new spare chunk ** ?
+Which is still in the chunks_dirty tree and will be accessed by the
+purge process later.
+
+
+
+-- 
+Regards,
+
+- cee1
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000970.html">[PATCH] Fix test breakage on 32-bit systems
+</A></li>
+	<LI>Next message: <A HREF="000972.html">Question about the spare chunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#971">[ date ]</a>
+              <a href="thread.html#971">[ thread ]</a>
+              <a href="subject.html#971">[ subject ]</a>
+              <a href="author.html#971">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

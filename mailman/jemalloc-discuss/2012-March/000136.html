@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] atomic operations for ppc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20atomic%20operations%20for%20ppc&In-Reply-To=%3C2083960132.22183797.1331675550825.JavaMail.root%40claudius.linpro.no%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000128.html">
+   <LINK REL="Next"  HREF="000137.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] atomic operations for ppc</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20atomic%20operations%20for%20ppc&In-Reply-To=%3C2083960132.22183797.1331675550825.JavaMail.root%40claudius.linpro.no%3E"
+       TITLE="[PATCH] atomic operations for ppc">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Tue Mar 13 14:52:30 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000128.html">[PATCH] Remove extra } in malloc_vsnprintf
+</A></li>
+        <LI>Next message: <A HREF="000137.html">[PATCH] atomic operations for ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#136">[ date ]</a>
+              <a href="thread.html#136">[ thread ]</a>
+              <a href="subject.html#136">[ subject ]</a>
+              <a href="author.html#136">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>This patch should, if it is correct, add the functions atomic_add_uint32 and atomic_sub_uint32 that are missing on some platforms, at least RHEL5/ppc[64]. With this patch, jemalloc may be updated to 2.2.x also in the EPEL5 repositories.
+
+The code was borrowed from the Boost library, see <A HREF="http://www.boost.org/doc/libs/1_49_0/boost/interprocess/detail/atomic.hpp">http://www.boost.org/doc/libs/1_49_0/boost/interprocess/detail/atomic.hpp</A> . The Boost library is under the Boost license, which is quite BSD-like, but the license should probably be checked out for compatibility. See <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A> 
+
+Since I actually know nothing about ppc assembler myself, and have never used the Boost library, I should thank Federico G. Schwindt for valuable input on the patch.
+
+Jason, could you produce a test case that confirms that the patch works?
+
+Best regards,
+Ingvar Hagelund
+
+
+
+
+
+--- ../jemalloc-2.2.5.orig/include/jemalloc/internal/atomic.h   2011-11-15 02:18:06.000000000 +0100
++++ include/jemalloc/internal/atomic.h  2012-03-09 08:44:45.930652898 +0100
+@@ -160,6 +160,33 @@
+
+        return (x);
+ }
++#elif (defined(__ppc__) || defined(__PPC__))
++// Code shamelessly stolen from the boost library
++// Please do a license check before distributing
++JEMALLOC_INLINE uint32_t
++atomic_add_uint32(uint32_t *p, uint32_t x)
++{
++       uint32_t prev, temp;
++
++       asm volatile (&quot;0:\n\t&quot;                 // retry local label     
++               &quot;lwarx  %0,0,%2\n\t&quot;       // load prev and reserve 
++               &quot;add    %1,%0,%3\n\t&quot;      // temp = prev + x 
++               &quot;stwcx. %1,0,%2\n\t&quot;       // conditionally store   
++               &quot;bne-   0b&quot;                // start over if we lost
++                                          // the reservation
++               //XXX find a cleaner way to define the temp         
++               //it's not an output
++               : &quot;=&amp;r&quot; (prev), &quot;=&amp;r&quot; (temp)        // output, temp 
++               : &quot;b&quot; (p), &quot;r&quot; (x)                  // inputs       
++               : &quot;memory&quot;, &quot;cc&quot;);                  // clobbered    
++       return temp;
++}
++
++JEMALLOC_INLINE uint32_t
++atomic_sub_uint32(uint32_t *p, uint32_t x)
++{
++       return atomic_add_uint32(p, -x);
++}
+ #else
+ #  error &quot;Missing implementation for 32-bit atomic operations&quot;
+ #endif
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000128.html">[PATCH] Remove extra } in malloc_vsnprintf
+</A></li>
+	<LI>Next message: <A HREF="000137.html">[PATCH] atomic operations for ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#136">[ date ]</a>
+              <a href="thread.html#136">[ thread ]</a>
+              <a href="subject.html#136">[ subject ]</a>
+              <a href="author.html#136">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Managing pinned memory
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Managing%20pinned%20memory&In-Reply-To=%3C0A2DBF82-7C30-4D61-B9CD-10F6FD4880D9%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000778.html">
+   <LINK REL="Next"  HREF="000780.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Managing pinned memory</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Managing%20pinned%20memory&In-Reply-To=%3C0A2DBF82-7C30-4D61-B9CD-10F6FD4880D9%40canonware.com%3E"
+       TITLE="Managing pinned memory">jasone at canonware.com
+       </A><BR>
+    <I>Thu May  8 10:08:48 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000778.html">Managing pinned memory
+</A></li>
+        <LI>Next message: <A HREF="000780.html">How do you completely shut down and re-initialize jemalloc at runtime?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#779">[ date ]</a>
+              <a href="thread.html#779">[ thread ]</a>
+              <a href="subject.html#779">[ subject ]</a>
+              <a href="author.html#779">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 8, 2014, at 9:42 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+&gt;<i> On May 8, 2014, at 12:04 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;&gt;<i> On May 8, 2014, at 9:00 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> I&#8217;m in the market for a good concurrent allocator to manage a memory region corresponding to pinned network memory for a multithreaded and distributed HPC application. Basically, I&#8217;m going to want to do RDMA to objects that are often malloced and freed. The pinning operation is expensive so it is important to amortize it over lots of uses. I&#8217;ve written a simple thread-local caching allocator that allows me to pin contiguous blocks when they&#8217;re first allocated, and then just use TLS free listing to reuse space, however I don&#8217;t really have the resources needed to implement this in a robust way.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> This pending change may be relevant to your needs:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> 	<A HREF="https://github.com/jemalloc/jemalloc/pull/80">https://github.com/jemalloc/jemalloc/pull/80</A>
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> I&#8217;m imagining that you would implement a custom chunk allocator that pins entire chunks, and then specifically use that arena for allocations that you require to be pinned.  This approach has some shortcomings, but perhaps they don&#8217;t matter to your specific application.
+</I>&gt;<i> 
+</I>&gt;<i> This patch appears to address half the battle, though I&#8217;m not 100% sure how to implement the chunk allocator without calling back into jemalloc recursively. I guess that I either use mmap() directly or jemalloc.h has a way to get &#8220;raw&#8221; memory already. Although chunk_alloc_core doesn&#8217;t seem like a name that&#8217;s going to be exposed, so maybe mmap() is the way to go&#8212;not a big deal.
+</I>
+Yes, mmap() is the way to go.
+
+&gt;<i> Based on the proposed patch, it looks like MALLOCX_ARENA(a) /will/ have an effect for huge regions for both huge_palloc() and huge_dalloc() as well, which is exactly what I need.
+</I>&gt;<i> 
+</I>&gt;<i> [...]
+</I>&gt;<i> 
+</I>&gt;<i> Do you have any sense of the likelihood that this patch will be accepted going forward?
+</I>
+The patch will definitely be merged after it's cleaned up.  jemalloc 4.0.0 probably won't be ready for release until late this year though, so you'll need to use the dev branch in the meanwhile if you depend on this functionality.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000778.html">Managing pinned memory
+</A></li>
+	<LI>Next message: <A HREF="000780.html">How do you completely shut down and re-initialize jemalloc at runtime?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#779">[ date ]</a>
+              <a href="thread.html#779">[ thread ]</a>
+              <a href="subject.html#779">[ subject ]</a>
+              <a href="author.html#779">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

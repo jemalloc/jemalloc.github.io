@@ -1,0 +1,25 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;thanks!&nbsp;that&nbsp;worked&nbsp;:)&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Mon,&nbsp;Nov&nbsp;25,&nbsp;2013&nbsp;at&nbsp;10:40&nbsp;AM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;im&quot;&gt;On&nbsp;Nov&nbsp;24,&nbsp;2013,&nbsp;at&nbsp;11:56&nbsp;PM,&nbsp;Eduardo&nbsp;Silva&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:edsiper@gmail.com&quot;&gt;edsiper@gmail.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+&gt;&nbsp;i&nbsp;have&nbsp;just&nbsp;integrated&nbsp;jemalloc&nbsp;in&nbsp;our&nbsp;open&nbsp;source&nbsp;project.&nbsp;I&nbsp;have&nbsp;linked&nbsp;jemalloc&nbsp;statically&nbsp;and&nbsp;after&nbsp;some&nbsp;tests&nbsp;i&nbsp;am&nbsp;not&nbsp;able&nbsp;to&nbsp;get&nbsp;any&nbsp;profiling&nbsp;file&nbsp;for&nbsp;analysis.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;jemalloc&nbsp;configure:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp; &nbsp; ./configure&nbsp;--enable-prof&nbsp;--with-jemalloc-prefix=je_&nbsp;--enable-cc-silence&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;once&nbsp;compiled&nbsp;and&nbsp;linked&nbsp;to&nbsp;my&nbsp;sources&nbsp;i&nbsp;do:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp; &nbsp; $&nbsp;MALLOC_CONF=prof_leak:true,prof:true&nbsp;bin/monkey&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;but&nbsp;on&nbsp;exit&nbsp;there&nbsp;is&nbsp;no&nbsp;details,&nbsp;do&nbsp;i&nbsp;am&nbsp;missing&nbsp;some&nbsp;steps&nbsp;?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;The&nbsp;prefix&nbsp;also&nbsp;applies&nbsp;to&nbsp;the&nbsp;environment&nbsp;variable&nbsp;you&nbsp;set.&nbsp; Try:&lt;br&gt;<br>
+&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;JE_MALLOC_CONF=prof_leak:true,prof:true&nbsp;bin/monkey&lt;br&gt;<br>
+&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+Jason&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;br&nbsp;clear=&quot;all&quot;&gt;&lt;br&gt;--&nbsp;&lt;br&gt;&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Eduardo&nbsp;Silva&lt;br&gt;&lt;a&nbsp;href=&quot;http://edsiper.linuxchile.cl&quot;&nbsp;target=&quot;_blank&quot;&gt;http://edsiper.linuxchile.cl&lt;/a&gt;&lt;br&gt;&lt;a&nbsp;href=&quot;http://monkey-project.com&quot;&nbsp;target=&quot;_blank&quot;&gt;http://monkey-project.com&lt;/a&gt;&lt;/div&gt;<br>
+<br>
+&lt;/div&gt;<br>
+
+</tt>

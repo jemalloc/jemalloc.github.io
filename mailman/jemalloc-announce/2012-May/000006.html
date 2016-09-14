@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3.0.0 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%203.0.0%20released&In-Reply-To=%3CC0E721BB-A5B5-484C-BA68-69DE9C8B82CF%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3.0.0 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%203.0.0%20released&In-Reply-To=%3CC0E721BB-A5B5-484C-BA68-69DE9C8B82CF%40canonware.com%3E"
+       TITLE="jemalloc 3.0.0 released">jasone at canonware.com
+       </A><BR>
+    <I>Fri May 11 22:20:55 PDT 2012</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#6">[ date ]</a>
+              <a href="thread.html#6">[ thread ]</a>
+              <a href="subject.html#6">[ subject ]</a>
+              <a href="author.html#6">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 3.0.0 is now available.  Although this version adds some major new features, the primary focus is on internal code cleanup that facilitates maintainability and portability, most of which is not reflected in the ChangeLog.  This is the first release to incorporate substantial contributions from numerous other developers, and the result is a more broadly useful allocator (see the git revision history for contribution details).  Note that the license has been unified, thanks to Facebook granting a license under the same terms as the other copyright holders (see COPYING).
+
+New features:
+- Implement Valgrind support, redzones, and quarantine.
+- Add support for additional platforms:
+  + FreeBSD
+  + Mac OS X Lion
+  + MinGW
+  + Windows (no support yet for replacing the system malloc)
+- Add support for additional architectures:
+  + MIPS
+  + SH4
+  + Tilera
+- Add support for cross compiling.
+- Add nallocm(), which rounds a request size up to the nearest size class without actually allocating.
+- Implement aligned_alloc() (blame C11).
+- Add the &quot;thread.tcache.enabled&quot; mallctl.
+- Add the &quot;opt.prof_final&quot; mallctl.
+- Update pprof (from gperftools 2.0).
+- Add the --with-mangling option.
+- Add the --disable-experimental option.
+- Add the --disable-munmap option, and make it the default on Linux.
+- Add the --enable-mremap option, which disables use of mremap(2) by default.
+
+Incompatible changes:
+- Enable stats by default.
+- Enable fill by default.
+- Disable lazy locking by default.
+- Rename the &quot;tcache.flush&quot; mallctl to &quot;thread.tcache.flush&quot;.
+- Rename the &quot;arenas.pagesize&quot; mallctl to &quot;arenas.page&quot;.
+- Change the &quot;opt.lg_prof_sample&quot; default from 0 to 19 (1 B to 512 KiB).
+- Change the &quot;opt.prof_accum&quot; default from true to false.
+
+Removed features:
+- Remove the swap feature, including the &quot;config.swap&quot;, &quot;swap.avail&quot;, &quot;swap.prezeroed&quot;, &quot;swap.nfds&quot;, and &quot;swap.fds&quot; mallctls.
+- Remove highruns statistics, including the &quot;stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.highruns&quot; and &quot;stats.arenas.&lt;i&gt;.lruns.&lt;j&gt;.highruns&quot; mallctls.
+- As part of small size class refactoring, remove the &quot;opt.lg_[qc]space_max&quot;, &quot;arenas.cacheline&quot;, &quot;arenas.subpage&quot;, &quot;arenas.[tqcs]space_{min,max}&quot;, and &quot;arenas.[tqcs]bins&quot; mallctls.
+- Remove the &quot;arenas.chunksize&quot; mallctl.
+- Remove the &quot;opt.lg_prof_tcmax&quot; option.
+- Remove the &quot;opt.lg_prof_bt_max&quot; option.
+- Remove the &quot;opt.lg_tcache_gc_sweep&quot; option.
+- Remove the --disable-tiny option, including the &quot;config.tiny&quot; mallctl.
+- Remove the --enable-dynamic-page-shift configure option.
+- Remove the --enable-sysv configure option.
+
+Bug fixes:
+- Fix a statistics-related bug in the &quot;thread.arena&quot; mallctl that could cause invalid statistics and crashes.
+- Work around TLS deallocation via free() on Linux.  This bug could cause write-after-free memory corruption.
+- Fix a potential deadlock that could occur during interval- and growth-triggered heap profile dumps.
+- Fix large calloc() zeroing bugs due to dropping chunk map unzeroed flags.
+- Fix chunk_alloc_dss() to stop claiming memory is zeroed.  This bug could cause memory corruption and crashes with --enable-dss specified.
+- Fix fork-related bugs that could cause deadlock in children between fork and exec.
+- Fix malloc_stats_print() to honor 'b' and 'l' in the opts parameter.
+- Fix realloc(p, 0) to act like free(p).
+- Do not enforce minimum alignment in memalign().
+- Check for NULL pointer in malloc_usable_size().
+- Fix an off-by-one heap profile statistics bug that could be observed in interval- and growth-triggered heap profiles.
+- Fix the &quot;epoch&quot; mallctl to update cached stats even if the passed in epoch is 0.
+- Fix bin-&gt;runcur management to fix a layout policy bug.  This bug did not affect correctness.
+- Fix a bug in choose_arena_hard() that potentially caused more arenas to be initialized than necessary.
+- Add missing &quot;opt.lg_tcache_max&quot; mallctl implementation.
+- Use glibc allocator hooks to make mixed allocator usage less likely.
+- Fix build issues for --disable-tcache.
+- Don't mangle pthread_create() when --with-private-namespace is specified.
+
+For the complete ChangeLog, see:
+	<A HREF="http://www.canonware.com/jemalloc/ChangeLog.html">http://www.canonware.com/jemalloc/ChangeLog.html</A>
+
+Direct download:
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-3.0.0.tar.bz2">http://www.canonware.com/download/jemalloc/jemalloc-3.0.0.tar.bz2</A>
+
+Starting point for general information:
+	<A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+
+Browsable revision history:
+	<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#6">[ date ]</a>
+              <a href="thread.html#6">[ thread ]</a>
+              <a href="subject.html#6">[ subject ]</a>
+              <a href="author.html#6">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

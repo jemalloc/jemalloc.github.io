@@ -1,0 +1,31 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;You&nbsp;actually&nbsp;need&nbsp;to&nbsp;include&nbsp;stdbool.h:&lt;br&gt;&lt;pre&nbsp;class=&quot;&quot;&gt;#include&nbsp;&lt;&lt;code&nbsp;class=&quot;&quot;&gt;stdbool.h&lt;/code&gt;&gt;&lt;br&gt;#include&nbsp;&lt;stdlib.h&gt;&lt;br&gt;#include&nbsp;&lt;&lt;code&nbsp;class=&quot;&quot;&gt;jemalloc/jemalloc.h&lt;/code&gt;&gt;&lt;/pre&gt;&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Wed,&nbsp;Sep&nbsp;24,&nbsp;2014&nbsp;at&nbsp;1:26&nbsp;AM,&nbsp;Matthew&nbsp;Hall&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:mhall@mhcomputing.net&quot;&nbsp;target=&quot;_blank&quot;&gt;mhall@mhcomputing.net&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;Hello,&lt;br&gt;<br>
+&lt;br&gt;<br>
+I&#39;m&nbsp;seeing&nbsp;the&nbsp;following&nbsp;error&nbsp;using&nbsp;this&nbsp;jemalloc&nbsp;version&nbsp;in&nbsp;a&nbsp;client&nbsp;app.&lt;br&gt;<br>
+I&#39;m&nbsp;suspecting&nbsp;the&nbsp;code&nbsp;was&nbsp;supposed&nbsp;to&nbsp;include&nbsp;the&nbsp;header&nbsp;stdbool.h&nbsp;but&nbsp;did&lt;br&gt;<br>
+not&nbsp;do&nbsp;so?&lt;br&gt;<br>
+&lt;br&gt;<br>
+I&nbsp;grepped&nbsp;for&nbsp;this&nbsp;header&nbsp;but&nbsp;I&nbsp;did&nbsp;not&nbsp;see&nbsp;it&nbsp;included&nbsp;in&nbsp;the&nbsp;base&nbsp;jemalloc&lt;br&gt;<br>
+header.&nbsp;I&nbsp;did&nbsp;see&nbsp;it&nbsp;included&nbsp;in&nbsp;jemalloc_internal_decls.h&nbsp;but&nbsp;jemalloc.h&nbsp;only&lt;br&gt;<br>
+includes&nbsp;limits.h&nbsp;and&nbsp;strings.h.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Matthew.&lt;br&gt;<br>
+&lt;br&gt;<br>
+/usr/local/jemalloc/include/jemalloc/jemalloc.h:155:47:&nbsp;error:&nbsp;unknown&nbsp;type&nbsp;name&nbsp;&#39;bool&#39;&lt;br&gt;<br>
+typedef&nbsp;void&nbsp;*(chunk_alloc_t)(size_t,&nbsp;size_t,&nbsp;bool&nbsp;*,&nbsp;unsigned);&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;^&lt;br&gt;<br>
+/usr/local/jemalloc/include/jemalloc/jemalloc.h:156:9:&nbsp;warning:&nbsp;type&nbsp;specifier&nbsp;missing,&nbsp;defaults&nbsp;to&nbsp;&#39;int&#39;&nbsp;[-Wimplicit-int]&lt;br&gt;<br>
+typedef&nbsp;bool&nbsp;(chunk_dalloc_t)(void&nbsp;*,&nbsp;size_t,&nbsp;unsigned);&lt;br&gt;<br>
+~~~~~~&nbsp;^&lt;br&gt;<br>
+/usr/local/jemalloc/include/jemalloc/jemalloc.h:156:14:&nbsp;error:&nbsp;function&nbsp;cannot&nbsp;return&nbsp;function&nbsp;type&nbsp;&#39;int&nbsp;(void&nbsp;*,&nbsp;size_t,&nbsp;unsigned&nbsp;int)&#39;&lt;br&gt;<br>
+typedef&nbsp;bool&nbsp;(chunk_dalloc_t)(void&nbsp;*,&nbsp;size_t,&nbsp;unsigned);&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ^&lt;br&gt;<br>
+/usr/local/jemalloc/include/jemalloc/jemalloc.h:156:15:&nbsp;error:&nbsp;a&nbsp;parameter&nbsp;list&nbsp;without&nbsp;types&nbsp;is&nbsp;only&nbsp;allowed&nbsp;in&nbsp;a&nbsp;function&nbsp;definition&lt;br&gt;<br>
+typedef&nbsp;bool&nbsp;(chunk_dalloc_t)(void&nbsp;*,&nbsp;size_t,&nbsp;unsigned);&lt;br&gt;<br>
+_______________________________________________&lt;br&gt;<br>
+jemalloc-discuss&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:jemalloc-discuss@canonware.com&quot;&gt;jemalloc-discuss@canonware.com&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&lt;/a&gt;&lt;br&gt;<br>
+&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Cross-compiling and configure.ac macros
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3CBANLkTimZz1_t-qxArotak7iPMJiV3A%2BT_w%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000006.html">
+   <LINK REL="Next"  HREF="000007.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Cross-compiling and configure.ac macros</H1>
+    <B>Andreas Vinsander</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3CBANLkTimZz1_t-qxArotak7iPMJiV3A%2BT_w%40mail.gmail.com%3E"
+       TITLE="Cross-compiling and configure.ac macros">andreas+jemalloc at vinsander.se
+       </A><BR>
+    <I>Fri Apr 15 07:07:55 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000006.html">Cross-compiling and configure.ac macros
+</A></li>
+        <LI>Next message: <A HREF="000007.html">Cross-compiling and configure.ac macros
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#5">[ date ]</a>
+              <a href="thread.html#5">[ thread ]</a>
+              <a href="subject.html#5">[ subject ]</a>
+              <a href="author.html#5">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>2011/4/14 Andreas Vinsander &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">andreas+jemalloc at vinsander.se</A>&gt;:
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> I am trying to cross-compile jemalloc for evaluation on an embedded
+</I>&gt;<i> device running a Linux home brew distro.
+</I>&gt;<i>
+</I>&gt;<i> I have some problems with the way jemalloc tests for various support
+</I>&gt;<i> of the host (target) system.
+</I>
+I found another test that doesn't work for me.
+The test for ffsl complains about:
+
+conftest.c:58: warning: conflicting types for built-in function 'ffsl'
+
+where conftests.c look this way:
+
+
+configure: failed program was:
+|<i> /* confdefs.h */
+</I>|<i> #define PACKAGE_NAME &quot;&quot;
+</I>|<i> #define PACKAGE_TARNAME &quot;&quot;
+</I>|<i> #define PACKAGE_VERSION &quot;&quot;
+</I>|<i> #define PACKAGE_STRING &quot;&quot;
+</I>|<i> #define PACKAGE_BUGREPORT &quot;&quot;
+</I>|<i> #define PACKAGE_URL &quot;&quot;
+</I>|<i> #define STDC_HEADERS 1
+</I>|<i> #define HAVE_SYS_TYPES_H 1
+</I>|<i> #define HAVE_SYS_STAT_H 1
+</I>|<i> #define HAVE_STDLIB_H 1
+</I>|<i> #define HAVE_STRING_H 1
+</I>|<i> #define HAVE_MEMORY_H 1
+</I>|<i> #define HAVE_STRINGS_H 1
+</I>|<i> #define HAVE_INTTYPES_H 1
+</I>|<i> #define HAVE_STDINT_H 1
+</I>|<i> #define HAVE_UNISTD_H 1
+</I>|<i> #define SIZEOF_VOID_P 4
+</I>|<i> #define LG_SIZEOF_PTR 2
+</I>|<i> #define SIZEOF_INT 4
+</I>|<i> #define LG_SIZEOF_INT 2
+</I>|<i> #define SIZEOF_LONG 4
+</I>|<i> #define LG_SIZEOF_LONG 2
+</I>|<i> #define CPU_SPINWAIT
+</I>|<i> #define JEMALLOC_PURGE_MADVISE_DONTNEED 1
+</I>|<i> #define JEMALLOC_HAVE_ATTR
+</I>|<i> #define JEMALLOC_MREMAP_FIXED 1
+</I>|<i> #define JEMALLOC_TINY
+</I>|<i> #define JEMALLOC_TCACHE
+</I>|<i> #define STATIC_PAGE_SHIFT 12
+</I>|<i> #define HAVE_PTHREAD_H 1
+</I>|<i> #define HAVE_DLFCN_H 1
+</I>|<i> #define JEMALLOC_LAZY_LOCK
+</I>|<i> /* end confdefs.h.  */
+</I>|<i> /* Define ffsl to an innocuous variant, in case &lt;limits.h&gt; declares ffsl.
+</I>|<i>    For example, HP-UX 11i &lt;limits.h&gt; declares gettimeofday.  */
+</I>|<i> #define ffsl innocuous_ffsl
+</I>|<i>
+</I>|<i> /* System header to define __stub macros and hopefully few prototypes,
+</I>|<i>     which can conflict with char ffsl (); below.
+</I>|<i>     Prefer &lt;limits.h&gt; to &lt;assert.h&gt; if __STDC__ is defined, since
+</I>|<i>     &lt;limits.h&gt; exists even on freestanding compilers.  */
+</I>|<i>
+</I>|<i> #ifdef __STDC__
+</I>
+|<i> # include &lt;limits.h&gt;
+</I>|<i> #else
+</I>|<i> # include &lt;assert.h&gt;
+</I>|<i> #endif
+</I>|<i>
+</I>|<i> #undef ffsl
+</I>|<i>
+</I>|<i> /* Override any GCC internal prototype to avoid an error.
+</I>|<i>    Use char because int might match the return type of a GCC
+</I>|<i>    builtin and then its argument prototype would still apply.  */
+</I>|<i> #ifdef __cplusplus
+</I>|<i> extern &quot;C&quot;
+</I>|<i> #endif
+</I>|<i> char ffsl ();
+</I>|<i> /* The GNU C library defines this for functions which it implements
+</I>|<i>     to always fail with ENOSYS.  Some functions are actually named
+</I>|<i>     something starting with __ and the normal name is an alias.  */
+</I>|<i> #if defined __stub_ffsl || defined __stub___ffsl
+</I>|<i> choke me
+</I>|<i> #endif
+</I>|<i>
+</I>|<i> int
+</I>|<i> main ()
+</I>
+|<i> {
+</I>|<i> return ffsl ();
+</I>|<i>   ;
+</I>|<i>   return 0;
+</I>|<i> }
+</I>
+
+Seems like autoconf has its own idea where ffsl should be found.
+According to manual pages on my Fedora desktop, ffsl should be found
+in string.h if _GNU_SOURCE is defined.
+Any idea what is going on here?
+
+/Andreas
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000006.html">Cross-compiling and configure.ac macros
+</A></li>
+	<LI>Next message: <A HREF="000007.html">Cross-compiling and configure.ac macros
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#5">[ date ]</a>
+              <a href="thread.html#5">[ thread ]</a>
+              <a href="subject.html#5">[ subject ]</a>
+              <a href="author.html#5">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

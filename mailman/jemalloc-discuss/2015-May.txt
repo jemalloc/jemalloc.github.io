@@ -1,0 +1,1079 @@
+From snl20465 at gmail.com  Sat May  2 03:06:50 2015
+From: snl20465 at gmail.com (SNL)
+Date: Sat, 2 May 2015 15:36:50 +0530
+Subject: Per thread arenas
+In-Reply-To: <CAMwDBHPJEN7+_YZm+1rRzThnn03die5D_jGPakGUuk3BktKEBw@mail.gmail.com>
+References: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+	<CAMwDBHO2H74ieeFR4LxM-GCXHusyWEL-H3x38b=pVv5Fzy-WDQ@mail.gmail.com>
+	<CAGvmEXg1rU_=DNuxQmmzEYrE9EqvACJPm7M_3iseo9WyYHV2OA@mail.gmail.com>
+	<CAMwDBHPJEN7+_YZm+1rRzThnn03die5D_jGPakGUuk3BktKEBw@mail.gmail.com>
+Message-ID: <CAGvmEXhA3wExd58w1VmOEVETh9T3we2oQr-_apu9QXyEJ3tkVw@mail.gmail.com>
+
+Another query:
+
+I read that enabling tache interferes with arena related assertions. I
+quickly tried a out small test case to check for double free(). I see that
+the assertions get hit only when tache is disabled.
+
+My question is, if tcache is enabled, will arena specific assertions ever
+get hit ? I am okay if this happens in a deferred manner but it is an issue
+if the assertions never get hit if tache is enabled.
+
+Any pointers will be helpful.
+
+On Thu, Apr 30, 2015 at 1:17 AM, Qinfan Wu <wuqinfan at gmail.com> wrote:
+
+> The arenas would still be there until the whole process dies.
+>
+>
+> On Wednesday, April 29, 2015, SNL <snl20465 at gmail.com> wrote:
+>
+>>
+>> Right. What happens to arenas when thread dies ?
+>>
+>> On Wed, Apr 29, 2015 at 9:17 PM, Qinfan Wu <wuqinfan at gmail.com> wrote:
+>>
+>>>
+>>>
+>>> On Tue, Apr 28, 2015 at 10:30 PM, SNL <snl20465 at gmail.com> wrote:
+>>>
+>>>>
+>>>>
+>>>> I am planning to assign each thread its own arena, as per my
+>>>> understanding this is akin to having a per thread heap since arena
+>>>> management is completely independent of each other.
+>>>>
+>>>> How this is know to affect performance and memory overheads ? I am sure
+>>>> this would depend a lot on application allocation patterns but are any
+>>>> generic numbers/data from past ?
+>>>>
+>>> If you have a lot of threads, having an arena for each thread could
+>>> potentially increasing memory usage and fragmentation. Usually the default
+>>> setting (4 arenas per cpu) is enough to reduce lock contention, since not
+>>> every allocation needs to acquire the arena lock.
+>>>
+>>>>
+>>>> In cases where allocation done by thread T1 is freed by thread T2, how
+>>>> does jemalloc handles it ? Is there any basic garbage collection or
+>>>> remote-free ( request to free by remote thread which owns the allocation )
+>>>> implementation ? I see that this could lead to memory build up.
+>>>>
+>>>> Any inputs will be appreciated.
+>>>>
+>>>>
+>>>> _______________________________________________
+>>>> jemalloc-discuss mailing list
+>>>> jemalloc-discuss at canonware.com
+>>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>>>
+>>>>
+>>>
+>>
+>>
+>> --
+>>
+>> Cheers,
+>> Sunny.
+>>
+>
+>
+> --
+> Sent from Gmail Mobile
+>
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150502/7419f14c/attachment.html>
+
+From mayankum at cisco.com  Wed May  6 18:50:49 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Thu, 7 May 2015 01:50:49 +0000
+Subject: jemalloc Suitable for embedded environments
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+
+Hi Users
+I recently started experimenting with jemalloc and found that jemalloc controls fragmentation phenomenally. A process that was running out of its allocated quota of 2g of virtual memory now uses only 1000mb of virtual memory and works without any crashes. I am trying to incorporate this library but it seems people have some apprehensions about it associated with big data applications(enhanced by facebook).
+
+Can someone answer the following question, while I am trying  to do some code reading:-
+
+1.       Does jemalloc waste memory at the cost of speed and is optimized for big data applications ?
+
+2.       Are there scenarios where if many threads are competing for malloc, it will dynamically create new arenas to reduce  thread contention and are their parameters to control/tune them ?
+
+3.       Are there any other tunable parameters I should look at to ensure jemalloc doesn't uncontrollably allocate memory in stress scenarios to optimize performance at the cost of memory . In my environment, I would expect jemalloc to reduce performance rather than allocate more  memory/arenas/pools to better performance.
+
+Any help is appreciated while I ramp up on this new magical library.
+
+
+-Mayank
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150507/d8dfb8f4/attachment.html>
+
+From annulen at yandex.ru  Thu May  7 02:41:03 2015
+From: annulen at yandex.ru (Konstantin Tokarev)
+Date: Thu, 07 May 2015 12:41:03 +0300
+Subject: jemalloc Suitable for embedded environments
+In-Reply-To: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+References: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+Message-ID: <6500011430991663@web24h.yandex.ru>
+
+
+
+07.05.2015, 04:51, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+> Hi Users
+>
+> I recently started experimenting with jemalloc and found that jemalloc controls fragmentation phenomenally. A process that was running out of its allocated quota of 2g of virtual memory now uses only 1000mb of virtual memory and works without any crashes. I am trying to incorporate this library but it seems people have some apprehensions about it associated with big data applications(enhanced by facebook).
+>
+> Can someone answer the following question, while I am trying ?to do some code reading:-
+>
+> 1.?????? Does jemalloc waste memory at the cost of speed and is optimized for big data applications ?
+
+
+By default jemalloc uses 4MiB chunks which can be too much for low memory systems. You might want to tune it with lg_chunk option (note that decreasing chunk size may affect performance).
+
+
+>
+> 2.?????? Are there scenarios where if many threads are competing for malloc, it will dynamically create new arenas to reduce? thread contention and are their parameters to control/tune them ?
+>
+> 3.?????? Are there any other tunable parameters I should look at to ensure jemalloc doesn?t uncontrollably allocate memory in stress scenarios to optimize performance at the cost of memory . In my environment, I would expect jemalloc to reduce performance rather than allocate more? memory/arenas/pools to better performance.
+>
+> Any help is appreciated while I ramp up on this new magical library.
+>
+> -Mayank
+>
+> ,
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+-- 
+Regards,
+Konstantin
+
+From jasone at canonware.com  Thu May  7 08:06:13 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 7 May 2015 08:06:13 -0700
+Subject: jemalloc Suitable for embedded environments
+In-Reply-To: <6500011430991663@web24h.yandex.ru>
+References: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+	<6500011430991663@web24h.yandex.ru>
+Message-ID: <40F58C02-AE0F-4AF6-A2BB-383D20233844@canonware.com>
+
+On May 7, 2015, at 2:41 AM, Konstantin Tokarev <annulen at yandex.ru> wrote:
+> 07.05.2015, 04:51, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+>> 
+>> I recently started experimenting with jemalloc and found that jemalloc controls fragmentation phenomenally. A process that was running out of its allocated quota of 2g of virtual memory now uses only 1000mb of virtual memory and works without any crashes. I am trying to incorporate this library but it seems people have some apprehensions about it associated with big data applications(enhanced by facebook).
+>> 
+>> Can someone answer the following question, while I am trying  to do some code reading:-
+>> 
+>> 1.       Does jemalloc waste memory at the cost of speed and is optimized for big data applications ?
+
+jemalloc remains the allocator built into FreeBSD's libc, and memory utilization has actually improved for such applications over the past five years, because I've taken care to solve performance issues in ways that scale both to large and small scale.  In my opinion the worst problem with jemalloc for very small embedded environments is code size, which translates to a larger instruction cache footprint.  Some features can be compiled out, but even so the resulting binary size is larger than that of most other allocators.
+
+> By default jemalloc uses 4MiB chunks which can be too much for low memory systems. You might want to tune it with lg_chunk option (note that decreasing chunk size may affect performance).
+
+The dev version now uses 256 KiB chunks, so this shouldn't be much of an issue starting with jemalloc 4.
+
+>> 2.       Are there scenarios where if many threads are competing for malloc, it will dynamically create new arenas to reduce  thread contention and are their parameters to control/tune them ?
+
+The maximum number of arenas that can be automatically created is fixed at startup time, and can be tuned:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.narenas
+
+>> 3.       Are there any other tunable parameters I should look at to ensure jemalloc doesn?t uncontrollably allocate memory in stress scenarios to optimize performance at the cost of memory . In my environment, I would expect jemalloc to reduce performance rather than allocate more  memory/arenas/pools to better performance.
+
+You may want to turn off thread caches:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.tcache
+
+More aggressive dirty page purging may reduce physical memory usage, depending on application:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_dirty_mult
+
+Jason
+
+From mayankum at cisco.com  Thu May  7 16:01:04 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Thu, 7 May 2015 23:01:04 +0000
+Subject: jemalloc Suitable for embedded environments
+In-Reply-To: <40F58C02-AE0F-4AF6-A2BB-383D20233844@canonware.com>
+References: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+	<6500011430991663@web24h.yandex.ru>
+	<40F58C02-AE0F-4AF6-A2BB-383D20233844@canonware.com>
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C382CD6@xmb-rcd-x07.cisco.com>
+
+Hi Jason and Konstantin
+
+Thanks for your replies. I will investigate along the pointers specified. Few more questions and comments:-
+
+--what specifically causes the code size bloat ?
+--it is comforting to hear that the jemalloc is already part of FreeBSD. I would like to know which version of jemalloc is part of FreeBSD releases now ? Also does the FreeBSD distribution of jemalloc includes all the enhancements done for Facebook or is it some stripped down version?
+
+-mayank
+
+
+-----Original Message-----
+From: Jason Evans [mailto:jasone at canonware.com] 
+Sent: Thursday, May 07, 2015 8:06 AM
+To: Mayank Kumar (mayankum); Konstantin Tokarev
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: jemalloc Suitable for embedded environments
+
+On May 7, 2015, at 2:41 AM, Konstantin Tokarev <annulen at yandex.ru> wrote:
+> 07.05.2015, 04:51, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+>> 
+>> I recently started experimenting with jemalloc and found that jemalloc controls fragmentation phenomenally. A process that was running out of its allocated quota of 2g of virtual memory now uses only 1000mb of virtual memory and works without any crashes. I am trying to incorporate this library but it seems people have some apprehensions about it associated with big data applications(enhanced by facebook).
+>> 
+>> Can someone answer the following question, while I am trying  to do some code reading:-
+>> 
+>> 1.       Does jemalloc waste memory at the cost of speed and is optimized for big data applications ?
+
+jemalloc remains the allocator built into FreeBSD's libc, and memory utilization has actually improved for such applications over the past five years, because I've taken care to solve performance issues in ways that scale both to large and small scale.  In my opinion the worst problem with jemalloc for very small embedded environments is code size, which translates to a larger instruction cache footprint.  Some features can be compiled out, but even so the resulting binary size is larger than that of most other allocators.
+
+> By default jemalloc uses 4MiB chunks which can be too much for low memory systems. You might want to tune it with lg_chunk option (note that decreasing chunk size may affect performance).
+
+The dev version now uses 256 KiB chunks, so this shouldn't be much of an issue starting with jemalloc 4.
+
+>> 2.       Are there scenarios where if many threads are competing for malloc, it will dynamically create new arenas to reduce  thread contention and are their parameters to control/tune them ?
+
+The maximum number of arenas that can be automatically created is fixed at startup time, and can be tuned:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.narenas
+
+>> 3.       Are there any other tunable parameters I should look at to ensure jemalloc doesn?t uncontrollably allocate memory in stress scenarios to optimize performance at the cost of memory . In my environment, I would expect jemalloc to reduce performance rather than allocate more  memory/arenas/pools to better performance.
+
+You may want to turn off thread caches:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.tcache
+
+More aggressive dirty page purging may reduce physical memory usage, depending on application:
+
+	http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_dirty_mult
+
+Jason
+
+From jasone at canonware.com  Thu May  7 19:08:29 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 7 May 2015 19:08:29 -0700
+Subject: jemalloc Suitable for embedded environments
+In-Reply-To: <EDC505415B5EF74C80596BD24619C1032C382CD6@xmb-rcd-x07.cisco.com>
+References: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+	<6500011430991663@web24h.yandex.ru>
+	<40F58C02-AE0F-4AF6-A2BB-383D20233844@canonware.com>
+	<EDC505415B5EF74C80596BD24619C1032C382CD6@xmb-rcd-x07.cisco.com>
+Message-ID: <7B711959-6567-419A-A339-24DE82B58240@canonware.com>
+
+On May 7, 2015, at 4:01 PM, Mayank Kumar (mayankum) <mayankum at cisco.com> wrote:
+> --what specifically causes the code size bloat ?
+
+jemalloc implements several features that aren't strictly necessary, which is counter to the nature of highly constrained embedded systems.  Thread caches, extensive statistics collection, heap profiling, etc. all require extra code.  Additionally, the core algorithms are more sophisticated than those of simpler allocators, which also requires extra code.  I just built a dev version of jemalloc on FreeBSD as such:
+
+  $ EXTRA_CFLAGS="-Os" ./autogen.sh --disable-stats --disable-tcache --disable-fill
+  $ gmake
+  $ strip -g lib/libjemalloc.so.2
+  $ ls -l lib/libjemalloc.so.2
+  -rwxr-xr-x 1 jasone wheel 182856 May  7 19:02 lib/libjemalloc.so.2
+
+179 KiB is by no means svelt for a malloc implementation.
+
+> --it is comforting to hear that the jemalloc is already part of FreeBSD. I would like to know which version of jemalloc is part of FreeBSD releases now ? Also does the FreeBSD distribution of jemalloc includes all the enhancements done for Facebook or is it some stripped down version?
+
+IIRC it's somewhere in the 3.5.1-3.6.0 range for FreeBSD 10.  I plan to commit version 4 to FreeBSD-11 CURRENT within the next month or so.
+
+Jason
+
+From snl20465 at gmail.com  Sun May 10 13:19:11 2015
+From: snl20465 at gmail.com (SNL)
+Date: Mon, 11 May 2015 01:49:11 +0530
+Subject: Per thread arenas
+In-Reply-To: <CAGvmEXhA3wExd58w1VmOEVETh9T3we2oQr-_apu9QXyEJ3tkVw@mail.gmail.com>
+References: <CAGvmEXhXGcOZhcTBdfiPS4GqZOt_pHJ1h2rcFFYPWsvQbMYoGA@mail.gmail.com>
+	<CAMwDBHO2H74ieeFR4LxM-GCXHusyWEL-H3x38b=pVv5Fzy-WDQ@mail.gmail.com>
+	<CAGvmEXg1rU_=DNuxQmmzEYrE9EqvACJPm7M_3iseo9WyYHV2OA@mail.gmail.com>
+	<CAMwDBHPJEN7+_YZm+1rRzThnn03die5D_jGPakGUuk3BktKEBw@mail.gmail.com>
+	<CAGvmEXhA3wExd58w1VmOEVETh9T3we2oQr-_apu9QXyEJ3tkVw@mail.gmail.com>
+Message-ID: <CAGvmEXjhT7y2L6uRaV1SbkMYKCZz-9UhH1OE-D2_k1XR9he-oA@mail.gmail.com>
+
+Jason,
+
+Any inputs will be really helpful.
+
+On Sat, May 2, 2015 at 3:36 PM, SNL <snl20465 at gmail.com> wrote:
+
+>
+> Another query:
+>
+> I read that enabling tache interferes with arena related assertions. I
+> quickly tried a out small test case to check for double free(). I see that
+> the assertions get hit only when tache is disabled.
+>
+> My question is, if tcache is enabled, will arena specific assertions ever
+> get hit ? I am okay if this happens in a deferred manner but it is an issue
+> if the assertions never get hit if tache is enabled.
+>
+> Any pointers will be helpful.
+>
+> On Thu, Apr 30, 2015 at 1:17 AM, Qinfan Wu <wuqinfan at gmail.com> wrote:
+>
+>> The arenas would still be there until the whole process dies.
+>>
+>>
+>> On Wednesday, April 29, 2015, SNL <snl20465 at gmail.com> wrote:
+>>
+>>>
+>>> Right. What happens to arenas when thread dies ?
+>>>
+>>> On Wed, Apr 29, 2015 at 9:17 PM, Qinfan Wu <wuqinfan at gmail.com> wrote:
+>>>
+>>>>
+>>>>
+>>>> On Tue, Apr 28, 2015 at 10:30 PM, SNL <snl20465 at gmail.com> wrote:
+>>>>
+>>>>>
+>>>>>
+>>>>> I am planning to assign each thread its own arena, as per my
+>>>>> understanding this is akin to having a per thread heap since arena
+>>>>> management is completely independent of each other.
+>>>>>
+>>>>> How this is know to affect performance and memory overheads ? I am
+>>>>> sure this would depend a lot on application allocation patterns but are any
+>>>>> generic numbers/data from past ?
+>>>>>
+>>>> If you have a lot of threads, having an arena for each thread could
+>>>> potentially increasing memory usage and fragmentation. Usually the default
+>>>> setting (4 arenas per cpu) is enough to reduce lock contention, since not
+>>>> every allocation needs to acquire the arena lock.
+>>>>
+>>>>>
+>>>>> In cases where allocation done by thread T1 is freed by thread T2, how
+>>>>> does jemalloc handles it ? Is there any basic garbage collection or
+>>>>> remote-free ( request to free by remote thread which owns the allocation )
+>>>>> implementation ? I see that this could lead to memory build up.
+>>>>>
+>>>>> Any inputs will be appreciated.
+>>>>>
+>>>>>
+>>>>> _______________________________________________
+>>>>> jemalloc-discuss mailing list
+>>>>> jemalloc-discuss at canonware.com
+>>>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>>>>
+>>>>>
+>>>>
+>>>
+>>>
+>>> --
+>>>
+>>> Cheers,
+>>> Sunny.
+>>>
+>>
+>>
+>> --
+>> Sent from Gmail Mobile
+>>
+>
+>
+>
+> --
+>
+> Cheers,
+> Sunny.
+>
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150511/2c25805b/attachment.html>
+
+From mayankum at cisco.com  Mon May 11 13:19:39 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Mon, 11 May 2015 20:19:39 +0000
+Subject: jemalloc Suitable for embedded environments
+In-Reply-To: <7B711959-6567-419A-A339-24DE82B58240@canonware.com>
+References: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+	<6500011430991663@web24h.yandex.ru>
+	<40F58C02-AE0F-4AF6-A2BB-383D20233844@canonware.com>
+	<EDC505415B5EF74C80596BD24619C1032C382CD6@xmb-rcd-x07.cisco.com>
+	<7B711959-6567-419A-A339-24DE82B58240@canonware.com>
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C3A9AE8@xmb-rcd-x07.cisco.com>
+
+Thanks Jason. I don't think code size should be a  big issue for us or I will disable stats/profiling in production.  I have a few more questions and some of them may be dumb, but I will still risk asking those here:-
+
+-our processes use setrlimit to limit virtual memory usage of processes. Do you think jemalloc in someways could overshoot that limit or it might be doing something funky which is not tracked through setrlimit(like not going through brk/mmap/mremap).  Please excuse my limited understanding here.
+
+-someone pointed this link to me . http://locklessinc.com/benchmarks_allocator.shtml
+It says the following stuff 
+
+<quote>
+Jemalloc allocator
+
+This is a very good allocator when there is a large amount of contention, performing similarly to the Lockless memory allocator as the number of threads grows larger than the number of processors. However, when the number of allocating threads is smaller than the total number of cpus, it isn't quite as fast. The disadvantage of the jemalloc allocator is its memory usage. It uses power-of-two sized bins, which leads to a greatly increased memory footprint compared to other allocators. This can affect real-world performance due to excess cache and TLB misses.
+</quote>
+
+Do you think it is still true, this might be an old link or just my limited understanding. Off course they are selling here...., but justed wanted your opinion here. For our case, though the allocating threads will be always larger than number of cores.
+
+-has anyone seen issues with using jemalloc on windriver linux or compiling/linking with their toolchain ?
+
+
+I am just trying to research this a little more while I am testing this with different scenarios.  Thanks for your help
+
+-mayank
+
+
+
+-----Original Message-----
+From: Jason Evans [mailto:jasone at canonware.com] 
+Sent: Thursday, May 07, 2015 7:08 PM
+To: Mayank Kumar (mayankum)
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: jemalloc Suitable for embedded environments
+
+On May 7, 2015, at 4:01 PM, Mayank Kumar (mayankum) <mayankum at cisco.com> wrote:
+> --what specifically causes the code size bloat ?
+
+jemalloc implements several features that aren't strictly necessary, which is counter to the nature of highly constrained embedded systems.  Thread caches, extensive statistics collection, heap profiling, etc. all require extra code.  Additionally, the core algorithms are more sophisticated than those of simpler allocators, which also requires extra code.  I just built a dev version of jemalloc on FreeBSD as such:
+
+  $ EXTRA_CFLAGS="-Os" ./autogen.sh --disable-stats --disable-tcache --disable-fill
+  $ gmake
+  $ strip -g lib/libjemalloc.so.2
+  $ ls -l lib/libjemalloc.so.2
+  -rwxr-xr-x 1 jasone wheel 182856 May  7 19:02 lib/libjemalloc.so.2
+
+179 KiB is by no means svelt for a malloc implementation.
+
+> --it is comforting to hear that the jemalloc is already part of FreeBSD. I would like to know which version of jemalloc is part of FreeBSD releases now ? Also does the FreeBSD distribution of jemalloc includes all the enhancements done for Facebook or is it some stripped down version?
+
+IIRC it's somewhere in the 3.5.1-3.6.0 range for FreeBSD 10.  I plan to commit version 4 to FreeBSD-11 CURRENT within the next month or so.
+
+Jason
+
+From jasone at canonware.com  Mon May 11 16:49:10 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 11 May 2015 16:49:10 -0700
+Subject: jemalloc Suitable for embedded environments
+In-Reply-To: <EDC505415B5EF74C80596BD24619C1032C3A9AE8@xmb-rcd-x07.cisco.com>
+References: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+	<6500011430991663@web24h.yandex.ru>
+	<40F58C02-AE0F-4AF6-A2BB-383D20233844@canonware.com>
+	<EDC505415B5EF74C80596BD24619C1032C382CD6@xmb-rcd-x07.cisco.com>
+	<7B711959-6567-419A-A339-24DE82B58240@canonware.com>
+	<EDC505415B5EF74C80596BD24619C1032C3A9AE8@xmb-rcd-x07.cisco.com>
+Message-ID: <9A339C8D-8A5B-45E5-9002-100CC52C1B37@canonware.com>
+
+On May 11, 2015, at 1:19 PM, Mayank Kumar (mayankum) <mayankum at cisco.com> wrote:
+> -our processes use setrlimit to limit virtual memory usage of processes. Do you think jemalloc in someways could overshoot that limit or it might be doing something funky which is not tracked through setrlimit(like not going through brk/mmap/mremap).  Please excuse my limited understanding here.
+
+jemalloc only uses mmap() and sbrk() to map memory on Unix-like systems.
+
+> -someone pointed this link to me . http://locklessinc.com/benchmarks_allocator.shtml
+> It says the following stuff 
+> 
+> <quote>
+> Jemalloc allocator
+> 
+> This is a very good allocator when there is a large amount of contention, performing similarly to the Lockless memory allocator as the number of threads grows larger than the number of processors. However, when the number of allocating threads is smaller than the total number of cpus, it isn't quite as fast. The disadvantage of the jemalloc allocator is its memory usage. It uses power-of-two sized bins, which leads to a greatly increased memory footprint compared to other allocators. This can affect real-world performance due to excess cache and TLB misses.
+> </quote>
+> 
+> Do you think it is still true, this might be an old link or just my limited understanding. Off course they are selling here...., but justed wanted your opinion here. For our case, though the allocating threads will be always larger than number of cores.
+
+The above was a combination of incorrect/incomplete information and microbenchmark-based overgeneralization even at the time it was written ~4 years ago.  Specific issues:
+
+- MP-scalable malloc implementations *avoid* contention in order to perform well.  The t-test1 microbenchmark as run did not induce appreciable contention in jemalloc.
+
+- jemalloc's typically low memory usage has been a distinguishing quality since 2006.  To claim otherwise based on one microbenchmark is unjustifiable.
+
+- jemalloc has at various times used power-of-two-*spaced* bins for limited size ranges, e.g. 1024..2048..4096..8192 and 4MiB..8MiB, but it has never done so universally.  I suspect the author misread my BSDcan paper (http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf), and mistook the binary buddy page management system for size classes.  However, the binary buddy page management system was replaced long before jemalloc 1.0.0.
+
+On the bright side, the benchmarks report actual performance results for a version of jemalloc, unlike a previous version of that page, which erroneously reported glibc results, or an interim update which categorically blamed a memalign() call with questionable alignment and the resulting crashes on jemalloc.
+
+Note that the Lockless malloc implementation has since been open-sourced, so you can conduct your own tests and see how well it works for your use case.
+
+Jason
+
+From mayankum at cisco.com  Mon May 18 09:12:51 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Mon, 18 May 2015 16:12:51 +0000
+Subject: jemalloc Suitable for embedded environments
+In-Reply-To: <9A339C8D-8A5B-45E5-9002-100CC52C1B37@canonware.com>
+References: <EDC505415B5EF74C80596BD24619C1032C380AC9@xmb-rcd-x07.cisco.com>
+	<6500011430991663@web24h.yandex.ru>
+	<40F58C02-AE0F-4AF6-A2BB-383D20233844@canonware.com>
+	<EDC505415B5EF74C80596BD24619C1032C382CD6@xmb-rcd-x07.cisco.com>
+	<7B711959-6567-419A-A339-24DE82B58240@canonware.com>
+	<EDC505415B5EF74C80596BD24619C1032C3A9AE8@xmb-rcd-x07.cisco.com>
+	<9A339C8D-8A5B-45E5-9002-100CC52C1B37@canonware.com>
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C3D7CEA@xmb-rcd-x07.cisco.com>
+
+Thanks Jason for the details. I have some followup questions while I try to integrate this library and will start another thread for it.
+ 
+
+-----Original Message-----
+From: Jason Evans [mailto:jasone at canonware.com] 
+Sent: Monday, May 11, 2015 4:49 PM
+To: Mayank Kumar (mayankum)
+Cc: jemalloc-discuss at canonware.com
+Subject: Re: jemalloc Suitable for embedded environments
+
+On May 11, 2015, at 1:19 PM, Mayank Kumar (mayankum) <mayankum at cisco.com> wrote:
+> -our processes use setrlimit to limit virtual memory usage of processes. Do you think jemalloc in someways could overshoot that limit or it might be doing something funky which is not tracked through setrlimit(like not going through brk/mmap/mremap).  Please excuse my limited understanding here.
+
+jemalloc only uses mmap() and sbrk() to map memory on Unix-like systems.
+
+> -someone pointed this link to me . http://locklessinc.com/benchmarks_allocator.shtml
+> It says the following stuff 
+> 
+> <quote>
+> Jemalloc allocator
+> 
+> This is a very good allocator when there is a large amount of contention, performing similarly to the Lockless memory allocator as the number of threads grows larger than the number of processors. However, when the number of allocating threads is smaller than the total number of cpus, it isn't quite as fast. The disadvantage of the jemalloc allocator is its memory usage. It uses power-of-two sized bins, which leads to a greatly increased memory footprint compared to other allocators. This can affect real-world performance due to excess cache and TLB misses.
+> </quote>
+> 
+> Do you think it is still true, this might be an old link or just my limited understanding. Off course they are selling here...., but justed wanted your opinion here. For our case, though the allocating threads will be always larger than number of cores.
+
+The above was a combination of incorrect/incomplete information and microbenchmark-based overgeneralization even at the time it was written ~4 years ago.  Specific issues:
+
+- MP-scalable malloc implementations *avoid* contention in order to perform well.  The t-test1 microbenchmark as run did not induce appreciable contention in jemalloc.
+
+- jemalloc's typically low memory usage has been a distinguishing quality since 2006.  To claim otherwise based on one microbenchmark is unjustifiable.
+
+- jemalloc has at various times used power-of-two-*spaced* bins for limited size ranges, e.g. 1024..2048..4096..8192 and 4MiB..8MiB, but it has never done so universally.  I suspect the author misread my BSDcan paper (http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf), and mistook the binary buddy page management system for size classes.  However, the binary buddy page management system was replaced long before jemalloc 1.0.0.
+
+On the bright side, the benchmarks report actual performance results for a version of jemalloc, unlike a previous version of that page, which erroneously reported glibc results, or an interim update which categorically blamed a memalign() call with questionable alignment and the resulting crashes on jemalloc.
+
+Note that the Lockless malloc implementation has since been open-sourced, so you can conduct your own tests and see how well it works for your use case.
+
+Jason
+
+From mayankum at cisco.com  Mon May 18 09:30:04 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Mon, 18 May 2015 16:30:04 +0000
+Subject: jemalloc linking
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C3D8D31@xmb-rcd-x07.cisco.com>
+
+Hi All
+
+My application worked perfectly with LD_PRELOAD and the virtual memory growth was contained. As soon as I linked it dynamically with jemalloc, this wasn't the case. So virtual memory kept growing. So  I am guessing that my application is still not using jemalloc but libc's default malloc when linking dynamically. My application is a binary which links to many dynamically loadable libraries some of which are internally built and some are open source versions which we don't always build. My questions are:-
+
+
+1.       When linking dynamically with jemalloc, is it a requirement to have -ljemalloc as early as possible or possibly the first library being linked to, to override the default malloc ?
+
+2.       What method does jemalloc uses while linking to override malloc, does it use the malloc_hooks to override or just the normal linking, so that whatever the linker gets first, it will link to .
+
+3.       Would linking statically  solve this issue, although my preference would be to link dynamically since I have at least 10 processes which needs jemalloc, and at least they would share the code in memory.
+
+4.       When linking with external open source libraries, do I need to re-compile those with jemalloc as well to make sure any mallocs in those libraries also go through jemalloc or that is not required. I am guessing it should not be required as long as my process links to the right malloc library, their dependencies should be correctly resolved.
+
+-Mayank
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150518/fe34f3b1/attachment.html>
+
+From annulen at yandex.ru  Mon May 18 12:20:16 2015
+From: annulen at yandex.ru (Konstantin Tokarev)
+Date: Mon, 18 May 2015 22:20:16 +0300
+Subject: jemalloc linking
+In-Reply-To: <EDC505415B5EF74C80596BD24619C1032C3D8D31@xmb-rcd-x07.cisco.com>
+References: <EDC505415B5EF74C80596BD24619C1032C3D8D31@xmb-rcd-x07.cisco.com>
+Message-ID: <1359731431976816@web4o.yandex.ru>
+
+
+
+18.05.2015, 19:30, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+> Hi All
+>
+> My application worked perfectly with LD_PRELOAD and the virtual memory growth was contained. As soon as I linked it dynamically with jemalloc, this wasn?t the case. So virtual memory kept growing. So? I am guessing that my application is still not using jemalloc but libc?s default malloc when linking dynamically. My application is a binary which links to many dynamically loadable libraries some of which are internally built and some are open source versions which we don?t always build. My questions are:-
+>
+> 1.?????? When linking dynamically with jemalloc, is it a requirement to have ?ljemalloc as early as possible or possibly the first library being linked to, to override the default malloc ?
+
+Yes - this is how dynamic linking works on ELF platforms. When linker sees undefined symbol "malloc" it will take it from first ELF object (in order of specified ld arguments) which has defined "malloc" symbol.
+
+>
+> 2.?????? What method does jemalloc uses while linking to override malloc, does it use the malloc_hooks to override or just the normal linking, so that whatever the linker gets first, it will link to .
+
+LD_PRELOAD deals only with ELF linking, injecting your library(ies) in the beginning of *.so list used by runtime linked (e.g., ld-linux.so)
+
+>
+> 3.?????? Would linking statically? solve this issue, although my preference would be to link dynamically since I have at least 10 processes which needs jemalloc, and at least they would share the code in memory.
+>
+> 4.?????? When linking with external open source libraries, do I need to re-compile those with jemalloc as well to make sure any mallocs in those libraries also go through jemalloc or that is not required. I am guessing it should not be required as long as my process links to the right malloc library, their dependencies should be correctly resolved.
+
+
+
+-- 
+Regards,
+Konstantin
+
+From mayankum at cisco.com  Tue May 19 12:59:05 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Tue, 19 May 2015 19:59:05 +0000
+Subject: jemalloc linking
+In-Reply-To: <1359731431976816@web4o.yandex.ru>
+References: <EDC505415B5EF74C80596BD24619C1032C3D8D31@xmb-rcd-x07.cisco.com>
+	<1359731431976816@web4o.yandex.ru>
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C3DC398@xmb-rcd-x07.cisco.com>
+
+Thanks  Konstantin. I think putting jemalloc early enough worked.
+
+But I am getting the following errors and it seems others have seen this error before . I am compiling with windriver toolchain. I ran the configure script, so I am wondering the configure script should have done the right thing and determined that all these definitions are already present and hence when generating the header file , should have skipped these definitions so that this is not an issue.
+
+Do I need to pass specific options to configure or what is the right way to fix this issue ?
+
+declaration of 'void* malloc(size_t) throw ()' throws different exceptions
+jemalloc-3.6.0/include/jemalloc/jemalloc.h:137: error: from previous declaration 'void* malloc(size_t)'
+usr/include/stdlib.h:474: error: declaration of 'void* calloc(size_t, size_t) throw ()' throws different exceptions
+jemalloc-3.6.0/include/jemalloc/jemalloc.h:139: error: from previous declaration 'void* calloc(size_t, size_t)'
+usr/include/stdlib.h:486: error: declaration of 'void* realloc(void*, size_t) throw ()' throws different exceptions
+jemalloc-3.6.0/include/jemalloc/jemalloc.h:144: error: from previous declaration 'void* realloc(void*, size_t)'
+usr/include/stdlib.h:488: error: declaration of 'void free(void*) throw ()' throws different exceptions
+/include/jemalloc/jemalloc.h:145: error: from previous declaration 'void free(void*)'
+lib/gcc/i586-wrs-linux-gnu/4.3.2/../../../../i586-wrs-linux-gnu/include/c++/4.3.2/cstdlib:73,
+
+
+
+
+-----Original Message-----
+From: Konstantin Tokarev [mailto:annulen at yandex.ru] 
+Sent: Monday, May 18, 2015 12:20 PM
+To: Mayank Kumar (mayankum); jemalloc-discuss at canonware.com
+Subject: Re: jemalloc linking
+
+
+
+18.05.2015, 19:30, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+> Hi All
+>
+> My application worked perfectly with LD_PRELOAD and the virtual memory growth was contained. As soon as I linked it dynamically with jemalloc, this wasn?t the case. So virtual memory kept growing. So? I am guessing that my application is still not using jemalloc but libc?s default malloc when linking dynamically. My application is a binary which links to many dynamically loadable libraries some of which are internally built and some are open source versions which we don?t always build. My questions are:-
+>
+> 1.?????? When linking dynamically with jemalloc, is it a requirement to have ?ljemalloc as early as possible or possibly the first library being linked to, to override the default malloc ?
+
+Yes - this is how dynamic linking works on ELF platforms. When linker sees undefined symbol "malloc" it will take it from first ELF object (in order of specified ld arguments) which has defined "malloc" symbol.
+
+>
+> 2.?????? What method does jemalloc uses while linking to override malloc, does it use the malloc_hooks to override or just the normal linking, so that whatever the linker gets first, it will link to .
+
+LD_PRELOAD deals only with ELF linking, injecting your library(ies) in the beginning of *.so list used by runtime linked (e.g., ld-linux.so)
+
+>
+> 3.?????? Would linking statically? solve this issue, although my preference would be to link dynamically since I have at least 10 processes which needs jemalloc, and at least they would share the code in memory.
+>
+> 4.?????? When linking with external open source libraries, do I need to re-compile those with jemalloc as well to make sure any mallocs in those libraries also go through jemalloc or that is not required. I am guessing it should not be required as long as my process links to the right malloc library, their dependencies should be correctly resolved.
+
+
+
+-- 
+Regards,
+Konstantin
+
+From annulen at yandex.ru  Wed May 20 04:45:59 2015
+From: annulen at yandex.ru (Konstantin Tokarev)
+Date: Wed, 20 May 2015 14:45:59 +0300
+Subject: jemalloc linking
+In-Reply-To: <EDC505415B5EF74C80596BD24619C1032C3DC398@xmb-rcd-x07.cisco.com>
+References: <EDC505415B5EF74C80596BD24619C1032C3D8D31@xmb-rcd-x07.cisco.com>
+	<1359731431976816@web4o.yandex.ru>
+	<EDC505415B5EF74C80596BD24619C1032C3DC398@xmb-rcd-x07.cisco.com>
+Message-ID: <791241432122359@web4m.yandex.ru>
+
+
+
+19.05.2015, 22:59, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+> Thanks ?Konstantin. I think putting jemalloc early enough worked.
+>
+> But I am getting the following errors and it seems others have seen this error before . I am compiling with windriver toolchain. I ran the configure script, so I am wondering the configure script should have done the right thing and determined that all these definitions are already present and hence when generating the header file , should have skipped these definitions so that this is not an issue.
+>
+> Do I need to pass specific options to configure or what is the right way to fix this issue ?
+>
+> declaration of 'void* malloc(size_t) throw ()' throws different exceptions
+> jemalloc-3.6.0/include/jemalloc/jemalloc.h:137: error: from previous declaration 'void* malloc(size_t)'
+> usr/include/stdlib.h:474: error: declaration of 'void* calloc(size_t, size_t) throw ()' throws different exceptions
+> jemalloc-3.6.0/include/jemalloc/jemalloc.h:139: error: from previous declaration 'void* calloc(size_t, size_t)'
+> usr/include/stdlib.h:486: error: declaration of 'void* realloc(void*, size_t) throw ()' throws different exceptions
+> jemalloc-3.6.0/include/jemalloc/jemalloc.h:144: error: from previous declaration 'void* realloc(void*, size_t)'
+> usr/include/stdlib.h:488: error: declaration of 'void free(void*) throw ()' throws different exceptions
+> /include/jemalloc/jemalloc.h:145: error: from previous declaration 'void free(void*)'
+> lib/gcc/i586-wrs-linux-gnu/4.3.2/../../../../i586-wrs-linux-gnu/include/c++/4.3.2/cstdlib:73,
+
+
+Do you really need to include jemalloc.h?
+
+There are related Mozilla issues [1,2]. They ended up by removing prototypes of these functions from jemalloc.h on Linux [3]. Otherwise, you can patch your jemalloc.h to add throw() wherever needed.
+
+[1] https://bugzilla.mozilla.org/show_bug.cgi?id=422960
+[2] https://bugzilla.mozilla.org/show_bug.cgi?id=526389
+[3] http://hg.mozilla.org/mozilla-central/rev/7a2802932585
+
+
+>
+> -----Original Message-----
+> From: Konstantin Tokarev [mailto:annulen at yandex.ru]
+> Sent: Monday, May 18, 2015 12:20 PM
+> To: Mayank Kumar (mayankum); jemalloc-discuss at canonware.com
+> Subject: Re: jemalloc linking
+>
+> 18.05.2015, 19:30, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+>> ?Hi All
+>>
+>> ?My application worked perfectly with LD_PRELOAD and the virtual memory growth was contained. As soon as I linked it dynamically with jemalloc, this wasn?t the case. So virtual memory kept growing. So? I am guessing that my application is still not using jemalloc but libc?s default malloc when linking dynamically. My application is a binary which links to many dynamically loadable libraries some of which are internally built and some are open source versions which we don?t always build. My questions are:-
+>>
+>> ?1.?????? When linking dynamically with jemalloc, is it a requirement to have ?ljemalloc as early as possible or possibly the first library being linked to, to override the default malloc ?
+>
+> Yes - this is how dynamic linking works on ELF platforms. When linker sees undefined symbol "malloc" it will take it from first ELF object (in order of specified ld arguments) which has defined "malloc" symbol.
+>> ?2.?????? What method does jemalloc uses while linking to override malloc, does it use the malloc_hooks to override or just the normal linking, so that whatever the linker gets first, it will link to .
+>
+> LD_PRELOAD deals only with ELF linking, injecting your library(ies) in the beginning of *.so list used by runtime linked (e.g., ld-linux.so)
+>> ?3.?????? Would linking statically? solve this issue, although my preference would be to link dynamically since I have at least 10 processes which needs jemalloc, and at least they would share the code in memory.
+>>
+>> ?4.?????? When linking with external open source libraries, do I need to re-compile those with jemalloc as well to make sure any mallocs in those libraries also go through jemalloc or that is not required. I am guessing it should not be required as long as my process links to the right malloc library, their dependencies should be correctly resolved.
+>
+> --
+> Regards,
+> Konstantin
+
+-- 
+Regards,
+Konstantin
+
+From mayankum at cisco.com  Wed May 20 16:46:09 2015
+From: mayankum at cisco.com (Mayank Kumar (mayankum))
+Date: Wed, 20 May 2015 23:46:09 +0000
+Subject: jemalloc linking
+In-Reply-To: <791241432122359@web4m.yandex.ru>
+References: <EDC505415B5EF74C80596BD24619C1032C3D8D31@xmb-rcd-x07.cisco.com>
+	<1359731431976816@web4o.yandex.ru>
+	<EDC505415B5EF74C80596BD24619C1032C3DC398@xmb-rcd-x07.cisco.com>
+	<791241432122359@web4m.yandex.ru>
+Message-ID: <EDC505415B5EF74C80596BD24619C1032C3DEA0F@xmb-rcd-x07.cisco.com>
+
+Thanks Konstantin. I wanted to call some of the stats api to periodically get usage information in different arenas and how it grows.
+ I will patch the header file after its generated by configure to fix this.
+
+Is there a way to get stats periodically much like the profile dumps using the /etc/malloc.conf interface ?
+
+-----Original Message-----
+From: Konstantin Tokarev [mailto:annulen at yandex.ru] 
+Sent: Wednesday, May 20, 2015 4:46 AM
+To: Mayank Kumar (mayankum); jemalloc-discuss at canonware.com
+Subject: Re: jemalloc linking
+
+
+
+19.05.2015, 22:59, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+> Thanks ?Konstantin. I think putting jemalloc early enough worked.
+>
+> But I am getting the following errors and it seems others have seen this error before . I am compiling with windriver toolchain. I ran the configure script, so I am wondering the configure script should have done the right thing and determined that all these definitions are already present and hence when generating the header file , should have skipped these definitions so that this is not an issue.
+>
+> Do I need to pass specific options to configure or what is the right way to fix this issue ?
+>
+> declaration of 'void* malloc(size_t) throw ()' throws different exceptions
+> jemalloc-3.6.0/include/jemalloc/jemalloc.h:137: error: from previous declaration 'void* malloc(size_t)'
+> usr/include/stdlib.h:474: error: declaration of 'void* calloc(size_t, size_t) throw ()' throws different exceptions
+> jemalloc-3.6.0/include/jemalloc/jemalloc.h:139: error: from previous declaration 'void* calloc(size_t, size_t)'
+> usr/include/stdlib.h:486: error: declaration of 'void* realloc(void*, size_t) throw ()' throws different exceptions
+> jemalloc-3.6.0/include/jemalloc/jemalloc.h:144: error: from previous declaration 'void* realloc(void*, size_t)'
+> usr/include/stdlib.h:488: error: declaration of 'void free(void*) throw ()' throws different exceptions
+> /include/jemalloc/jemalloc.h:145: error: from previous declaration 'void free(void*)'
+> lib/gcc/i586-wrs-linux-gnu/4.3.2/../../../../i586-wrs-linux-gnu/include/c++/4.3.2/cstdlib:73,
+
+
+Do you really need to include jemalloc.h?
+
+There are related Mozilla issues [1,2]. They ended up by removing prototypes of these functions from jemalloc.h on Linux [3]. Otherwise, you can patch your jemalloc.h to add throw() wherever needed.
+
+[1] https://bugzilla.mozilla.org/show_bug.cgi?id=422960
+[2] https://bugzilla.mozilla.org/show_bug.cgi?id=526389
+[3] http://hg.mozilla.org/mozilla-central/rev/7a2802932585
+
+
+>
+> -----Original Message-----
+> From: Konstantin Tokarev [mailto:annulen at yandex.ru]
+> Sent: Monday, May 18, 2015 12:20 PM
+> To: Mayank Kumar (mayankum); jemalloc-discuss at canonware.com
+> Subject: Re: jemalloc linking
+>
+> 18.05.2015, 19:30, "Mayank Kumar (mayankum)" <mayankum at cisco.com>:
+>> ?Hi All
+>>
+>> ?My application worked perfectly with LD_PRELOAD and the virtual memory growth was contained. As soon as I linked it dynamically with jemalloc, this wasn?t the case. So virtual memory kept growing. So? I am guessing that my application is still not using jemalloc but libc?s default malloc when linking dynamically. My application is a binary which links to many dynamically loadable libraries some of which are internally built and some are open source versions which we don?t always build. My questions are:-
+>>
+>> ?1.?????? When linking dynamically with jemalloc, is it a requirement to have ?ljemalloc as early as possible or possibly the first library being linked to, to override the default malloc ?
+>
+> Yes - this is how dynamic linking works on ELF platforms. When linker sees undefined symbol "malloc" it will take it from first ELF object (in order of specified ld arguments) which has defined "malloc" symbol.
+>> ?2.?????? What method does jemalloc uses while linking to override malloc, does it use the malloc_hooks to override or just the normal linking, so that whatever the linker gets first, it will link to .
+>
+> LD_PRELOAD deals only with ELF linking, injecting your library(ies) in the beginning of *.so list used by runtime linked (e.g., ld-linux.so)
+>> ?3.?????? Would linking statically? solve this issue, although my preference would be to link dynamically since I have at least 10 processes which needs jemalloc, and at least they would share the code in memory.
+>>
+>> ?4.?????? When linking with external open source libraries, do I need to re-compile those with jemalloc as well to make sure any mallocs in those libraries also go through jemalloc or that is not required. I am guessing it should not be required as long as my process links to the right malloc library, their dependencies should be correctly resolved.
+>
+> --
+> Regards,
+> Konstantin
+
+-- 
+Regards,
+Konstantin
+
+From chh at google.com  Fri May 22 10:54:48 2015
+From: chh at google.com (Chih-hung Hsieh)
+Date: Fri, 22 May 2015 10:54:48 -0700
+Subject: patch to compile with clang/llvm for Android arm64 and mips targets
+Message-ID: <CAEk9T_3O_yk7vz9oMeXoPGvuYh8SSfUYsmxLVRwK8btyZoPH7g@mail.gmail.com>
+
+When compiling include/jemalloc/internal/atomic.h
+for Android with clang/llvm compiler and arm64 or mips targets,
+JEMALLOC_C11ATOMICS should be defined, but there
+are type errors in the arguments to function
+atomic_compare_exchange_strong and atomic_store.
+
+The following diff will fix the error:
+
+diff --git a/include/jemalloc/internal/atomic.h
+b/include/jemalloc/internal/atomic.h
+index 522dd2a..a9aad35 100644
+--- a/include/jemalloc/internal/atomic.h
++++ b/include/jemalloc/internal/atomic.h
+@@ -143,15 +143,15 @@ atomic_sub_uint64(uint64_t *p, uint64_t x)
+ JEMALLOC_INLINE bool
+ atomic_cas_uint64(uint64_t *p, uint64_t c, uint64_t s)
+ {
+-
+-       return (!atomic_compare_exchange_strong(p, &c, s));
++       volatile atomic_uint_least64_t *a = (volatile atomic_uint_least64_t *)p;
++       return (!atomic_compare_exchange_strong(a, &c, s));
+ }
+
+ JEMALLOC_INLINE void
+ atomic_write_uint64(uint64_t *p, uint64_t x)
+ {
+-
+-       atomic_store(p, x);
++       volatile atomic_uint_least64_t *a = (volatile atomic_uint_least64_t *)p;
++       atomic_store(a, x);
+ }
+ #  elif (defined(JEMALLOC_ATOMIC9))
+ JEMALLOC_INLINE uint64_t
+@@ -367,15 +367,15 @@ atomic_sub_uint32(uint32_t *p, uint32_t x)
+ JEMALLOC_INLINE bool
+ atomic_cas_uint32(uint32_t *p, uint32_t c, uint32_t s)
+ {
+-
+-       return (!atomic_compare_exchange_strong(p, &c, s));
++       volatile atomic_uint_least32_t *a = (volatile atomic_uint_least32_t *)p;
++       return (!atomic_compare_exchange_strong(a, &c, s));
+ }
+
+ JEMALLOC_INLINE void
+ atomic_write_uint32(uint32_t *p, uint32_t x)
+ {
+-
+-       atomic_store(p, x);
++       volatile atomic_uint_least32_t *a = (volatile atomic_uint_least32_t *)p;
++       atomic_store(a, x);
+ }
+ #elif (defined(JEMALLOC_ATOMIC9))
+ JEMALLOC_INLINE uint32_t
+
+
+
+For people with access to Android Open Source, a patch is available at
+https://android-review.googlesource.com/#/c/151171
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150522/3b905da1/attachment.html>
+
+From khannasusa at gmail.com  Tue May 26 12:18:24 2015
+From: khannasusa at gmail.com (sanjay khanna)
+Date: Tue, 26 May 2015 15:18:24 -0400
+Subject: Add chunk_dealloc_dss() to jemalloc
+Message-ID: <CACthwYiYnZtUk0V=PEbUzw7Q1-PLBUsTLKRP5St=E6zg-vMgAA@mail.gmail.com>
+
+Hi folks
+
+I am finding that on freebsd systems using DSS as primary and mmap as
+secondary way to map pages/chunks, the resident/VM size of process never
+goes down. This is because chunk_unmap() never does anything to reduce
+dss_max.
+
+The complete diff below shows a possible way to reduce memory footprint of
+a running program. Since I am not an active jemalloc coder/contributor, I
+would request active coders to comment on it and commit it if they find it
+useful.
+
+These diffs are based off of 3.5.0.
+test program= starts with a size of 1MB, malloc(), then free() and doubles
+size. then  loop 10x times.
+
+SIZE = total size of the test program (text, data and stack)
+dss_max = this is the variable in the code used to track max BRK
+
+----Before-------                     ----- After -----------
+SIZE    dss_max                   SIZE    dss_max
+18572K    0x9000000        18572K    0x9000000
+26764K    0x9800000        1384K    0x9400000
+43148K    0xa800000        30860K    0x9c00000
+75916K    0xc800000        47244K    0xac00000
+138M    0x10800000        80012K    0xcc00000
+266M    0x18800000        142M    0x10c00000
+522M    0x28800000        270M    0x18c00000
+1034M    0x48800000        526M    0x28c00000
+2058M    0x88800000        1038M    0x48c00000
+2058M    0x88800000        14476K    0x8c00000
+
+
+The data above shows the VM size of the program shrinking and expanding as
+the need may be with the fix. This will be very useful for embedded systems
+which are always tight on memory.
+
+thanks
+--sk
+
+Index: external/bsd/jemalloc/dist/include/jemalloc/internal/chunk_dss.h
+===================================================================
+--- external/bsd/jemalloc/dist/include/jemalloc/internal/chunk_dss.h
+(revision 715468)
++++ external/bsd/jemalloc/dist/include/jemalloc/internal/chunk_dss.h
+(working copy)
+@@ -35,6 +35,7 @@ bool  chunk_dss_boot(void);
+ void   chunk_dss_prefork(void);
+ void   chunk_dss_postfork_parent(void);
+ void   chunk_dss_postfork_child(void);
++bool    chunk_dealloc_dss(void *, size_t);
+
+ #endif /* JEMALLOC_H_EXTERNS */
+ /******************************************************************************/
+Index: external/bsd/jemalloc/dist/src/chunk.c
+===================================================================
+--- external/bsd/jemalloc/dist/src/chunk.c      (revision 715468)
++++ external/bsd/jemalloc/dist/src/chunk.c      (working copy)
+@@ -305,7 +305,7 @@ chunk_unmap(void *chunk, size_t size)
+        assert(size != 0);
+        assert((size & chunksize_mask) == 0);
+
+-       if (config_dss && chunk_in_dss(chunk))
++       if (config_dss && chunk_in_dss(chunk) && chunk_dealloc_dss(chunk,
+size))
+                chunk_record(&chunks_szad_dss, &chunks_ad_dss, chunk, size);
+        else if (chunk_dealloc_mmap(chunk, size))
+                chunk_record(&chunks_szad_mmap, &chunks_ad_mmap, chunk,
+size);
+Index: external/bsd/jemalloc/dist/src/chunk_dss.c
+===================================================================
+--- external/bsd/jemalloc/dist/src/chunk_dss.c  (revision 715468)
++++ external/bsd/jemalloc/dist/src/chunk_dss.c  (working copy)
+@@ -139,6 +139,28 @@ chunk_alloc_dss(size_t size, size_t alignment, boo
+ }
+
+ bool
++chunk_dealloc_dss(void *chunk, size_t size)
++{
++    bool ret;
++    int rc;
++
++    if (config_munmap == false) {
++       return true;
++    }
++
++    cassert(config_dss);
++    malloc_mutex_lock(&dss_mtx);
++    if (((uintptr_t)chunk + (uintptr_t)size) == (uintptr_t)dss_max) {
++       int rc;
++       rc = brk(chunk);
++       dss_max = chunk;
++       return(rc != 0);
++    }
++    malloc_mutex_unlock(&dss_mtx);
++    return true;
++}
++
++bool
+ chunk_in_dss(void *chunk)
+ {
+        bool ret;
+Index:
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_unnamespace.h
+===================================================================
+---
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_unnamespace.h
+(revision 715468)
++++
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_unnamespace.h
+(working copy)
+@@ -129,6 +129,7 @@
+ #undef chunk_dss_prec_set
+ #undef chunk_dss_prefork
+ #undef chunk_in_dss
++#undef chunk_dealloc_dss
+ #undef chunk_npages
+ #undef chunk_postfork_child
+ #undef chunk_postfork_parent
+Index:
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_namespace.h
+===================================================================
+---
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_namespace.h
+(revision 715468)
++++
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_namespace.h
+(working copy)
+@@ -129,6 +129,7 @@
+ #define        chunk_dss_prec_set JEMALLOC_N(chunk_dss_prec_set)
+ #define        chunk_dss_prefork JEMALLOC_N(chunk_dss_prefork)
+ #define        chunk_in_dss JEMALLOC_N(chunk_in_dss)
++#define        chunk_dealloc_dss JEMALLOC_N(chunk_dealloc_dss)
+ #define        chunk_npages JEMALLOC_N(chunk_npages)
+ #define        chunk_postfork_child JEMALLOC_N(chunk_postfork_child)
+ #define        chunk_postfork_parent JEMALLOC_N(chunk_postfork_parent)
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150526/8addc5b2/attachment.html>
+
+From jasone at canonware.com  Wed May 27 20:36:27 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 27 May 2015 20:36:27 -0700
+Subject: patch to compile with clang/llvm for Android arm64 and mips
+	targets
+In-Reply-To: <CAEk9T_3O_yk7vz9oMeXoPGvuYh8SSfUYsmxLVRwK8btyZoPH7g@mail.gmail.com>
+References: <CAEk9T_3O_yk7vz9oMeXoPGvuYh8SSfUYsmxLVRwK8btyZoPH7g@mail.gmail.com>
+Message-ID: <596C5C8A-E88D-4213-BE8D-5A972BAD75FB@canonware.com>
+
+On May 22, 2015, at 10:54 AM, Chih-hung Hsieh <chh at google.com> wrote:
+> When compiling include/jemalloc/internal/atomic.h
+> for Android with clang/llvm compiler and arm64 or mips targets,
+> JEMALLOC_C11ATOMICS should be defined, but there
+> are type errors in the arguments to function
+> atomic_compare_exchange_strong and atomic_store.
+> 
+> [...]
+
+Integrated:
+
+	https://github.com/jemalloc/jemalloc/commit/c073f8167a96a9bec98c61df4d2461811c3c10a4 <https://github.com/jemalloc/jemalloc/commit/c073f8167a96a9bec98c61df4d2461811c3c10a4>
+
+Thanks,
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150527/caa09edb/attachment.html>
+

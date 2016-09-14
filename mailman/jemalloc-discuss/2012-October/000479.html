@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C43E344DB-E967-4667-8D6C-D96F1CB16503%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000478.html">
+   <LINK REL="Next"  HREF="000484.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C43E344DB-E967-4667-8D6C-D96F1CB16503%40canonware.com%3E"
+       TITLE="Memory usage regression">jasone at canonware.com
+       </A><BR>
+    <I>Wed Oct 24 15:06:25 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000478.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000484.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#479">[ date ]</a>
+              <a href="thread.html#479">[ thread ]</a>
+              <a href="subject.html#479">[ subject ]</a>
+              <a href="author.html#479">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 24, 2012, at 12:36 PM, Mike Hommey wrote:
+&gt;<i> With that replayed workload, I can see two main things:
+</I>&gt;<i> - The amount of resident memory used by jemalloc 3 is greater than that
+</I>&gt;<i>  of mozjemalloc after freeing big parts of what was allocated (in
+</I>&gt;<i>  Firefox, after closing all tabs, waiting for a settle, and forcing GC).
+</I>&gt;<i>  This is most likely due to different allocation patterns leading to
+</I>&gt;<i>  some kind of fragmentation after freeing part of the allocated memory.
+</I>&gt;<i>  See <A HREF="http://i.imgur.com/fQKi4.png">http://i.imgur.com/fQKi4.png</A> for a graphical representation of
+</I>&gt;<i>  what happens to the RSS value at the different checkpoints during the
+</I>&gt;<i>  Firefox workload.
+</I>
+This difference may be inherent, due to something like size class changes.  Are there any configuration differences between mozjemalloc and jemalloc 3 besides tcache that weren't removed?  In particular, narenas is an important one.
+
+&gt;<i> - The amount of mmap()ed memory is dangerously increasing during the
+</I>&gt;<i>  workload. It almost (but not quite) looks like jemalloc don't reuse
+</I>&gt;<i>  pages it purged. See <A HREF="http://i.imgur.com/klfJv.png">http://i.imgur.com/klfJv.png</A> ; VmData is
+</I>&gt;<i>  essentially the sum of all anonymous ranges of memory in the process.
+</I>&gt;<i>  Such an increase in VmData means we'd eventually exhaust the 32-bits
+</I>&gt;<i>  address space on 32-bits OSes, even though the resident memory usage
+</I>&gt;<i>  is pretty low.
+</I>
+This looks pretty bad.  The only legitimate potential explanation I can think of is that jemalloc now partitions dirty and clean pages (and jemalloc 3 is much less aggressive than mozjemalloc about purging), so it's possible to have to allocate a new chunk for a large object, even though there would be enough room in an existing chunk if clean and dirty available runs were coalesced.  This increases run fragmentation in general, but it tends to dramatically reduce the number of pages that are dirtied.  I'd like to see the output of malloc_stats_print() for two adjacent points along the x axis, like &quot;After iteration 5&quot; and its predecessor.  I'd also be curious if the VM size increases continue after many grow/shrink cycles (if so, it might be due to an outright bug in jemalloc).
+
+Thanks,
+Jason
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000478.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000484.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#479">[ date ]</a>
+              <a href="thread.html#479">[ thread ]</a>
+              <a href="subject.html#479">[ subject ]</a>
+              <a href="author.html#479">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

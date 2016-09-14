@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add build options to disable either static or shared	library by default
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20build%20options%20to%20disable%20either%20static%20or%20shared%0A%09library%20by%20default&In-Reply-To=%3C4F46E477.1090703%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000098.html">
+   <LINK REL="Next"  HREF="000102.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add build options to disable either static or shared	library by default</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20build%20options%20to%20disable%20either%20static%20or%20shared%0A%09library%20by%20default&In-Reply-To=%3C4F46E477.1090703%40canonware.com%3E"
+       TITLE="[PATCH] Add build options to disable either static or shared	library by default">jasone at canonware.com
+       </A><BR>
+    <I>Thu Feb 23 17:14:31 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000098.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+        <LI>Next message: <A HREF="000102.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#101">[ date ]</a>
+              <a href="thread.html#101">[ thread ]</a>
+              <a href="subject.html#101">[ subject ]</a>
+              <a href="author.html#101">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 02/23/2012 08:32 AM, Mike Hommey wrote:
+&gt;<i> On Thu, Feb 23, 2012 at 05:05:13PM +0100, Mike Hommey wrote:
+</I>&gt;&gt;<i> From: Mike Hommey&lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> ---
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> We (Mozilla)'re most probably going to include jemalloc's build system
+</I>&gt;&gt;<i> to avoid any trouble, and it would be easier for us if calling make
+</I>&gt;&gt;<i> would only create the static library.
+</I>&gt;<i>
+</I>&gt;<i> In fact it doesn't really matter, there are other problems that makes us
+</I>&gt;<i> need a glue anyways, so you can forget this patch.
+</I>
+An alternative would be to split the make targets out a bit more, so 
+that you can do something like:
+
+   make build_lib_static
+   make install_lib_static install_bin install_include
+
+Would that be helpful?
+
+Thanks,
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000098.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+	<LI>Next message: <A HREF="000102.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#101">[ date ]</a>
+              <a href="thread.html#101">[ thread ]</a>
+              <a href="subject.html#101">[ subject ]</a>
+              <a href="author.html#101">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

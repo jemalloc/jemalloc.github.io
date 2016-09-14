@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc win32 port
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20win32%20port&In-Reply-To=%3C4F27C183.3020201%40hola.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000069.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc win32 port</H1>
+    <B>Yoni Londner</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20win32%20port&In-Reply-To=%3C4F27C183.3020201%40hola.org%3E"
+       TITLE="jemalloc win32 port">yoni at hola.org
+       </A><BR>
+    <I>Tue Jan 31 02:25:07 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000069.html">realloc behavior
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#70">[ date ]</a>
+              <a href="thread.html#70">[ thread ]</a>
+              <a href="subject.html#70">[ subject ]</a>
+              <a href="author.html#70">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I am working with Firefox version of jemalloc (x86 and x64), And it is 
+working as expected.
+But, I wanted to use the original version of jemalloc, mainly because 
+there are profiling features missing
+in Firefox's version, and because I wanted to be able to get bug fixes 
+and new features from TRUNK.
+So, I Ported jemalloc to win32 (using msvc10 on win7 x86)
+I did not completed all the work (yet), but i have a working version.
+These are the changes I made (patch attached):
+
+  * prn.h - apparently it is not possible to create a file named prn.xxx
+    on windows. I changed the name of the file to _prn.h
+  * atomic.h - added win32 intrinsic implementation
+  * compat_win32.h - all sort of definitions needed for win32 (most of
+    them from Firefox version + pthread handling - not completed yet)
+  * compat_win32.c - need to complete here win32_setspecific and
+    win32_setspecific by using &quot;.CRT$XXX&quot;
+  * arena.c, ctl.h, ctl.c, ckh.c - C99 compatibility
+  * hunk_mmap.c
+  * jemalloc_defs.h, jemalloc.h, jemalloc_internal.h - I don't have
+    configure, so I copied jemalloc_internal.h.in and hand edited it.
+  * mutex.h - win32 mutex (from Firefox version)
+  * chunk_mmap.c -pages_map/pages_unmap from Firefox version
+  * jemalloc.c - system settings (ncpus etc) + added _crtheap
+  * jemalloc.c - win32 crt specific functions (msize, calloc_impl,
+    _recalloc, get_heap_handle...)
+
+since jemalloc does not patch malloc and friends, I need to use a 
+striped version of msvcrt (removed malloc/free etc).
+I have a scripts to do this.
+
+I hope that after the work is done, you can commit this patch to the git.
+Any comments/suggestions/help are welcome
+
+Yoni.
+
+
+
+
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: jemalloc.patch
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120131/d335ea1d/attachment.ksh">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120131/d335ea1d/attachment.ksh</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000069.html">realloc behavior
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#70">[ date ]</a>
+              <a href="thread.html#70">[ thread ]</a>
+              <a href="subject.html#70">[ subject ]</a>
+              <a href="author.html#70">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

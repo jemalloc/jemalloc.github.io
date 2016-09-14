@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a malloc_usable_size_in_advance function
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20malloc_usable_size_in_advance%20function&In-Reply-To=%3C20120223192321.GA4016%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000089.html">
+   <LINK REL="Next"  HREF="000103.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a malloc_usable_size_in_advance function</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20malloc_usable_size_in_advance%20function&In-Reply-To=%3C20120223192321.GA4016%40glandium.org%3E"
+       TITLE="[PATCH] Add a malloc_usable_size_in_advance function">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Feb 23 11:23:21 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000089.html">[PATCH] Add a malloc_usable_size_in_advance function
+</A></li>
+        <LI>Next message: <A HREF="000103.html">[PATCH] Add a malloc_usable_size_in_advance function
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#99">[ date ]</a>
+              <a href="thread.html#99">[ thread ]</a>
+              <a href="subject.html#99">[ subject ]</a>
+              <a href="author.html#99">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Feb 21, 2012 at 05:39:10PM +0100, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> ---
+</I>&gt;<i>  JEMALLOC_ATTR(visibility(&quot;default&quot;))
+</I>&gt;<i> +size_t
+</I>&gt;<i> +JEMALLOC_P(malloc_usable_size_in_advance)(size_t size, size_t alignment)
+</I>&gt;<i> +{
+</I>&gt;<i> +	return (alignment == 0) ? s2u(size) : sa2u(size, alignment, NULL);
+</I>&gt;<i> +}
+</I>
+Both this and the &quot;Use s2u in zone_good_size&quot; patch don't work as
+expected.
+
+Please note that the &quot;Allow to use different prefixes for
+jemalloc-specific functions and libc functions&quot; patch depends on &quot;Use
+s2u in zone_good_size&quot; (since the latter removes calls to
+JEMALLOC_P(malloc|free) which the former thus doesn't change.
+
+Cheers,
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000089.html">[PATCH] Add a malloc_usable_size_in_advance function
+</A></li>
+	<LI>Next message: <A HREF="000103.html">[PATCH] Add a malloc_usable_size_in_advance function
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#99">[ date ]</a>
+              <a href="thread.html#99">[ thread ]</a>
+              <a href="subject.html#99">[ subject ]</a>
+              <a href="author.html#99">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Relationship between opt.prof and opt.prof_leak
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Relationship%20between%20opt.prof%20and%20opt.prof_leak&In-Reply-To=%3C9858FFA5-EA23-4105-B6F0-91169C016A12%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001204.html">
+   <LINK REL="Next"  HREF="001206.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Relationship between opt.prof and opt.prof_leak</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Relationship%20between%20opt.prof%20and%20opt.prof_leak&In-Reply-To=%3C9858FFA5-EA23-4105-B6F0-91169C016A12%40canonware.com%3E"
+       TITLE="Relationship between opt.prof and opt.prof_leak">jasone at canonware.com
+       </A><BR>
+    <I>Fri Nov  6 12:45:28 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001204.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+        <LI>Next message: <A HREF="001206.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1205">[ date ]</a>
+              <a href="thread.html#1205">[ thread ]</a>
+              <a href="subject.html#1205">[ subject ]</a>
+              <a href="author.html#1205">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 6, 2015, at 9:50 AM, Evan Jones &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ejones at twitter.com</A>&gt; wrote:
+&gt;<i> Jemalloc's profiling and leak debugging features are super useful, and I've used them multiple times to figure out Java native memory leak issues. However, I realized I'm not actually sure how the opt.prof and opt.prof_leak options relate. I *think* they work like the following, but I didn't find the docs super clear, and I only looked at the code for about 10 minutes. I'm happy to submit a patch to the docs to try and clarify this, once I understand it completely:
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> * There is only one type of dump. It contains both &quot;allocated&quot; counts and &quot;in use&quot; counts (or free counts which can be used to calculate in use).
+</I>
+The two types of stats are:
+- Current bytes/objects, aka &quot;inuse&quot; in pprof/jeprof terminology.  These are counts of how many sampled objects currently exist.  Use these stats to understand current memory usage.
+- Cumulative bytes/objects, aka &quot;alloc&quot; in pprof/jeprof terminology.  These are counts of how many sampled bytes/objects have existed since the most recent stats reset (process start or &quot;prof.reset&quot; mallctl call).  Use these stats to understand total allocation volume.
+
+&gt;<i> * By default, jeprof will show you the *in use* counts. However, it can show you the *allocated* counts instead with --alloc_space or --alloc_objects.
+</I>
+Correct.
+
+&gt;<i> * By default, dumps are &quot;incremental&quot;: They contain the objects allocated since the last dump. If you want dumps that contain everything since the process was started, enable opt.prof_accum.
+</I>
+No, dumps are always based on the most recent stats reset (process start or &quot;prof.reset&quot; mallctl call).  You can view incremental differences between two dumps by using the --base option to jeprof.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001204.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+	<LI>Next message: <A HREF="001206.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1205">[ date ]</a>
+              <a href="thread.html#1205">[ thread ]</a>
+              <a href="subject.html#1205">[ subject ]</a>
+              <a href="author.html#1205">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

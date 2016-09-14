@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 2/3] Improve configure tests for ffsl
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/3%5D%20Improve%20configure%20tests%20for%20ffsl&In-Reply-To=%3Calpine.BSF.2.00.1212021756300.40258%40toaster.local%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000530.html">
+   <LINK REL="Next"  HREF="000532.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 2/3] Improve configure tests for ffsl</H1>
+    <B>Garrett Cooper</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%202/3%5D%20Improve%20configure%20tests%20for%20ffsl&In-Reply-To=%3Calpine.BSF.2.00.1212021756300.40258%40toaster.local%3E"
+       TITLE="[PATCH 2/3] Improve configure tests for ffsl">yanegomi at gmail.com
+       </A><BR>
+    <I>Sun Dec  2 17:57:28 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000530.html">[PATCH 1/3] Don't mangle errno with free(3) if utrace(2) fails
+</A></li>
+        <LI>Next message: <A HREF="000532.html">[PATCH 3/3] Fix build break on *BSD
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#531">[ date ]</a>
+              <a href="thread.html#531">[ thread ]</a>
+              <a href="subject.html#531">[ subject ]</a>
+              <a href="author.html#531">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>In particular:
+- ffsl always returns int, not long, on FreeBSD, Linux, and OSX.
+- Mute compiler warnings about rv being unused (and the potential for
+   compilers optimizing out the call completely) by dumping the value
+   with printf(3).
+
+Signed-off-by: Garrett Cooper &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">yanegomi at gmail.com</A>&gt;
+---
+  configure.ac | 6 ++++--
+  1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 1c52439..77a5110 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -906,7 +906,7 @@ AC_CACHE_CHECK([STATIC_PAGE_SHIFT],
+  #include &lt;stdio.h&gt;
+  ]],
+  [[
+-    long result;
++    int result;
+      FILE *f;
+
+  #ifdef _WIN32
+@@ -925,7 +925,7 @@ AC_CACHE_CHECK([STATIC_PAGE_SHIFT],
+      if (f == NULL) {
+  	return 1;
+      }
+-    fprintf(f, &quot;%u\n&quot;, result);
++    fprintf(f, &quot;%d\n&quot;, result);
+      fclose(f);
+
+      return 0;
+@@ -1070,11 +1070,13 @@ dnl Check for ffsl(3), and fail if not found.  This function exists on all
+  dnl platforms that jemalloc currently has a chance of functioning on without
+  dnl modification.
+  JE_COMPILABLE([a program using ffsl], [
++#include &lt;stdio.h&gt;
+  #include &lt;strings.h&gt;
+  #include &lt;string.h&gt;
+  ], [
+  	{
+  		int rv = ffsl(0x08);
++		printf(&quot;%d\n&quot;, rv);
+  	}
+  ], [je_cv_function_ffsl])
+  if test &quot;x${je_cv_function_ffsl}&quot; != &quot;xyes&quot; ; then
+-- 
+1.8.0
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000530.html">[PATCH 1/3] Don't mangle errno with free(3) if utrace(2) fails
+</A></li>
+	<LI>Next message: <A HREF="000532.html">[PATCH 3/3] Fix build break on *BSD
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#531">[ date ]</a>
+              <a href="thread.html#531">[ thread ]</a>
+              <a href="subject.html#531">[ subject ]</a>
+              <a href="author.html#531">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

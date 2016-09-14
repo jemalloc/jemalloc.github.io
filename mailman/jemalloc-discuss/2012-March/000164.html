@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc stats
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20stats&In-Reply-To=%3C7272EAB5-55EC-424F-8E3B-597B459856F2%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000163.html">
+   <LINK REL="Next"  HREF="000165.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc stats</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20stats&In-Reply-To=%3C7272EAB5-55EC-424F-8E3B-597B459856F2%40canonware.com%3E"
+       TITLE="Jemalloc stats">jasone at canonware.com
+       </A><BR>
+    <I>Thu Mar 22 11:22:03 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000163.html">Jemalloc stats
+</A></li>
+        <LI>Next message: <A HREF="000165.html">Question regarding jemalloc and JVM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#164">[ date ]</a>
+              <a href="thread.html#164">[ thread ]</a>
+              <a href="subject.html#164">[ subject ]</a>
+              <a href="author.html#164">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 22, 2012, at 11:03 AM, Mike Hommey wrote:
+&gt;<i> In Firefox, we're tracking some of the stats provided by our fork of
+</I>&gt;<i> jemalloc. One of them is:
+</I>&gt;<i> - HeapCommitted - Memory mapped by the heap allocator that is committed,
+</I>&gt;<i>  i.e. in physical memory or paged to disk.  When heap-committed is
+</I>&gt;<i>  larger than heap-allocated, the difference between the two values is
+</I>&gt;<i>  likely due to external fragmentation; that is, the allocator allocated
+</I>&gt;<i>  a large block of memory and is unable to decommit it because a small
+</I>&gt;<i>  part of that block is currently in use.
+</I>&gt;<i> 
+</I>&gt;<i> It would seem like this could match stats.active, but i'm not entirely
+</I>&gt;<i> sure it is the case. In particular, we don't count madvised pages in
+</I>&gt;<i> that metric, but it would seem stats.active does, although I haven't dug
+</I>&gt;<i> deep enough yet.
+</I>
+stats.active tracks all pages with active application allocations in them.  It does not include dirty unused pages for which madvise() has not yet been called, nor does it include pages that are entirely devoted to allocator metadata.  stats.allocated/stats.active is a precise indicator for external fragmentation, but since stats.active does not incorporate allocator metadata (e.g., chunk header pages), it does not represent the complete size of &quot;committed&quot; memory.  It would be possible to track the metadata pages with little extra effort, but I haven't found it to be very important in understanding what's going on internally, so I haven't added it.  Is the distinction important for Firefox?
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000163.html">Jemalloc stats
+</A></li>
+	<LI>Next message: <A HREF="000165.html">Question regarding jemalloc and JVM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#164">[ date ]</a>
+              <a href="thread.html#164">[ thread ]</a>
+              <a href="subject.html#164">[ subject ]</a>
+              <a href="author.html#164">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

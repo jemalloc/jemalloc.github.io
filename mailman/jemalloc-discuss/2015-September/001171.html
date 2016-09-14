@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> &#22238;&#22797;: report bug
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%3D%3Fgb2312%3FB%3Fu9i4tDogcmVwb3J0IGJ1Zw%3D%3D%3F%3D&In-Reply-To=%3CE66A512403BE0147A1AB0C2A0F6E5E8285715651%40EXMB01.sohu-inc.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001169.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>&#22238;&#22797;: report bug</H1>
+    <B>Zhang GuoQi(&#35270;&#39057;)</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%3D%3Fgb2312%3FB%3Fu9i4tDogcmVwb3J0IGJ1Zw%3D%3D%3F%3D&In-Reply-To=%3CE66A512403BE0147A1AB0C2A0F6E5E8285715651%40EXMB01.sohu-inc.com%3E"
+       TITLE="&#22238;&#22797;: report bug">guoqizhang at sohu-inc.com
+       </A><BR>
+    <I>Fri Sep 25 05:46:29 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001169.html">purging and munmap
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1171">[ date ]</a>
+              <a href="thread.html#1171">[ thread ]</a>
+              <a href="subject.html#1171">[ subject ]</a>
+              <a href="author.html#1171">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>sorry, it's my bugs.
+
+________________________________
+_______________
+&#24352;&#22269;&#26071; Zhang GuoQi
+&#25628;&#29392;&#35270;&#39057;-&#20135;&#21697;&#25216;&#26415;&#37096;-CDN
+&#30452;&#32447;&#65306;&#65288;8610&#65289;62727901
+&#20256;&#30495;&#65306;&#65288;8610&#65289;62726924
+&#25163;&#26426;&#65306;&#65288;8610&#65289;13810197517
+&#22320;&#22336;&#65306;&#21271;&#20140;&#28023;&#28096;&#21306;&#31185;&#23398;&#38498;&#21335;&#36335;2&#21495;&#38498;3&#21495;&#27004;&#25628;&#29392;&#23186;&#20307;&#22823;&#21414;8&#23618;&#65288;100194&#65289;
+&lt;<A HREF="http://tv.sohu.com/">http://tv.sohu.com/</A>&gt;&lt;<A HREF="http://tv.sohu.com/app/">http://tv.sohu.com/app/</A>&gt;[cid:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">_Foxmail.1 at ac781094-7e98-2b41-b67b-2f5a0c7f5b7c</A>][cid:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">_Foxmail.1 at d6032108-00d8-31e0-a1cf-3f2abee656f6</A>]
+&#25628;&#29392;&#35270;&#39057;&#31227;&#21160;&#23458;&#25143;&#31471;&#65281;&lt;<A HREF="http://tv.sohu.com/">http://tv.sohu.com/</A>&gt;
+
+&#21457;&#20214;&#20154;&#65306; Zhang GuoQi(&#35270;&#39057;)&lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">guoqizhang at sohu-inc.com</A>&gt;
+&#21457;&#36865;&#26102;&#38388;&#65306; 2015-09-22 14:43
+&#25910;&#20214;&#20154;&#65306; jemalloc-discuss&lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>&gt;
+&#20027;&#39064;&#65306; report bug
+i use jemalloc in my project. when upgrade to 4.0.0 or 4.0.1 core down at:
+
+#0  je_tcache_dalloc_small (ptr=0x2aaaabbef0c0) at include/jemalloc/internal/tcache.h:380
+#1  je_arena_dalloc (ptr=0x2aaaabbef0c0) at include/jemalloc/internal/arena.h:1271
+#2  je_idalloctm (ptr=0x2aaaabbef0c0) at include/jemalloc/internal/jemalloc_internal.h:1005
+#3  je_iqalloc (ptr=0x2aaaabbef0c0) at include/jemalloc/internal/jemalloc_internal.h:1029
+#4  ifree (ptr=0x2aaaabbef0c0) at src/jemalloc.c:1745
+#5  free (ptr=0x2aaaabbef0c0) at src/jemalloc.c:1839
+
+________________________________
+_______________
+&#24352;&#22269;&#26071; Zhang GuoQi
+&#25628;&#29392;&#35270;&#39057;-&#20135;&#21697;&#25216;&#26415;&#37096;-CDN
+&#30452;&#32447;&#65306;&#65288;8610&#65289;62727901
+&#20256;&#30495;&#65306;&#65288;8610&#65289;62726924
+&#25163;&#26426;&#65306;&#65288;8610&#65289;13810197517
+&#22320;&#22336;&#65306;&#21271;&#20140;&#28023;&#28096;&#21306;&#31185;&#23398;&#38498;&#21335;&#36335;2&#21495;&#38498;3&#21495;&#27004;&#25628;&#29392;&#23186;&#20307;&#22823;&#21414;8&#23618;&#65288;100194&#65289;
+&lt;<A HREF="http://tv.sohu.com/">http://tv.sohu.com/</A>&gt;&lt;<A HREF="http://tv.sohu.com/app/">http://tv.sohu.com/app/</A>&gt;[cid:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">_Foxmail.1 at b6120292-ba7f-d2c2-cdcc-1e3f96a57580</A>][cid:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">_Foxmail.1 at b23437e6-12a7-0525-472d-8d845f4240c4</A>]
+&#25628;&#29392;&#35270;&#39057;&#31227;&#21160;&#23458;&#25143;&#31471;&#65281;&lt;<A HREF="http://tv.sohu.com/">http://tv.sohu.com/</A>&gt;
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0001.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 5937_image002.png
+Type: image/png
+Size: 5937 bytes
+Desc: 5937_image002.png
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0004.png">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0004.png</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 2783_image004.png
+Type: image/png
+Size: 2783 bytes
+Desc: 2783_image004.png
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0005.png">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0005.png</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 5937_image002(09-25-20-46-15).png
+Type: image/png
+Size: 5937 bytes
+Desc: 5937_image002(09-25-20-46-15).png
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0006.png">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0006.png</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 2783_image004(09-25-20-46-15).png
+Type: image/png
+Size: 2783 bytes
+Desc: 2783_image004(09-25-20-46-15).png
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0007.png">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0007.png</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001169.html">purging and munmap
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1171">[ date ]</a>
+              <a href="thread.html#1171">[ thread ]</a>
+              <a href="subject.html#1171">[ subject ]</a>
+              <a href="author.html#1171">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

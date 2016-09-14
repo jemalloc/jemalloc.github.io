@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to build without exporting symbols
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20build%20without%20exporting%20symbols&In-Reply-To=%3C1353318926-24242-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000520.html">
+   <LINK REL="Next"  HREF="000521.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to build without exporting symbols</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20build%20without%20exporting%20symbols&In-Reply-To=%3C1353318926-24242-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Allow to build without exporting symbols">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Nov 19 01:55:26 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000520.html">[PATCH] Allow to build without exporting symbols
+</A></li>
+        <LI>Next message: <A HREF="000521.html">[PATCH] Allow to build without exporting symbols
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#517">[ date ]</a>
+              <a href="thread.html#517">[ thread ]</a>
+              <a href="subject.html#517">[ subject ]</a>
+              <a href="author.html#517">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+When statically linking jemalloc, it may be beneficial not to export its
+symbols if it makes sense, which allows the compiler and the linker to do
+some further optimizations.
+---
+ INSTALL      |    5 +++++
+ configure.ac |    7 +++++++
+ 2 files changed, 12 insertions(+)
+
+diff --git a/INSTALL b/INSTALL
+index e40a7ed..7c2ed68 100644
+--- a/INSTALL
++++ b/INSTALL
+@@ -55,6 +55,11 @@ any of the following arguments (not a definitive list) to 'configure':
+     jemalloc overlays the default malloc zone, but makes no attempt to actually
+     replace the &quot;malloc&quot;, &quot;calloc&quot;, etc. symbols.
+ 
++--without-export
++    Don't export public APIs. This can be useful when building jemalloc as a
++    static library, or to avoid exporting public APIs when using the zone
++    allocator on OSX.
++
+ --with-private-namespace=&lt;prefix&gt;
+     Prefix all library-private APIs with &lt;prefix&gt;.  For shared libraries,
+     symbol visibility mechanisms prevent these symbols from being exported, but
+diff --git a/configure.ac b/configure.ac
+index 1c52439..8558961 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -471,6 +471,13 @@ for stem in ${public_syms}; do
+   AC_DEFINE_UNQUOTED([${n}], [${m}])
+ done
+ 
++AC_ARG_WITH([export],
++  [AS_HELP_STRING([--without-export], [disable exporting jemalloc public APIs])],
++  [if test &quot;x$with_export&quot; = &quot;xno&quot;; then
++  AC_DEFINE([JEMALLOC_EXPORT],[])]
++fi]
++)
++
+ dnl Do not mangle library-private APIs by default.
+ AC_ARG_WITH([private_namespace],
+   [AS_HELP_STRING([--with-private-namespace=&lt;prefix&gt;], [Prefix to prepend to all library-private APIs])],
+-- 
+1.7.10.4
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000520.html">[PATCH] Allow to build without exporting symbols
+</A></li>
+	<LI>Next message: <A HREF="000521.html">[PATCH] Allow to build without exporting symbols
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#517">[ date ]</a>
+              <a href="thread.html#517">[ thread ]</a>
+              <a href="subject.html#517">[ subject ]</a>
+              <a href="author.html#517">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

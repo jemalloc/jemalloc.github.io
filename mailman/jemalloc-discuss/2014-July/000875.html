@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> crash on je_arena_dalloc_bin_locked
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20crash%20on%20je_arena_dalloc_bin_locked&In-Reply-To=%3C20140709090546.34ffd2e9%40darkbook.lan.box%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000874.html">
+   <LINK REL="Next"  HREF="000876.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>crash on je_arena_dalloc_bin_locked</H1>
+    <B>Ricardo Nabinger Sanchez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20crash%20on%20je_arena_dalloc_bin_locked&In-Reply-To=%3C20140709090546.34ffd2e9%40darkbook.lan.box%3E"
+       TITLE="crash on je_arena_dalloc_bin_locked">rnsanchez at wait4.org
+       </A><BR>
+    <I>Wed Jul  9 05:05:46 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000874.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+        <LI>Next message: <A HREF="000876.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#875">[ date ]</a>
+              <a href="thread.html#875">[ thread ]</a>
+              <a href="subject.html#875">[ subject ]</a>
+              <a href="author.html#875">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, 8 Jul 2014 14:28:03 -0600
+Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+
+&gt;<i> #10 je_imalloct (arena=0x0, try_tcache=true, size=&lt;optimized out&gt;) at
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h:771
+</I>&gt;<i> #11 je_imalloc (size=&lt;optimized out&gt;) at
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h:780
+</I>&gt;<i> #12 je_malloc (size=&lt;optimized out&gt;) at src/jemalloc.c:929
+</I>&gt;<i> #13 0x00000000004161bc in mk_mem_malloc (size=24) at ./include/mk_memory.h:49
+</I>&gt;<i> #14 0x00007f50e8d251fc in cb_dashboard (dr=0x7f50d86e8800) at main.c:340
+</I>
+Any chance you ran out of memory?
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           <A HREF="http://rnsanchez.wait4.org/">http://rnsanchez.wait4.org/</A>
+  &quot;Left to themselves, things tend to go from bad to worse.&quot;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000874.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+	<LI>Next message: <A HREF="000876.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#875">[ date ]</a>
+              <a href="thread.html#875">[ thread ]</a>
+              <a href="subject.html#875">[ subject ]</a>
+              <a href="author.html#875">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

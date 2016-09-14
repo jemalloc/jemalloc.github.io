@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> question about Jemalloc purging order
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20question%20about%20Jemalloc%20purging%20order&In-Reply-To=%3C7D460055-474F-47B5-A93F-BD50D5C818DB%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001236.html">
+   <LINK REL="Next"  HREF="001241.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>question about Jemalloc purging order</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20question%20about%20Jemalloc%20purging%20order&In-Reply-To=%3C7D460055-474F-47B5-A93F-BD50D5C818DB%40canonware.com%3E"
+       TITLE="question about Jemalloc purging order">jasone at canonware.com
+       </A><BR>
+    <I>Mon Jan 11 11:37:23 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001236.html">question about Jemalloc purging order
+</A></li>
+        <LI>Next message: <A HREF="001241.html">question about Jemalloc purging order
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1238">[ date ]</a>
+              <a href="thread.html#1238">[ thread ]</a>
+              <a href="subject.html#1238">[ subject ]</a>
+              <a href="author.html#1238">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 7, 2016, at 6:46 PM, mmzsmm &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mmzsmm at 163.com</A>&gt; wrote:
+&gt;<i> [...] according to the code comments, the clean-dirty fragmentation is measured as,
+</I>&gt;<i> 
+</I>&gt;<i> * Order such that chunks with higher fragmentation are &quot;less than&quot;
+</I>&gt;<i> * those with lower fragmentation -- purging order is from &quot;least&quot; to
+</I>&gt;<i> * &quot;greatest&quot;. 
+</I>&gt;<i>     mean current avail run size                 nruns_avail-nruns_adjac
+</I>&gt;<i> --------------------------------------------  =  ----------------------------------
+</I>&gt;<i> mean defragmented avail run size                  nruns_avail
+</I>&gt;<i> 
+</I>&gt;<i> So if I have a chunkA with avail_runs = 10, adjac = 1, and another chunkB with avail_runs = 20, adjac = 5.
+</I>&gt;<i> Obviously, the fragmentA(0.9) &gt; fragmentB(0.75), so the A will be prior to B in the dirty chunk tree, and 
+</I>&gt;<i> will be purged first. But the chunkB truely has more adjacs than the A, and the performace gain after purging 
+</I>&gt;<i> chunkA is also less than the other(0.1 vs 0.25). Why we prefer to purge the chunk with &quot;less adjacs&quot;? 
+</I>&gt;<i> Shouldn't we purge more adjacs or clean-dirty fragments to acquire more continuous unalloc pages?
+</I>
+We actually do purge B first, but it's hard to see unless you follow the calculations in the code.  Note that a_val=0.45 and b_val=1.5 in this case, which means that the comparison function returns 1, causing A to come after B in the in-order tree traversal.
+
+&gt;<i> Another question is, I notice that before the git node e3d13060 there are two avail-trees, one is for dirty, 
+</I>&gt;<i> and another for clean,
+</I>&gt;<i>     arena_avail_tree_t    runs_avail_clean;
+</I>&gt;<i>     arena_avail_tree_t    runs_avail_dirty;
+</I>&gt;<i> After that, the two became one. So how to ensure the new runs allocaction to prefer to dirty pages? 
+</I>
+IIRC, there were versions of jemalloc that did not prefer dirty pages.
+
+Note that you're looking at jemalloc 3.x code, but 4.x uses substantially different algorithms that obsoleted the code that ordered chunks according to fragmentation.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160111/f8833186/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160111/f8833186/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001236.html">question about Jemalloc purging order
+</A></li>
+	<LI>Next message: <A HREF="001241.html">question about Jemalloc purging order
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1238">[ date ]</a>
+              <a href="thread.html#1238">[ thread ]</a>
+              <a href="subject.html#1238">[ subject ]</a>
+              <a href="author.html#1238">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

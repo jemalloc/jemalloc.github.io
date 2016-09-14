@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3CBCDBFDDA-7BF1-48E5-96D6-72FDB4110610%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000244.html">
+   <LINK REL="Next"  HREF="000258.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3CBCDBFDDA-7BF1-48E5-96D6-72FDB4110610%40canonware.com%3E"
+       TITLE="[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks">jasone at canonware.com
+       </A><BR>
+    <I>Wed Apr 11 20:20:11 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000244.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+        <LI>Next message: <A HREF="000258.html">[PATCH] Use a stub replacement and disable dss when sbrk is not	supported
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#256">[ date ]</a>
+              <a href="thread.html#256">[ thread ]</a>
+              <a href="subject.html#256">[ subject ]</a>
+              <a href="author.html#256">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 11, 2012, at 5:24 AM, Mike Hommey wrote:
+&gt;<i> Since I don't think it makes sense to emulate sbrk in jemalloc,
+</I>&gt;<i> chunk_dss should be completely disabled there. How would you feel about
+</I>&gt;<i> a patch that doesn't build chunk_dss.c and sets all functions declared in
+</I>&gt;<i> chunk_dss.h to be dummy inline functions when dss is not enabled? That
+</I>&gt;<i> would allow to keep the if (config_dss) parts and avoid replacing them
+</I>&gt;<i> with #ifdefs. Or are you just fine with replacing them with #ifdefs?
+</I>
+I'd like to avoid conditional compilation as much as possible, in order to reduce the frequency of regressions that break compilation for an obscure combination of configuration options.  One way of minimizing the impact might be to detect the presence of sbrk(), create a stub replacement (with a not_implemented() body)  if it's missing, and force config_dss to false.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000244.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+	<LI>Next message: <A HREF="000258.html">[PATCH] Use a stub replacement and disable dss when sbrk is not	supported
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#256">[ date ]</a>
+              <a href="thread.html#256">[ thread ]</a>
+              <a href="subject.html#256">[ subject ]</a>
+              <a href="author.html#256">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

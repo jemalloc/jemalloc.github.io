@@ -1,0 +1,993 @@
+From yanegomi at gmail.com  Sun Dec  2 17:55:26 2012
+From: yanegomi at gmail.com (Garrett Cooper)
+Date: Sun, 2 Dec 2012 17:55:26 -0800 (PST)
+Subject: [PATCH 0/3] jemalloc(3) on FreeBSD fixes
+Message-ID: <alpine.BSF.2.00.1212021754420.40258@toaster.local>
+
+The attached patches make jemalloc(3) function [better] on FreeBSD.
+
+Garrett Cooper (3):
+   Don't mangle errno with free(3) if utrace(2) fails
+   Improve configure tests for ffsl
+   Fix build break on *BSD
+
+  configure.ac                                     | 7 +++++--
+  include/jemalloc/internal/jemalloc_internal.h.in | 6 +++++-
+  include/jemalloc/jemalloc_defs.h.in              | 5 +++++
+  src/jemalloc.c                                   | 2 ++
+  4 files changed, 17 insertions(+), 3 deletions(-)
+
+-- 
+1.8.0
+
+
+From yanegomi at gmail.com  Sun Dec  2 17:56:25 2012
+From: yanegomi at gmail.com (Garrett Cooper)
+Date: Sun, 2 Dec 2012 17:56:25 -0800 (PST)
+Subject: [PATCH 1/3] Don't mangle errno with free(3) if utrace(2) fails
+Message-ID: <alpine.BSF.2.00.1212021755380.40258@toaster.local>
+
+This ensures POLA on FreeBSD (at least) as free(3) is generally assumed
+to not fiddle around with errno.
+
+Signed-off-by: Garrett Cooper <yanegomi at gmail.com>
+---
+  src/jemalloc.c | 2 ++
+  1 file changed, 2 insertions(+)
+
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 8a667b6..ec3805c 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -83,11 +83,13 @@ typedef struct {
+  #ifdef JEMALLOC_UTRACE
+  #  define UTRACE(a, b, c) do {						\
+  	if (opt_utrace) {						\
++		int utrace_serrno = errno;				\
+  		malloc_utrace_t ut;					\
+  		ut.p = (a);						\
+  		ut.s = (b);						\
+  		ut.r = (c);						\
+  		utrace(&ut, sizeof(ut));				\
++		errno = utrace_serrno;					\
+  	}								\
+  } while (0)
+  #else
+-- 
+1.8.0
+
+
+
+From yanegomi at gmail.com  Sun Dec  2 17:57:28 2012
+From: yanegomi at gmail.com (Garrett Cooper)
+Date: Sun, 2 Dec 2012 17:57:28 -0800 (PST)
+Subject: [PATCH 2/3] Improve configure tests for ffsl
+Message-ID: <alpine.BSF.2.00.1212021756300.40258@toaster.local>
+
+In particular:
+- ffsl always returns int, not long, on FreeBSD, Linux, and OSX.
+- Mute compiler warnings about rv being unused (and the potential for
+   compilers optimizing out the call completely) by dumping the value
+   with printf(3).
+
+Signed-off-by: Garrett Cooper <yanegomi at gmail.com>
+---
+  configure.ac | 6 ++++--
+  1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 1c52439..77a5110 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -906,7 +906,7 @@ AC_CACHE_CHECK([STATIC_PAGE_SHIFT],
+  #include <stdio.h>
+  ]],
+  [[
+-    long result;
++    int result;
+      FILE *f;
+
+  #ifdef _WIN32
+@@ -925,7 +925,7 @@ AC_CACHE_CHECK([STATIC_PAGE_SHIFT],
+      if (f == NULL) {
+  	return 1;
+      }
+-    fprintf(f, "%u\n", result);
++    fprintf(f, "%d\n", result);
+      fclose(f);
+
+      return 0;
+@@ -1070,11 +1070,13 @@ dnl Check for ffsl(3), and fail if not found.  This function exists on all
+  dnl platforms that jemalloc currently has a chance of functioning on without
+  dnl modification.
+  JE_COMPILABLE([a program using ffsl], [
++#include <stdio.h>
+  #include <strings.h>
+  #include <string.h>
+  ], [
+  	{
+  		int rv = ffsl(0x08);
++		printf("%d\n", rv);
+  	}
+  ], [je_cv_function_ffsl])
+  if test "x${je_cv_function_ffsl}" != "xyes" ; then
+-- 
+1.8.0
+
+
+From yanegomi at gmail.com  Sun Dec  2 17:58:40 2012
+From: yanegomi at gmail.com (Garrett Cooper)
+Date: Sun, 2 Dec 2012 17:58:40 -0800 (PST)
+Subject: [PATCH 3/3] Fix build break on *BSD
+Message-ID: <alpine.BSF.2.00.1212021757330.40258@toaster.local>
+
+Linux uses alloca.h; many other operating systems define alloca(3) in
+stdlib.h.
+
+Signed-off-by: Garrett Cooper <yanegomi at gmail.com>
+---
+  configure.ac                                     | 1 +
+  include/jemalloc/internal/jemalloc_internal.h.in | 6 +++++-
+  include/jemalloc/jemalloc_defs.h.in              | 5 +++++
+  3 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 77a5110..8140f3c 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -261,6 +261,7 @@ case "${host}" in
+  	CFLAGS="$CFLAGS"
+  	CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
+  	abi="elf"
++	AC_DEFINE([JEMALLOC_HAS_ALLOCA_H])
+  	AC_DEFINE([JEMALLOC_PURGE_MADVISE_DONTNEED], [ ])
+  	AC_DEFINE([JEMALLOC_THREADED_INIT], [ ])
+  	JEMALLOC_USABLE_SIZE_CONST=""
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index 475821a..484f351 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -359,7 +359,11 @@ static const bool config_ivsalloc =
+  #    include <malloc.h>
+  #    define alloca _alloca
+  #  else
+-#    include <alloca.h>
++#    ifdef JEMALLOC_HAS_ALLOCA_H
++#      include <alloca.h>
++#    else
++#      include <stdlib.h>
++#    endif
+  #  endif
+  #  define VARIABLE_ARRAY(type, name, count) \
+  	type *name = alloca(sizeof(type) * count)
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 1cd6025..3fcf93c 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -249,6 +249,11 @@
+  #undef JEMALLOC_PURGE_MADVISE_DONTNEED
+  #undef JEMALLOC_PURGE_MADVISE_FREE
+
++/*
++ * Define if operating system has alloca.h header.
++ */
++#undef JEMALLOC_HAS_ALLOCA_H
++
+  /* sizeof(void *) == 2^LG_SIZEOF_PTR. */
+  #undef LG_SIZEOF_PTR
+
+-- 
+1.8.0
+
+
+From annulen at yandex.ru  Thu Dec  6 05:07:26 2012
+From: annulen at yandex.ru (Konstantin Tokarev)
+Date: Thu, 06 Dec 2012 17:07:26 +0400
+Subject: Memory profiling on SH4
+Message-ID: <452771354799246@web26f.yandex.ru>
+
+Hi all,
+
+I'm trying to use jemalloc's memory profiler on SH4.
+
+I've tried to use all available ways of unwinding: gcc, libgcc, and libunwind (recently ported to SH4). However, I always get meaningless dumps like
+
+
+heap profile: 6: 49296 [0: 0] @ heap_v2/524288
+6: 49296 [0: 0] @
+
+MAPPED_LIBRARIES:
+....
+
+
+Any idea what am I missing here? I used both LD_PRELOAD and compile-time linking of libjemalloc.so.1, my application is built with debug information and -rdynamic, I use MALLOC_CONF=prof:true to enable profiling.
+
+If no idea, how can I debug where the issue lies?
+
+
+-- 
+Regards,
+Konstantin
+
+
+From mh+jemalloc at glandium.org  Thu Dec  6 13:16:26 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu,  6 Dec 2012 22:16:26 +0100
+Subject: [PATCH] Allow to enable ivsalloc independently
+Message-ID: <1354828586-26241-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ INSTALL      |    6 ++++++
+ configure.ac |   19 +++++++++++++++++--
+ 2 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/INSTALL b/INSTALL
+index 9bd1dac..6e371ce 100644
+--- a/INSTALL
++++ b/INSTALL
+@@ -79,6 +79,12 @@ any of the following arguments (not a definitive list) to 'configure':
+ --enable-debug
+     Enable assertions and validation code.  This incurs a substantial
+     performance hit, but is very useful during application development.
++    Implies --enable-ivsalloc.
++
++--enable-ivsalloc
++    Enable validation code, which verifies that pointers reside within
++    jemalloc-owned chunks before dereferencing them. This incurs a substantial
++    performance hit.
+ 
+ --disable-stats
+     Disable statistics gathering functionality.  See the "opt.stats_print"
+diff --git a/configure.ac b/configure.ac
+index 249a66c..9d062a9 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -551,7 +551,7 @@ fi
+ 
+ dnl Do not compile with debugging by default.
+ AC_ARG_ENABLE([debug],
+-  [AS_HELP_STRING([--enable-debug], [Build debugging code])],
++  [AS_HELP_STRING([--enable-debug], [Build debugging code (implies --enable-ivsalloc)])],
+ [if test "x$enable_debug" = "xno" ; then
+   enable_debug="0"
+ else
+@@ -562,10 +562,25 @@ fi
+ )
+ if test "x$enable_debug" = "x1" ; then
+   AC_DEFINE([JEMALLOC_DEBUG], [ ])
+-  AC_DEFINE([JEMALLOC_IVSALLOC], [ ])
++  enable_ivsalloc="1"
+ fi
+ AC_SUBST([enable_debug])
+ 
++dnl Do not validate pointers by default.
++AC_ARG_ENABLE([ivsalloc],
++  [AS_HELP_STRING([--enable-ivsalloc], [Validate pointers passed through the public API])],
++[if test "x$enable_ivsalloc" = "xno" ; then
++  enable_ivsalloc="0"
++else
++  enable_ivsalloc="1"
++fi
++],
++[enable_ivsalloc="0"]
++)
++if test "x$enable_ivsalloc" = "x1" ; then
++  AC_DEFINE([JEMALLOC_IVSALLOC], [ ])
++fi
++
+ dnl Only optimize if not debugging.
+ if test "x$enable_debug" = "x0" -a "x$no_CFLAGS" = "xyes" ; then
+   dnl Make sure that an optimization flag was not specified in EXTRA_CFLAGS.
+-- 
+1.7.10.4
+
+
+
+From danielm at buscape-inc.com  Tue Dec 11 11:25:55 2012
+From: danielm at buscape-inc.com (Daniel Mezzatto Rodrigues)
+Date: Tue, 11 Dec 2012 17:25:55 -0200
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+Message-ID: <50C788C3.4080204@buscape-inc.com>
+
+Hi.
+
+I have just changed part of my system to use jemalloc (version 3.2). 
+Running valgrind (version 3.8.1) gave me some errors (that does not 
+occur with system malloc). Some of the errors:
+
+==7888== Invalid write of size 8
+==7888==    at 0x4C2C404: memcpy (mc_replace_strmem.c:878)
+==7888==    by 0x586E324: huge_ralloc (string3.h:52)
+==7888==    by 0x585064B: je_realloc (jemalloc_internal.h:986)
+
+==7888== Invalid read of size 8
+==7888==    at 0x58582EB: arena_avail_insert (arena.c:259)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 8
+==7888==    at 0x585833B: arena_avail_insert (arena.c:266)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 8
+==7888==    at 0x5858FB9: arena_chunk_alloc (arena.h:661)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid write of size 8
+==7888==    at 0x5857DDC: arena_avail_tree_insert (arena.c:135)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 1
+==7888==    at 0x585834A: arena_avail_insert (arena.c:269)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid write of size 8
+==7888==    at 0x5857DDC: arena_avail_tree_insert (arena.c:135)
+==7888==    by 0x5858EB9: arena_chunk_alloc (arena.c:582)
+==7888==    by 0x585B90F: arena_malloc_large (arena.c:664)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 8
+==7888==    at 0x5858494: arena_run_split (arena.h:502)
+==7888==    by 0x585B942: arena_malloc_large (arena.c:667)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 1
+==7888==    at 0x5857CDA: arena_avail_remove (arena.c:303)
+==7888==    by 0x58584C2: arena_run_split (arena.c:394)
+==7888==    by 0x585B942: arena_malloc_large (arena.c:667)
+==7888==    by 0x5850122: je_calloc (arena.h:883)
+
+==7888== Invalid read of size 8
+==7888==    at 0x585C5F1: arena_ralloc_no_move (arena.h:502)
+==7888==    by 0x585C808: arena_ralloc (arena.c:1982)
+==7888==    by 0x58508BC: je_realloc (jemalloc_internal.h:982)
+
+==7888== Invalid read of size 8
+==7888==    at 0x5858768: arena_run_split (arena.h:649)
+==7888==    by 0x5858E3F: arena_run_alloc_helper (arena.c:637)
+==7888==    by 0x585A5EF: arena_bin_malloc_hard (arena.c:657)
+==7888==    by 0x585B2D0: arena_malloc_small (arena.c:1449)
+==7888==    by 0x585CBA8: arena_ralloc (arena.h:871)
+==7888==    by 0x58508BC: je_realloc (jemalloc_internal.h:982)
+
+I compiled jemallod with ./configure --with-jemalloc-prefix=je_ && make 
+&& make install.
+
+This code runs inside a custom Apache HTTPD module running with 
+mpm_worker, but a single request generated these valgrind errors (no 
+concurrent being processed by multiple threads). It basically calls 
+je_malloc for many structures and then a bunch of je_realloc for each 
+one of these structures.
+
+Some info about my system:
+
+cat /etc/debian_version
+wheezy/sid
+
+uname -a
+Linux xxx 3.0.0-28-generic #45-Ubuntu SMP Wed Nov 14 21:57:26 UTC 2012 
+x86_64 x86_64 x86_64 GNU/Linux
+
+gcc -v
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6.1/lto-wrapper
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu/Linaro 
+4.6.1-9ubuntu3' --with-bugurl=file:///usr/share/doc/gcc-4.6/README.Bugs 
+--enable-languages=c,c++,fortran,objc,obj-c++,go --prefix=/usr 
+--program-suffix=-4.6 --enable-shared --enable-linker-build-id 
+--with-system-zlib --libexecdir=/usr/lib --without-included-gettext 
+--enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 
+--libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu 
+--enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-plugin 
+--enable-objc-gc --disable-werror --with-arch-32=i686 
+--with-tune=generic --enable-checking=release --build=x86_64-linux-gnu 
+--host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.6.1 (Ubuntu/Linaro 4.6.1-9ubuntu3)
+
+valgrind --version
+valgrind-3.8.1
+
+jemalloc 3.2.0-0-g87499f6748eb
+
+httpd -v
+Server version: Apache/2.2.23 (Unix)
+Server built:   Dec  7 2012 17:55:24
+
+Are these errors expected? Am I doing something wrong? Any thoughts?
+
+best regards,
+
+Daniel Mezzatto
+
+
+From jasone at canonware.com  Wed Dec 12 08:02:54 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 12 Dec 2012 08:02:54 -0800
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <50C788C3.4080204@buscape-inc.com>
+References: <50C788C3.4080204@buscape-inc.com>
+Message-ID: <9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+
+On Dec 11, 2012, at 11:25 AM, Daniel Mezzatto Rodrigues <danielm at buscape-inc.com> wrote:
+> I have just changed part of my system to use jemalloc (version 3.2). Running valgrind (version 3.8.1) gave me some errors (that does not occur with system malloc). Some of the errors:
+> 
+> [?]
+> 
+> I compiled jemallod with ./configure --with-jemalloc-prefix=je_ && make && make install.
+> 
+> This code runs inside a custom Apache HTTPD module running with mpm_worker, but a single request generated these valgrind errors (no concurrent being processed by multiple threads). It basically calls je_malloc for many structures and then a bunch of je_realloc for each one of these structures.
+> 
+> Some info about my system:
+> 
+> cat /etc/debian_version
+> wheezy/sid
+> 
+> uname -a
+> Linux xxx 3.0.0-28-generic #45-Ubuntu SMP Wed Nov 14 21:57:26 UTC 2012 x86_64 x86_64 x86_64 GNU/Linux
+> 
+> gcc -v
+> Using built-in specs.
+> COLLECT_GCC=gcc
+> COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6.1/lto-wrapper
+> Target: x86_64-linux-gnu
+> Configured with: ../src/configure -v --with-pkgversion='Ubuntu/Linaro 4.6.1-9ubuntu3' --with-bugurl=file:///usr/share/doc/gcc-4.6/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++,go --prefix=/usr --program-suffix=-4.6 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-plugin --enable-objc-gc --disable-werror --with-arch-32=i686 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+> Thread model: posix
+> gcc version 4.6.1 (Ubuntu/Linaro 4.6.1-9ubuntu3)
+> 
+> valgrind --version
+> valgrind-3.8.1
+> 
+> jemalloc 3.2.0-0-g87499f6748eb
+> 
+> httpd -v
+> Server version: Apache/2.2.23 (Unix)
+> Server built:   Dec  7 2012 17:55:24
+> 
+> Are these errors expected? Am I doing something wrong? Any thoughts?
+
+Is jemalloc configuring itself to support valgrind?  In order for valgrind configuration to succeed, it needs to be able to find the valgrind headers (valgrind/valgrind.h and valgrind/memcheck.h).  It's conceivable that jemalloc's valgrind support might have some holes (it's pretty tricky to get totally right), but the valgrind errors you pasted look like ones that would occur if jemalloc were completely missing valgrind support.
+
+Thanks,
+Jason
+
+From danielm at buscape-inc.com  Wed Dec 12 08:21:17 2012
+From: danielm at buscape-inc.com (Daniel Mezzatto Rodrigues)
+Date: Wed, 12 Dec 2012 14:21:17 -0200
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+References: <50C788C3.4080204@buscape-inc.com>
+	<9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+Message-ID: <50C8AEFD.9000703@buscape-inc.com>
+
+I think jemalloc is configuring itself to support valgrind. Running 
+configure shows me this:
+
+./configure --with-jemalloc-prefix=je_ | grep -i valgrind
+checking whether valgrind is compilable... yes
+valgrind           : 1
+
+Looks like the header files you mentioned are in the right place:
+
+/usr/local/include/valgrind/ | grep -E "(valgrind|memcheck)"
+memcheck.h
+valgrind.h
+
+Is it OK for me to just ignore these error messages? If it's just a 
+missconfiguration of jemalloc's valgrind support, I'm fine with that.
+
+best regards,
+
+Daniel Mezzatto
+
+On 12/12/2012 02:02 PM, Jason Evans wrote:
+> Is jemalloc configuring itself to support valgrind?  In order for valgrind configuration to succeed, it needs to be able to find the valgrind headers (valgrind/valgrind.h and valgrind/memcheck.h).  It's conceivable that jemalloc's valgrind support might have some holes (it's pretty tricky to get totally right), but the valgrind errors you pasted look like ones that would occur if jemalloc were completely missing valgrind support.
+>
+> Thanks,
+> Jason
+
+
+
+From jasone at canonware.com  Wed Dec 12 08:22:44 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 12 Dec 2012 08:22:44 -0800
+Subject: dev branch
+In-Reply-To: <20121126073459.GA14644@glandium.org>
+References: <20121126073459.GA14644@glandium.org>
+Message-ID: <6F5599A2-71EF-42E1-9596-2A300C045344@canonware.com>
+
+On Nov 25, 2012, at 11:34 PM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> I'm reiterating the request to merge releases to the dev branch so that
+> git describe gives a correct version number when filling VERSION, when
+> building off the dev branch.
+
+I'm reluctant to do this because there isn't necessarily a 1:1 correspondence between the most recent release an the dev branch.  See 2.2.4 and 2.2.5 for examples.  I actually wish that 0.0.0 were the only tag visible on the dev branch, but I made a procedural mistake merging the 1.0.0 release, so we're stuck with that tag instead.  What do you think about adding something like --with-version-override=<rev>, where <rev> is a tag/branch/rev that the configure script uses when generating  the major.minor.bugfix portion of VERSION?  Unfortunately nrev is ill-posed for such an override, so I still don't think this is a great solution.  Suggestions?
+
+Thanks,
+Jason
+
+From mh+jemalloc at glandium.org  Wed Dec 12 08:36:32 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 12 Dec 2012 17:36:32 +0100
+Subject: dev branch
+In-Reply-To: <6F5599A2-71EF-42E1-9596-2A300C045344@canonware.com>
+References: <20121126073459.GA14644@glandium.org>
+	<6F5599A2-71EF-42E1-9596-2A300C045344@canonware.com>
+Message-ID: <20121212163632.GA5835@glandium.org>
+
+On Wed, Dec 12, 2012 at 08:22:44AM -0800, Jason Evans wrote:
+> On Nov 25, 2012, at 11:34 PM, Mike Hommey <mh+jemalloc at glandium.org>
+> wrote:
+> > I'm reiterating the request to merge releases to the dev branch so
+> > that git describe gives a correct version number when filling
+> > VERSION, when building off the dev branch.
+> 
+> I'm reluctant to do this because there isn't necessarily a 1:1
+> correspondence between the most recent release an the dev branch.
+
+Well, next time you merge dev to master, there should be a 1:1
+correspondance, shouldn't there?
+
+Mike
+
+
+From jasone at canonware.com  Wed Dec 12 08:52:52 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 12 Dec 2012 08:52:52 -0800
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <50C8AEFD.9000703@buscape-inc.com>
+References: <50C788C3.4080204@buscape-inc.com>
+	<9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+	<50C8AEFD.9000703@buscape-inc.com>
+Message-ID: <576F40F6-6ED8-43EB-937B-0E6A6CD4B4A1@canonware.com>
+
+On Dec 12, 2012, at 8:21 AM, Daniel Mezzatto Rodrigues <danielm at buscape-inc.com> wrote:
+> I think jemalloc is configuring itself to support valgrind. Running configure shows me this:
+> 
+> ./configure --with-jemalloc-prefix=je_ | grep -i valgrind
+> checking whether valgrind is compilable... yes
+> valgrind           : 1
+> 
+> Looks like the header files you mentioned are in the right place:
+> 
+> /usr/local/include/valgrind/ | grep -E "(valgrind|memcheck)"
+> memcheck.h
+> valgrind.h
+> 
+> Is it OK for me to just ignore these error messages? If it's just a missconfiguration of jemalloc's valgrind support, I'm fine with that.
+
+The bulk of the valgrind error messages is almost certainly a result of valgrind complaining about what jemalloc is doing under the covers with internal data structures.  I'm perplexed as to why valgrind is complaining though.  It's almost as if valgrind knows something about the mmap'ed memory jemalloc manages, where jemalloc expects valgrind not to know anything about it.  Do such valgrind errors occur for a simple test program in your environment?
+
+I'm starting to wonder if there's a change between Valgrind 3.7.x and 3.8.x that jemalloc needs to be updated for.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed Dec 12 09:13:39 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 12 Dec 2012 09:13:39 -0800
+Subject: Memory profiling on SH4
+In-Reply-To: <452771354799246@web26f.yandex.ru>
+References: <452771354799246@web26f.yandex.ru>
+Message-ID: <10846071-9FFF-40C3-8DC4-6590B3E0DD90@canonware.com>
+
+On Dec 6, 2012, at 5:07 AM, Konstantin Tokarev <annulen at yandex.ru> wrote:
+> I'm trying to use jemalloc's memory profiler on SH4.
+> 
+> I've tried to use all available ways of unwinding: gcc, libgcc, and libunwind (recently ported to SH4). However, I always get meaningless dumps like
+> 
+> 
+> heap profile: 6: 49296 [0: 0] @ heap_v2/524288
+> 6: 49296 [0: 0] @
+> 
+> MAPPED_LIBRARIES:
+> ....
+> 
+> 
+> Any idea what am I missing here? I used both LD_PRELOAD and compile-time linking of libjemalloc.so.1, my application is built with debug information and -rdynamic, I use MALLOC_CONF=prof:true to enable profiling.
+> 
+> If no idea, how can I debug where the issue lies?
+
+The problem looks to be related to backtracing.  There are three mechanisms currently supported: libunwind, libgcc, and gcc intrinsics.  Sadly, no single solution works everywhere, so I'd recommend trying libunwind to see if it does any better than libgcc.  See INSTALL for configuration details.
+
+Jason
+
+From danielm at buscape-inc.com  Wed Dec 12 09:14:10 2012
+From: danielm at buscape-inc.com (Daniel Mezzatto Rodrigues)
+Date: Wed, 12 Dec 2012 15:14:10 -0200
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <576F40F6-6ED8-43EB-937B-0E6A6CD4B4A1@canonware.com>
+References: <50C788C3.4080204@buscape-inc.com>
+	<9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+	<50C8AEFD.9000703@buscape-inc.com>
+	<576F40F6-6ED8-43EB-937B-0E6A6CD4B4A1@canonware.com>
+Message-ID: <50C8BB62.7020907@buscape-inc.com>
+
+Unfortunately I can't generate a simple test program that makes the 
+valgring errors occur. Even inside my system the valgrind error messeges 
+don't happen for every HTTP request.
+
+Looks like only memory intense requests, that allocates 64 MB or more in 
+a single chunk, triggers the errors. It also appears that it is related 
+to reallocs. If I have a HTTP request that somehow generates more than 
+64 MB of data in a single chunk of memory and this chunck needs to me 
+realloc'd, then valgring starts complaning.
+
+I'm sending the full valgrind report (20K lines, 15k .bz2 file) of one 
+of these memory intense requests to jasone at canonware.com so that you can 
+have some more details.
+
+best regards,
+
+Daniel Mezzatto
+
+On 12/12/2012 02:52 PM, Jason Evans wrote:
+> The bulk of the valgrind error messages is almost certainly a result of valgrind complaining about what jemalloc is doing under the covers with internal data structures.  I'm perplexed as to why valgrind is complaining though.  It's almost as if valgrind knows something about the mmap'ed memory jemalloc manages, where jemalloc expects valgrind not to know anything about it.  Do such valgrind errors occur for a simple test program in your environment?
+>
+> I'm starting to wonder if there's a change between Valgrind 3.7.x and 3.8.x that jemalloc needs to be updated for.
+
+
+
+From jasone at canonware.com  Wed Dec 12 09:32:22 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 12 Dec 2012 09:32:22 -0800
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <50C8BB62.7020907@buscape-inc.com>
+References: <50C788C3.4080204@buscape-inc.com>
+	<9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+	<50C8AEFD.9000703@buscape-inc.com>
+	<576F40F6-6ED8-43EB-937B-0E6A6CD4B4A1@canonware.com>
+	<50C8BB62.7020907@buscape-inc.com>
+Message-ID: <E737349D-BDBA-4197-B6DF-554719615EA8@canonware.com>
+
+On Dec 12, 2012, at 9:14 AM, Daniel Mezzatto Rodrigues <danielm at buscape-inc.com> wrote:
+> Unfortunately I can't generate a simple test program that makes the valgring errors occur. Even inside my system the valgrind error messeges don't happen for every HTTP request.
+> 
+> Looks like only memory intense requests, that allocates 64 MB or more in a single chunk, triggers the errors. It also appears that it is related to reallocs. If I have a HTTP request that somehow generates more than 64 MB of data in a single chunk of memory and this chunck needs to me realloc'd, then valgring starts complaning.
+
+Ah, this info narrows things down a bit.  Can you try configuring jemalloc with --enable-munmap and see if the problem persists?  It seems probable that the VALGRIND_MAKE_MEM_UNDEFINED() call in chunk_recycle() should be unconditional.
+
+Thanks,
+Jason
+
+From danielm at buscape-inc.com  Wed Dec 12 10:01:58 2012
+From: danielm at buscape-inc.com (Daniel Mezzatto Rodrigues)
+Date: Wed, 12 Dec 2012 16:01:58 -0200
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <E737349D-BDBA-4197-B6DF-554719615EA8@canonware.com>
+References: <50C788C3.4080204@buscape-inc.com>
+	<9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+	<50C8AEFD.9000703@buscape-inc.com>
+	<576F40F6-6ED8-43EB-937B-0E6A6CD4B4A1@canonware.com>
+	<50C8BB62.7020907@buscape-inc.com>
+	<E737349D-BDBA-4197-B6DF-554719615EA8@canonware.com>
+Message-ID: <50C8C696.5070906@buscape-inc.com>
+
+Configuring jemalloc with --enable-munmap made valgrind error messages 
+vanish! No more error messages as far as I could test.
+
+Are there any disadvantages of using --enable-munmap? I see that it 
+enables virtual memory deallocation via munmap. It seens that it was 
+enabled by default in previous version of jemalloc. Is that correct?
+
+Will you change this VALGRIND_MAKE_MEM_UNDEFINED() call in 
+chunk_recycle() so that configuring jemalloc with --enable-munmap won't 
+be in future versions?
+
+best regards,
+
+Daniel Mezzatto
+
+On 12/12/2012 03:32 PM, Jason Evans wrote:
+> Ah, this info narrows things down a bit.  Can you try configuring jemalloc with --enable-munmap and see if the problem persists?  It seems probable that the VALGRIND_MAKE_MEM_UNDEFINED() call in chunk_recycle() should be unconditional.
+
+
+
+From jasone at canonware.com  Wed Dec 12 10:07:53 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 12 Dec 2012 10:07:53 -0800
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <50C8C696.5070906@buscape-inc.com>
+References: <50C788C3.4080204@buscape-inc.com>
+	<9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+	<50C8AEFD.9000703@buscape-inc.com>
+	<576F40F6-6ED8-43EB-937B-0E6A6CD4B4A1@canonware.com>
+	<50C8BB62.7020907@buscape-inc.com>
+	<E737349D-BDBA-4197-B6DF-554719615EA8@canonware.com>
+	<50C8C696.5070906@buscape-inc.com>
+Message-ID: <0BF8D98D-3A45-4DC7-9EE3-A5E4474210A6@canonware.com>
+
+On Dec 12, 2012, at 10:01 AM, Daniel Mezzatto Rodrigues <danielm at buscape-inc.com> wrote:
+> Configuring jemalloc with --enable-munmap made valgrind error messages vanish! No more error messages as far as I could test.
+> 
+> Are there any disadvantages of using --enable-munmap? I see that it enables virtual memory deallocation via munmap. It seens that it was enabled by default in previous version of jemalloc. Is that correct?
+
+The disadvantage of using --enable-munmap on Linux is that the kernel's heuristics for finding available virtual memory are quite naive, and they routinely result in virtual memory map fragmentation.  That wouldn't be a big deal, except that the kernel also uses linear VM map searches for some common operations, so performance can suffer badly for large-memory applications.
+
+> Will you change this VALGRIND_MAKE_MEM_UNDEFINED() call in chunk_recycle() so that configuring jemalloc with --enable-munmap won't be in future versions?
+
+Yes, I will fix chunk_recycle() and include the fix in the next jemalloc release.  Thank you for your bug report and help in diagnosing the cause.
+
+Jason
+
+From jasone at canonware.com  Wed Dec 12 10:17:16 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 12 Dec 2012 10:17:16 -0800
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <0BF8D98D-3A45-4DC7-9EE3-A5E4474210A6@canonware.com>
+References: <50C788C3.4080204@buscape-inc.com>
+	<9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+	<50C8AEFD.9000703@buscape-inc.com>
+	<576F40F6-6ED8-43EB-937B-0E6A6CD4B4A1@canonware.com>
+	<50C8BB62.7020907@buscape-inc.com>
+	<E737349D-BDBA-4197-B6DF-554719615EA8@canonware.com>
+	<50C8C696.5070906@buscape-inc.com>
+	<0BF8D98D-3A45-4DC7-9EE3-A5E4474210A6@canonware.com>
+Message-ID: <FF9F96C9-C884-41A8-B81B-A031DE7E03ED@canonware.com>
+
+On Dec 12, 2012, at 10:07 AM, Jason Evans <jasone at canonware.com> wrote:
+> On Dec 12, 2012, at 10:01 AM, Daniel Mezzatto Rodrigues <danielm at buscape-inc.com> wrote:
+>> Configuring jemalloc with --enable-munmap made valgrind error messages vanish! No more error messages as far as I could test.
+>> 
+>> Are there any disadvantages of using --enable-munmap? I see that it enables virtual memory deallocation via munmap. It seens that it was enabled by default in previous version of jemalloc. Is that correct?
+> 
+> The disadvantage of using --enable-munmap on Linux is that the kernel's heuristics for finding available virtual memory are quite naive, and they routinely result in virtual memory map fragmentation.  That wouldn't be a big deal, except that the kernel also uses linear VM map searches for some common operations, so performance can suffer badly for large-memory applications.
+> 
+>> Will you change this VALGRIND_MAKE_MEM_UNDEFINED() call in chunk_recycle() so that configuring jemalloc with --enable-munmap won't be in future versions?
+> 
+> Yes, I will fix chunk_recycle() and include the fix in the next jemalloc release.  Thank you for your bug report and help in diagnosing the cause.
+
+If you want to be totally sure that the fix is correct, you can apply the following and test without the --enable-munmap option:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=1271185b87fcf54afb37dc05e7e0c58e5fb8f06a
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121212/2869a492/attachment.html>
+
+From danielm at buscape-inc.com  Wed Dec 12 10:34:47 2012
+From: danielm at buscape-inc.com (Daniel Mezzatto Rodrigues)
+Date: Wed, 12 Dec 2012 16:34:47 -0200
+Subject: valgrind 3.8.1 warning in jemalloc 3.2
+In-Reply-To: <FF9F96C9-C884-41A8-B81B-A031DE7E03ED@canonware.com>
+References: <50C788C3.4080204@buscape-inc.com>
+	<9574648D-CBE9-4751-9B3A-DA05446E362A@canonware.com>
+	<50C8AEFD.9000703@buscape-inc.com>
+	<576F40F6-6ED8-43EB-937B-0E6A6CD4B4A1@canonware.com>
+	<50C8BB62.7020907@buscape-inc.com>
+	<E737349D-BDBA-4197-B6DF-554719615EA8@canonware.com>
+	<50C8C696.5070906@buscape-inc.com>
+	<0BF8D98D-3A45-4DC7-9EE3-A5E4474210A6@canonware.com>
+	<FF9F96C9-C884-41A8-B81B-A031DE7E03ED@canonware.com>
+Message-ID: <50C8CE47.5090904@buscape-inc.com>
+
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121212/7f0b4b39/attachment.html>
+
+From amith.mn at gmail.com  Thu Dec 13 02:40:40 2012
+From: amith.mn at gmail.com (Amith Nagarajappa)
+Date: Thu, 13 Dec 2012 16:10:40 +0530
+Subject: compilation on visual studio 2010 fails
+Message-ID: <CAH65L05i8T2kgXU6UmtntjaxpP5Tyvhre54M18FGKBKK4HXPng@mail.gmail.com>
+
+Hi,
+
+I am trying to compile jemalloc on visual studio 2010. Its failing with a
+lot of errors as follows:
+
+\src\chunk_dss.c(2): fatal error C1083: Cannot open include file:
+'jemalloc/internal/jemalloc_internal.h': No such file or directory
+
+
+Any help on this would be appreciated.
+
+Thanks and Regards,
+Amith M N.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121213/1f8b4ad3/attachment.html>
+
+From jasone at canonware.com  Sun Dec 23 11:10:58 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 23 Dec 2012 11:10:58 -0800
+Subject: [PATCH] Allow to disable the zone allocator on Darwin
+In-Reply-To: <1353952361-9363-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1353952361-9363-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <E5322635-7F76-4BD8-9FC9-20A61179A1C2@canonware.com>
+
+On Nov 26, 2012, at 9:52 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> ---
+> INSTALL      |    4 ++++
+> Makefile.in  |    3 ++-
+> configure.ac |   21 ++++++++++++++++++++-
+> 3 files changed, 26 insertions(+), 2 deletions(-)
+
+Applied; thanks.
+
+Jason
+
+
+From jasone at canonware.com  Sun Dec 23 11:55:04 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 23 Dec 2012 11:55:04 -0800
+Subject: [PATCH 0/3] jemalloc(3) on FreeBSD fixes
+In-Reply-To: <alpine.BSF.2.00.1212021754420.40258@toaster.local>
+References: <alpine.BSF.2.00.1212021754420.40258@toaster.local>
+Message-ID: <1C5E47D2-220C-41AB-9246-9486611FFC52@canonware.com>
+
+On Dec 2, 2012, at 5:55 PM, Garrett Cooper <yanegomi at gmail.com> wrote:
+> The attached patches make jemalloc(3) function [better] on FreeBSD.
+> 
+> Garrett Cooper (3):
+>  Don't mangle errno with free(3) if utrace(2) fails
+>  Improve configure tests for ffsl
+>  Fix build break on *BSD
+> 
+> configure.ac                                     | 7 +++++--
+> include/jemalloc/internal/jemalloc_internal.h.in | 6 +++++-
+> include/jemalloc/jemalloc_defs.h.in              | 5 +++++
+> src/jemalloc.c                                   | 2 ++
+> 4 files changed, 17 insertions(+), 3 deletions(-)
+> 
+> -- 
+> 1.8.0
+
+These patches don't apply when I attempt to use 'git am' (which is particularly unhelpful when errors occur).  Is there some workflow for integrating these patches that is supposed to work?
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Dec 23 11:55:40 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 23 Dec 2012 11:55:40 -0800
+Subject: [PATCH] Allow to enable ivsalloc independently
+In-Reply-To: <1354828586-26241-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1354828586-26241-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <D7615C96-23A8-4BF5-9022-978D0BFC7521@canonware.com>
+
+On Dec 6, 2012, at 1:16 PM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> ---
+> INSTALL      |    6 ++++++
+> configure.ac |   19 +++++++++++++++++--
+> 2 files changed, 23 insertions(+), 2 deletions(-)
+
+Applied; thanks.
+
+Jason
+
+
+From yanegomi at gmail.com  Sun Dec 23 13:42:33 2012
+From: yanegomi at gmail.com (Garrett Cooper)
+Date: Sun, 23 Dec 2012 13:42:33 -0800
+Subject: [PATCH 0/3] jemalloc(3) on FreeBSD fixes
+In-Reply-To: <1C5E47D2-220C-41AB-9246-9486611FFC52@canonware.com>
+References: <alpine.BSF.2.00.1212021754420.40258@toaster.local>
+	<1C5E47D2-220C-41AB-9246-9486611FFC52@canonware.com>
+Message-ID: <CAGH67wQiBousSS0hdJWmahSA=n6P+aTW5tQXeuuNJ2z11iKi7g@mail.gmail.com>
+
+On Sun, Dec 23, 2012 at 11:55 AM, Jason Evans <jasone at canonware.com> wrote:
+> On Dec 2, 2012, at 5:55 PM, Garrett Cooper <yanegomi at gmail.com> wrote:
+>> The attached patches make jemalloc(3) function [better] on FreeBSD.
+>>
+>> Garrett Cooper (3):
+>>  Don't mangle errno with free(3) if utrace(2) fails
+>>  Improve configure tests for ffsl
+>>  Fix build break on *BSD
+>>
+>> configure.ac                                     | 7 +++++--
+>> include/jemalloc/internal/jemalloc_internal.h.in | 6 +++++-
+>> include/jemalloc/jemalloc_defs.h.in              | 5 +++++
+>> src/jemalloc.c                                   | 2 ++
+>> 4 files changed, 17 insertions(+), 3 deletions(-)
+
+...
+
+> These patches don't apply when I attempt to use 'git am' (which is particularly unhelpful when errors occur).  Is there some workflow for integrating these patches that is supposed to work?
+
+Strange. There shouldn't be... Let me update my git repo and
+regenerate the patches.
+
+What was the error that you ran into when you tried to apply them?
+
+Thanks!
+-Garrett
+
+
+From jasone at canonware.com  Mon Dec 24 10:30:34 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 24 Dec 2012 10:30:34 -0800
+Subject: [PATCH 0/3] jemalloc(3) on FreeBSD fixes
+In-Reply-To: <CAGH67wQiBousSS0hdJWmahSA=n6P+aTW5tQXeuuNJ2z11iKi7g@mail.gmail.com>
+References: <alpine.BSF.2.00.1212021754420.40258@toaster.local>
+	<1C5E47D2-220C-41AB-9246-9486611FFC52@canonware.com>
+	<CAGH67wQiBousSS0hdJWmahSA=n6P+aTW5tQXeuuNJ2z11iKi7g@mail.gmail.com>
+Message-ID: <FA71AB3F-298F-4BAE-810B-77212391CA2A@canonware.com>
+
+On Dec 23, 2012, at 1:42 PM, Garrett Cooper <yanegomi at gmail.com> wrote:
+> On Sun, Dec 23, 2012 at 11:55 AM, Jason Evans <jasone at canonware.com> wrote:
+>> On Dec 2, 2012, at 5:55 PM, Garrett Cooper <yanegomi at gmail.com> wrote:
+>>> The attached patches make jemalloc(3) function [better] on FreeBSD.
+>>> 
+>>> Garrett Cooper (3):
+>>> Don't mangle errno with free(3) if utrace(2) fails
+>>> Improve configure tests for ffsl
+>>> Fix build break on *BSD
+>>> 
+>>> configure.ac                                     | 7 +++++--
+>>> include/jemalloc/internal/jemalloc_internal.h.in | 6 +++++-
+>>> include/jemalloc/jemalloc_defs.h.in              | 5 +++++
+>>> src/jemalloc.c                                   | 2 ++
+>>> 4 files changed, 17 insertions(+), 3 deletions(-)
+> 
+> ...
+> 
+>> These patches don't apply when I attempt to use 'git am' (which is particularly unhelpful when errors occur).  Is there some workflow for integrating these patches that is supposed to work?
+> 
+> Strange. There shouldn't be... Let me update my git repo and
+> regenerate the patches.
+> 
+> What was the error that you ran into when you tried to apply them?
+
+$ git am ~/Desktop/PATCH1.eml
+Applying: Don't mangle errno with free(3) if utrace(2) fails
+error: patch failed: src/jemalloc.c:83
+error: src/jemalloc.c: patch does not apply
+Patch failed at 0001 Don't mangle errno with free(3) if utrace(2) fails
+When you have resolved this problem run "git am --resolved".
+If you would prefer to skip this patch, instead run "git am --skip".
+To restore the original branch and stop patching run "git am --abort".
+
+I finally figured out what the actual problem is: there's an extra whitespace character in front of each unchanged contextual line in the diffs.
+
+Thanks,
+Jason
+
+From kuszmaul at gmail.com  Wed Dec 26 15:50:40 2012
+From: kuszmaul at gmail.com (Bradley C. Kuszmaul)
+Date: Wed, 26 Dec 2012 18:50:40 -0500
+Subject: maximally misaligned
+Message-ID: <CAKSyJXdmf0h=z1Ha3ivhjdaX7ZwPzaAJszDcT+jzy9p2i6Je7w@mail.gmail.com>
+
+It would be useful if there were a way to configure jemalloc to give
+the worst acceptable alignment for every returned object.
+
+I'm currently debugging a program that uses O_DIRECT for file I/O.
+This option requires that all pointers passed to read() and write() be
+512-byte aligned.  There is an occasional function that uses malloc()
+to create a buffer instead of something like memalign().  I'd like it
+if the malloc() could be tweaked so that the returned pointer from
+malloc(4096) was aligned to be off by, say 16 bytes.  Otherwise there
+fact that malloc(4096) seems to return a 512-byte aligned pointer
+masks a bug in the program.
+
+I've implemented this misaligned mallocator on top of malloc() for my purposes.
+
+Is this something that might belong in the jemalloc library instead of
+in my code?  Maybe it's already there and I don't know about it.
+Maybe this is a dumb idea and it really belongs in the application, as
+I've done it.
+
+Any thoughts?
+
+-Bradley
+
+

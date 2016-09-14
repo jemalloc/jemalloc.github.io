@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Example of using jemalloc to manage a given memory space?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Example%20of%20using%20jemalloc%20to%20manage%20a%20given%20memory%20space%3F&In-Reply-To=%3C2EE4D488-F21A-4A0B-8B62-2D6D3FB33FD2%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001302.html">
+   <LINK REL="Next"  HREF="001304.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Example of using jemalloc to manage a given memory space?</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Example%20of%20using%20jemalloc%20to%20manage%20a%20given%20memory%20space%3F&In-Reply-To=%3C2EE4D488-F21A-4A0B-8B62-2D6D3FB33FD2%40canonware.com%3E"
+       TITLE="Example of using jemalloc to manage a given memory space?">jasone at canonware.com
+       </A><BR>
+    <I>Wed Jun  8 17:26:06 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001302.html">Example of using jemalloc to manage a given memory space?
+</A></li>
+        <LI>Next message: <A HREF="001304.html">Example of using jemalloc to manage a given memory space?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1303">[ date ]</a>
+              <a href="thread.html#1303">[ thread ]</a>
+              <a href="subject.html#1303">[ subject ]</a>
+              <a href="author.html#1303">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 4, 2016, at 3:22 PM, Bill O'Hara &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">billtohara at gmail.com</A>&gt; wrote:
+&gt;<i> I see various hints that it's possible to use jemalloc to manage a given memory space. That is, given a pointer to say 16GB of byte addressable memory, use jemalloc to manage it as a heap.
+</I>&gt;<i> 
+</I>&gt;<i> 1) Can someone point me in the direction of a simple example, or hints on how to configure jemalloc to do this?
+</I>
+Here's the relevant documentation:
+
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#arena.i.chunk_hooks">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#arena.i.chunk_hooks</A>
+
+Here's a test case that gives a basic example of how to use the chunk hooks API:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/blob/master/test/integration/chunk.c">https://github.com/jemalloc/jemalloc/blob/master/test/integration/chunk.c</A>
+
+&gt;<i> 2) Further -- is it possible to get jemalloc to put it's own data structures entirely within the given 16GB space, so that if the process restarts that the heap can be reattached?
+</I>
+No, there are lots of places where jemalloc uses static data, and it's generally important to performance to do so.  As of 4.2.0, application-created arenas (see <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#arenas.extend">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#arenas.extend</A>) put all their metadata in one of the automatically multiplexed arenas so that it's possible to discard the contents of an arena with a single call (<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#arena.i.reset">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#arena.i.reset</A>), which is sort of the opposite of what you want.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001302.html">Example of using jemalloc to manage a given memory space?
+</A></li>
+	<LI>Next message: <A HREF="001304.html">Example of using jemalloc to manage a given memory space?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1303">[ date ]</a>
+              <a href="thread.html#1303">[ thread ]</a>
+              <a href="subject.html#1303">[ subject ]</a>
+              <a href="author.html#1303">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

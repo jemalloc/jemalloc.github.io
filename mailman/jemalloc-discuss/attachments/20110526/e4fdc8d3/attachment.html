@@ -1,0 +1,14 @@
+<tt>
+&lt;html&gt;&lt;head&gt;<br>
+&lt;meta&nbsp;http-equiv=&quot;Content-Type&quot;&nbsp;content=&quot;text/html;&nbsp;charset=Windows-1252&quot;&gt;&lt;title&gt;Restore&nbsp;bookkeeping&nbsp;data&nbsp;structures&nbsp;across&nbsp;program&nbsp;runs&lt;/title&gt;<br>
+&lt;/head&gt;<br>
+&lt;body&gt;<br>
+&lt;font&nbsp;face=&quot;Calibri,&nbsp;Verdana,&nbsp;Helvetica,&nbsp;Arial&quot;&gt;&lt;span&nbsp;style=&quot;font-size:11pt&quot;&gt;Hi,&lt;br&gt;<br>
+I&nbsp;noticed&nbsp;that&nbsp;when&nbsp;jemalloc&nbsp;initializes,&nbsp;book&nbsp;keeping&nbsp;data&nbsp;structures&nbsp;are&nbsp;stored&nbsp;to&nbsp;main&nbsp;memory.&nbsp;When&nbsp;I&nbsp;enable&nbsp;swap,&nbsp;any&nbsp;new&nbsp;allocations&nbsp;to&nbsp;book&nbsp;keeping&nbsp;data&nbsp;structures&nbsp;(for&nbsp;example,&nbsp;the&nbsp;red&nbsp;black&nbsp;tree)&nbsp;are&nbsp;in&nbsp;the&nbsp;swap&nbsp;area.&nbsp;I&nbsp;want&nbsp;to&nbsp;modify&nbsp;jemalloc&nbsp;so&nbsp;that&nbsp;I&nbsp;can&nbsp;restore&nbsp;the&nbsp;book&nbsp;keeping&nbsp;data&nbsp;structures&nbsp;from&nbsp;the&nbsp;swap&nbsp;file&nbsp;across&nbsp;program&nbsp;runs&nbsp;so&nbsp;that&nbsp;I&nbsp;can&nbsp;still&nbsp;call&nbsp;free(),&nbsp;etc.&nbsp;I’m&nbsp;currently&nbsp;trying&nbsp;to&nbsp;see&nbsp;if&nbsp;calling&nbsp;chunk_swap_enable&nbsp;before&nbsp;malloc_init_hard&nbsp;would&nbsp;do&nbsp;the&nbsp;trick,&nbsp;but&nbsp;this&nbsp;seems&nbsp;really&nbsp;hackish.&nbsp;Do&nbsp;you&nbsp;have&nbsp;a&nbsp;suggestion&nbsp;for&nbsp;a&nbsp;better&nbsp;approach?&nbsp;Any&nbsp;help&nbsp;would&nbsp;be&nbsp;appreciated.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thank&nbsp;you.&lt;/span&gt;&lt;/font&gt;<br>
+&lt;/body&gt;<br>
+&lt;/html&gt;<br>
+<br>
+
+</tt>

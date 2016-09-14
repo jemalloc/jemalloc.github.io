@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-3.6.0 fails to build on to-be-fedora-21
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-3.6.0%20fails%20to%20build%20on%20to-be-fedora-21&In-Reply-To=%3C53EE4A82.9000009%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000911.html">
+   <LINK REL="Next"  HREF="000909.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-3.6.0 fails to build on to-be-fedora-21</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-3.6.0%20fails%20to%20build%20on%20to-be-fedora-21&In-Reply-To=%3C53EE4A82.9000009%40gmail.com%3E"
+       TITLE="jemalloc-3.6.0 fails to build on to-be-fedora-21">danielmicay at gmail.com
+       </A><BR>
+    <I>Fri Aug 15 10:59:30 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000911.html">jemalloc-3.6.0 fails to build on to-be-fedora-21
+</A></li>
+        <LI>Next message: <A HREF="000909.html">understanding page/chunk reclaim algorithm
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#912">[ date ]</a>
+              <a href="thread.html#912">[ thread ]</a>
+              <a href="subject.html#912">[ subject ]</a>
+              <a href="author.html#912">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 15/08/14 01:24 PM, Jason Evans wrote:
+&gt;<i> On Aug 6, 2014, at 6:34 AM, Ingvar Hagelund &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ingvar at redpill-linpro.com</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> Ingvar Hagelund wrote
+</I>&gt;&gt;&gt;&gt;<i> jemalloc-3.6.0 fails to build on to-be-fedora-21
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> <A HREF="https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log">https://kojipkgs.fedoraproject.org//work/tasks/2036/7002036/build.log</A>
+</I>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i> Seems like gcc-4.9.0 changed emmintrin.h
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> ... though only when compiling against Fedora's i686 target, that is
+</I>&gt;&gt;&gt;<i> &quot;gcc -m32 -march=i686 -mtune=atom&quot;
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> x86_64 and the generic i386 target, that is &quot;gcc -march=i386
+</I>&gt;&gt;&gt;<i> -mtune=generic&quot; , works fine (though generic i386 is not a primary
+</I>&gt;&gt;&gt;<i> Fedora target anymore).
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> This is because of github commit
+</I>&gt;&gt;<i> cb657e3170349a27e753cdf6316513f56550205e
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> See also jemalloc github issue 52:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/issues/52">https://github.com/jemalloc/jemalloc/issues/52</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Adding -msse2 to CFLAGS fixes the build on Fedora, but there is an issue
+</I>&gt;&gt;<i> with this: Fedora supports the i686 arch. i686 predates SSE2. i686 means
+</I>&gt;&gt;<i> PentiumPro and above, while SSE2 was included around Pentium II, that is
+</I>&gt;&gt;<i> later. So there is no guaranteed support for SSE2 in Fedora.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Grepping through the code, it looks like SSE2 is only used for test
+</I>&gt;&gt;<i> cases. Does jemalloc use SSE2 features at runtime? If it does, will it
+</I>&gt;&gt;<i> work correctly without SSE2 available?
+</I>&gt;<i> 
+</I>&gt;<i> jemalloc doesn&#8217;t explicitly use SSE2; it&#8217;s for test code only.  If I&#8217;d known how much portability trouble the SSE2 optimizations for the Merseinne Twister PRNG would cause, I&#8217;d have left them completely disabled.  Maybe it&#8217;s time to give up on SSE2, since nothing important depends on it.
+</I>&gt;<i> 
+</I>&gt;<i> Jason
+</I>
+If performance is critical, perhaps a much simpler XorShift RNG would be
+a better choice. They're blazing fast and the quality is more than good
+enough for fuzzing.
+
+<A HREF="http://xorshift.di.unimi.it/">http://xorshift.di.unimi.it/</A>
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140815/3066058d/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140815/3066058d/attachment.sig</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000911.html">jemalloc-3.6.0 fails to build on to-be-fedora-21
+</A></li>
+	<LI>Next message: <A HREF="000909.html">understanding page/chunk reclaim algorithm
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#912">[ date ]</a>
+              <a href="thread.html#912">[ thread ]</a>
+              <a href="subject.html#912">[ subject ]</a>
+              <a href="author.html#912">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

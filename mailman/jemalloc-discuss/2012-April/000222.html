@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc stats
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20stats&In-Reply-To=%3C2BE441CC-E75B-4FB2-B05A-53B914153E51%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000221.html">
+   <LINK REL="Next"  HREF="000223.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc stats</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20stats&In-Reply-To=%3C2BE441CC-E75B-4FB2-B05A-53B914153E51%40canonware.com%3E"
+       TITLE="Jemalloc stats">jasone at canonware.com
+       </A><BR>
+    <I>Wed Apr  4 10:31:41 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000221.html">Jemalloc stats
+</A></li>
+        <LI>Next message: <A HREF="000223.html">Jemalloc stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#222">[ date ]</a>
+              <a href="thread.html#222">[ thread ]</a>
+              <a href="subject.html#222">[ subject ]</a>
+              <a href="author.html#222">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 3, 2012, at 9:21 AM, Mike Hommey wrote:
+&gt;<i> On Thu, Mar 22, 2012 at 11:22:03AM -0700, Jason Evans wrote:
+</I>&gt;&gt;<i> On Mar 22, 2012, at 11:03 AM, Mike Hommey wrote:
+</I>&gt;&gt;&gt;<i> In Firefox, we're tracking some of the stats provided by our fork of
+</I>&gt;&gt;&gt;<i> jemalloc. One of them is: - HeapCommitted - Memory mapped by the
+</I>&gt;&gt;&gt;<i> heap allocator that is committed, i.e. in physical memory or paged
+</I>&gt;&gt;&gt;<i> to disk.  When heap-committed is larger than heap-allocated, the
+</I>&gt;&gt;&gt;<i> difference between the two values is likely due to external
+</I>&gt;&gt;&gt;<i> fragmentation; that is, the allocator allocated a large block of
+</I>&gt;&gt;&gt;<i> memory and is unable to decommit it because a small part of that
+</I>&gt;&gt;&gt;<i> block is currently in use.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> It would seem like this could match stats.active, but i'm not
+</I>&gt;&gt;&gt;<i> entirely sure it is the case. In particular, we don't count madvised
+</I>&gt;&gt;&gt;<i> pages in that metric, but it would seem stats.active does, although
+</I>&gt;&gt;&gt;<i> I haven't dug deep enough yet.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> stats.active tracks all pages with active application allocations in
+</I>&gt;&gt;<i> them.  It does not include dirty unused pages for which madvise() has
+</I>&gt;&gt;<i> not yet been called, nor does it include pages that are entirely
+</I>&gt;&gt;<i> devoted to allocator metadata.
+</I>&gt;<i> 
+</I>&gt;<i> So essentially, what we are currently tracking as committed, which
+</I>&gt;<i> doesn't include metadata, would be
+</I>&gt;<i> stats.active + stats.arenas.&lt;i&gt;.pdirty for each arena
+</I>&gt;<i> 
+</I>&gt;<i> I'm starting to think it would be convenient to have special variables
+</I>&gt;<i> that return the sum of the corresponding variables for all arenas.
+</I>&gt;<i> Something like stats.arenas.pdirty that would be the sum of all
+</I>&gt;<i> stats.arenas.&lt;i&gt;.pdirty.
+</I>
+This already exists.  You can pass narenas as the value for &lt;i&gt;, and you get summed statistics.
+
+&gt;<i> Another thing we do in that committed number is that we only count pages
+</I>&gt;<i> for huge allocations instead of complete chunks. If you allocate
+</I>&gt;<i> chunk_size + a few pages, stats.active will count 2 * chunk_size, while
+</I>&gt;<i> what we are after is chunk_size + a few pages. As I'm considering
+</I>&gt;<i> pushing this upstream, I would like to know whether you'd rather this be
+</I>&gt;<i> done in stats.active, or a separate variable.
+</I>
+jemalloc tracks usable size rather than request size for all allocations, whether small, large, or huge, and it supports using the full size reported by malloc_usable_size() (not to mention the &quot;real size&quot; reported by the *allocm() API).  Modifying huge allocations to no longer be a multiple of the chunk size would have some unfortunate chunk management side effects.  Is this causing special pain in the context of Windows?
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000221.html">Jemalloc stats
+</A></li>
+	<LI>Next message: <A HREF="000223.html">Jemalloc stats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#222">[ date ]</a>
+              <a href="thread.html#222">[ thread ]</a>
+              <a href="subject.html#222">[ subject ]</a>
+              <a href="author.html#222">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

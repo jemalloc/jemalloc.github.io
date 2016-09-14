@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 4.2.1 test/integration/mallocx still fails on older 32 bit (Was:	jemalloc 4.2.1 released)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%204.2.1%20test/integration/mallocx%20still%20fails%20on%20older%2032%20bit%20%28Was%3A%0A%09jemalloc%204.2.1%20released%29&In-Reply-To=%3C2402583e-13fd-afc0-61d8-59afe181c5b2%40redpill-linpro.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001316.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>4.2.1 test/integration/mallocx still fails on older 32 bit (Was:	jemalloc 4.2.1 released)</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%204.2.1%20test/integration/mallocx%20still%20fails%20on%20older%2032%20bit%20%28Was%3A%0A%09jemalloc%204.2.1%20released%29&In-Reply-To=%3C2402583e-13fd-afc0-61d8-59afe181c5b2%40redpill-linpro.com%3E"
+       TITLE="4.2.1 test/integration/mallocx still fails on older 32 bit (Was:	jemalloc 4.2.1 released)">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Mon Aug  8 05:35:35 PDT 2016</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001316.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1315">[ date ]</a>
+              <a href="thread.html#1315">[ thread ]</a>
+              <a href="subject.html#1315">[ subject ]</a>
+              <a href="author.html#1315">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Den 09. juni 2016 09:14, skrev Jason Evans:
+&gt;<i> jemalloc 4.2.1 is now available.
+</I>&gt;<i> (...)
+</I>
+I try again, as I didn't get any response on my last post.
+
+test/integration/mallocx still fails on older 32 bit in 4.2.1, as it did
+in 4.1.1.
+
+Target systems failing are rhel5 and rhel6 on i686 and ppc.
+
+Typical test output:
+=== test/integration/mallocx ===
+test_overflow: pass
+test_oom: pass
+test_basic: pass
+test_alignment_and_size:test/integration/mallocx.c:175: Failed
+assertion: (ps[i]) != (NULL) --&gt; 0x0 == 0x0: mallocx() error for
+alignment=33554432, size=67108861 (0x3fffffd)
+test/test.sh: line 22:  1969 Segmentation fault      (core dumped) ${t}
+/builddir/build/BUILD/jemalloc-4.2.1/ /builddir/build/BUILD/jemalloc-4.2.1/
+Test harness error
+make: *** [check_integration] Error 1
+
+Full build logs:
+
+el5/ppc:
+<A HREF="https://kojipkgs.fedoraproject.org//work/tasks/4856/15114856/build.log">https://kojipkgs.fedoraproject.org//work/tasks/4856/15114856/build.log</A>
+
+el5/i386:
+<A HREF="https://kojipkgs.fedoraproject.org//work/tasks/5786/15115786/build.log">https://kojipkgs.fedoraproject.org//work/tasks/5786/15115786/build.log</A>
+
+el5/i686:
+<A HREF="https://kojipkgs.fedoraproject.org//work/tasks/5839/15115839/build.log">https://kojipkgs.fedoraproject.org//work/tasks/5839/15115839/build.log</A>
+
+el6/i686:
+<A HREF="https://kojipkgs.fedoraproject.org//work/tasks/5730/15115730/build.log">https://kojipkgs.fedoraproject.org//work/tasks/5730/15115730/build.log</A>
+
+
+Best regards,
+Ingvar Hagelund
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001316.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1315">[ date ]</a>
+              <a href="thread.html#1315">[ thread ]</a>
+              <a href="subject.html#1315">[ subject ]</a>
+              <a href="author.html#1315">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

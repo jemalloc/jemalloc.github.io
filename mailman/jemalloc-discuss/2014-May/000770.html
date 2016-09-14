@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> keeping memory usage at certain limit
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C53634982.9040804%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000769.html">
+   <LINK REL="Next"  HREF="000773.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>keeping memory usage at certain limit</H1>
+    <B>Antony Dovgal</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C53634982.9040804%40gmail.com%3E"
+       TITLE="keeping memory usage at certain limit">antony.dovgal at gmail.com
+       </A><BR>
+    <I>Fri May  2 00:30:10 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000769.html">keeping memory usage at certain limit
+</A></li>
+        <LI>Next message: <A HREF="000773.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#770">[ date ]</a>
+              <a href="thread.html#770">[ thread ]</a>
+              <a href="subject.html#770">[ subject ]</a>
+              <a href="author.html#770">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 05/02/2014 08:37 AM, Jason Evans wrote:
+&gt;<i> Your application can benefit from calling the &#8220;thread.tcache.flush&#8221; mallctl from a thread that is about to go &#8220;idle&#8221;
+</I>&gt;<i>(i.e. stops using the allocator for a while), but there&#8217;s little benefit otherwise, because there&#8217;s an incremental
+</I>&gt;<i>flushing mechanism built in that is driven by continued allocation activity.  One straightforward way to implement
+</I>&gt;<i>flushing for idle threads in thread pools is to have idle threads wake up after a few seconds of inactivity and flush before going back to sleep.
+</I>
+Ok, I got it, thank you for the explanation.
+
+&gt;&gt;<i> What buffles me most is that stats.allocated keeps returning the same value, but RSS constantly grows.
+</I>&gt;<i>
+</I>&gt;<i> This is probably because you aren&#8217;t calling the &#8220;epoch&#8221; mallctl to refresh mallctl&#8217;s cached statistics.
+</I>
+I just phrased it wrong: it does change (and I do update epoch).
+When it goes above the limit I delete the old data and stats.allocated gets back to the value lower the limit again.
+The problem is that even though stats.allocated is kept about the same value all the time, the difference between it and RSS continues to grow.
+  
+&gt;&gt;<i> Could it be because of the amount of threads I use?
+</I>&gt;<i>
+</I>&gt;<i> If your application occasionally recurses deeply, you may be incrementally increasing the total amount of memory
+</I>&gt;<i> dedicated to thread execution stacks.  That could account for several gigabytes of memory usage, but probably isn&#8217;t the only issue.
+</I>
+I don't believe I have any recursion there.
+Some libraries might use it though (Protobuf and Judy come to my mind first), I'll check it out, thanks for the suggestion.
+
+&gt;&gt;<i> Say, I free memory in one thread and try to allocate in another one, but the second thread
+</I>&gt;&gt;<i> doesn't have it cached and has to do the actual allocation?
+</I>&gt;<i>
+</I>&gt;<i> Within limits, this can bloat memory usage.  However, IIRC thread caches average ~2.5 MiB per thread under the worst conditions
+</I>&gt;<i>(all threads are purely deallocating a broad mix of allocation sizes), so the thread caches probably account for less than 1 GiB in your application.
+</I>
+*sigh* now I'm out of theories.. =)
+
+-- 
+Wbr,
+Antony Dovgal
+---
+<A HREF="http://pinba.org">http://pinba.org</A> - realtime profiling for PHP
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000769.html">keeping memory usage at certain limit
+</A></li>
+	<LI>Next message: <A HREF="000773.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#770">[ date ]</a>
+              <a href="thread.html#770">[ thread ]</a>
+              <a href="subject.html#770">[ subject ]</a>
+              <a href="author.html#770">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

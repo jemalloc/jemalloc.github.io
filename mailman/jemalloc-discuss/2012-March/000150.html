@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] atomic operations for ppc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20atomic%20operations%20for%20ppc&In-Reply-To=%3CCAJV_h0axXQ%3D8P%3Dfa6QOSomGHGssOFabk--j%2B1FF3iPwkQUMULg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000138.html">
+   <LINK REL="Next"  HREF="000162.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] atomic operations for ppc</H1>
+    <B>Federico Schwindt</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20atomic%20operations%20for%20ppc&In-Reply-To=%3CCAJV_h0axXQ%3D8P%3Dfa6QOSomGHGssOFabk--j%2B1FF3iPwkQUMULg%40mail.gmail.com%3E"
+       TITLE="[PATCH] atomic operations for ppc">fgsch at lodoss.net
+       </A><BR>
+    <I>Mon Mar 19 18:50:10 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000138.html">[PATCH] atomic operations for ppc
+</A></li>
+        <LI>Next message: <A HREF="000162.html">[PATCH] atomic operations for ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#150">[ date ]</a>
+              <a href="thread.html#150">[ thread ]</a>
+              <a href="subject.html#150">[ subject ]</a>
+              <a href="author.html#150">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Mar 14, 2012 at 2:13 AM, Federico Schwindt &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">fgsch at lodoss.net</A>&gt; wrote:
+&gt;<i> On Tue, Mar 13, 2012 at 10:19 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;&gt;<i> On Mar 13, 2012, at 2:52 PM, Ingvar Hagelund wrote:
+</I>&gt;&gt;&gt;<i> This patch should, if it is correct, add the functions atomic_add_uint32 and atomic_sub_uint32 that are missing on some platforms, at least RHEL5/ppc[64]. With this patch, jemalloc may be updated to 2.2.x also in the EPEL5 repositories.
+</I>&gt;&gt;<i> [..]
+</I>&gt;&gt;<i> I'm a bit confused about where the code actually originated. &#160;A quick web search finds hits both in APR (Apache license) and Boost.
+</I>&gt;<i>
+</I>&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> I'm checking the licensing with boost and apr.
+</I>&gt;<i> I will let you know when I have the confirmation but it looks like it
+</I>&gt;<i> first appeared in apr 1.0.0 under Apache License 2.0 so that might be
+</I>&gt;<i> a problem.
+</I>
+Hi,
+
+I've contacted both apr and boost respective developers and they have
+confirmed the code comes from apr.
+Now, considering that there are a limited number of ways to implement
+an atomic operation in assembler, the size of the code and the amount
+of almost identical implementations around (i.e [1], [2] or [3]) it'd
+be very difficult (if not impossible) to copyright the code.
+If you truly want to be on the safe side removing the comments and
+changing the variable names would be enough.
+Regards,
+
+f.-
+
+1. <A HREF="http://www.ibm.com/developerworks/library/pa-atom/">http://www.ibm.com/developerworks/library/pa-atom/</A>
+2. <A HREF="http://www.mulle-kybernetik.com/artikel/Optimization/opti-4-atomic.html">http://www.mulle-kybernetik.com/artikel/Optimization/opti-4-atomic.html</A>
+3. <A HREF="http://www.opensource.apple.com/source/xnu/xnu-792.2.4/osfmk/ppc/commpage/atomic.s">http://www.opensource.apple.com/source/xnu/xnu-792.2.4/osfmk/ppc/commpage/atomic.s</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000138.html">[PATCH] atomic operations for ppc
+</A></li>
+	<LI>Next message: <A HREF="000162.html">[PATCH] atomic operations for ppc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#150">[ date ]</a>
+              <a href="thread.html#150">[ thread ]</a>
+              <a href="subject.html#150">[ subject ]</a>
+              <a href="author.html#150">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

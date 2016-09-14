@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory profiling on SH4
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20profiling%20on%20SH4&In-Reply-To=%3C452771354799246%40web26f.yandex.ru%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000532.html">
+   <LINK REL="Next"  HREF="000541.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory profiling on SH4</H1>
+    <B>Konstantin Tokarev</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20profiling%20on%20SH4&In-Reply-To=%3C452771354799246%40web26f.yandex.ru%3E"
+       TITLE="Memory profiling on SH4">annulen at yandex.ru
+       </A><BR>
+    <I>Thu Dec  6 05:07:26 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000532.html">[PATCH 3/3] Fix build break on *BSD
+</A></li>
+        <LI>Next message: <A HREF="000541.html">Memory profiling on SH4
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#533">[ date ]</a>
+              <a href="thread.html#533">[ thread ]</a>
+              <a href="subject.html#533">[ subject ]</a>
+              <a href="author.html#533">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all,
+
+I'm trying to use jemalloc's memory profiler on SH4.
+
+I've tried to use all available ways of unwinding: gcc, libgcc, and libunwind (recently ported to SH4). However, I always get meaningless dumps like
+
+
+heap profile: 6: 49296 [0: 0] @ heap_v2/524288
+6: 49296 [0: 0] @
+
+MAPPED_LIBRARIES:
+....
+
+
+Any idea what am I missing here? I used both LD_PRELOAD and compile-time linking of libjemalloc.so.1, my application is built with debug information and -rdynamic, I use MALLOC_CONF=prof:true to enable profiling.
+
+If no idea, how can I debug where the issue lies?
+
+
+-- 
+Regards,
+Konstantin
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000532.html">[PATCH 3/3] Fix build break on *BSD
+</A></li>
+	<LI>Next message: <A HREF="000541.html">Memory profiling on SH4
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#533">[ date ]</a>
+              <a href="thread.html#533">[ thread ]</a>
+              <a href="subject.html#533">[ subject ]</a>
+              <a href="author.html#533">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

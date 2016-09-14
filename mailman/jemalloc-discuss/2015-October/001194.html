@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> statistical counters from jemalloc - Similar to mall info()
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20statistical%20counters%20from%20jemalloc%20-%20Similar%20to%20mall%20info%28%29&In-Reply-To=%3CCAL2A8_g6c%3DH3t_XyFQ-o2-_e-mNpe%2BXpO3DYtC%3DjABL%3DUcguvw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001195.html">
+   <LINK REL="Next"  HREF="001196.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>statistical counters from jemalloc - Similar to mall info()</H1>
+    <B>Prajakta</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20statistical%20counters%20from%20jemalloc%20-%20Similar%20to%20mall%20info%28%29&In-Reply-To=%3CCAL2A8_g6c%3DH3t_XyFQ-o2-_e-mNpe%2BXpO3DYtC%3DjABL%3DUcguvw%40mail.gmail.com%3E"
+       TITLE="statistical counters from jemalloc - Similar to mall info()">praj.jagtap at gmail.com
+       </A><BR>
+    <I>Mon Oct 19 00:10:03 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001195.html">What's the difference between prof_accum on and off?
+</A></li>
+        <LI>Next message: <A HREF="001196.html">statistical counters from jemalloc - Similar to mall info()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1194">[ date ]</a>
+              <a href="thread.html#1194">[ thread ]</a>
+              <a href="subject.html#1194">[ subject ]</a>
+              <a href="author.html#1194">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Is there a way by which we can get actual number of bytes of data allocated
+by JEMALLOC + number of bytes allocated by mmap / bro system call in
+jemalloc?
+
+I am looking for counters similar to mallinfo counters in jemalloc.
+Using mall info() we get information about memory allocations performed
+using malloc.
+
+I need similar counters from jemalloc:
+- *hblkhd*:      Number of bytes in blocks currently allocated using mmap(2)
+- *uordblks*:  Total number of bytes usd by in-use allocations
+- *fordblks*:   Total number of bytes in free blocks.
+
+
+Out of above 3, I suspect, stats.allocated is similar to uordblks.
+
+
+Thanks,
+Prajakta
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151019/7dc50e1b/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151019/7dc50e1b/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001195.html">What's the difference between prof_accum on and off?
+</A></li>
+	<LI>Next message: <A HREF="001196.html">statistical counters from jemalloc - Similar to mall info()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1194">[ date ]</a>
+              <a href="thread.html#1194">[ thread ]</a>
+              <a href="subject.html#1194">[ subject ]</a>
+              <a href="author.html#1194">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

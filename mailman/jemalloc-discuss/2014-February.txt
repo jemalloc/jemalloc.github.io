@@ -1,0 +1,245 @@
+From jasone at canonware.com  Mon Feb  3 16:01:28 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 3 Feb 2014 16:01:28 -0800
+Subject: jemalloc 3.5.0 regressions on i586
+In-Reply-To: <CAJ1KOAi5qMy0CdCzRHK--pVMwC4qDbpZ7tm4HMg1vqQZjU5MPg@mail.gmail.com>
+References: <CAJ1KOAghkJQF01X8PQ_ULOyF=GVUr3CWji5Bmnx3PK+RRrNeoQ@mail.gmail.com>
+	<269596CC-CDFE-4918-AF3E-D5D88C298A7A@canonware.com>
+	<CAJ1KOAjS3=tYMtcZkxgHuJTs5RQaMpZWMcw8a-vtuKVJ4cHObQ@mail.gmail.com>
+	<522772D6-9A65-473F-BA36-CF8699B3F2BC@canonware.com>
+	<CAJ1KOAi9uGEwHbEwCMcOGOQaqFjLfrgDz8D=YBmeqipERspbyg@mail.gmail.com>
+	<D7959B44-87A3-4B82-AB00-723FAFBDD6A6@canonware.com>
+	<CAJ1KOAi5qMy0CdCzRHK--pVMwC4qDbpZ7tm4HMg1vqQZjU5MPg@mail.gmail.com>
+Message-ID: <80B94B7D-0F23-4D10-91B4-61263D7D8E70@canonware.com>
+
+On Jan 29, 2014, at 11:36 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+> On Wed, Jan 29, 2014 at 9:24 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Jan 29, 2014, at 11:17 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+>> On Wed, Jan 29, 2014 at 9:09 PM, Jason Evans <jasone at canonware.com> wrote:
+>> On Jan 29, 2014, at 4:28 AM, ?smail D?nmez <ismail at donmez.ws> wrote:
+>> > I have 2 new failures:
+>> >
+>> > thd_start:test/unit/prof_accum.c:83: Failed assertion: (bt_count_prev+(i-i_prev)) <= (bt_count) --> 6 > 1: thd_start
+>> 
+>> I'm guessing that this is due to the compiler being especially intelligent regarding mutual recursion for alloc_[01](), and I just added noinline attributes for those functions:
+>> 
+>>         https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62
+>> 
+>> However, if the compiler is being that smart, it may also be smart enough to do tail call optimization despite an attempt in the code to thwart optimization.  It appears that the gcc flag to disable this is -fno-optimize-sibling-calls, but I'm reluctant to resort to that unless the noinline attribute fails to do the job.
+>> 
+>> This one is still failing, also adding -fno-optimize-sibling-calls to CFLAGS didn't fix it.
+> 
+> Did -fno-optimize-sibling-calls make it through to the compilation commands?  If not, try using EXTRA_CFLAGS instead.  Assuming -fno-optimize-sibling-calls is actually getting used, I'm out of ideas as to how this is failing, and I may need to set up an equivalent environment to dig in further.
+> 
+> Its there: CFLAGS             : -O2 -fno-optimize-sibling-calls -std=gnu99 -fvisibility=hidden , just removing the -O2 fixes the problem. So its indeed an optimization problem, so how about compiling the tests with -O0 instead?
+
+I gave some more thought to how to fix this problem, and eventually came to the realization that breaking the test into multiple compilation units is likely to be the most reliable long term solution.  Here's the issue I'm tracking this bug with:
+
+	https://github.com/jemalloc/jemalloc/issues/49
+
+I haven't dug into how to gracefully implement this in the build system yet, but I'll get it sorted out prior to the next release.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140203/19af0316/attachment.html>
+
+From randy at arcadiainnovation.com  Mon Feb 10 09:35:38 2014
+From: randy at arcadiainnovation.com (Randall Helzerman)
+Date: Mon, 10 Feb 2014 17:35:38 +0000
+Subject: jemalloc compiled for windows 7?
+Message-ID: <92dce6deaacd45309e41620cd1d90f0e@BL2PR08MB321.namprd08.prod.outlook.com>
+
+Is there a pre-compiled jemalloc library for windows 7 I can grab from somewhere?
+
+
+Thanks for any help you can give.
+
+
+-Randy
+
+
+P.S. If anybody happens to know of a libedit for windows7 I'd be much obliged.
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140210/efda2adb/attachment.html>
+
+From Pavel.Punsky at oovoo.com  Wed Feb 12 01:48:48 2014
+From: Pavel.Punsky at oovoo.com (Pavel Punsky)
+Date: Wed, 12 Feb 2014 09:48:48 +0000
+Subject: jemalloc compiled for windows 7?
+Message-ID: <da16d160b84946bcb65d0a72739dbf1b@AM3PR07MB450.eurprd07.prod.outlook.com>
+
+There is a github repo https://github.com/shines77/jemalloc-win32 containing a project that builds jemalloc 3.3.1 for win32.
+
+-----Original Message-----
+From: jemalloc-discuss-bounces at canonware.com [mailto:jemalloc-discuss-bounces at canonware.com] On Behalf Of jemalloc-discuss-request at canonware.com
+Sent: Monday, February 10, 2014 10:00 PM
+To: jemalloc-discuss at canonware.com
+Subject: jemalloc-discuss Digest, Vol 35, Issue 2
+
+Send jemalloc-discuss mailing list submissions to
+	jemalloc-discuss at canonware.com
+
+To subscribe or unsubscribe via the World Wide Web, visit
+	http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+or, via email, send a message with subject or body 'help' to
+	jemalloc-discuss-request at canonware.com
+
+You can reach the person managing the list at
+	jemalloc-discuss-owner at canonware.com
+
+When replying, please edit your Subject line so it is more specific than "Re: Contents of jemalloc-discuss digest..."
+
+
+Today's Topics:
+
+   1. jemalloc compiled for windows 7? (Randall Helzerman)
+
+
+----------------------------------------------------------------------
+
+Message: 1
+Date: Mon, 10 Feb 2014 17:35:38 +0000
+From: Randall Helzerman <randy at arcadiainnovation.com>
+To: "jemalloc-discuss at canonware.com" <jemalloc-discuss at canonware.com>
+Subject: jemalloc compiled for windows 7?
+Message-ID:
+	<92dce6deaacd45309e41620cd1d90f0e at BL2PR08MB321.namprd08.prod.outlook.com>
+	
+Content-Type: text/plain; charset="us-ascii"
+
+Is there a pre-compiled jemalloc library for windows 7 I can grab from somewhere?
+
+
+Thanks for any help you can give.
+
+
+-Randy
+
+
+P.S. If anybody happens to know of a libedit for windows7 I'd be much obliged.
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140210/efda2adb/attachment-0001.html>
+
+------------------------------
+
+_______________________________________________
+jemalloc-discuss mailing list
+jemalloc-discuss at canonware.com
+http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+End of jemalloc-discuss Digest, Vol 35, Issue 2
+***********************************************
+
+
+From evan at neomantra.net  Fri Feb 14 13:52:40 2014
+From: evan at neomantra.net (Evan Wies)
+Date: Fri, 14 Feb 2014 16:52:40 -0500
+Subject: allocating memory above 2GB
+Message-ID: <52FE9028.9070705@neomantra.net>
+
+Hello,
+
+Is it possible to allocate memory in a defined region, specifically 
+anywhere above the first 2GB?
+
+I see that mallocx with ALLOCM_ALIGN allows one to specify a base 
+address aligned to a power of 2.  Can I grab a bunch of memory that way 
+and somehow tell an arena to use that space and then always mallocx with 
+that arena?
+
+I'm in the midst of writing a LuaJIT [1] binding to jemalloc, and have 
+successfully allocated memory aligned to 2^31 but can't figure out the 
+next step -- short of writing my own allocator to dole out 
+jemalloc-allocated memory.
+
+Context:
+LuaJIT, a Lua Just-In-Time compiler, can itself only allocate memory in 
+the lower portions of memory (<1GB, <2GB, <4GB depending on platform).   
+One can get around this limitation by using its FFI to allocate memory 
+for FFI-bound C structures, however allocating these in the lower 
+regions effectively "steals" available memory from the LuaJIT VM for Lua 
+objects.   I want to ensure maximum available memory for the LuaJIT by 
+allocating all my objects outside this area.
+
+Thanks,
+Evan
+
+[1] http://www.luajit.org
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140214/63ac3fa2/attachment.html>
+
+From jasone at canonware.com  Fri Feb 14 15:53:00 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 14 Feb 2014 15:53:00 -0800
+Subject: allocating memory above 2GB
+In-Reply-To: <52FE9028.9070705@neomantra.net>
+References: <52FE9028.9070705@neomantra.net>
+Message-ID: <6C3E9124-37FA-47C8-AA38-B4AA751B9418@canonware.com>
+
+On Feb 14, 2014, at 1:52 PM, Evan Wies <evan at neomantra.net> wrote:
+> Is it possible to allocate memory in a defined region, specifically anywhere above the first 2GB?
+> 
+> I see that mallocx with ALLOCM_ALIGN allows one to specify a base address aligned to a power of 2.  Can I grab a bunch of memory that way and somehow tell an arena to use that space and then always mallocx with that arena?
+> 
+> I'm in the midst of writing a LuaJIT [1] binding to jemalloc, and have successfully allocated memory aligned to 2^31 but can't figure out the next step -- short of writing my own allocator to dole out jemalloc-allocated memory.
+> 
+> Context:
+> LuaJIT, a Lua Just-In-Time compiler, can itself only allocate memory in the lower portions of memory (<1GB, <2GB, <4GB depending on platform).   One can get around this limitation by using its FFI to allocate memory for FFI-bound C structures, however allocating these in the lower regions effectively "steals" available memory from the LuaJIT VM for Lua objects.   I want to ensure maximum available memory for the LuaJIT by allocating all my objects outside this area.
+
+By default jemalloc prefers mmap() over sbrk() when allocating memory, which for 64-bit systems means that it won't allocate the low memory LuaJIT wants until mmap() fails.  On 32-bit systems, I think there are non-trivial differences between operating systems in terms of where mmap() will place anonymous mappings; IIRC FreeBSD uses a fixed (but tunable) amount of memory for sbrk(), whereas Linux allows sbrk() and mmap() to collide (but I don't remember where code gets mapped, so the practical result may be similar to FreeBSD).  I suspect that jemalloc's preference for mmap() will be sufficient for all but the most memory-hungry Lua applications, even on 32-bit systems.  Take a look at where jemalloc is actually allocating memory from; it's probably above where code is mapped.
+
+If you want to get hacky, you can build jemalloc with munmap() usage disabled, temporarily sbrk() all the low memory LuaJIT could possibly want, then temporarily allocate all the malloc()ed memory you could possibly want, then release both.  The result will be that jemalloc has a pool of cached chunks that can't have come from low memory.
+
+Jason
+
+From evan at neomantra.net  Mon Feb 24 11:21:29 2014
+From: evan at neomantra.net (Evan Wies)
+Date: Mon, 24 Feb 2014 14:21:29 -0500
+Subject: allocating memory above 2GB
+In-Reply-To: <6C3E9124-37FA-47C8-AA38-B4AA751B9418@canonware.com>
+References: <52FE9028.9070705@neomantra.net>
+	<6C3E9124-37FA-47C8-AA38-B4AA751B9418@canonware.com>
+Message-ID: <530B9BB9.3090307@neomantra.net>
+
+On 2/14/14, 6:53 PM, Jason Evans wrote:
+> On Feb 14, 2014, at 1:52 PM, Evan Wies<evan at neomantra.net>  wrote:
+>> Is it possible to allocate memory in a defined region, specifically anywhere above the first 2GB?
+>>
+>> I see that mallocx with ALLOCM_ALIGN allows one to specify a base address aligned to a power of 2.  Can I grab a bunch of memory that way and somehow tell an arena to use that space and then always mallocx with that arena?
+>>
+>> I'm in the midst of writing a LuaJIT [1] binding to jemalloc, and have successfully allocated memory aligned to 2^31 but can't figure out the next step -- short of writing my own allocator to dole out jemalloc-allocated memory.
+>>
+>> Context:
+>> LuaJIT, a Lua Just-In-Time compiler, can itself only allocate memory in the lower portions of memory (<1GB, <2GB, <4GB depending on platform).   One can get around this limitation by using its FFI to allocate memory for FFI-bound C structures, however allocating these in the lower regions effectively "steals" available memory from the LuaJIT VM for Lua objects.   I want to ensure maximum available memory for the LuaJIT by allocating all my objects outside this area.
+> By default jemalloc prefers mmap() over sbrk() when allocating memory, which for 64-bit systems means that it won't allocate the low memory LuaJIT wants until mmap() fails.  On 32-bit systems, I think there are non-trivial differences between operating systems in terms of where mmap() will place anonymous mappings; IIRC FreeBSD uses a fixed (but tunable) amount of memory for sbrk(), whereas Linux allows sbrk() and mmap() to collide (but I don't remember where code gets mapped, so the practical result may be similar to FreeBSD).  I suspect that jemalloc's preference for mmap() will be sufficient for all but the most memory-hungry Lua applications, even on 32-bit systems.  Take a look at where jemalloc is actually allocating memory from; it's probably above where code is mapped.
+>
+> If you want to get hacky, you can build jemalloc with munmap() usage disabled, temporarily sbrk() all the low memory LuaJIT could possibly want, then temporarily allocate all the malloc()ed memory you could possibly want, then release both.  The result will be that jemalloc has a pool of cached chunks that can't have come from low memory.
+>
+> Jason
+Jason,
+
+Thanks for this prompt reply.   I did as you suggested and the default 
+behavior works well, especially on Linux.   I put my research up here:
+https://gist.github.com/neomantra/9122165
+
+Here's the LuaJIT binding to jemalloc:
+https://github.com/neomantra/luajit-jemalloc
+
+I've switched most of my allocations to jemalloc and have relieved 
+myself of most out-of-memory errors (for LuaJIT) and improved (shorter) 
+run times.   I'm pretty psyched about this :)
+
+Regards,
+Evan
+
+
+

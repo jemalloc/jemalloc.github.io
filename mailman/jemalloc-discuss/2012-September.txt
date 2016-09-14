@@ -1,0 +1,140 @@
+From qunying at yahoo.com  Thu Sep 13 10:23:34 2012
+From: qunying at yahoo.com (zhu qun-ying)
+Date: Thu, 13 Sep 2012 10:23:34 -0700 (PDT)
+Subject: how to remove pthread mutex dependency in jemalloc
+Message-ID: <1347557014.57854.YahooMailNeo@web122205.mail.ne1.yahoo.com>
+
+Hi,
+
+I have a system that have no thread, and usage of the jemalloc are per process only.? I don't see anything in the library that I could turn off the usage of pthread mutex easily without heavily modified the library which I am afraid I may break something along the way.
+
+Would you point me to the direction of safely remove any dependency on pthread and mutex in the code?
+
+Thanks
+?
+
+--
+qun-ying
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120913/f87f86a3/attachment.html>
+
+From justin.lebar at gmail.com  Thu Sep 13 10:35:42 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Thu, 13 Sep 2012 13:35:42 -0400
+Subject: how to remove pthread mutex dependency in jemalloc
+In-Reply-To: <1347557014.57854.YahooMailNeo@web122205.mail.ne1.yahoo.com>
+References: <1347557014.57854.YahooMailNeo@web122205.mail.ne1.yahoo.com>
+Message-ID: <CAFWcpZ7meBGRpsXvHJ4UDLwAQw5JaF9KtJohA5kAJzv0W8GS6Q@mail.gmail.com>
+
+> I have a system that have no thread, and usage of the jemalloc are per
+> process only.
+
+I don't think jemalloc is designed for this situation.  Indeed, much
+of the complexity in jemalloc is around making it fast in a threaded
+environment.
+
+It sounds like jemalloc may be the wrong tool for you to use.
+
+On Thu, Sep 13, 2012 at 1:23 PM, zhu qun-ying <qunying at yahoo.com> wrote:
+> Hi,
+>
+> I have a system that have no thread, and usage of the jemalloc are per
+> process only.  I don't see anything in the library that I could turn off the
+> usage of pthread mutex easily without heavily modified the library which I
+> am afraid I may break something along the way.
+>
+> Would you point me to the direction of safely remove any dependency on
+> pthread and mutex in the code?
+>
+> Thanks
+>
+> --
+> qun-ying
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+
+
+From qunying at yahoo.com  Thu Sep 13 13:10:07 2012
+From: qunying at yahoo.com (zhu qun-ying)
+Date: Thu, 13 Sep 2012 13:10:07 -0700 (PDT)
+Subject: how to remove pthread mutex dependency in jemalloc
+In-Reply-To: <CAFWcpZ7meBGRpsXvHJ4UDLwAQw5JaF9KtJohA5kAJzv0W8GS6Q@mail.gmail.com>
+References: <1347557014.57854.YahooMailNeo@web122205.mail.ne1.yahoo.com>
+	<CAFWcpZ7meBGRpsXvHJ4UDLwAQw5JaF9KtJohA5kAJzv0W8GS6Q@mail.gmail.com>
+Message-ID: <1347567007.76970.YahooMailNeo@web122201.mail.ne1.yahoo.com>
+
+
+
+----- Original Message -----
+
+> From: Justin Lebar <justin.lebar at gmail.com>
+> To: zhu qun-ying <qunying at yahoo.com>
+> Cc: "jemalloc-discuss at canonware.com" <jemalloc-discuss at canonware.com>
+> Sent: Thursday, September 13, 2012 10:35:42 AM
+> Subject: Re: how to remove pthread mutex dependency in jemalloc
+> 
+>>  I have a system that have no thread, and usage of the jemalloc are per
+>>  process only.
+> 
+> I don't think jemalloc is designed for this situation.? Indeed, much
+> of the complexity in jemalloc is around making it fast in a threaded
+> environment.
+> 
+> It sounds like jemalloc may be the wrong tool for you to use.
+> 
+
+
+?Actually, jemalloc is the best I could find for my application, the 
+glibc default one give me lots of holes during the long running of my 
+application no matter how I tweak the parameters for the memory 
+allocator and jemalloc fits there nicely.? I am in the process of 
+stripping down the library but if the library itself could give some 
+flags to help out will be better.
+
+
+From jbeich at tormail.org  Tue Sep 18 05:42:10 2012
+From: jbeich at tormail.org (Jan Beich)
+Date: Tue, 18 Sep 2012 12:42:10 -0000
+Subject: mark _pthread_mutex_init_calloc_cb as public explicitly
+Message-ID: <1TDx6L-000Als-9z@internal.tormail.org>
+
+Mozilla build hides everything by default using visibility pragma and
+unhides only explicitly listed headers. But this doesn't work on FreeBSD
+because _pthread_mutex_init_calloc_cb is neither documented nor exposed
+via any header.
+
+diff --git a/src/mutex.c b/src/mutex.c
+index 37a843e..55e18c2 100644
+--- a/src/mutex.c
++++ b/src/mutex.c
+@@ -64,7 +64,7 @@ pthread_create(pthread_t *__restrict thread,
+ /******************************************************************************/
+ 
+ #ifdef JEMALLOC_MUTEX_INIT_CB
+-int	_pthread_mutex_init_calloc_cb(pthread_mutex_t *mutex,
++JEMALLOC_EXPORT int	_pthread_mutex_init_calloc_cb(pthread_mutex_t *mutex,
+     void *(calloc_cb)(size_t, size_t));
+ #endif
+ 
+
+
+From eversa at gmail.com  Wed Sep 26 08:13:51 2012
+From: eversa at gmail.com (Aaron Evers)
+Date: Wed, 26 Sep 2012 10:13:51 -0500
+Subject: jemalloc and STL
+Message-ID: <CACSmO4Z0apatOM3D36L07KGEQ=YcNDEKXU6HsJkYUsVMgW-aXw@mail.gmail.com>
+
+Is it sufficient to link in jemalloc at compile time (i.e. -ljemalloc)
+if I want it to be used by STL containers?  Or do I need to specify
+the allocator, as in:
+typedef std::list<int, malloc_alloc> mylist;
+
+Forgive me if this was already answered in the documentation.  I could
+not find it.
+
+

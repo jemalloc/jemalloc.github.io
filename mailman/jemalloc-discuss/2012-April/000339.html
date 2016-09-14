@@ -1,0 +1,845 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/7] Add support for Mingw
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/7%5D%20Add%20support%20for%20Mingw&In-Reply-To=%3C1334903923-4973-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000338.html">
+   <LINK REL="Next"  HREF="000344.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/7] Add support for Mingw</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/7%5D%20Add%20support%20for%20Mingw&In-Reply-To=%3C1334903923-4973-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 1/7] Add support for Mingw">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 19 23:38:37 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000338.html">[PATCH] Simplify TSD without TLS
+</A></li>
+        <LI>Next message: <A HREF="000344.html">[PATCH 2/7] Remove leftovers from the vsnprintf check in	malloc_vsnprintf
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#339">[ date ]</a>
+              <a href="thread.html#339">[ thread ]</a>
+              <a href="subject.html#339">[ subject ]</a>
+              <a href="author.html#339">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ Makefile.in                                      |   10 ++-
+ configure.ac                                     |   60 +++++++++----
+ include/jemalloc/internal/jemalloc_internal.h.in |   11 ++-
+ include/jemalloc/internal/mutex.h                |   16 +++-
+ include/jemalloc/internal/tsd.h                  |  101 ++++++++++++++++++++++
+ src/chunk_mmap.c                                 |   92 ++++++++++++++++----
+ src/jemalloc.c                                   |   23 ++++-
+ src/mutex.c                                      |   16 +++-
+ src/tsd.c                                        |   26 +++++-
+ src/util.c                                       |    5 +-
+ test/jemalloc_test.h.in                          |   24 +++++
+ test/rallocm.c                                   |    6 ++
+ 12 files changed, 337 insertions(+), 53 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 8a34928..b9917da 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -32,7 +32,7 @@ SO := @so@
+ O := @o@
+ A := @a@
+ EXE := @exe@
+-LIB := @lib@
++LIBPREFIX := @libprefix@
+ REV := @rev@
+ install_suffix := @install_suffix@
+ ABI := @abi@
+@@ -51,12 +51,16 @@ SOREV = @SOREV@
+ PIC_CFLAGS = @PIC_CFLAGS@
+ 
+ ifeq (macho, $(ABI))
+-TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=$(objroot)lib
++TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=&quot;$(objroot)lib&quot;
++else
++ifeq (pecoff, $(ABI))
++TEST_LIBRARY_PATH := PATH=&quot;$(PATH):$(objroot)lib&quot;
+ else
+ TEST_LIBRARY_PATH :=
+ endif
++endif
+ 
+-LIBJEMALLOC := $(LIB)jemalloc$(install_suffix)
++LIBJEMALLOC := $(LIBPREFIX)jemalloc$(install_suffix)
+ 
+ # Lists of files.
+ BINS := $(srcroot)bin/pprof $(objroot)bin/jemalloc.sh
+diff --git a/configure.ac b/configure.ac
+index 0ed0494..5bdddfa 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -198,7 +198,7 @@ so=&quot;so&quot;
+ o=&quot;o&quot;
+ a=&quot;a&quot;
+ exe=
+-lib=&quot;lib&quot;
++libprefix=&quot;lib&quot;
+ DSO_LDFLAGS='-shared -Wl,-soname,$(@F)'
+ RPATH='-Wl,-rpath,$(1)'
+ SOREV='$(SO).$(REV)'
+@@ -273,6 +273,19 @@ case &quot;${host}&quot; in
+ 	fi
+ 	abi=&quot;xcoff&quot;
+ 	;;
++  *-*-mingw*)
++	abi=&quot;pecoff&quot;
++	force_tls=&quot;0&quot;
++	RPATH=&quot;&quot;
++	so=&quot;dll&quot;
++	DSO_LDFLAGS=&quot;-shared&quot;
++	o=&quot;obj&quot;
++	a=&quot;lib&quot;
++	libprefix=&quot;&quot;
++	exe=&quot;.exe&quot;
++	SOREV='$(SO)'
++	PIC_CFLAGS=&quot;&quot;
++	;;
+   *)
+ 	AC_MSG_RESULT([Unsupported operating system: ${host}])
+ 	abi=&quot;elf&quot;
+@@ -285,7 +298,7 @@ AC_SUBST([so])
+ AC_SUBST([o])
+ AC_SUBST([a])
+ AC_SUBST([exe])
+-AC_SUBST([lib])
++AC_SUBST([libprefix])
+ AC_SUBST([DSO_LDFLAGS])
+ AC_SUBST([SOREV])
+ AC_SUBST([PIC_CFLAGS])
+@@ -817,23 +830,36 @@ AC_SUBST([enable_xmalloc])
+ AC_CACHE_CHECK([STATIC_PAGE_SHIFT],
+                [je_cv_static_page_shift],
+                AC_RUN_IFELSE([AC_LANG_PROGRAM(
+-[[#include &lt;stdio.h&gt;
++[[
++#ifdef _WIN32
++#include &lt;windows.h&gt;
++#else
+ #include &lt;unistd.h&gt;
+ #include &lt;strings.h&gt;
++#endif
++#include &lt;stdio.h&gt;
+ ]],
+ [[
+     long result;
+     FILE *f;
+ 
++#ifdef _WIN32
++    SYSTEM_INFO si;
++    GetSystemInfo(&amp;si);
++    result = si.dwPageSize;
++#else
+     result = sysconf(_SC_PAGESIZE);
++#endif
+     if (result == -1) {
+ 	return 1;
+     }
++    result = ffsl(result) - 1;
++
+     f = fopen(&quot;conftest.out&quot;, &quot;w&quot;);
+     if (f == NULL) {
+ 	return 1;
+     }
+-    fprintf(f, &quot;%u\n&quot;, ffs((int)result) - 1);
++    fprintf(f, &quot;%u\n&quot;, result);
+     fclose(f);
+ 
+     return 0;
+@@ -871,12 +897,14 @@ AC_SUBST([jemalloc_version_gid])
+ dnl ============================================================================
+ dnl Configure pthreads.
+ 
+-AC_CHECK_HEADERS([pthread.h], , [AC_MSG_ERROR([pthread.h is missing])])
+-dnl Some systems may embed pthreads functionality in libc; check for libpthread
+-dnl first, but try libc too before failing.
+-AC_CHECK_LIB([pthread], [pthread_create], [LIBS=&quot;$LIBS -lpthread&quot;],
+-             [AC_SEARCH_LIBS([pthread_create], , ,
+-                             AC_MSG_ERROR([libpthread is missing]))])
++if test &quot;x$abi&quot; != &quot;xpecoff&quot; ; then
++  AC_CHECK_HEADERS([pthread.h], , [AC_MSG_ERROR([pthread.h is missing])])
++  dnl Some systems may embed pthreads functionality in libc; check for libpthread
++  dnl first, but try libc too before failing.
++  AC_CHECK_LIB([pthread], [pthread_create], [LIBS=&quot;$LIBS -lpthread&quot;],
++               [AC_SEARCH_LIBS([pthread_create], , ,
++                               AC_MSG_ERROR([libpthread is missing]))])
++fi
+ 
+ CPPFLAGS=&quot;$CPPFLAGS -D_REENTRANT&quot;
+ 
+@@ -921,11 +949,13 @@ if test &quot;x$enable_lazy_lock&quot; = &quot;x0&quot; -a &quot;x${force_lazy_lock}&quot; = &quot;x1&quot; ; then
+   enable_lazy_lock=&quot;1&quot;
+ fi
+ if test &quot;x$enable_lazy_lock&quot; = &quot;x1&quot; ; then
+-  AC_CHECK_HEADERS([dlfcn.h], , [AC_MSG_ERROR([dlfcn.h is missing])])
+-  AC_CHECK_FUNC([dlsym], [],
+-    [AC_CHECK_LIB([dl], [dlsym], [LIBS=&quot;$LIBS -ldl&quot;],
+-                  [AC_MSG_ERROR([libdl is missing])])
+-    ])
++  if test &quot;x$abi&quot; != &quot;xpecoff&quot; ; then
++    AC_CHECK_HEADERS([dlfcn.h], , [AC_MSG_ERROR([dlfcn.h is missing])])
++    AC_CHECK_FUNC([dlsym], [],
++      [AC_CHECK_LIB([dl], [dlsym], [LIBS=&quot;$LIBS -ldl&quot;],
++                    [AC_MSG_ERROR([libdl is missing])])
++      ])
++  fi
+   AC_DEFINE([JEMALLOC_LAZY_LOCK], [ ])
+ fi
+ AC_SUBST([enable_lazy_lock])
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index b61abe8..b5021ca 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -1,21 +1,25 @@
+ #ifndef JEMALLOC_INTERNAL_H
+ #define JEMALLOC_INTERNAL_H
+-#include &lt;sys/mman.h&gt;
+ #include &lt;sys/param.h&gt;
++#ifdef _WIN32
++#include &lt;windows.h&gt;
++#else
++#include &lt;sys/mman.h&gt;
+ #include &lt;sys/syscall.h&gt;
+ #if !defined(SYS_write) &amp;&amp; defined(__NR_write)
+ #define	SYS_write __NR_write
+ #endif
++#include &lt;sys/uio.h&gt;
++#include &lt;pthread.h&gt;
++#endif
+ #include &lt;sys/time.h&gt;
+ #include &lt;sys/types.h&gt;
+-#include &lt;sys/uio.h&gt;
+ 
+ #include &lt;errno.h&gt;
+ #include &lt;limits.h&gt;
+ #ifndef SIZE_T_MAX
+ #  define SIZE_T_MAX	SIZE_MAX
+ #endif
+-#include &lt;pthread.h&gt;
+ #include &lt;sched.h&gt;
+ #include &lt;stdarg.h&gt;
+ #include &lt;stdbool.h&gt;
+@@ -32,7 +36,6 @@
+ #include &lt;ctype.h&gt;
+ #include &lt;unistd.h&gt;
+ #include &lt;fcntl.h&gt;
+-#include &lt;pthread.h&gt;
+ #include &lt;math.h&gt;
+ 
+ #define	JEMALLOC_NO_DEMANGLE
+diff --git a/include/jemalloc/internal/mutex.h b/include/jemalloc/internal/mutex.h
+index c46feee..3940280 100644
+--- a/include/jemalloc/internal/mutex.h
++++ b/include/jemalloc/internal/mutex.h
+@@ -3,7 +3,9 @@
+ 
+ typedef struct malloc_mutex_s malloc_mutex_t;
+ 
+-#ifdef JEMALLOC_OSSPIN
++#ifdef _WIN32
++#define	MALLOC_MUTEX_INITIALIZER
++#elif (defined(JEMALLOC_OSSPIN))
+ #define	MALLOC_MUTEX_INITIALIZER {0}
+ #elif (defined(JEMALLOC_MUTEX_INIT_CB))
+ #define	MALLOC_MUTEX_INITIALIZER {PTHREAD_MUTEX_INITIALIZER, NULL}
+@@ -23,7 +25,9 @@ typedef struct malloc_mutex_s malloc_mutex_t;
+ #ifdef JEMALLOC_H_STRUCTS
+ 
+ struct malloc_mutex_s {
+-#ifdef JEMALLOC_OSSPIN
++#ifdef _WIN32
++	CRITICAL_SECTION	lock;
++#elif (defined(JEMALLOC_OSSPIN))
+ 	OSSpinLock		lock;
+ #elif (defined(JEMALLOC_MUTEX_INIT_CB))
+ 	pthread_mutex_t		lock;
+@@ -64,7 +68,9 @@ malloc_mutex_lock(malloc_mutex_t *mutex)
+ {
+ 
+ 	if (isthreaded) {
+-#ifdef JEMALLOC_OSSPIN
++#ifdef _WIN32
++		EnterCriticalSection(&amp;mutex-&gt;lock);
++#elif (defined(JEMALLOC_OSSPIN))
+ 		OSSpinLockLock(&amp;mutex-&gt;lock);
+ #else
+ 		pthread_mutex_lock(&amp;mutex-&gt;lock);
+@@ -77,7 +83,9 @@ malloc_mutex_unlock(malloc_mutex_t *mutex)
+ {
+ 
+ 	if (isthreaded) {
+-#ifdef JEMALLOC_OSSPIN
++#ifdef _WIN32
++		LeaveCriticalSection(&amp;mutex-&gt;lock);
++#elif (defined(JEMALLOC_OSSPIN))
+ 		OSSpinLockUnlock(&amp;mutex-&gt;lock);
+ #else
+ 		pthread_mutex_unlock(&amp;mutex-&gt;lock);
+diff --git a/include/jemalloc/internal/tsd.h b/include/jemalloc/internal/tsd.h
+index 5e904cb..bc57f26 100644
+--- a/include/jemalloc/internal/tsd.h
++++ b/include/jemalloc/internal/tsd.h
+@@ -74,6 +74,10 @@ extern bool		a_name##_booted;
+ extern __thread a_type	a_name##_tls;					\
+ extern pthread_key_t	a_name##_tsd;					\
+ extern bool		a_name##_booted;
++#elif (defined(_WIN32))
++#define malloc_tsd_externs(a_name, a_type)				\
++extern DWORD		a_name##_tsd;					\
++extern bool		a_name##_booted;
+ #else
+ #define	malloc_tsd_externs(a_name, a_type)				\
+ extern pthread_key_t	a_name##_tsd;					\
+@@ -94,6 +98,10 @@ a_attr __thread a_type JEMALLOC_TLS_MODEL				\
+     a_name##_tls = a_initializer;					\
+ a_attr pthread_key_t	a_name##_tsd;					\
+ a_attr bool		a_name##_booted = false;
++#elif (defined(_WIN32))
++#define	malloc_tsd_data(a_attr, a_name, a_type, a_initializer)		\
++a_attr DWORD		a_name##_tsd;					\
++a_attr bool		a_name##_booted = false;
+ #else
+ #define	malloc_tsd_data(a_attr, a_name, a_type, a_initializer)		\
+ a_attr pthread_key_t	a_name##_tsd;					\
+@@ -182,6 +190,99 @@ a_name##_tsd_set(a_type *val)						\
+ 		}							\
+ 	}								\
+ }
++#elif (defined(_WIN32))
++#define	malloc_tsd_funcs(a_attr, a_name, a_type, a_initializer,		\
++    a_cleanup)								\
++/* Data structure. */							\
++typedef struct {							\
++	bool	initialized;						\
++	a_type	val;							\
++} a_name##_tsd_wrapper_t;						\
++/* Initialization/cleanup. */						\
++a_attr bool								\
++a_name##_tsd_cleanup_wrapper(void)					\
++{									\
++	a_name##_tsd_wrapper_t *wrapper;				\
++									\
++	wrapper = (a_name##_tsd_wrapper_t *) TlsGetValue(a_name##_tsd);	\
++	if (wrapper == NULL)						\
++		return false;						\
++	if (a_cleanup != malloc_tsd_no_cleanup &amp;&amp;			\
++	    wrapper-&gt;initialized) {					\
++		a_type val = wrapper-&gt;val;				\
++		a_type tsd_static_data = a_initializer;			\
++		wrapper-&gt;initialized = false;				\
++		wrapper-&gt;val = tsd_static_data;				\
++		a_cleanup(&amp;val);					\
++		if (wrapper-&gt;initialized) {				\
++			/* Trigger another cleanup round. */		\
++			return (true);					\
++		}							\
++	}								\
++	malloc_tsd_dalloc(wrapper);					\
++	return (false);							\
++}									\
++a_attr bool								\
++a_name##_tsd_boot(void)							\
++{									\
++									\
++	a_name##_tsd = TlsAlloc();					\
++	if (a_name##_tsd == TLS_OUT_OF_INDEXES)				\
++		return (true);						\
++	if (a_cleanup != malloc_tsd_no_cleanup) {			\
++		malloc_tsd_cleanup_register(				\
++		    &amp;a_name##_tsd_cleanup_wrapper);			\
++	}								\
++	a_name##_booted = true;						\
++	return (false);							\
++}									\
++/* Get/set. */								\
++a_attr a_name##_tsd_wrapper_t *						\
++a_name##_tsd_get_wrapper(void)						\
++{									\
++	a_name##_tsd_wrapper_t *wrapper = (a_name##_tsd_wrapper_t *)	\
++	    TlsGetValue(a_name##_tsd);					\
++									\
++	if (wrapper == NULL) {						\
++		wrapper = (a_name##_tsd_wrapper_t *)			\
++		    malloc_tsd_malloc(sizeof(a_name##_tsd_wrapper_t));	\
++		if (wrapper == NULL) {					\
++			malloc_write(&quot;&lt;jemalloc&gt;: Error allocating&quot;	\
++			    &quot; TSD for &quot;#a_name&quot;\n&quot;);			\
++			abort();					\
++		} else {						\
++			static a_type tsd_static_data = a_initializer;	\
++			wrapper-&gt;initialized = false;			\
++			wrapper-&gt;val = tsd_static_data;			\
++		}							\
++		if (!TlsSetValue(a_name##_tsd, (void *)wrapper)) {	\
++			malloc_write(&quot;&lt;jemalloc&gt;: Error setting&quot;	\
++			    &quot; TSD for &quot;#a_name&quot;\n&quot;);			\
++			abort();					\
++		}							\
++	}								\
++	return (wrapper);						\
++}									\
++a_attr a_type *								\
++a_name##_tsd_get(void)							\
++{									\
++	a_name##_tsd_wrapper_t *wrapper;				\
++									\
++	assert(a_name##_booted);					\
++	wrapper = a_name##_tsd_get_wrapper();				\
++	return (&amp;wrapper-&gt;val);						\
++}									\
++a_attr void								\
++a_name##_tsd_set(a_type *val)						\
++{									\
++	a_name##_tsd_wrapper_t *wrapper;				\
++									\
++	assert(a_name##_booted);					\
++	wrapper = a_name##_tsd_get_wrapper();				\
++	wrapper-&gt;val = *(val);						\
++	if (a_cleanup != malloc_tsd_no_cleanup)				\
++		wrapper-&gt;initialized = true;				\
++}
+ #else
+ #define	malloc_tsd_funcs(a_attr, a_name, a_type, a_initializer,		\
+     a_cleanup)								\
+diff --git a/src/chunk_mmap.c b/src/chunk_mmap.c
+index 9dea831..fe618bd 100644
+--- a/src/chunk_mmap.c
++++ b/src/chunk_mmap.c
+@@ -27,6 +27,14 @@ pages_map(void *addr, size_t size)
+ {
+ 	void *ret;
+ 
++#ifdef _WIN32
++	/*
++	 * If it can't allocate at the given address when one is given,
++	 * VirtualAlloc fails and returns NULL.
++	 */
++	ret = VirtualAlloc(addr, size, MEM_COMMIT | MEM_RESERVE,
++	                   PAGE_READWRITE);
++#else
+ 	/*
+ 	 * We don't use MAP_FIXED here, because it can cause the *replacement*
+ 	 * of existing mappings, and we only want to create new mappings.
+@@ -52,7 +60,7 @@ pages_map(void *addr, size_t size)
+ 		}
+ 		ret = NULL;
+ 	}
+-
++#endif
+ 	assert(ret == NULL || (addr == NULL &amp;&amp; ret != addr)
+ 	    || (addr != NULL &amp;&amp; ret == addr));
+ 	return (ret);
+@@ -62,20 +70,63 @@ static void
+ pages_unmap(void *addr, size_t size)
+ {
+ 
+-	if (munmap(addr, size) == -1) {
++#ifdef _WIN32
++	if (VirtualFree(addr, 0, MEM_RELEASE) == 0)
++#else
++	if (munmap(addr, size) == -1)
++#endif
++	{
+ 		char buf[BUFERROR_BUF];
+ 
+ 		buferror(errno, buf, sizeof(buf));
+-		malloc_printf(&quot;&lt;jemalloc&gt;: Error in munmap(): %s\n&quot;, buf);
++		malloc_printf(&quot;&lt;jemalloc&gt;: Error in &quot;
++#ifdef _WIN32
++		              &quot;VirtualFree&quot;
++#else
++		              &quot;munmap&quot;
++#endif
++		              &quot;(): %s\n&quot;, buf);
+ 		if (opt_abort)
+ 			abort();
+ 	}
+ }
+ 
++static void *
++pages_trim(void *addr, size_t alloc_size, size_t leadsize, size_t size)
++{
++
++	void *ret = (void *)((uintptr_t)addr + leadsize);
++#ifndef _WIN32
++	size_t trailsize;
++#endif
++
++	assert(alloc_size &gt;= leadsize + size);
++#ifdef _WIN32
++	void *new_addr;
++	pages_unmap(addr, alloc_size);
++	new_addr = pages_map(ret, size);
++	if (new_addr == ret)
++		return ret;
++	if (new_addr)
++		pages_unmap(new_addr, size);
++	return NULL;
++#else
++	trailsize = alloc_size - leadsize - size;
++	if (leadsize != 0)
++		pages_unmap(addr, leadsize);
++	if (trailsize != 0)
++		pages_unmap((void *)((uintptr_t)ret + size), trailsize);
++	return ret;
++#endif
++}
++
+ void
+ pages_purge(void *addr, size_t length)
+ {
+ 
++#ifdef _WIN32
++	VirtualAlloc(addr, length, MEM_RESET, PAGE_READWRITE);
++#else
+ #ifdef JEMALLOC_PURGE_MADVISE_DONTNEED
+ #  define JEMALLOC_MADV_PURGE MADV_DONTNEED
+ #elif defined(JEMALLOC_PURGE_MADVISE_FREE)
+@@ -84,33 +135,32 @@ pages_purge(void *addr, size_t length)
+ #  error &quot;No method defined for purging unused dirty pages.&quot;
+ #endif
+ 	madvise(addr, length, JEMALLOC_MADV_PURGE);
++#endif
+ }
+ 
++
+ static void *
+ chunk_alloc_mmap_slow(size_t size, size_t alignment, bool unaligned)
+ {
+ 	void *ret, *pages;
+-	size_t alloc_size, leadsize, trailsize;
++	size_t alloc_size, leadsize;
+ 
+ 	alloc_size = size + alignment - PAGE;
+ 	/* Beware size_t wrap-around. */
+ 	if (alloc_size &lt; size)
+ 		return (NULL);
+-	pages = pages_map(NULL, alloc_size);
+-	if (pages == NULL)
+-		return (NULL);
+-	leadsize = ALIGNMENT_CEILING((uintptr_t)pages, alignment) -
+-	    (uintptr_t)pages;
+-	assert(alloc_size &gt;= leadsize + size);
+-	trailsize = alloc_size - leadsize - size;
+-	ret = (void *)((uintptr_t)pages + leadsize);
+-	if (leadsize != 0) {
+-		/* Note that mmap() returned an unaligned mapping. */
+-		unaligned = true;
+-		pages_unmap(pages, leadsize);
+-	}
+-	if (trailsize != 0)
+-		pages_unmap((void *)((uintptr_t)ret + size), trailsize);
++	do {
++		pages = pages_map(NULL, alloc_size);
++		if (pages == NULL)
++			return (NULL);
++		leadsize = ALIGNMENT_CEILING((uintptr_t)pages, alignment) -
++		    (uintptr_t)pages;
++		ret = pages_trim(pages, alloc_size, leadsize, size);
++		if (leadsize != 0) {
++			/* Note that mmap() returned an unaligned mapping. */
++			unaligned = true;
++		}
++	} while (ret == NULL);
+ 
+ 	/*
+ 	 * If mmap() returned an aligned mapping, reset mmap_unaligned so that
+@@ -169,6 +219,9 @@ chunk_alloc_mmap(size_t size, size_t alignment)
+ 		if (offset != 0) {
+ 			bool mu = true;
+ 			mmap_unaligned_tsd_set(&amp;mu);
++#ifdef _WIN32
++			ret = chunk_alloc_mmap_slow(size, alignment, true);
++#else
+ 			/* Try to extend chunk boundary. */
+ 			if (pages_map((void *)((uintptr_t)ret + size),
+ 			    chunksize - offset) == NULL) {
+@@ -185,6 +238,7 @@ chunk_alloc_mmap(size_t size, size_t alignment)
+ 				ret = (void *)((uintptr_t)ret + (chunksize -
+ 				    offset));
+ 			}
++#endif
+ 		}
+ 	} else
+ 		ret = chunk_alloc_mmap_slow(size, alignment, false);
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 6669c11..9f917cd 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -52,7 +52,17 @@ static bool			malloc_initializer = NO_INITIALIZER;
+ #endif
+ 
+ /* Used to avoid initialization races. */
++#ifdef _WIN32
++static malloc_mutex_t	init_lock;
++
++JEMALLOC_ATTR(constructor)
++static void
++init_init_lock() {
++	malloc_mutex_init(&amp;init_lock);
++}
++#else
+ static malloc_mutex_t	init_lock = MALLOC_MUTEX_INITIALIZER;
++#endif
+ 
+ typedef struct {
+ 	void	*p;	/* Input pointer (as in realloc(p, s)). */
+@@ -229,11 +239,17 @@ malloc_ncpus(void)
+ 	unsigned ret;
+ 	long result;
+ 
++#ifdef _WIN32
++	SYSTEM_INFO si;
++	GetSystemInfo(&amp;si);
++	result = si.dwNumberOfProcessors;
++#else
+ 	result = sysconf(_SC_NPROCESSORS_ONLN);
+ 	if (result == -1) {
+ 		/* Error. */
+ 		ret = 1;
+ 	}
++#endif
+ 	ret = (unsigned)result;
+ 
+ 	return (ret);
+@@ -369,6 +385,7 @@ malloc_conf_init(void)
+ 			}
+ 			break;
+ 		case 1: {
++#ifndef _WIN32
+ 			int linklen;
+ 			const char *linkname =
+ #ifdef JEMALLOC_PREFIX
+@@ -386,7 +403,9 @@ malloc_conf_init(void)
+ 				 */
+ 				buf[linklen] = '\0';
+ 				opts = buf;
+-			} else {
++			} else
++#endif
++			{
+ 				/* No configuration specified. */
+ 				buf[0] = '\0';
+ 				opts = buf;
+@@ -609,7 +628,7 @@ malloc_init_hard(void)
+ 
+ 	malloc_conf_init();
+ 
+-#if (!defined(JEMALLOC_MUTEX_INIT_CB) &amp;&amp; !defined(JEMALLOC_ZONE))
++#if (!defined(JEMALLOC_MUTEX_INIT_CB) &amp;&amp; !defined(JEMALLOC_ZONE) &amp;&amp; !defined(_WIN32))
+ 	/* Register fork handlers. */
+ 	if (pthread_atfork(jemalloc_prefork, jemalloc_postfork_parent,
+ 	    jemalloc_postfork_child) != 0) {
+diff --git a/src/mutex.c b/src/mutex.c
+index 4b8ce57..159d82a 100644
+--- a/src/mutex.c
++++ b/src/mutex.c
+@@ -1,10 +1,14 @@
+ #define	JEMALLOC_MUTEX_C_
+ #include &quot;jemalloc/internal/jemalloc_internal.h&quot;
+ 
+-#ifdef JEMALLOC_LAZY_LOCK
++#if defined(JEMALLOC_LAZY_LOCK) &amp;&amp; !defined(_WIN32)
+ #include &lt;dlfcn.h&gt;
+ #endif
+ 
++#ifndef _CRT_SPINCOUNT
++#define _CRT_SPINCOUNT 4000
++#endif
++
+ /******************************************************************************/
+ /* Data. */
+ 
+@@ -16,7 +20,7 @@ static bool		postpone_init = true;
+ static malloc_mutex_t	*postponed_mutexes = NULL;
+ #endif
+ 
+-#ifdef JEMALLOC_LAZY_LOCK
++#if defined(JEMALLOC_LAZY_LOCK) &amp;&amp; !defined(_WIN32)
+ static void	pthread_create_once(void);
+ #endif
+ 
+@@ -26,7 +30,7 @@ static void	pthread_create_once(void);
+  * process goes multi-threaded.
+  */
+ 
+-#ifdef JEMALLOC_LAZY_LOCK
++#if defined(JEMALLOC_LAZY_LOCK) &amp;&amp; !defined(_WIN32)
+ static int (*pthread_create_fptr)(pthread_t *__restrict, const pthread_attr_t *,
+     void *(*)(void *), void *__restrict);
+ 
+@@ -68,7 +72,11 @@ int	_pthread_mutex_init_calloc_cb(pthread_mutex_t *mutex,
+ bool
+ malloc_mutex_init(malloc_mutex_t *mutex)
+ {
+-#ifdef JEMALLOC_OSSPIN
++#ifdef _WIN32
++	if (!InitializeCriticalSectionAndSpinCount(&amp;mutex-&gt;lock,
++	    _CRT_SPINCOUNT))
++		return (true);
++#elif (defined(JEMALLOC_OSSPIN))
+ 	mutex-&gt;lock = 0;
+ #elif (defined(JEMALLOC_MUTEX_INIT_CB))
+ 	if (postpone_init) {
+diff --git a/src/tsd.c b/src/tsd.c
+index 281a2e9..20f6430 100644
+--- a/src/tsd.c
++++ b/src/tsd.c
+@@ -31,7 +31,7 @@ malloc_tsd_no_cleanup(void *arg)
+ 	not_reached();
+ }
+ 
+-#ifdef JEMALLOC_MALLOC_THREAD_CLEANUP
++#if defined(JEMALLOC_MALLOC_THREAD_CLEANUP) || defined(_WIN32)
+ JEMALLOC_ATTR(visibility(&quot;default&quot;))
+ void
+ _malloc_thread_cleanup(void)
+@@ -70,3 +70,27 @@ malloc_tsd_boot(void)
+ 
+ 	ncleanups = 0;
+ }
++
++#ifdef _WIN32
++static BOOL WINAPI
++_tls_callback(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
++{
++	switch (fdwReason) {
++#ifdef JEMALLOC_LAZY_LOCK
++	case DLL_THREAD_ATTACH:
++		isthreaded = true;
++		break;
++#endif
++	case DLL_THREAD_DETACH:
++		_malloc_thread_cleanup();
++		break;
++	default:
++		break;
++	}
++	return true;
++}
++
++JEMALLOC_ATTR(section(&quot;.CRT$XLY&quot;)) JEMALLOC_ATTR(used)
++static const BOOL (WINAPI *tls_callback)(HINSTANCE hinstDLL, DWORD fdwReason,
++	LPVOID lpvReserved) = _tls_callback;
++#endif
+diff --git a/src/util.c b/src/util.c
+index 99ae26d..2f1c8f0 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -67,7 +67,10 @@ void	(*je_malloc_message)(void *, const char *s)
+ int
+ buferror(int errnum, char *buf, size_t buflen)
+ {
+-#ifdef _GNU_SOURCE
++#ifdef _WIN32
++	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 0, (LPSTR)buf, buflen, NULL);
++	return (0);
++#elif defined(_GNU_SOURCE)
+ 	char *b = strerror_r(errno, buf, buflen);
+ 	if (b != buf) {
+ 		strncpy(buf, b, buflen);
+diff --git a/test/jemalloc_test.h.in b/test/jemalloc_test.h.in
+index 8833a03..e38b48e 100644
+--- a/test/jemalloc_test.h.in
++++ b/test/jemalloc_test.h.in
+@@ -7,6 +7,29 @@
+ #include &quot;jemalloc/internal/jemalloc_internal.h&quot;
+ 
+ /* Abstraction layer for threading in tests */
++#ifdef _WIN32
++#include &lt;windows.h&gt;
++
++typedef HANDLE je_thread_t;
++
++void
++je_thread_create(je_thread_t *thread, void *(*proc)(void *), void *arg)
++{
++	LPTHREAD_START_ROUTINE routine = (LPTHREAD_START_ROUTINE)proc;
++	*thread = CreateThread(NULL, 0, routine, arg, 0, NULL);
++	if (*thread == NULL) {
++		malloc_printf(&quot;Error in CreateThread()\n&quot;);
++		exit(1);
++	}
++}
++
++void
++je_thread_join(je_thread_t thread, void **ret)
++{
++	WaitForSingleObject(thread, INFINITE);
++}
++
++#else
+ #include &lt;pthread.h&gt;
+ 
+ typedef pthread_t je_thread_t;
+@@ -27,3 +50,4 @@ je_thread_join(je_thread_t thread, void **ret)
+ 
+ 	pthread_join(thread, ret);
+ }
++#endif
+diff --git a/test/rallocm.c b/test/rallocm.c
+index 18db5ee..f2a4770 100644
+--- a/test/rallocm.c
++++ b/test/rallocm.c
+@@ -19,9 +19,15 @@ main(void)
+ 
+ 	/* Get page size. */
+ 	{
++#ifdef _WIN32
++		SYSTEM_INFO si;
++		GetSystemInfo(&amp;si);
++		pagesize = (size_t)si.dwPageSize;
++#else
+ 		long result = sysconf(_SC_PAGESIZE);
+ 		assert(result != -1);
+ 		pagesize = (size_t)result;
++#endif
+ 	}
+ 
+ 	r = allocm(&amp;p, &amp;sz, 42, 0);
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000338.html">[PATCH] Simplify TSD without TLS
+</A></li>
+	<LI>Next message: <A HREF="000344.html">[PATCH 2/7] Remove leftovers from the vsnprintf check in	malloc_vsnprintf
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#339">[ date ]</a>
+              <a href="thread.html#339">[ thread ]</a>
+              <a href="subject.html#339">[ subject ]</a>
+              <a href="author.html#339">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

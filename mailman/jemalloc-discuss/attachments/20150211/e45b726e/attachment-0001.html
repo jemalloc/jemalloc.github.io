@@ -1,0 +1,28 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;I&nbsp;think&nbsp;these&nbsp;are&nbsp;the&nbsp;relevant&nbsp;lines&nbsp;from&nbsp;config.log:&lt;div&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0px&nbsp;0px&nbsp;0px&nbsp;0.8ex;border-left-width:1px;border-left-color:rgb(204,204,204);border-left-style:solid;padding-left:1ex&quot;&gt;configure:8897:&nbsp;checking&nbsp;configured &lt;span&nbsp;class=&quot;&quot;&gt;back&lt;/span&gt;tracing&nbsp;method&lt;br&gt;configure:8899:&nbsp;result:&nbsp;libgcc&lt;/blockquote&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;I&nbsp;see&nbsp;the&nbsp;same&nbsp;lines&nbsp;for&nbsp;both&nbsp;the&nbsp;x86&nbsp;and&nbsp;arm&nbsp;builds.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Brock &lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Wed,&nbsp;Feb&nbsp;11,&nbsp;2015&nbsp;at&nbsp;3:36&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;span&nbsp;class=&quot;&quot;&gt;On&nbsp;Feb&nbsp;11,&nbsp;2015,&nbsp;at&nbsp;2:49&nbsp;PM,&nbsp;Brock&nbsp;Pytlik&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:brock.pytlik@gmail.com&quot;&gt;brock.pytlik@gmail.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;So&nbsp;I&nbsp;think&nbsp;we&#39;re&nbsp;closing&nbsp;in&nbsp;on&nbsp;the&nbsp;finish&nbsp;line.&nbsp;I&#39;ve&nbsp;successfully&nbsp;generated&nbsp;profiles&nbsp;from&nbsp;ardb&nbsp;using&nbsp;the&nbsp;gate&nbsp;tip&nbsp;malloc.&nbsp;The&nbsp;problem&nbsp;I&#39;m&nbsp;having&nbsp;is&nbsp;that&nbsp;pprof&nbsp;(the&nbsp;one&nbsp;distributed&nbsp;w/&nbsp;jemalloc)&nbsp;shows&nbsp;no&nbsp;allocation&nbsp;information.&nbsp;(I&nbsp;use&nbsp;the&nbsp;one&nbsp;distributed&nbsp;w/&nbsp;jemalloc&nbsp;b/c&nbsp;the&nbsp;one&nbsp;that&#39;s&nbsp;part&nbsp;of&nbsp;gperftools&nbsp;2.4&nbsp;doesn&#39;t&nbsp;know&nbsp;about&nbsp;heap_v2&nbsp;afaict.)&nbsp;To&nbsp;be&nbsp;clear,&nbsp;pprof&nbsp;loads&nbsp;the&nbsp;file,&nbsp;then&nbsp;I&nbsp;do&nbsp;&quot;top&quot;&nbsp;and&nbsp;it&nbsp;says&nbsp;&#39;0&nbsp;B&#39;,&nbsp;as&nbsp;does&nbsp;&quot;top&nbsp;--cum&quot;.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;I&nbsp;haven&#39;t&nbsp;found&nbsp;documentation&nbsp;about&nbsp;what&nbsp;the&nbsp;heap_v2&nbsp;file&nbsp;format&nbsp;is,&nbsp;so&nbsp;I&#39;m&nbsp;not&nbsp;sure&nbsp;where&nbsp;the&nbsp;problem&nbsp;is.&nbsp;I&#39;ve&nbsp;included&nbsp;what&nbsp;one&nbsp;of&nbsp;the&nbsp;profile&nbsp;files&nbsp;looks&nbsp;like.&nbsp;If&nbsp;you&nbsp;can&nbsp;point&nbsp;me&nbsp;to&nbsp;the&nbsp;documentation&nbsp;for&nbsp;the&nbsp;heap_v2&nbsp;file&nbsp;format&nbsp;that&nbsp;would&nbsp;be&nbsp;great,&nbsp;then&nbsp;I&nbsp;could&nbsp;possibly&nbsp;interpret&nbsp;what&#39;s&nbsp;below.&nbsp;If&nbsp;you&nbsp;know&nbsp;what&#39;s&nbsp;going&nbsp;on&nbsp;when&nbsp;you&nbsp;look&nbsp;@&nbsp;the&nbsp;file&nbsp;below,&nbsp;that&nbsp;would&nbsp;be&nbsp;great&nbsp;as&nbsp;well.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;heap_v2/524288&lt;br&gt;<br>
+&gt; &nbsp; t*:&nbsp;217:&nbsp;3029560&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t0:&nbsp;6:&nbsp;1015808&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t1:&nbsp;0:&nbsp;0&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t2:&nbsp;207:&nbsp;1440312&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t3:&nbsp;0:&nbsp;0&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t4:&nbsp;0:&nbsp;0&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t5:&nbsp;0:&nbsp;0&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t6:&nbsp;0:&nbsp;0&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t7:&nbsp;4:&nbsp;573440&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt;&nbsp;@&lt;br&gt;<br>
+&gt; &nbsp; t*:&nbsp;217:&nbsp;3029560&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t0:&nbsp;6:&nbsp;1015808&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t2:&nbsp;207:&nbsp;1440312&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&gt; &nbsp; t7:&nbsp;4:&nbsp;573440&nbsp;[0:&nbsp;0]&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/span&gt;The&nbsp;line&nbsp;that&nbsp;starts&nbsp;with&nbsp;@&nbsp;should&nbsp;also&nbsp;have&nbsp;a&nbsp;sequence&nbsp;of&nbsp;hex&nbsp;addresses&nbsp;(the&nbsp;backtrace). &nbsp;For&nbsp;some&nbsp;reason&nbsp;you&nbsp;appear&nbsp;to&nbsp;be&nbsp;getting&nbsp;zero-length&nbsp;(i.e.&nbsp;failed)&nbsp;backtraces,&nbsp;which&nbsp;means&nbsp;that&nbsp;all&nbsp;samples&nbsp;are&nbsp;being&nbsp;merged&nbsp;into&nbsp;a&nbsp;single&nbsp;record. &nbsp;Which&nbsp;backtracing&nbsp;mechanism&nbsp;are&nbsp;you&nbsp;using? &nbsp;See&nbsp;the&nbsp;configure&nbsp;output&nbsp;to&nbsp;determine&nbsp;whether&nbsp;libunwind,&nbsp;libgcc,&nbsp;or&nbsp;gcc&nbsp;intrinsics&nbsp;are&nbsp;being&nbsp;used.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thanks,&lt;br&gt;<br>
+Jason&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc initialization in a shared library
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20initialization%20in%20a%20shared%20library&In-Reply-To=%3C1473694289.6425.23.camel%40mad-scientist.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001323.html">
+   <LINK REL="Next"  HREF="001321.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc initialization in a shared library</H1>
+    <B>Paul Smith</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20initialization%20in%20a%20shared%20library&In-Reply-To=%3C1473694289.6425.23.camel%40mad-scientist.net%3E"
+       TITLE="jemalloc initialization in a shared library">paul at mad-scientist.net
+       </A><BR>
+    <I>Mon Sep 12 08:31:29 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001323.html">jemalloc initialization in a shared library
+</A></li>
+        <LI>Next message: <A HREF="001321.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1324">[ date ]</a>
+              <a href="thread.html#1324">[ thread ]</a>
+              <a href="subject.html#1324">[ subject ]</a>
+              <a href="author.html#1324">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, 2016-09-08 at 09:28 -0700, Jason Evans wrote:
+&gt;<i> This may a separate issue from the TLS initialization issue you're
+</I>&gt;<i> hitting, but linking a malloc implementation into a dlopen()ed
+</I>&gt;<i> library is exceedingly difficult to make work correctly, because it's
+</I>&gt;<i> very difficult to avoid mixed allocator use, e.g. calling malloc() of
+</I>&gt;<i> one implementation and erroneously calling free() of the other.
+</I>
+As a followup, I spent a few days working with the user including
+providing them with a version of the library built with no
+optimization. &#160;When the hang happens with that version the stacktrace
+is very different and appears to be happening trying to obtain the C++
+STL's TLS variable that manages exceptions etc. (__cxa_get_global etc.)
+and jemalloc is not implicated any longer.
+
+The mutex that is deadlocked appears to be the one taken by the runtime
+linker code that loads shared objects. &#160;It's really not clear to me at
+all why this code is even being invoked at this point, since we're
+definitely not loading objects.
+
+However, armed with this information I suggested to the user that they
+force our library to be loaded at startup time of the JVM by using
+LD_PRELOAD, and that seems to have solved their problem.
+
+Until I get some way to reproduce the problem myself I don't think it
+will be productive for me to work on this further. &#160;However, during
+this time I did manage to update our version of jemalloc to 4.2.1,
+although it still needs more testing before deploying, so it wasn't all
+for nothing! :).
+
+Thanks for the thoughtful suggestions, I do appreciate it.
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001323.html">jemalloc initialization in a shared library
+</A></li>
+	<LI>Next message: <A HREF="001321.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1324">[ date ]</a>
+              <a href="thread.html#1324">[ thread ]</a>
+              <a href="subject.html#1324">[ subject ]</a>
+              <a href="author.html#1324">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

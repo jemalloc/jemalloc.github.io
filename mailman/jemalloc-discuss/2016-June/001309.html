@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> difference between used memory and that in profiled result
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20difference%20between%20used%20memory%20and%20that%20in%20profiled%20result&In-Reply-To=%3CCALuYO4e%3DTGKasKrUrQPKX8vre8eckQ_2WVS%2B8xKNw7VMEGyJrg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001305.html">
+   <LINK REL="Next"  HREF="001306.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>difference between used memory and that in profiled result</H1>
+    <B>Himanshu</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20difference%20between%20used%20memory%20and%20that%20in%20profiled%20result&In-Reply-To=%3CCALuYO4e%3DTGKasKrUrQPKX8vre8eckQ_2WVS%2B8xKNw7VMEGyJrg%40mail.gmail.com%3E"
+       TITLE="difference between used memory and that in profiled result">g.himanshu at gmail.com
+       </A><BR>
+    <I>Wed Jun 22 22:12:23 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001305.html">Jemalloc quickly OOMs with custom chunk_hooks that opt out of purge
+</A></li>
+        <LI>Next message: <A HREF="001306.html">Diagnosing an out-of-memory issue
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1309">[ date ]</a>
+              <a href="thread.html#1309">[ thread ]</a>
+              <a href="subject.html#1309">[ subject ]</a>
+              <a href="author.html#1309">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I used the steps described on
+<A HREF="https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Leak-Checking">https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Leak-Checking</A> to dump
+profiling information of a java process. When the process runs, I can see
+with &quot;top&quot; that utilized
+  - virtual memory by the process goes upto about 6 GB and stays there
+  - resident memory by the process goes upto about 4GB and stays there
+
+
+However , the pdf graph generated shows &quot;Total B: 104353080&quot; (~ 100 MB)
+which is way smaller than the actual memory utilized by the process. What
+configuration do I need to use so that graph can account for all memory
+utilization as reported by &quot;top&quot;.
+
+Thanks,
+Himanshu
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160623/59bf249d/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160623/59bf249d/attachment-0001.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001305.html">Jemalloc quickly OOMs with custom chunk_hooks that opt out of purge
+</A></li>
+	<LI>Next message: <A HREF="001306.html">Diagnosing an out-of-memory issue
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1309">[ date ]</a>
+              <a href="thread.html#1309">[ thread ]</a>
+              <a href="subject.html#1309">[ subject ]</a>
+              <a href="author.html#1309">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

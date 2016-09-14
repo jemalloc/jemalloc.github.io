@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> keeping memory usage at certain limit
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C53620795.8080900%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000768.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>keeping memory usage at certain limit</H1>
+    <B>Antony Dovgal</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20keeping%20memory%20usage%20at%20certain%20limit&In-Reply-To=%3C53620795.8080900%40gmail.com%3E"
+       TITLE="keeping memory usage at certain limit">antony.dovgal at gmail.com
+       </A><BR>
+    <I>Thu May  1 01:36:37 PDT 2014</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000768.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#767">[ date ]</a>
+              <a href="thread.html#767">[ thread ]</a>
+              <a href="subject.html#767">[ subject ]</a>
+              <a href="author.html#767">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Jason,
+
+On 05/01/2014 06:43 AM, Jason Evans wrote:
+&gt;<i> Use &quot;thread.tcache.flush&quot; to flush thread caches; &quot;arena.&lt;i&gt;.purge&quot; merely uses madvise(2)
+</I>&gt;<i>to inform the kernel that it can recycle dirty pages that contain unused data.
+</I>
+According to the docs &quot;thread.tcache.flush&quot; only flushes the cache of the calling thread and
+I have a lot of threads running in thread pools, which are created at the start and never destroyed.
+Or did you mean to call it periodically from every thread?
+
+&gt;<i> There are two statistics jemalloc tracks that directly allow you to measure external fragmentation: &quot;stats.allocated&quot; [1] and &quot;stats.active&quot; [2].
+</I>
+Right, I've tried using both of them.
+Do I understand it correctly that stats.active decreases only when an entire page is freed?
+
+&gt;<i> jemalloc's worst case fragmentation behavior is pretty straightforward to reason about for small objects.  Each size class [3] can be considered independently.  The worst thing that can possibly happen is that after the application reaches its maximum usage, it then frees all but one allocated region in each page run.  However, your application is presumably reaching a stable number of allocations, then replacing old data with new.  If the total number of allocated regions for each size class remains stable in the steady state, then your application should suffer very little fragmentation.  However, if your application maintains the same total memory usage, but shifts from, say, mostly 48-byte regions to mostly 64-byte regions, it can end up with highly fragmented runs that contain the few remaining 48-byte allocations.
+</I>&gt;<i>Given 28 small size classes, it's possible for this to be a terrible fragmentation situation, but I have yet to see this happen in a real application.
+</I>
+So far, using Salvatore's method and code I can see about 3% difference between RSS and allocated memory
+when using jemalloc and ~9% difference when using Hoard.
+But I expect these values to change since the processes haven't started removing outdated records yet.
+
+I also have a control process without jemalloc (i.e. using plain libc malloc()) using the same code to compute fragmentation
+and it shows about 20% difference (and it's growing).
+
+
+What buffles me most is that stats.allocated keeps returning the same value, but RSS constantly grows.
+Could it be because of the amount of threads I use?
+Say, I free memory in one thread and try to allocate in another one, but the second thread
+doesn't have it cached and has to do the actual allocation?
+
+-- 
+Wbr,
+Antony Dovgal
+---
+<A HREF="http://pinba.org">http://pinba.org</A> - realtime profiling for PHP
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000768.html">keeping memory usage at certain limit
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#767">[ date ]</a>
+              <a href="thread.html#767">[ thread ]</a>
+              <a href="subject.html#767">[ subject ]</a>
+              <a href="author.html#767">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

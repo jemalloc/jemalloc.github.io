@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Check for __builtin_ffsl before ffsl.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Check%20for%20__builtin_ffsl%20before%20ffsl.&In-Reply-To=%3C1401851348-13513-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000864.html">
+   <LINK REL="Next"  HREF="000863.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Check for __builtin_ffsl before ffsl.</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Check%20for%20__builtin_ffsl%20before%20ffsl.&In-Reply-To=%3C1401851348-13513-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Check for __builtin_ffsl before ffsl.">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Jun  3 20:09:08 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000864.html">RES memory footprint on Ubuntu 14.04
+</A></li>
+        <LI>Next message: <A HREF="000863.html">[PATCH] Check for __builtin_ffsl before ffsl.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#860">[ date ]</a>
+              <a href="thread.html#860">[ thread ]</a>
+              <a href="subject.html#860">[ subject ]</a>
+              <a href="author.html#860">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+When building with -O0, GCC doesn't use builtins for ffs and ffsl calls,
+and uses library function calls instead. But the Android NDK doesn't have
+those functions exported from any library, leading to build failure.
+However, using __builtin_ffs* uses the builtin inlines.
+---
+ configure.ac | 27 ++++++++++++++-------------
+ 1 file changed, 14 insertions(+), 13 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 29edcb6..f456bd2 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1109,43 +1109,44 @@ elif test &quot;x${force_tls}&quot; = &quot;x1&quot; ; then
+ fi
+ 
+ dnl ============================================================================
+-dnl Check for ffsl(3), then __builtin_ffsl(), and fail if neither are found.
++dnl Check for  __builtin_ffsl(), then ffsl(3), and fail if neither are found.
+ dnl One of those two functions should (theoretically) exist on all platforms
+ dnl that jemalloc currently has a chance of functioning on without modification.
+ dnl We additionally assume ffs() or __builtin_ffs() are defined if
+ dnl ffsl() or __builtin_ffsl() are defined, respectively.
+-JE_COMPILABLE([a program using ffsl], [
++JE_COMPILABLE([a program using __builtin_ffsl], [
+ #include &lt;stdio.h&gt;
+ #include &lt;strings.h&gt;
+ #include &lt;string.h&gt;
+ ], [
+ 	{
+-		int rv = ffsl(0x08);
++		int rv = __builtin_ffsl(0x08);
+ 		printf(&quot;%d\n&quot;, rv);
+ 	}
+-], [je_cv_function_ffsl])
+-if test &quot;x${je_cv_function_ffsl}&quot; == &quot;xyes&quot; ; then
+-  AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [ffsl])
+-  AC_DEFINE([JEMALLOC_INTERNAL_FFS], [ffs])
++], [je_cv_gcc_builtin_ffsl])
++if test &quot;x${je_cv_gcc_builtin_ffsl}&quot; == &quot;xyes&quot; ; then
++  AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [__builtin_ffsl])
++  AC_DEFINE([JEMALLOC_INTERNAL_FFS], [__builtin_ffs])
+ else
+-  JE_COMPILABLE([a program using __builtin_ffsl], [
++  JE_COMPILABLE([a program using ffsl], [
+   #include &lt;stdio.h&gt;
+   #include &lt;strings.h&gt;
+   #include &lt;string.h&gt;
+   ], [
+ 	{
+-		int rv = __builtin_ffsl(0x08);
++		int rv = ffsl(0x08);
+ 		printf(&quot;%d\n&quot;, rv);
+ 	}
+-  ], [je_cv_gcc_builtin_ffsl])
+-  if test &quot;x${je_cv_gcc_builtin_ffsl}&quot; == &quot;xyes&quot; ; then
+-    AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [__builtin_ffsl])
+-    AC_DEFINE([JEMALLOC_INTERNAL_FFS], [__builtin_ffs])
++  ], [je_cv_function_ffsl])
++  if test &quot;x${je_cv_function_ffsl}&quot; == &quot;xyes&quot; ; then
++    AC_DEFINE([JEMALLOC_INTERNAL_FFSL], [ffsl])
++    AC_DEFINE([JEMALLOC_INTERNAL_FFS], [ffs])
+   else
+     AC_MSG_ERROR([Cannot build without ffsl(3) or __builtin_ffsl()])
+   fi
+ fi
+ 
++
+ dnl ============================================================================
+ dnl Check for atomic(9) operations as provided on FreeBSD.
+ 
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000864.html">RES memory footprint on Ubuntu 14.04
+</A></li>
+	<LI>Next message: <A HREF="000863.html">[PATCH] Check for __builtin_ffsl before ffsl.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#860">[ date ]</a>
+              <a href="thread.html#860">[ thread ]</a>
+              <a href="subject.html#860">[ subject ]</a>
+              <a href="author.html#860">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

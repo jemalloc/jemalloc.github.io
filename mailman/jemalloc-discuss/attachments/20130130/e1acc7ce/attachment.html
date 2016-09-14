@@ -1,0 +1,10 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Hi,&lt;div&nbsp;style&gt;I&#39;m&nbsp;trying&nbsp;to&nbsp;use&nbsp;jemalloc&nbsp;as&nbsp;the&nbsp;allocator&nbsp;for&nbsp;Membase&nbsp;(a&nbsp;persistent/replicated&nbsp;memcached)&nbsp;on&nbsp;x86_64&nbsp;Linux.&nbsp;With&nbsp;4KB&nbsp;page&nbsp;size,&nbsp;the&nbsp;overhead&nbsp;(fragmentation)&nbsp;for&nbsp;allocations&nbsp;greater&nbsp;than&nbsp;4KB&nbsp;(say&nbsp;5000&nbsp;bytes)&nbsp;that&nbsp;fall&nbsp;into&nbsp;8KB&nbsp;&#39;large&#39;&nbsp;allocation&nbsp;class&nbsp;is&nbsp;pretty&nbsp;high.&lt;/div&gt;<br>
+<br>
+&lt;div&nbsp;style&gt;&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;style&gt;To&nbsp;make&nbsp;the&nbsp;wastage&nbsp;a&nbsp;bit&nbsp;less,&nbsp;we&nbsp;would&nbsp;need&nbsp;more&nbsp;classes&nbsp;in&nbsp;the&nbsp;&#39;small&#39;&nbsp;size.&nbsp;Given&nbsp;how&nbsp;page&nbsp;purge&nbsp;works,&nbsp;I&nbsp;understand&nbsp;just&nbsp;adding&nbsp;more&nbsp;classes&nbsp;in&nbsp;there&nbsp;or&nbsp;faking&nbsp;a&nbsp;higher&nbsp;page&nbsp;size&nbsp;won&#39;t&nbsp;work.&lt;br&gt;<br>
+<br>
+&lt;/div&gt;&lt;div&nbsp;style&gt;&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;style&gt;Luckily&nbsp;my&nbsp;target&nbsp;OS&nbsp;-&nbsp;x86_64&nbsp;linux&nbsp;supports&nbsp;2MB&nbsp;huge&nbsp;pages.&nbsp;Can&nbsp;jemalloc&nbsp;take&nbsp;advantage&nbsp;of&nbsp;this?&nbsp;Is&nbsp;there&nbsp;a&nbsp;way&nbsp;to&nbsp;enable&nbsp;this?&lt;/div&gt;&lt;div&nbsp;style&gt;&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;style&gt;Thanks,&lt;/div&gt;&lt;div&nbsp;style&gt;<br>
+<br>
+Vinay&nbsp;Y&nbsp;S&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

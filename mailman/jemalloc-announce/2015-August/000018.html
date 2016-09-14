@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 4.0.0 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%204.0.0%20released&In-Reply-To=%3C1C1CC0C2-0CAD-4FCD-8343-CB3384855A08%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 4.0.0 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%204.0.0%20released&In-Reply-To=%3C1C1CC0C2-0CAD-4FCD-8343-CB3384855A08%40canonware.com%3E"
+       TITLE="jemalloc 4.0.0 released">jasone at canonware.com
+       </A><BR>
+    <I>Mon Aug 17 13:42:04 PDT 2015</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#18">[ date ]</a>
+              <a href="thread.html#18">[ thread ]</a>
+              <a href="subject.html#18">[ subject ]</a>
+              <a href="author.html#18">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 4.0.0 is now available.  This version contains many speed and space optimizations, both minor and major.  The major themes are generalization, unification, and simplification.  Although many of these optimizations cause no visible behavior change, their cumulative effect is substantial.
+
+New features:
+- Normalize size class spacing to be consistent across the complete size range.  By default there are four size classes per size doubling, but this is now configurable via the --with-lg-size-class-group option.  Also add the --with-lg-page, --with-lg-page-sizes, --with-lg-quantum, and --with-lg-tiny-min options, which can be used to tweak page and size class settings.  Impacts:
+  + Worst case performance for incrementally growing/shrinking reallocation is improved because there are far fewer size classes, and therefore copying happens less often.
+  + Internal fragmentation is limited to 20% for all but the smallest size classes (those less than four times the quantum).  (1B + 4 KiB) and (1B + 4 MiB) previously suffered nearly 50% internal fragmentation.
+  + Chunk fragmentation tends to be lower because there are fewer distinct run sizes to pack.
+- Add support for explicit tcaches.  The &quot;tcache.create&quot;, &quot;tcache.flush&quot;, and &quot;tcache.destroy&quot; mallctls control tcache lifetime and flushing, and the MALLOCX_TCACHE(tc) and MALLOCX_TCACHE_NONE flags to the *allocx() API control which tcache is used for each operation.
+- Implement per thread heap profiling, as well as the ability to enable/disable heap profiling on a per thread basis.  Add the &quot;prof.reset&quot;, &quot;prof.lg_sample&quot;, &quot;thread.prof.name&quot;, &quot;thread.prof.active&quot;, &quot;opt.prof_thread_active_init&quot;, &quot;prof.thread_active_init&quot;, and &quot;thread.prof.active&quot; mallctls.
+- Add support for per arena application-specified chunk allocators, configured via the &quot;arena.&lt;i&gt;.chunk_hooks&quot; mallctl.
+- Refactor huge allocation to be managed by arenas, so that arenas now function as general purpose independent allocators.  This is important in the context of user-specified chunk allocators, aside from the scalability benefits.  Related new statistics:
+  + The &quot;stats.arenas.&lt;i&gt;.huge.allocated&quot;, &quot;stats.arenas.&lt;i&gt;.huge.nmalloc&quot;, &quot;stats.arenas.&lt;i&gt;.huge.ndalloc&quot;, and &quot;stats.arenas.&lt;i&gt;.huge.nrequests&quot; mallctls provide high level per arena huge allocation statistics.
+  + The &quot;arenas.nhchunks&quot;, &quot;arenas.hchunk.&lt;i&gt;.size&quot;, &quot;stats.arenas.&lt;i&gt;.hchunks.&lt;j&gt;.nmalloc&quot;, &quot;stats.arenas.&lt;i&gt;.hchunks.&lt;j&gt;.ndalloc&quot;, &quot;stats.arenas.&lt;i&gt;.hchunks.&lt;j&gt;.nrequests&quot;, and &quot;stats.arenas.&lt;i&gt;.hchunks.&lt;j&gt;.curhchunks&quot; mallctls provide per size class statistics.
+- Add the 'util' column to malloc_stats_print() output, which reports the proportion of available regions that are currently in use for each small size class.
+- Add &quot;alloc&quot; and &quot;free&quot; modes for for junk filling (see the &quot;opt.junk&quot; mallctl), so that it is possible to separately enable junk filling for allocation versus deallocation.
+- Add the jemalloc-config script, which provides information about how jemalloc was configured, and how to integrate it into application builds.
+- Add metadata statistics, which are accessible via the &quot;stats.metadata&quot;, &quot;stats.arenas.&lt;i&gt;.metadata.mapped&quot;, and &quot;stats.arenas.&lt;i&gt;.metadata.allocated&quot; mallctls.
+- Add the &quot;stats.resident&quot; mallctl, which reports the upper limit of physically resident memory mapped by the allocator.
+- Add per arena control over unused dirty page purging, via the &quot;arenas.lg_dirty_mult&quot;, &quot;arena.&lt;i&gt;.lg_dirty_mult&quot;, and &quot;stats.arenas.&lt;i&gt;.lg_dirty_mult&quot; mallctls.
+- Add the &quot;prof.gdump&quot; mallctl, which makes it possible to toggle the gdump feature on/off during program execution.
+- Add sdallocx(), which implements sized deallocation.  The primary optimization over dallocx() is the removal of a metadata read, which often suffers an L1 cache miss.
+- Add missing header includes in jemalloc/jemalloc.h, so that applications only have to #include &lt;jemalloc/jemalloc.h&gt;.
+- Add support for additional platforms:
+  + Bitrig
+  + Cygwin
+  + DragonFlyBSD
+  + iOS
+  + OpenBSD
+  + OpenRISC/or1k
+
+Optimizations:
+- Maintain dirty runs in per arena LRUs rather than in per arena trees of dirty-run-containing chunks.  In practice this change significantly reduces dirty page purging volume.
+- Integrate whole chunks into the unused dirty page purging machinery.  This reduces the cost of repeated huge allocation/deallocation, because it effectively introduces a cache of chunks.
+- Split the arena chunk map into two separate arrays, in order to increase cache locality for the frequently accessed bits.
+- Move small run metadata out of runs, into arena chunk headers.  This reduces run fragmentation, smaller runs reduce external fragmentation for small size classes, and packed (less uniformly aligned) metadata layout improves CPU cache set distribution.
+- Randomly distribute large allocation base pointer alignment relative to page boundaries in order to more uniformly utilize CPU cache sets.  This can be disabled via the --disable-cache-oblivious configure option, and queried via the &quot;config.cache_oblivious&quot; mallctl.
+- Micro-optimize the fast paths for the public API functions.
+- Refactor thread-specific data to reside in a single structure.  This assures that only a single TLS read is necessary per call into the public API.
+- Implement in-place huge allocation growing and shrinking.
+- Refactor rtree (radix tree for chunk lookups) to be lock-free, and make additional optimizations that reduce maximum lookup depth to one or two levels.  This resolves what was a concurrency bottleneck for per arena huge allocation, because a global data structure is critical for determining which arenas own which huge allocations.
+
+Incompatible changes:
+- Replace --enable-cc-silence with --disable-cc-silence to suppress spurious warnings by default.
+- Assure that the constness of malloc_usable_size()'s return type matches that of the system implementation.
+- Change the heap profile dump format to support per thread heap profiling, rename pprof to jeprof, and enhance it with the --thread=&lt;n&gt; option.  As a result, the bundled jeprof must now be used rather than the upstream (gperftools) pprof.
+- Disable &quot;opt.prof_final&quot; by default, in order to avoid atexit(3), which can internally deadlock on some platforms.
+- Change the &quot;arenas.nlruns&quot; mallctl type from size_t to unsigned.
+- Replace the &quot;stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.allocated&quot; mallctl with &quot;stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.curregs&quot;.
+- Ignore MALLOC_CONF in set{uid,gid,cap} binaries.
+- Ignore MALLOCX_ARENA(a) in dallocx(), in favor of using the MALLOCX_TCACHE(tc) and MALLOCX_TCACHE_NONE flags to control tcache usage.
+
+Removed features:
+- Remove the *allocm() API, which is superseded by the *allocx() API.
+- Remove the --enable-dss options, and make dss non-optional on all platforms which support sbrk(2).
+- Remove the &quot;arenas.purge&quot; mallctl, which was obsoleted by the &quot;arena.&lt;i&gt;.purge&quot; mallctl in 3.1.0.
+- Remove the unnecessary &quot;opt.valgrind&quot; mallctl; jemalloc automatically detects whether it is running inside Valgrind.
+- Remove the &quot;stats.huge.allocated&quot;, &quot;stats.huge.nmalloc&quot;, and &quot;stats.huge.ndalloc&quot; mallctls.
+- Remove the --enable-mremap option.
+- Remove the &quot;stats.chunks.current&quot;, &quot;stats.chunks.total&quot;, and &quot;stats.chunks.high&quot; mallctls.
+
+Bug fixes:
+- Fix the cactive statistic to decrease (rather than increase) when active memory decreases.  This regression was first released in 3.5.0.
+- Fix OOM handling in memalign() and valloc().  A variant of this bug existed in all releases since 2.0.0, which introduced these functions.
+- Fix an OOM-related regression in arena_tcache_fill_small(), which could cause cache corruption on OOM.  This regression was present in all releases from 2.2.0 through 3.6.0.
+- Fix size class overflow handling for malloc(), posix_memalign(), memalign(), calloc(), and realloc() when profiling is enabled.
+- Fix the &quot;arena.&lt;i&gt;.dss&quot; mallctl to return an error if &quot;primary&quot; or &quot;secondary&quot; precedence is specified, but sbrk(2) is not supported.
+- Fix fallback lg_floor() implementations to handle extremely large inputs.
+- Ensure the default purgeable zone is after the default zone on OS X.
+- Fix latent bugs in atomic_*().
+- Fix the &quot;arena.&lt;i&gt;.dss&quot; mallctl to handle read-only calls.
+- Fix tls_model configuration to enable the initial-exec model when possible.
+- Mark malloc_conf as a weak symbol so that the application can override it.
+- Correctly detect glibc's adaptive pthread mutexes.
+- Fix the --without-export configure option.
+
+For the complete ChangeLog, see:
+	<A HREF="https://github.com/jemalloc/jemalloc/raw/4.0.0/ChangeLog">https://github.com/jemalloc/jemalloc/raw/4.0.0/ChangeLog</A>
+
+Direct download:
+	<A HREF="https://github.com/jemalloc/jemalloc/releases/download/4.0.0/jemalloc-4.0.0.tar.bz2">https://github.com/jemalloc/jemalloc/releases/download/4.0.0/jemalloc-4.0.0.tar.bz2</A>
+
+Starting point for general information:
+	<A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+
+Browsable revision history:
+	<A HREF="https://github.com/jemalloc/jemalloc/tree/4.0.0">https://github.com/jemalloc/jemalloc/tree/4.0.0</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#18">[ date ]</a>
+              <a href="thread.html#18">[ thread ]</a>
+              <a href="subject.html#18">[ subject ]</a>
+              <a href="author.html#18">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

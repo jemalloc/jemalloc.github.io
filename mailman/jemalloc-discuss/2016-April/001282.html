@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> One run extending into another in jemalloc-3.5.1 ?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20One%20run%20extending%20into%20another%20in%20jemalloc-3.5.1%20%3F&In-Reply-To=%3CSN1PR0701MB1967E96B601383882D9B5D11B26C0%40SN1PR0701MB1967.namprd07.prod.outlook.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001281.html">
+   <LINK REL="Next"  HREF="001283.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>One run extending into another in jemalloc-3.5.1 ?</H1>
+    <B>Chaitanya Patti</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20One%20run%20extending%20into%20another%20in%20jemalloc-3.5.1%20%3F&In-Reply-To=%3CSN1PR0701MB1967E96B601383882D9B5D11B26C0%40SN1PR0701MB1967.namprd07.prod.outlook.com%3E"
+       TITLE="One run extending into another in jemalloc-3.5.1 ?">cpatti at tintri.com
+       </A><BR>
+    <I>Tue Apr 19 10:48:34 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001281.html">One run extending into another in jemalloc-3.5.1 ?
+</A></li>
+        <LI>Next message: <A HREF="001283.html">One run extending into another in jemalloc-3.5.1 ?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1282">[ date ]</a>
+              <a href="thread.html#1282">[ thread ]</a>
+              <a href="subject.html#1282">[ subject ]</a>
+              <a href="author.html#1282">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I don't understand how a double-free can cause such a corruption. Can you please explain ?
+
+________________________________________
+From: Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;
+Sent: Tuesday, April 19, 2016 10:01 AM
+To: Chaitanya Patti
+Cc: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+Subject: Re: One run extending into another in jemalloc-3.5.1 ?
+
+On Apr 18, 2016, at 11:12 PM, Chaitanya Patti &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cpatti at tintri.com</A>&gt; wrote:
+&gt;<i> I am debugging a memory de-allocation issue. We are using jemalloc version 3.5.1. It looks like a run with reg_size 224 and total size of 4 pages has &quot;extended&quot; into an adjacent run, and corrupted the adjacent run. Has such an issue been seen before ?
+</I>
+That usually means that a double free corrupted metadata for the adjacent run.  If you have a repeatable test case, try running with a debug build of jemalloc, and disable tcache, so that assertions immediately detect double frees.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001281.html">One run extending into another in jemalloc-3.5.1 ?
+</A></li>
+	<LI>Next message: <A HREF="001283.html">One run extending into another in jemalloc-3.5.1 ?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1282">[ date ]</a>
+              <a href="thread.html#1282">[ thread ]</a>
+              <a href="subject.html#1282">[ subject ]</a>
+              <a href="author.html#1282">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

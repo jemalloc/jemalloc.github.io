@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3.1.0 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%203.1.0%20released&In-Reply-To=%3CC2A07722-AEE4-4B58-B879-E7BFD43506D1%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3.1.0 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%203.1.0%20released&In-Reply-To=%3CC2A07722-AEE4-4B58-B879-E7BFD43506D1%40canonware.com%3E"
+       TITLE="jemalloc 3.1.0 released">jasone at canonware.com
+       </A><BR>
+    <I>Tue Oct 16 11:05:59 PDT 2012</I>
+    <P><UL>
+        
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#7">[ date ]</a>
+              <a href="thread.html#7">[ thread ]</a>
+              <a href="subject.html#7">[ subject ]</a>
+              <a href="author.html#7">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 3.1.0 is now available.  It includes a handful of bug fixes, plus one major new feature: the ability to manually create arenas that are outside the purview of jemalloc's automatic thread:arena multiplexing.  Manually created arenas can be selected for use on a per thread basis using the existing &quot;thread.arena&quot; mallctl, or on a per allocation basis using the new ALLOCM_ARENA() flag in conjunction with allocm()/rallocm()/dallocm().
+
+New features:
+- Auto-detect whether running inside Valgrind, thus removing the need to manually specify MALLOC_CONF=valgrind:true.
+- Add the &quot;arenas.extend&quot; mallctl, which allows applications to create manually managed arenas.
+- Add the ALLOCM_ARENA() flag for {,r,d}allocm().
+- Add the &quot;opt.dss&quot;, &quot;arena.&lt;i&gt;.dss&quot;, and &quot;stats.arenas.&lt;i&gt;.dss&quot; mallctls, which provide control over dss/mmap precedence.
+- Add the &quot;arena.&lt;i&gt;.purge&quot; mallctl, which obsoletes &quot;arenas.purge&quot;.
+- Define LG_QUANTUM for hppa.
+
+Incompatible changes:
+- Disable tcache by default if running inside Valgrind, in order to avoid making unallocated objects appear reachable to Valgrind.
+- Drop const from malloc_usable_size() argument on Linux.
+
+Bug fixes:
+- Fix heap profiling crash if sampled object is freed via realloc(p, 0).
+- Remove const from __*_hook variable declarations, so that glibc can modify them during process forking.
+- Fix mlockall(2)/madvise(2) interaction.
+- Fix fork(2)-related deadlocks.
+- Fix error return value for &quot;thread.tcache.enabled&quot; mallctl.
+
+For the complete ChangeLog, see:
+	<A HREF="http://www.canonware.com/jemalloc/ChangeLog.html">http://www.canonware.com/jemalloc/ChangeLog.html</A>
+
+Direct download:
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-3.1.0.tar.bz2">http://www.canonware.com/download/jemalloc/jemalloc-3.1.0.tar.bz2</A>
+
+Starting point for general information:
+	<A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+
+Browsable revision history:
+	<A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#7">[ date ]</a>
+              <a href="thread.html#7">[ thread ]</a>
+              <a href="subject.html#7">[ subject ]</a>
+              <a href="author.html#7">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

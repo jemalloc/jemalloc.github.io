@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 3/7] Fix intmax_t configure error message
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/7%5D%20Fix%20intmax_t%20configure%20error%20message&In-Reply-To=%3C1334903923-4973-3-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000344.html">
+   <LINK REL="Next"  HREF="000343.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 3/7] Fix intmax_t configure error message</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%203/7%5D%20Fix%20intmax_t%20configure%20error%20message&In-Reply-To=%3C1334903923-4973-3-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 3/7] Fix intmax_t configure error message">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 19 23:38:39 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000344.html">[PATCH 2/7] Remove leftovers from the vsnprintf check in	malloc_vsnprintf
+</A></li>
+        <LI>Next message: <A HREF="000343.html">[PATCH 4/7] Remove #includes in tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#340">[ date ]</a>
+              <a href="thread.html#340">[ thread ]</a>
+              <a href="subject.html#340">[ subject ]</a>
+              <a href="author.html#340">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ configure.ac |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 5bdddfa..396b5ef 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -164,7 +164,7 @@ elif test &quot;x${ac_cv_sizeof_intmax_t}&quot; = &quot;x8&quot; ; then
+ elif test &quot;x${ac_cv_sizeof_intmax_t}&quot; = &quot;x4&quot; ; then
+   LG_SIZEOF_INTMAX_T=2
+ else
+-  AC_MSG_ERROR([Unsupported intmax_t size: ${ac_cv_sizeof_long}])
++  AC_MSG_ERROR([Unsupported intmax_t size: ${ac_cv_sizeof_intmax_t}])
+ fi
+ AC_DEFINE_UNQUOTED([LG_SIZEOF_INTMAX_T], [$LG_SIZEOF_INTMAX_T])
+ 
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000344.html">[PATCH 2/7] Remove leftovers from the vsnprintf check in	malloc_vsnprintf
+</A></li>
+	<LI>Next message: <A HREF="000343.html">[PATCH 4/7] Remove #includes in tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#340">[ date ]</a>
+              <a href="thread.html#340">[ thread ]</a>
+              <a href="subject.html#340">[ subject ]</a>
+              <a href="author.html#340">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

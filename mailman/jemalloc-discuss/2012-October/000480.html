@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121026094532.GA21738%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000484.html">
+   <LINK REL="Next"  HREF="000481.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121026094532.GA21738%40glandium.org%3E"
+       TITLE="Memory usage regression">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Fri Oct 26 02:45:32 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000484.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000481.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#480">[ date ]</a>
+              <a href="thread.html#480">[ thread ]</a>
+              <a href="subject.html#480">[ subject ]</a>
+              <a href="author.html#480">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>(FYI, the message I'm quoting here is still in the list moderation queue)
+
+On Thu, Oct 25, 2012 at 08:42:11AM +0200, Mike Hommey wrote:
+&gt;<i> In the 3 jemalloc cases, narenas = 1 (like mozjemalloc). The chunk size
+</I>&gt;<i> for mozjemalloc is 1MB, which is why I tested with that chunk size as
+</I>&gt;<i> well, and also tried without tcache. There's still a large difference
+</I>&gt;<i> between jemalloc 3 and mozjemalloc with similar config.
+</I>
+<A HREF="http://i.imgur.com/UBxob.png">http://i.imgur.com/UBxob.png</A>
+It turns out 1MB vs 4MB chunks are not making a great deal of a difference
+on RSS, it however does on how VmData progresses. The bumps at the
+beginning of each iteration is bigger with 1MB chunks.
+
+Note: horizontal axis is not time, it's alloc operation number ;
+basically the line number in the alloc log.
+
+&gt;<i> I did try hacking jemalloc 3 to use the same size classes but didn't get
+</I>&gt;<i> much different results, although retrospectively, I think I was only
+</I>&gt;<i> looking at the VmData numbers, then. I'll respin, looking at VmRSS.
+</I>
+<A HREF="http://i.imgur.com/Ijf5u.png">http://i.imgur.com/Ijf5u.png</A>
+Interestingly, jemalloc 3 with the mozjemalloc size classes uses more
+RSS than jemalloc 3 (using 1MB chunks in both cases).
+
+&gt;<i> &gt; This looks pretty bad.  The only legitimate potential explanation I
+</I>&gt;<i> &gt; can think of is that jemalloc now partitions dirty and clean pages
+</I>&gt;<i> &gt; (and jemalloc 3 is much less aggressive than mozjemalloc about
+</I>&gt;<i> &gt; purging), so it's possible to have to allocate a new chunk for a large
+</I>&gt;<i> &gt; object, even though there would be enough room in an existing chunk if
+</I>&gt;<i> &gt; clean and dirty available runs were coalesced.  This increases run
+</I>&gt;<i> &gt; fragmentation in general, but it tends to dramatically reduce the
+</I>&gt;<i> &gt; number of pages that are dirtied.  I'd like to see the output of
+</I>&gt;<i> &gt; malloc_stats_print() for two adjacent points along the x axis, like
+</I>&gt;<i> &gt; &quot;After iteration 5&quot; and its predecessor.  I'd also be curious if the
+</I>&gt;<i> &gt; VM size increases continue after many grow/shrink cycles (if so, it
+</I>&gt;<i> &gt; might be due to an outright bug in jemalloc).
+</I>
+Some more data:
+
+<A HREF="http://i.imgur.com/3Q2js.png">http://i.imgur.com/3Q2js.png</A>
+This is zooming on the big bump at the beginning of iteration 2. Looking
+at the corresponding allocation log, this corresponds to &gt; 1MB
+allocations with memalign, but turning them into mallocs doesn't change
+the result, so it's not a memalign problem.
+
+Looking more globally at the data, there is /some/ correlation with &gt;
+1MB allocations, but occasionally, 128KB allocations do trigger the same
+behaviour, as well as 64KB. One interesting fact is that it's only a
+limited subset of these big allocations that trigger this. The vast
+majority of them don't.
+
+For reference, the unzoomed graph looks like this:
+<A HREF="http://i.imgur.com/PViYm.png">http://i.imgur.com/PViYm.png</A>
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000484.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000481.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#480">[ date ]</a>
+              <a href="thread.html#480">[ thread ]</a>
+              <a href="subject.html#480">[ subject ]</a>
+              <a href="author.html#480">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

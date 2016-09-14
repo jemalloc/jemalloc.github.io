@@ -1,0 +1,18 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;We&nbsp;(nuodb)&nbsp;developed&nbsp;a&nbsp;patch&nbsp;to&nbsp;have&nbsp;jemalloc&nbsp;call&nbsp;MADV_NOHUGEPAGE&nbsp;on&nbsp;all&nbsp;memory&nbsp;it&nbsp;mapped&nbsp;but&nbsp;this&nbsp;only&nbsp;works&nbsp;if&nbsp;THP&nbsp;setting&nbsp;on&nbsp;OS&nbsp;is&nbsp;[madvise]&nbsp;so&nbsp;its&nbsp;not&nbsp;a&nbsp;complete&nbsp;fix.&nbsp;It&nbsp;does&nbsp;give&nbsp;our&nbsp;customers&nbsp;the&nbsp;flexibility&nbsp;to&nbsp;use&nbsp;madvise&nbsp;instead&nbsp;of&nbsp;never&nbsp;to&nbsp;work&nbsp;around&nbsp;this&nbsp;problem.&nbsp; &nbsp;If&nbsp;such&nbsp;a&nbsp;patch&nbsp;would&nbsp;be&nbsp;welcome&nbsp;I&nbsp;will&nbsp;put&nbsp;one&nbsp;together&nbsp;but&nbsp;we&nbsp;consider&nbsp;it&nbsp;a&nbsp;half&nbsp;fix.&nbsp; &nbsp;Personally&nbsp;I&nbsp;think&nbsp;linux&nbsp;should&nbsp;be&nbsp;changed&nbsp;so&nbsp;that&nbsp;THP&nbsp;can&nbsp;be&nbsp;disabled&nbsp;by&nbsp;a&nbsp;process&nbsp;regardless&nbsp;of&nbsp;system&nbsp;setting&nbsp;but&nbsp;that&nbsp;doesn&#39;t&nbsp;appear&nbsp;to&nbsp;be&nbsp;possible&nbsp;at&nbsp;the&nbsp;moment.&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Thu,&nbsp;Feb&nbsp;12,&nbsp;2015&nbsp;at&nbsp;4:22&nbsp;AM,&nbsp;Bottiger&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:bottiger10@gmail.com&quot;&nbsp;target=&quot;_blank&quot;&gt;bottiger10@gmail.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;Hello&nbsp;I&nbsp;am&nbsp;wondering&nbsp;if&nbsp;the&nbsp;patch&nbsp;here&nbsp;ever&nbsp;got&nbsp;merged.&nbsp;I&nbsp;could&nbsp;not&lt;br&gt;<br>
+find&nbsp;anything&nbsp;about&nbsp;it&nbsp;in&nbsp;the&nbsp;changelogs&nbsp;or&nbsp;on&nbsp;Github.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb&quot;&nbsp;target=&quot;_blank&quot;&gt;http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb&lt;/a&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+We&nbsp;experienced&nbsp;RSS&nbsp;leakage&nbsp;using&nbsp;jemalloc&nbsp;3.4.1&nbsp;on&nbsp;Linux&lt;br&gt;<br>
+3.13.0-39-generic.&nbsp;It&nbsp;disappeared&nbsp;when&nbsp;we&nbsp;did&nbsp;echo&nbsp;never&nbsp;&gt;&lt;br&gt;<br>
+/sys/kernel/mm/transparent_hugepage/enabled&lt;br&gt;<br>
+&lt;br&gt;<br>
+We&nbsp;would&nbsp;prefer&nbsp;not&nbsp;to&nbsp;have&nbsp;to&nbsp;change&nbsp;a&nbsp;global&nbsp;setting.&lt;br&gt;<br>
+_______________________________________________&lt;br&gt;<br>
+jemalloc-discuss&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:jemalloc-discuss@canonware.com&quot;&gt;jemalloc-discuss@canonware.com&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&lt;/a&gt;&lt;br&gt;<br>
+&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Fix test breakage on 32-bit systems
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Fix%20test%20breakage%20on%2032-bit%20systems&In-Reply-To=%3CDC6FB7A5-1824-4ED4-988F-89EADFC0C8EC%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000969.html">
+   <LINK REL="Next"  HREF="000971.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Fix test breakage on 32-bit systems</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Fix%20test%20breakage%20on%2032-bit%20systems&In-Reply-To=%3CDC6FB7A5-1824-4ED4-988F-89EADFC0C8EC%40canonware.com%3E"
+       TITLE="[PATCH] Fix test breakage on 32-bit systems">jasone at canonware.com
+       </A><BR>
+    <I>Tue Dec  2 16:29:46 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000969.html">Huge page support would be useful in JEMalloc
+</A></li>
+        <LI>Next message: <A HREF="000971.html">Question about the spare chunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#970">[ date ]</a>
+              <a href="thread.html#970">[ thread ]</a>
+              <a href="subject.html#970">[ subject ]</a>
+              <a href="author.html#970">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 13, 2014, at 3:51 PM, Yuriy Kaminskiy &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">yumkam at gmail.com</A>&gt; wrote:
+&gt;<i> From 870eb004d977b92a82531275c5739ec2d2667281 Mon Sep 17 00:00:00 2001
+</I>&gt;<i> From: &quot;Yuriy M. Kaminskiy&quot; &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">yumkam at gmail.com</A>&gt;
+</I>&gt;<i> Date: Fri, 14 Nov 2014 02:13:02 +0300
+</I>&gt;<i> Subject: [PATCH] Fix test breakage on 32-bit systems
+</I>&gt;<i> 
+</I>&gt;<i> test_stats_arenas_bins:test/unit/stats.c:332: Failed assertion:
+</I>&gt;<i> (jet_mallctl(&quot;stats.arenas.0.bins.0.nfills&quot;, &amp;nfills, &amp;sz, ((void *)0),
+</I>&gt;<i> 0)) == (config_tcache ? expected : 2) --&gt; 22 != 0: Unexpected mallctl()
+</I>&gt;<i> result
+</I>&gt;<i> etc
+</I>&gt;<i> (22 is EINVAL on this platform)
+</I>&gt;<i> 
+</I>&gt;<i> Regression by 3c4d92e82a31f652a7c77ca937a02d0185085b06
+</I>&gt;<i> ---
+</I>&gt;<i> test/unit/stats.c |    1 +
+</I>&gt;<i> 1 files changed, 1 insertions(+), 0 deletions(-)
+</I>&gt;<i> 
+</I>&gt;<i> diff --git a/test/unit/stats.c b/test/unit/stats.c
+</I>&gt;<i> index fd92d54..946e737 100644
+</I>&gt;<i> --- a/test/unit/stats.c
+</I>&gt;<i> +++ b/test/unit/stats.c
+</I>&gt;<i> @@ -327,6 +327,7 @@ TEST_BEGIN(test_stats_arenas_bins)
+</I>&gt;<i> 	assert_d_eq(mallctl(&quot;stats.arenas.0.bins.0.curregs&quot;, &amp;curregs, &amp;sz,
+</I>&gt;<i> 	    NULL, 0), expected, &quot;Unexpected mallctl() result&quot;);
+</I>&gt;<i> 
+</I>&gt;<i> +	sz = sizeof(uint64_t);
+</I>&gt;<i> 	assert_d_eq(mallctl(&quot;stats.arenas.0.bins.0.nfills&quot;, &amp;nfills, &amp;sz,
+</I>&gt;<i> 	    NULL, 0), config_tcache ? expected : ENOENT,
+</I>&gt;<i> 	    &quot;Unexpected mallctl() result&quot;);
+</I>&gt;<i> -- 
+</I>
+Integrated:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/f79e01f75b79058c3be0ce6de0d46f8a9a990176">https://github.com/jemalloc/jemalloc/commit/f79e01f75b79058c3be0ce6de0d46f8a9a990176</A> &lt;<A HREF="https://github.com/jemalloc/jemalloc/commit/f79e01f75b79058c3be0ce6de0d46f8a9a990176">https://github.com/jemalloc/jemalloc/commit/f79e01f75b79058c3be0ce6de0d46f8a9a990176</A>&gt;
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141202/e9acc8c8/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20141202/e9acc8c8/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000969.html">Huge page support would be useful in JEMalloc
+</A></li>
+	<LI>Next message: <A HREF="000971.html">Question about the spare chunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#970">[ date ]</a>
+              <a href="thread.html#970">[ thread ]</a>
+              <a href="subject.html#970">[ subject ]</a>
+              <a href="author.html#970">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

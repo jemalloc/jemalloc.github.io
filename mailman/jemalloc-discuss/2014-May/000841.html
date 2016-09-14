@@ -1,0 +1,1293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Don't use msvc_compat's C99 headers with MSVC versions	that have (some) C99 support
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Don%27t%20use%20msvc_compat%27s%20C99%20headers%20with%20MSVC%20versions%0A%09that%20have%20%28some%29%20C99%20support&In-Reply-To=%3C20140529072539.GA8948%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000840.html">
+   <LINK REL="Next"  HREF="000842.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Don't use msvc_compat's C99 headers with MSVC versions	that have (some) C99 support</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Don%27t%20use%20msvc_compat%27s%20C99%20headers%20with%20MSVC%20versions%0A%09that%20have%20%28some%29%20C99%20support&In-Reply-To=%3C20140529072539.GA8948%40glandium.org%3E"
+       TITLE="[PATCH] Don't use msvc_compat's C99 headers with MSVC versions	that have (some) C99 support">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu May 29 00:25:39 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000840.html">[PATCH] Don't use msvc_compat's C99 headers with MSVC versions that	have (some) C99 support
+</A></li>
+        <LI>Next message: <A HREF="000842.html">[PATCH] Don't use msvc_compat's C99 headers with MSVC versions that	have (some) C99 support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#841">[ date ]</a>
+              <a href="thread.html#841">[ thread ]</a>
+              <a href="subject.html#841">[ subject ]</a>
+              <a href="author.html#841">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Sorry, that was the wrong patch. Fixed patch incoming.
+
+On Thu, May 29, 2014 at 04:20:41PM +0900, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> ---
+</I>&gt;<i>  configure.ac                       |   4 +
+</I>&gt;<i>  include/msvc_compat/C99/inttypes.h | 313 +++++++++++++++++++++++++++++++++++++
+</I>&gt;<i>  include/msvc_compat/C99/stdbool.h  |  16 ++
+</I>&gt;<i>  include/msvc_compat/C99/stdint.h   | 247 +++++++++++++++++++++++++++++
+</I>&gt;<i>  include/msvc_compat/inttypes.h     | 313 -------------------------------------
+</I>&gt;<i>  include/msvc_compat/stdbool.h      |  16 --
+</I>&gt;<i>  include/msvc_compat/stdint.h       | 247 -----------------------------
+</I>&gt;<i>  7 files changed, 580 insertions(+), 576 deletions(-)
+</I>&gt;<i>  create mode 100644 include/msvc_compat/C99/inttypes.h
+</I>&gt;<i>  create mode 100644 include/msvc_compat/C99/stdbool.h
+</I>&gt;<i>  create mode 100644 include/msvc_compat/C99/stdint.h
+</I>&gt;<i>  delete mode 100644 include/msvc_compat/inttypes.h
+</I>&gt;<i>  delete mode 100644 include/msvc_compat/stdbool.h
+</I>&gt;<i>  delete mode 100644 include/msvc_compat/stdint.h
+</I>&gt;<i> 
+</I>&gt;<i> diff --git a/configure.ac b/configure.ac
+</I>&gt;<i> index 58f6289..0d83ab9 100644
+</I>&gt;<i> --- a/configure.ac
+</I>&gt;<i> +++ b/configure.ac
+</I>&gt;<i> @@ -155,6 +155,10 @@ if test &quot;x${ac_cv_big_endian}&quot; = &quot;x1&quot; ; then
+</I>&gt;<i>    AC_DEFINE_UNQUOTED([JEMALLOC_BIG_ENDIAN], [ ])
+</I>&gt;<i>  fi
+</I>&gt;<i>  
+</I>&gt;<i> +if test &quot;x$je_cv_msvc&quot; = &quot;xyes&quot; -a &quot;x${ac_cv_header_inttypes_h}&quot; = &quot;x&quot;; then
+</I>&gt;<i> +  CPPFLAGS=&quot;$CPPFLAGS -I${srcroot}/include/msvc_compat&quot;
+</I>&gt;<i> +fi
+</I>&gt;<i> +
+</I>&gt;<i>  AC_CHECK_SIZEOF([void *])
+</I>&gt;<i>  if test &quot;x${ac_cv_sizeof_void_p}&quot; = &quot;x8&quot; ; then
+</I>&gt;<i>    LG_SIZEOF_PTR=3
+</I>&gt;<i> diff --git a/include/msvc_compat/C99/inttypes.h b/include/msvc_compat/C99/inttypes.h
+</I>&gt;<i> new file mode 100644
+</I>&gt;<i> index 0000000..a4e6b75
+</I>&gt;<i> --- /dev/null
+</I>&gt;<i> +++ b/include/msvc_compat/C99/inttypes.h
+</I>&gt;<i> @@ -0,0 +1,313 @@
+</I>&gt;<i> +// ISO C9x  compliant inttypes.h for Microsoft Visual Studio
+</I>&gt;<i> +// Based on ISO/IEC 9899:TC2 Committee draft (May 6, 2005) WG14/N1124 
+</I>&gt;<i> +// 
+</I>&gt;<i> +//  Copyright (c) 2006 Alexander Chemeris
+</I>&gt;<i> +// 
+</I>&gt;<i> +// Redistribution and use in source and binary forms, with or without
+</I>&gt;<i> +// modification, are permitted provided that the following conditions are met:
+</I>&gt;<i> +// 
+</I>&gt;<i> +//   1. Redistributions of source code must retain the above copyright notice,
+</I>&gt;<i> +//      this list of conditions and the following disclaimer.
+</I>&gt;<i> +// 
+</I>&gt;<i> +//   2. Redistributions in binary form must reproduce the above copyright
+</I>&gt;<i> +//      notice, this list of conditions and the following disclaimer in the
+</I>&gt;<i> +//      documentation and/or other materials provided with the distribution.
+</I>&gt;<i> +// 
+</I>&gt;<i> +//   3. The name of the author may be used to endorse or promote products
+</I>&gt;<i> +//      derived from this software without specific prior written permission.
+</I>&gt;<i> +// 
+</I>&gt;<i> +// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+</I>&gt;<i> +// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+</I>&gt;<i> +// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+</I>&gt;<i> +// EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+</I>&gt;<i> +// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+</I>&gt;<i> +// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+</I>&gt;<i> +// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+</I>&gt;<i> +// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+</I>&gt;<i> +// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+</I>&gt;<i> +// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</I>&gt;<i> +// 
+</I>&gt;<i> +///////////////////////////////////////////////////////////////////////////////
+</I>&gt;<i> +
+</I>&gt;<i> +#ifndef _MSC_VER // [
+</I>&gt;<i> +#error &quot;Use this header only with Microsoft Visual C++ compilers!&quot;
+</I>&gt;<i> +#endif // _MSC_VER ]
+</I>&gt;<i> +
+</I>&gt;<i> +#ifndef _MSC_INTTYPES_H_ // [
+</I>&gt;<i> +#define _MSC_INTTYPES_H_
+</I>&gt;<i> +
+</I>&gt;<i> +#if _MSC_VER &gt; 1000
+</I>&gt;<i> +#pragma once
+</I>&gt;<i> +#endif
+</I>&gt;<i> +
+</I>&gt;<i> +#include &quot;stdint.h&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.8 Format conversion of integer types
+</I>&gt;<i> +
+</I>&gt;<i> +typedef struct {
+</I>&gt;<i> +   intmax_t quot;
+</I>&gt;<i> +   intmax_t rem;
+</I>&gt;<i> +} imaxdiv_t;
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.8.1 Macros for format specifiers
+</I>&gt;<i> +
+</I>&gt;<i> +#if !defined(__cplusplus) || defined(__STDC_FORMAT_MACROS) // [   See footnote 185 at page 198
+</I>&gt;<i> +
+</I>&gt;<i> +#ifdef _WIN64
+</I>&gt;<i> +#  define __PRI64_PREFIX        &quot;l&quot;
+</I>&gt;<i> +#  define __PRIPTR_PREFIX       &quot;l&quot;
+</I>&gt;<i> +#else
+</I>&gt;<i> +#  define __PRI64_PREFIX        &quot;ll&quot;
+</I>&gt;<i> +#  define __PRIPTR_PREFIX
+</I>&gt;<i> +#endif
+</I>&gt;<i> +
+</I>&gt;<i> +// The fprintf macros for signed integers are:
+</I>&gt;<i> +#define PRId8       &quot;d&quot;
+</I>&gt;<i> +#define PRIi8       &quot;i&quot;
+</I>&gt;<i> +#define PRIdLEAST8  &quot;d&quot;
+</I>&gt;<i> +#define PRIiLEAST8  &quot;i&quot;
+</I>&gt;<i> +#define PRIdFAST8   &quot;d&quot;
+</I>&gt;<i> +#define PRIiFAST8   &quot;i&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRId16       &quot;hd&quot;
+</I>&gt;<i> +#define PRIi16       &quot;hi&quot;
+</I>&gt;<i> +#define PRIdLEAST16  &quot;hd&quot;
+</I>&gt;<i> +#define PRIiLEAST16  &quot;hi&quot;
+</I>&gt;<i> +#define PRIdFAST16   &quot;hd&quot;
+</I>&gt;<i> +#define PRIiFAST16   &quot;hi&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRId32       &quot;d&quot;
+</I>&gt;<i> +#define PRIi32       &quot;i&quot;
+</I>&gt;<i> +#define PRIdLEAST32  &quot;d&quot;
+</I>&gt;<i> +#define PRIiLEAST32  &quot;i&quot;
+</I>&gt;<i> +#define PRIdFAST32   &quot;d&quot;
+</I>&gt;<i> +#define PRIiFAST32   &quot;i&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRId64       __PRI64_PREFIX &quot;d&quot;
+</I>&gt;<i> +#define PRIi64       __PRI64_PREFIX &quot;i&quot;
+</I>&gt;<i> +#define PRIdLEAST64  __PRI64_PREFIX &quot;d&quot;
+</I>&gt;<i> +#define PRIiLEAST64  __PRI64_PREFIX &quot;i&quot;
+</I>&gt;<i> +#define PRIdFAST64   __PRI64_PREFIX &quot;d&quot;
+</I>&gt;<i> +#define PRIiFAST64   __PRI64_PREFIX &quot;i&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRIdMAX     __PRI64_PREFIX &quot;d&quot;
+</I>&gt;<i> +#define PRIiMAX     __PRI64_PREFIX &quot;i&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRIdPTR     __PRIPTR_PREFIX &quot;d&quot;
+</I>&gt;<i> +#define PRIiPTR     __PRIPTR_PREFIX &quot;i&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +// The fprintf macros for unsigned integers are:
+</I>&gt;<i> +#define PRIo8       &quot;o&quot;
+</I>&gt;<i> +#define PRIu8       &quot;u&quot;
+</I>&gt;<i> +#define PRIx8       &quot;x&quot;
+</I>&gt;<i> +#define PRIX8       &quot;X&quot;
+</I>&gt;<i> +#define PRIoLEAST8  &quot;o&quot;
+</I>&gt;<i> +#define PRIuLEAST8  &quot;u&quot;
+</I>&gt;<i> +#define PRIxLEAST8  &quot;x&quot;
+</I>&gt;<i> +#define PRIXLEAST8  &quot;X&quot;
+</I>&gt;<i> +#define PRIoFAST8   &quot;o&quot;
+</I>&gt;<i> +#define PRIuFAST8   &quot;u&quot;
+</I>&gt;<i> +#define PRIxFAST8   &quot;x&quot;
+</I>&gt;<i> +#define PRIXFAST8   &quot;X&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRIo16       &quot;ho&quot;
+</I>&gt;<i> +#define PRIu16       &quot;hu&quot;
+</I>&gt;<i> +#define PRIx16       &quot;hx&quot;
+</I>&gt;<i> +#define PRIX16       &quot;hX&quot;
+</I>&gt;<i> +#define PRIoLEAST16  &quot;ho&quot;
+</I>&gt;<i> +#define PRIuLEAST16  &quot;hu&quot;
+</I>&gt;<i> +#define PRIxLEAST16  &quot;hx&quot;
+</I>&gt;<i> +#define PRIXLEAST16  &quot;hX&quot;
+</I>&gt;<i> +#define PRIoFAST16   &quot;ho&quot;
+</I>&gt;<i> +#define PRIuFAST16   &quot;hu&quot;
+</I>&gt;<i> +#define PRIxFAST16   &quot;hx&quot;
+</I>&gt;<i> +#define PRIXFAST16   &quot;hX&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRIo32       &quot;o&quot;
+</I>&gt;<i> +#define PRIu32       &quot;u&quot;
+</I>&gt;<i> +#define PRIx32       &quot;x&quot;
+</I>&gt;<i> +#define PRIX32       &quot;X&quot;
+</I>&gt;<i> +#define PRIoLEAST32  &quot;o&quot;
+</I>&gt;<i> +#define PRIuLEAST32  &quot;u&quot;
+</I>&gt;<i> +#define PRIxLEAST32  &quot;x&quot;
+</I>&gt;<i> +#define PRIXLEAST32  &quot;X&quot;
+</I>&gt;<i> +#define PRIoFAST32   &quot;o&quot;
+</I>&gt;<i> +#define PRIuFAST32   &quot;u&quot;
+</I>&gt;<i> +#define PRIxFAST32   &quot;x&quot;
+</I>&gt;<i> +#define PRIXFAST32   &quot;X&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRIo64       __PRI64_PREFIX &quot;o&quot;
+</I>&gt;<i> +#define PRIu64       __PRI64_PREFIX &quot;u&quot;
+</I>&gt;<i> +#define PRIx64       __PRI64_PREFIX &quot;x&quot;
+</I>&gt;<i> +#define PRIX64       __PRI64_PREFIX &quot;X&quot;
+</I>&gt;<i> +#define PRIoLEAST64  __PRI64_PREFIX &quot;o&quot;
+</I>&gt;<i> +#define PRIuLEAST64  __PRI64_PREFIX &quot;u&quot;
+</I>&gt;<i> +#define PRIxLEAST64  __PRI64_PREFIX &quot;x&quot;
+</I>&gt;<i> +#define PRIXLEAST64  __PRI64_PREFIX &quot;X&quot;
+</I>&gt;<i> +#define PRIoFAST64   __PRI64_PREFIX &quot;o&quot;
+</I>&gt;<i> +#define PRIuFAST64   __PRI64_PREFIX &quot;u&quot;
+</I>&gt;<i> +#define PRIxFAST64   __PRI64_PREFIX &quot;x&quot;
+</I>&gt;<i> +#define PRIXFAST64   __PRI64_PREFIX &quot;X&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRIoMAX     __PRI64_PREFIX &quot;o&quot;
+</I>&gt;<i> +#define PRIuMAX     __PRI64_PREFIX &quot;u&quot;
+</I>&gt;<i> +#define PRIxMAX     __PRI64_PREFIX &quot;x&quot;
+</I>&gt;<i> +#define PRIXMAX     __PRI64_PREFIX &quot;X&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define PRIoPTR     __PRIPTR_PREFIX &quot;o&quot;
+</I>&gt;<i> +#define PRIuPTR     __PRIPTR_PREFIX &quot;u&quot;
+</I>&gt;<i> +#define PRIxPTR     __PRIPTR_PREFIX &quot;x&quot;
+</I>&gt;<i> +#define PRIXPTR     __PRIPTR_PREFIX &quot;X&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +// The fscanf macros for signed integers are:
+</I>&gt;<i> +#define SCNd8       &quot;d&quot;
+</I>&gt;<i> +#define SCNi8       &quot;i&quot;
+</I>&gt;<i> +#define SCNdLEAST8  &quot;d&quot;
+</I>&gt;<i> +#define SCNiLEAST8  &quot;i&quot;
+</I>&gt;<i> +#define SCNdFAST8   &quot;d&quot;
+</I>&gt;<i> +#define SCNiFAST8   &quot;i&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define SCNd16       &quot;hd&quot;
+</I>&gt;<i> +#define SCNi16       &quot;hi&quot;
+</I>&gt;<i> +#define SCNdLEAST16  &quot;hd&quot;
+</I>&gt;<i> +#define SCNiLEAST16  &quot;hi&quot;
+</I>&gt;<i> +#define SCNdFAST16   &quot;hd&quot;
+</I>&gt;<i> +#define SCNiFAST16   &quot;hi&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define SCNd32       &quot;ld&quot;
+</I>&gt;<i> +#define SCNi32       &quot;li&quot;
+</I>&gt;<i> +#define SCNdLEAST32  &quot;ld&quot;
+</I>&gt;<i> +#define SCNiLEAST32  &quot;li&quot;
+</I>&gt;<i> +#define SCNdFAST32   &quot;ld&quot;
+</I>&gt;<i> +#define SCNiFAST32   &quot;li&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define SCNd64       &quot;I64d&quot;
+</I>&gt;<i> +#define SCNi64       &quot;I64i&quot;
+</I>&gt;<i> +#define SCNdLEAST64  &quot;I64d&quot;
+</I>&gt;<i> +#define SCNiLEAST64  &quot;I64i&quot;
+</I>&gt;<i> +#define SCNdFAST64   &quot;I64d&quot;
+</I>&gt;<i> +#define SCNiFAST64   &quot;I64i&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define SCNdMAX     &quot;I64d&quot;
+</I>&gt;<i> +#define SCNiMAX     &quot;I64i&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#ifdef _WIN64 // [
+</I>&gt;<i> +#  define SCNdPTR     &quot;I64d&quot;
+</I>&gt;<i> +#  define SCNiPTR     &quot;I64i&quot;
+</I>&gt;<i> +#else  // _WIN64 ][
+</I>&gt;<i> +#  define SCNdPTR     &quot;ld&quot;
+</I>&gt;<i> +#  define SCNiPTR     &quot;li&quot;
+</I>&gt;<i> +#endif  // _WIN64 ]
+</I>&gt;<i> +
+</I>&gt;<i> +// The fscanf macros for unsigned integers are:
+</I>&gt;<i> +#define SCNo8       &quot;o&quot;
+</I>&gt;<i> +#define SCNu8       &quot;u&quot;
+</I>&gt;<i> +#define SCNx8       &quot;x&quot;
+</I>&gt;<i> +#define SCNX8       &quot;X&quot;
+</I>&gt;<i> +#define SCNoLEAST8  &quot;o&quot;
+</I>&gt;<i> +#define SCNuLEAST8  &quot;u&quot;
+</I>&gt;<i> +#define SCNxLEAST8  &quot;x&quot;
+</I>&gt;<i> +#define SCNXLEAST8  &quot;X&quot;
+</I>&gt;<i> +#define SCNoFAST8   &quot;o&quot;
+</I>&gt;<i> +#define SCNuFAST8   &quot;u&quot;
+</I>&gt;<i> +#define SCNxFAST8   &quot;x&quot;
+</I>&gt;<i> +#define SCNXFAST8   &quot;X&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define SCNo16       &quot;ho&quot;
+</I>&gt;<i> +#define SCNu16       &quot;hu&quot;
+</I>&gt;<i> +#define SCNx16       &quot;hx&quot;
+</I>&gt;<i> +#define SCNX16       &quot;hX&quot;
+</I>&gt;<i> +#define SCNoLEAST16  &quot;ho&quot;
+</I>&gt;<i> +#define SCNuLEAST16  &quot;hu&quot;
+</I>&gt;<i> +#define SCNxLEAST16  &quot;hx&quot;
+</I>&gt;<i> +#define SCNXLEAST16  &quot;hX&quot;
+</I>&gt;<i> +#define SCNoFAST16   &quot;ho&quot;
+</I>&gt;<i> +#define SCNuFAST16   &quot;hu&quot;
+</I>&gt;<i> +#define SCNxFAST16   &quot;hx&quot;
+</I>&gt;<i> +#define SCNXFAST16   &quot;hX&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define SCNo32       &quot;lo&quot;
+</I>&gt;<i> +#define SCNu32       &quot;lu&quot;
+</I>&gt;<i> +#define SCNx32       &quot;lx&quot;
+</I>&gt;<i> +#define SCNX32       &quot;lX&quot;
+</I>&gt;<i> +#define SCNoLEAST32  &quot;lo&quot;
+</I>&gt;<i> +#define SCNuLEAST32  &quot;lu&quot;
+</I>&gt;<i> +#define SCNxLEAST32  &quot;lx&quot;
+</I>&gt;<i> +#define SCNXLEAST32  &quot;lX&quot;
+</I>&gt;<i> +#define SCNoFAST32   &quot;lo&quot;
+</I>&gt;<i> +#define SCNuFAST32   &quot;lu&quot;
+</I>&gt;<i> +#define SCNxFAST32   &quot;lx&quot;
+</I>&gt;<i> +#define SCNXFAST32   &quot;lX&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define SCNo64       &quot;I64o&quot;
+</I>&gt;<i> +#define SCNu64       &quot;I64u&quot;
+</I>&gt;<i> +#define SCNx64       &quot;I64x&quot;
+</I>&gt;<i> +#define SCNX64       &quot;I64X&quot;
+</I>&gt;<i> +#define SCNoLEAST64  &quot;I64o&quot;
+</I>&gt;<i> +#define SCNuLEAST64  &quot;I64u&quot;
+</I>&gt;<i> +#define SCNxLEAST64  &quot;I64x&quot;
+</I>&gt;<i> +#define SCNXLEAST64  &quot;I64X&quot;
+</I>&gt;<i> +#define SCNoFAST64   &quot;I64o&quot;
+</I>&gt;<i> +#define SCNuFAST64   &quot;I64u&quot;
+</I>&gt;<i> +#define SCNxFAST64   &quot;I64x&quot;
+</I>&gt;<i> +#define SCNXFAST64   &quot;I64X&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#define SCNoMAX     &quot;I64o&quot;
+</I>&gt;<i> +#define SCNuMAX     &quot;I64u&quot;
+</I>&gt;<i> +#define SCNxMAX     &quot;I64x&quot;
+</I>&gt;<i> +#define SCNXMAX     &quot;I64X&quot;
+</I>&gt;<i> +
+</I>&gt;<i> +#ifdef _WIN64 // [
+</I>&gt;<i> +#  define SCNoPTR     &quot;I64o&quot;
+</I>&gt;<i> +#  define SCNuPTR     &quot;I64u&quot;
+</I>&gt;<i> +#  define SCNxPTR     &quot;I64x&quot;
+</I>&gt;<i> +#  define SCNXPTR     &quot;I64X&quot;
+</I>&gt;<i> +#else  // _WIN64 ][
+</I>&gt;<i> +#  define SCNoPTR     &quot;lo&quot;
+</I>&gt;<i> +#  define SCNuPTR     &quot;lu&quot;
+</I>&gt;<i> +#  define SCNxPTR     &quot;lx&quot;
+</I>&gt;<i> +#  define SCNXPTR     &quot;lX&quot;
+</I>&gt;<i> +#endif  // _WIN64 ]
+</I>&gt;<i> +
+</I>&gt;<i> +#endif // __STDC_FORMAT_MACROS ]
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.8.2 Functions for greatest-width integer types
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.8.2.1 The imaxabs function
+</I>&gt;<i> +#define imaxabs _abs64
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.8.2.2 The imaxdiv function
+</I>&gt;<i> +
+</I>&gt;<i> +// This is modified version of div() function from Microsoft's div.c found
+</I>&gt;<i> +// in %MSVC.NET%\crt\src\div.c
+</I>&gt;<i> +#ifdef STATIC_IMAXDIV // [
+</I>&gt;<i> +static
+</I>&gt;<i> +#else // STATIC_IMAXDIV ][
+</I>&gt;<i> +_inline
+</I>&gt;<i> +#endif // STATIC_IMAXDIV ]
+</I>&gt;<i> +imaxdiv_t __cdecl imaxdiv(intmax_t numer, intmax_t denom)
+</I>&gt;<i> +{
+</I>&gt;<i> +   imaxdiv_t result;
+</I>&gt;<i> +
+</I>&gt;<i> +   result.quot = numer / denom;
+</I>&gt;<i> +   result.rem = numer % denom;
+</I>&gt;<i> +
+</I>&gt;<i> +   if (numer &lt; 0 &amp;&amp; result.rem &gt; 0) {
+</I>&gt;<i> +      // did division wrong; must fix up
+</I>&gt;<i> +      ++result.quot;
+</I>&gt;<i> +      result.rem -= denom;
+</I>&gt;<i> +   }
+</I>&gt;<i> +
+</I>&gt;<i> +   return result;
+</I>&gt;<i> +}
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.8.2.3 The strtoimax and strtoumax functions
+</I>&gt;<i> +#define strtoimax _strtoi64
+</I>&gt;<i> +#define strtoumax _strtoui64
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.8.2.4 The wcstoimax and wcstoumax functions
+</I>&gt;<i> +#define wcstoimax _wcstoi64
+</I>&gt;<i> +#define wcstoumax _wcstoui64
+</I>&gt;<i> +
+</I>&gt;<i> +
+</I>&gt;<i> +#endif // _MSC_INTTYPES_H_ ]
+</I>&gt;<i> diff --git a/include/msvc_compat/C99/stdbool.h b/include/msvc_compat/C99/stdbool.h
+</I>&gt;<i> new file mode 100644
+</I>&gt;<i> index 0000000..da9ee8b
+</I>&gt;<i> --- /dev/null
+</I>&gt;<i> +++ b/include/msvc_compat/C99/stdbool.h
+</I>&gt;<i> @@ -0,0 +1,16 @@
+</I>&gt;<i> +#ifndef stdbool_h
+</I>&gt;<i> +#define stdbool_h
+</I>&gt;<i> +
+</I>&gt;<i> +#include &lt;wtypes.h&gt;
+</I>&gt;<i> +
+</I>&gt;<i> +/* MSVC doesn't define _Bool or bool in C, but does have BOOL */
+</I>&gt;<i> +/* Note this doesn't pass autoconf's test because (bool) 0.5 != true */
+</I>&gt;<i> +typedef BOOL _Bool;
+</I>&gt;<i> +
+</I>&gt;<i> +#define bool _Bool
+</I>&gt;<i> +#define true 1
+</I>&gt;<i> +#define false 0
+</I>&gt;<i> +
+</I>&gt;<i> +#define __bool_true_false_are_defined 1
+</I>&gt;<i> +
+</I>&gt;<i> +#endif /* stdbool_h */
+</I>&gt;<i> diff --git a/include/msvc_compat/C99/stdint.h b/include/msvc_compat/C99/stdint.h
+</I>&gt;<i> new file mode 100644
+</I>&gt;<i> index 0000000..d02608a
+</I>&gt;<i> --- /dev/null
+</I>&gt;<i> +++ b/include/msvc_compat/C99/stdint.h
+</I>&gt;<i> @@ -0,0 +1,247 @@
+</I>&gt;<i> +// ISO C9x  compliant stdint.h for Microsoft Visual Studio
+</I>&gt;<i> +// Based on ISO/IEC 9899:TC2 Committee draft (May 6, 2005) WG14/N1124 
+</I>&gt;<i> +// 
+</I>&gt;<i> +//  Copyright (c) 2006-2008 Alexander Chemeris
+</I>&gt;<i> +// 
+</I>&gt;<i> +// Redistribution and use in source and binary forms, with or without
+</I>&gt;<i> +// modification, are permitted provided that the following conditions are met:
+</I>&gt;<i> +// 
+</I>&gt;<i> +//   1. Redistributions of source code must retain the above copyright notice,
+</I>&gt;<i> +//      this list of conditions and the following disclaimer.
+</I>&gt;<i> +// 
+</I>&gt;<i> +//   2. Redistributions in binary form must reproduce the above copyright
+</I>&gt;<i> +//      notice, this list of conditions and the following disclaimer in the
+</I>&gt;<i> +//      documentation and/or other materials provided with the distribution.
+</I>&gt;<i> +// 
+</I>&gt;<i> +//   3. The name of the author may be used to endorse or promote products
+</I>&gt;<i> +//      derived from this software without specific prior written permission.
+</I>&gt;<i> +// 
+</I>&gt;<i> +// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+</I>&gt;<i> +// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+</I>&gt;<i> +// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+</I>&gt;<i> +// EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+</I>&gt;<i> +// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+</I>&gt;<i> +// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+</I>&gt;<i> +// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+</I>&gt;<i> +// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+</I>&gt;<i> +// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+</I>&gt;<i> +// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</I>&gt;<i> +// 
+</I>&gt;<i> +///////////////////////////////////////////////////////////////////////////////
+</I>&gt;<i> +
+</I>&gt;<i> +#ifndef _MSC_VER // [
+</I>&gt;<i> +#error &quot;Use this header only with Microsoft Visual C++ compilers!&quot;
+</I>&gt;<i> +#endif // _MSC_VER ]
+</I>&gt;<i> +
+</I>&gt;<i> +#ifndef _MSC_STDINT_H_ // [
+</I>&gt;<i> +#define _MSC_STDINT_H_
+</I>&gt;<i> +
+</I>&gt;<i> +#if _MSC_VER &gt; 1000
+</I>&gt;<i> +#pragma once
+</I>&gt;<i> +#endif
+</I>&gt;<i> +
+</I>&gt;<i> +#include &lt;limits.h&gt;
+</I>&gt;<i> +
+</I>&gt;<i> +// For Visual Studio 6 in C++ mode and for many Visual Studio versions when
+</I>&gt;<i> +// compiling for ARM we should wrap &lt;wchar.h&gt; include with 'extern &quot;C++&quot; {}'
+</I>&gt;<i> +// or compiler give many errors like this:
+</I>&gt;<i> +//   error C2733: second C linkage of overloaded function 'wmemchr' not allowed
+</I>&gt;<i> +#ifdef __cplusplus
+</I>&gt;<i> +extern &quot;C&quot; {
+</I>&gt;<i> +#endif
+</I>&gt;<i> +#  include &lt;wchar.h&gt;
+</I>&gt;<i> +#ifdef __cplusplus
+</I>&gt;<i> +}
+</I>&gt;<i> +#endif
+</I>&gt;<i> +
+</I>&gt;<i> +// Define _W64 macros to mark types changing their size, like intptr_t.
+</I>&gt;<i> +#ifndef _W64
+</I>&gt;<i> +#  if !defined(__midl) &amp;&amp; (defined(_X86_) || defined(_M_IX86)) &amp;&amp; _MSC_VER &gt;= 1300
+</I>&gt;<i> +#     define _W64 __w64
+</I>&gt;<i> +#  else
+</I>&gt;<i> +#     define _W64
+</I>&gt;<i> +#  endif
+</I>&gt;<i> +#endif
+</I>&gt;<i> +
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.1 Integer types
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.1.1 Exact-width integer types
+</I>&gt;<i> +
+</I>&gt;<i> +// Visual Studio 6 and Embedded Visual C++ 4 doesn't
+</I>&gt;<i> +// realize that, e.g. char has the same size as __int8
+</I>&gt;<i> +// so we give up on __intX for them.
+</I>&gt;<i> +#if (_MSC_VER &lt; 1300)
+</I>&gt;<i> +   typedef signed char       int8_t;
+</I>&gt;<i> +   typedef signed short      int16_t;
+</I>&gt;<i> +   typedef signed int        int32_t;
+</I>&gt;<i> +   typedef unsigned char     uint8_t;
+</I>&gt;<i> +   typedef unsigned short    uint16_t;
+</I>&gt;<i> +   typedef unsigned int      uint32_t;
+</I>&gt;<i> +#else
+</I>&gt;<i> +   typedef signed __int8     int8_t;
+</I>&gt;<i> +   typedef signed __int16    int16_t;
+</I>&gt;<i> +   typedef signed __int32    int32_t;
+</I>&gt;<i> +   typedef unsigned __int8   uint8_t;
+</I>&gt;<i> +   typedef unsigned __int16  uint16_t;
+</I>&gt;<i> +   typedef unsigned __int32  uint32_t;
+</I>&gt;<i> +#endif
+</I>&gt;<i> +typedef signed __int64       int64_t;
+</I>&gt;<i> +typedef unsigned __int64     uint64_t;
+</I>&gt;<i> +
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.1.2 Minimum-width integer types
+</I>&gt;<i> +typedef int8_t    int_least8_t;
+</I>&gt;<i> +typedef int16_t   int_least16_t;
+</I>&gt;<i> +typedef int32_t   int_least32_t;
+</I>&gt;<i> +typedef int64_t   int_least64_t;
+</I>&gt;<i> +typedef uint8_t   uint_least8_t;
+</I>&gt;<i> +typedef uint16_t  uint_least16_t;
+</I>&gt;<i> +typedef uint32_t  uint_least32_t;
+</I>&gt;<i> +typedef uint64_t  uint_least64_t;
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.1.3 Fastest minimum-width integer types
+</I>&gt;<i> +typedef int8_t    int_fast8_t;
+</I>&gt;<i> +typedef int16_t   int_fast16_t;
+</I>&gt;<i> +typedef int32_t   int_fast32_t;
+</I>&gt;<i> +typedef int64_t   int_fast64_t;
+</I>&gt;<i> +typedef uint8_t   uint_fast8_t;
+</I>&gt;<i> +typedef uint16_t  uint_fast16_t;
+</I>&gt;<i> +typedef uint32_t  uint_fast32_t;
+</I>&gt;<i> +typedef uint64_t  uint_fast64_t;
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.1.4 Integer types capable of holding object pointers
+</I>&gt;<i> +#ifdef _WIN64 // [
+</I>&gt;<i> +   typedef signed __int64    intptr_t;
+</I>&gt;<i> +   typedef unsigned __int64  uintptr_t;
+</I>&gt;<i> +#else // _WIN64 ][
+</I>&gt;<i> +   typedef _W64 signed int   intptr_t;
+</I>&gt;<i> +   typedef _W64 unsigned int uintptr_t;
+</I>&gt;<i> +#endif // _WIN64 ]
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.1.5 Greatest-width integer types
+</I>&gt;<i> +typedef int64_t   intmax_t;
+</I>&gt;<i> +typedef uint64_t  uintmax_t;
+</I>&gt;<i> +
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.2 Limits of specified-width integer types
+</I>&gt;<i> +
+</I>&gt;<i> +#if !defined(__cplusplus) || defined(__STDC_LIMIT_MACROS) // [   See footnote 220 at page 257 and footnote 221 at page 259
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.2.1 Limits of exact-width integer types
+</I>&gt;<i> +#define INT8_MIN     ((int8_t)_I8_MIN)
+</I>&gt;<i> +#define INT8_MAX     _I8_MAX
+</I>&gt;<i> +#define INT16_MIN    ((int16_t)_I16_MIN)
+</I>&gt;<i> +#define INT16_MAX    _I16_MAX
+</I>&gt;<i> +#define INT32_MIN    ((int32_t)_I32_MIN)
+</I>&gt;<i> +#define INT32_MAX    _I32_MAX
+</I>&gt;<i> +#define INT64_MIN    ((int64_t)_I64_MIN)
+</I>&gt;<i> +#define INT64_MAX    _I64_MAX
+</I>&gt;<i> +#define UINT8_MAX    _UI8_MAX
+</I>&gt;<i> +#define UINT16_MAX   _UI16_MAX
+</I>&gt;<i> +#define UINT32_MAX   _UI32_MAX
+</I>&gt;<i> +#define UINT64_MAX   _UI64_MAX
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.2.2 Limits of minimum-width integer types
+</I>&gt;<i> +#define INT_LEAST8_MIN    INT8_MIN
+</I>&gt;<i> +#define INT_LEAST8_MAX    INT8_MAX
+</I>&gt;<i> +#define INT_LEAST16_MIN   INT16_MIN
+</I>&gt;<i> +#define INT_LEAST16_MAX   INT16_MAX
+</I>&gt;<i> +#define INT_LEAST32_MIN   INT32_MIN
+</I>&gt;<i> +#define INT_LEAST32_MAX   INT32_MAX
+</I>&gt;<i> +#define INT_LEAST64_MIN   INT64_MIN
+</I>&gt;<i> +#define INT_LEAST64_MAX   INT64_MAX
+</I>&gt;<i> +#define UINT_LEAST8_MAX   UINT8_MAX
+</I>&gt;<i> +#define UINT_LEAST16_MAX  UINT16_MAX
+</I>&gt;<i> +#define UINT_LEAST32_MAX  UINT32_MAX
+</I>&gt;<i> +#define UINT_LEAST64_MAX  UINT64_MAX
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.2.3 Limits of fastest minimum-width integer types
+</I>&gt;<i> +#define INT_FAST8_MIN    INT8_MIN
+</I>&gt;<i> +#define INT_FAST8_MAX    INT8_MAX
+</I>&gt;<i> +#define INT_FAST16_MIN   INT16_MIN
+</I>&gt;<i> +#define INT_FAST16_MAX   INT16_MAX
+</I>&gt;<i> +#define INT_FAST32_MIN   INT32_MIN
+</I>&gt;<i> +#define INT_FAST32_MAX   INT32_MAX
+</I>&gt;<i> +#define INT_FAST64_MIN   INT64_MIN
+</I>&gt;<i> +#define INT_FAST64_MAX   INT64_MAX
+</I>&gt;<i> +#define UINT_FAST8_MAX   UINT8_MAX
+</I>&gt;<i> +#define UINT_FAST16_MAX  UINT16_MAX
+</I>&gt;<i> +#define UINT_FAST32_MAX  UINT32_MAX
+</I>&gt;<i> +#define UINT_FAST64_MAX  UINT64_MAX
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.2.4 Limits of integer types capable of holding object pointers
+</I>&gt;<i> +#ifdef _WIN64 // [
+</I>&gt;<i> +#  define INTPTR_MIN   INT64_MIN
+</I>&gt;<i> +#  define INTPTR_MAX   INT64_MAX
+</I>&gt;<i> +#  define UINTPTR_MAX  UINT64_MAX
+</I>&gt;<i> +#else // _WIN64 ][
+</I>&gt;<i> +#  define INTPTR_MIN   INT32_MIN
+</I>&gt;<i> +#  define INTPTR_MAX   INT32_MAX
+</I>&gt;<i> +#  define UINTPTR_MAX  UINT32_MAX
+</I>&gt;<i> +#endif // _WIN64 ]
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.2.5 Limits of greatest-width integer types
+</I>&gt;<i> +#define INTMAX_MIN   INT64_MIN
+</I>&gt;<i> +#define INTMAX_MAX   INT64_MAX
+</I>&gt;<i> +#define UINTMAX_MAX  UINT64_MAX
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.3 Limits of other integer types
+</I>&gt;<i> +
+</I>&gt;<i> +#ifdef _WIN64 // [
+</I>&gt;<i> +#  define PTRDIFF_MIN  _I64_MIN
+</I>&gt;<i> +#  define PTRDIFF_MAX  _I64_MAX
+</I>&gt;<i> +#else  // _WIN64 ][
+</I>&gt;<i> +#  define PTRDIFF_MIN  _I32_MIN
+</I>&gt;<i> +#  define PTRDIFF_MAX  _I32_MAX
+</I>&gt;<i> +#endif  // _WIN64 ]
+</I>&gt;<i> +
+</I>&gt;<i> +#define SIG_ATOMIC_MIN  INT_MIN
+</I>&gt;<i> +#define SIG_ATOMIC_MAX  INT_MAX
+</I>&gt;<i> +
+</I>&gt;<i> +#ifndef SIZE_MAX // [
+</I>&gt;<i> +#  ifdef _WIN64 // [
+</I>&gt;<i> +#     define SIZE_MAX  _UI64_MAX
+</I>&gt;<i> +#  else // _WIN64 ][
+</I>&gt;<i> +#     define SIZE_MAX  _UI32_MAX
+</I>&gt;<i> +#  endif // _WIN64 ]
+</I>&gt;<i> +#endif // SIZE_MAX ]
+</I>&gt;<i> +
+</I>&gt;<i> +// WCHAR_MIN and WCHAR_MAX are also defined in &lt;wchar.h&gt;
+</I>&gt;<i> +#ifndef WCHAR_MIN // [
+</I>&gt;<i> +#  define WCHAR_MIN  0
+</I>&gt;<i> +#endif  // WCHAR_MIN ]
+</I>&gt;<i> +#ifndef WCHAR_MAX // [
+</I>&gt;<i> +#  define WCHAR_MAX  _UI16_MAX
+</I>&gt;<i> +#endif  // WCHAR_MAX ]
+</I>&gt;<i> +
+</I>&gt;<i> +#define WINT_MIN  0
+</I>&gt;<i> +#define WINT_MAX  _UI16_MAX
+</I>&gt;<i> +
+</I>&gt;<i> +#endif // __STDC_LIMIT_MACROS ]
+</I>&gt;<i> +
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.4 Limits of other integer types
+</I>&gt;<i> +
+</I>&gt;<i> +#if !defined(__cplusplus) || defined(__STDC_CONSTANT_MACROS) // [   See footnote 224 at page 260
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.4.1 Macros for minimum-width integer constants
+</I>&gt;<i> +
+</I>&gt;<i> +#define INT8_C(val)  val##i8
+</I>&gt;<i> +#define INT16_C(val) val##i16
+</I>&gt;<i> +#define INT32_C(val) val##i32
+</I>&gt;<i> +#define INT64_C(val) val##i64
+</I>&gt;<i> +
+</I>&gt;<i> +#define UINT8_C(val)  val##ui8
+</I>&gt;<i> +#define UINT16_C(val) val##ui16
+</I>&gt;<i> +#define UINT32_C(val) val##ui32
+</I>&gt;<i> +#define UINT64_C(val) val##ui64
+</I>&gt;<i> +
+</I>&gt;<i> +// 7.18.4.2 Macros for greatest-width integer constants
+</I>&gt;<i> +#define INTMAX_C   INT64_C
+</I>&gt;<i> +#define UINTMAX_C  UINT64_C
+</I>&gt;<i> +
+</I>&gt;<i> +#endif // __STDC_CONSTANT_MACROS ]
+</I>&gt;<i> +
+</I>&gt;<i> +
+</I>&gt;<i> +#endif // _MSC_STDINT_H_ ]
+</I>&gt;<i> diff --git a/include/msvc_compat/inttypes.h b/include/msvc_compat/inttypes.h
+</I>&gt;<i> deleted file mode 100644
+</I>&gt;<i> index a4e6b75..0000000
+</I>&gt;<i> --- a/include/msvc_compat/inttypes.h
+</I>&gt;<i> +++ /dev/null
+</I>&gt;<i> @@ -1,313 +0,0 @@
+</I>&gt;<i> -// ISO C9x  compliant inttypes.h for Microsoft Visual Studio
+</I>&gt;<i> -// Based on ISO/IEC 9899:TC2 Committee draft (May 6, 2005) WG14/N1124 
+</I>&gt;<i> -// 
+</I>&gt;<i> -//  Copyright (c) 2006 Alexander Chemeris
+</I>&gt;<i> -// 
+</I>&gt;<i> -// Redistribution and use in source and binary forms, with or without
+</I>&gt;<i> -// modification, are permitted provided that the following conditions are met:
+</I>&gt;<i> -// 
+</I>&gt;<i> -//   1. Redistributions of source code must retain the above copyright notice,
+</I>&gt;<i> -//      this list of conditions and the following disclaimer.
+</I>&gt;<i> -// 
+</I>&gt;<i> -//   2. Redistributions in binary form must reproduce the above copyright
+</I>&gt;<i> -//      notice, this list of conditions and the following disclaimer in the
+</I>&gt;<i> -//      documentation and/or other materials provided with the distribution.
+</I>&gt;<i> -// 
+</I>&gt;<i> -//   3. The name of the author may be used to endorse or promote products
+</I>&gt;<i> -//      derived from this software without specific prior written permission.
+</I>&gt;<i> -// 
+</I>&gt;<i> -// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+</I>&gt;<i> -// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+</I>&gt;<i> -// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+</I>&gt;<i> -// EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+</I>&gt;<i> -// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+</I>&gt;<i> -// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+</I>&gt;<i> -// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+</I>&gt;<i> -// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+</I>&gt;<i> -// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+</I>&gt;<i> -// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</I>&gt;<i> -// 
+</I>&gt;<i> -///////////////////////////////////////////////////////////////////////////////
+</I>&gt;<i> -
+</I>&gt;<i> -#ifndef _MSC_VER // [
+</I>&gt;<i> -#error &quot;Use this header only with Microsoft Visual C++ compilers!&quot;
+</I>&gt;<i> -#endif // _MSC_VER ]
+</I>&gt;<i> -
+</I>&gt;<i> -#ifndef _MSC_INTTYPES_H_ // [
+</I>&gt;<i> -#define _MSC_INTTYPES_H_
+</I>&gt;<i> -
+</I>&gt;<i> -#if _MSC_VER &gt; 1000
+</I>&gt;<i> -#pragma once
+</I>&gt;<i> -#endif
+</I>&gt;<i> -
+</I>&gt;<i> -#include &quot;stdint.h&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.8 Format conversion of integer types
+</I>&gt;<i> -
+</I>&gt;<i> -typedef struct {
+</I>&gt;<i> -   intmax_t quot;
+</I>&gt;<i> -   intmax_t rem;
+</I>&gt;<i> -} imaxdiv_t;
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.8.1 Macros for format specifiers
+</I>&gt;<i> -
+</I>&gt;<i> -#if !defined(__cplusplus) || defined(__STDC_FORMAT_MACROS) // [   See footnote 185 at page 198
+</I>&gt;<i> -
+</I>&gt;<i> -#ifdef _WIN64
+</I>&gt;<i> -#  define __PRI64_PREFIX        &quot;l&quot;
+</I>&gt;<i> -#  define __PRIPTR_PREFIX       &quot;l&quot;
+</I>&gt;<i> -#else
+</I>&gt;<i> -#  define __PRI64_PREFIX        &quot;ll&quot;
+</I>&gt;<i> -#  define __PRIPTR_PREFIX
+</I>&gt;<i> -#endif
+</I>&gt;<i> -
+</I>&gt;<i> -// The fprintf macros for signed integers are:
+</I>&gt;<i> -#define PRId8       &quot;d&quot;
+</I>&gt;<i> -#define PRIi8       &quot;i&quot;
+</I>&gt;<i> -#define PRIdLEAST8  &quot;d&quot;
+</I>&gt;<i> -#define PRIiLEAST8  &quot;i&quot;
+</I>&gt;<i> -#define PRIdFAST8   &quot;d&quot;
+</I>&gt;<i> -#define PRIiFAST8   &quot;i&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRId16       &quot;hd&quot;
+</I>&gt;<i> -#define PRIi16       &quot;hi&quot;
+</I>&gt;<i> -#define PRIdLEAST16  &quot;hd&quot;
+</I>&gt;<i> -#define PRIiLEAST16  &quot;hi&quot;
+</I>&gt;<i> -#define PRIdFAST16   &quot;hd&quot;
+</I>&gt;<i> -#define PRIiFAST16   &quot;hi&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRId32       &quot;d&quot;
+</I>&gt;<i> -#define PRIi32       &quot;i&quot;
+</I>&gt;<i> -#define PRIdLEAST32  &quot;d&quot;
+</I>&gt;<i> -#define PRIiLEAST32  &quot;i&quot;
+</I>&gt;<i> -#define PRIdFAST32   &quot;d&quot;
+</I>&gt;<i> -#define PRIiFAST32   &quot;i&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRId64       __PRI64_PREFIX &quot;d&quot;
+</I>&gt;<i> -#define PRIi64       __PRI64_PREFIX &quot;i&quot;
+</I>&gt;<i> -#define PRIdLEAST64  __PRI64_PREFIX &quot;d&quot;
+</I>&gt;<i> -#define PRIiLEAST64  __PRI64_PREFIX &quot;i&quot;
+</I>&gt;<i> -#define PRIdFAST64   __PRI64_PREFIX &quot;d&quot;
+</I>&gt;<i> -#define PRIiFAST64   __PRI64_PREFIX &quot;i&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRIdMAX     __PRI64_PREFIX &quot;d&quot;
+</I>&gt;<i> -#define PRIiMAX     __PRI64_PREFIX &quot;i&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRIdPTR     __PRIPTR_PREFIX &quot;d&quot;
+</I>&gt;<i> -#define PRIiPTR     __PRIPTR_PREFIX &quot;i&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -// The fprintf macros for unsigned integers are:
+</I>&gt;<i> -#define PRIo8       &quot;o&quot;
+</I>&gt;<i> -#define PRIu8       &quot;u&quot;
+</I>&gt;<i> -#define PRIx8       &quot;x&quot;
+</I>&gt;<i> -#define PRIX8       &quot;X&quot;
+</I>&gt;<i> -#define PRIoLEAST8  &quot;o&quot;
+</I>&gt;<i> -#define PRIuLEAST8  &quot;u&quot;
+</I>&gt;<i> -#define PRIxLEAST8  &quot;x&quot;
+</I>&gt;<i> -#define PRIXLEAST8  &quot;X&quot;
+</I>&gt;<i> -#define PRIoFAST8   &quot;o&quot;
+</I>&gt;<i> -#define PRIuFAST8   &quot;u&quot;
+</I>&gt;<i> -#define PRIxFAST8   &quot;x&quot;
+</I>&gt;<i> -#define PRIXFAST8   &quot;X&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRIo16       &quot;ho&quot;
+</I>&gt;<i> -#define PRIu16       &quot;hu&quot;
+</I>&gt;<i> -#define PRIx16       &quot;hx&quot;
+</I>&gt;<i> -#define PRIX16       &quot;hX&quot;
+</I>&gt;<i> -#define PRIoLEAST16  &quot;ho&quot;
+</I>&gt;<i> -#define PRIuLEAST16  &quot;hu&quot;
+</I>&gt;<i> -#define PRIxLEAST16  &quot;hx&quot;
+</I>&gt;<i> -#define PRIXLEAST16  &quot;hX&quot;
+</I>&gt;<i> -#define PRIoFAST16   &quot;ho&quot;
+</I>&gt;<i> -#define PRIuFAST16   &quot;hu&quot;
+</I>&gt;<i> -#define PRIxFAST16   &quot;hx&quot;
+</I>&gt;<i> -#define PRIXFAST16   &quot;hX&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRIo32       &quot;o&quot;
+</I>&gt;<i> -#define PRIu32       &quot;u&quot;
+</I>&gt;<i> -#define PRIx32       &quot;x&quot;
+</I>&gt;<i> -#define PRIX32       &quot;X&quot;
+</I>&gt;<i> -#define PRIoLEAST32  &quot;o&quot;
+</I>&gt;<i> -#define PRIuLEAST32  &quot;u&quot;
+</I>&gt;<i> -#define PRIxLEAST32  &quot;x&quot;
+</I>&gt;<i> -#define PRIXLEAST32  &quot;X&quot;
+</I>&gt;<i> -#define PRIoFAST32   &quot;o&quot;
+</I>&gt;<i> -#define PRIuFAST32   &quot;u&quot;
+</I>&gt;<i> -#define PRIxFAST32   &quot;x&quot;
+</I>&gt;<i> -#define PRIXFAST32   &quot;X&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRIo64       __PRI64_PREFIX &quot;o&quot;
+</I>&gt;<i> -#define PRIu64       __PRI64_PREFIX &quot;u&quot;
+</I>&gt;<i> -#define PRIx64       __PRI64_PREFIX &quot;x&quot;
+</I>&gt;<i> -#define PRIX64       __PRI64_PREFIX &quot;X&quot;
+</I>&gt;<i> -#define PRIoLEAST64  __PRI64_PREFIX &quot;o&quot;
+</I>&gt;<i> -#define PRIuLEAST64  __PRI64_PREFIX &quot;u&quot;
+</I>&gt;<i> -#define PRIxLEAST64  __PRI64_PREFIX &quot;x&quot;
+</I>&gt;<i> -#define PRIXLEAST64  __PRI64_PREFIX &quot;X&quot;
+</I>&gt;<i> -#define PRIoFAST64   __PRI64_PREFIX &quot;o&quot;
+</I>&gt;<i> -#define PRIuFAST64   __PRI64_PREFIX &quot;u&quot;
+</I>&gt;<i> -#define PRIxFAST64   __PRI64_PREFIX &quot;x&quot;
+</I>&gt;<i> -#define PRIXFAST64   __PRI64_PREFIX &quot;X&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRIoMAX     __PRI64_PREFIX &quot;o&quot;
+</I>&gt;<i> -#define PRIuMAX     __PRI64_PREFIX &quot;u&quot;
+</I>&gt;<i> -#define PRIxMAX     __PRI64_PREFIX &quot;x&quot;
+</I>&gt;<i> -#define PRIXMAX     __PRI64_PREFIX &quot;X&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define PRIoPTR     __PRIPTR_PREFIX &quot;o&quot;
+</I>&gt;<i> -#define PRIuPTR     __PRIPTR_PREFIX &quot;u&quot;
+</I>&gt;<i> -#define PRIxPTR     __PRIPTR_PREFIX &quot;x&quot;
+</I>&gt;<i> -#define PRIXPTR     __PRIPTR_PREFIX &quot;X&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -// The fscanf macros for signed integers are:
+</I>&gt;<i> -#define SCNd8       &quot;d&quot;
+</I>&gt;<i> -#define SCNi8       &quot;i&quot;
+</I>&gt;<i> -#define SCNdLEAST8  &quot;d&quot;
+</I>&gt;<i> -#define SCNiLEAST8  &quot;i&quot;
+</I>&gt;<i> -#define SCNdFAST8   &quot;d&quot;
+</I>&gt;<i> -#define SCNiFAST8   &quot;i&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define SCNd16       &quot;hd&quot;
+</I>&gt;<i> -#define SCNi16       &quot;hi&quot;
+</I>&gt;<i> -#define SCNdLEAST16  &quot;hd&quot;
+</I>&gt;<i> -#define SCNiLEAST16  &quot;hi&quot;
+</I>&gt;<i> -#define SCNdFAST16   &quot;hd&quot;
+</I>&gt;<i> -#define SCNiFAST16   &quot;hi&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define SCNd32       &quot;ld&quot;
+</I>&gt;<i> -#define SCNi32       &quot;li&quot;
+</I>&gt;<i> -#define SCNdLEAST32  &quot;ld&quot;
+</I>&gt;<i> -#define SCNiLEAST32  &quot;li&quot;
+</I>&gt;<i> -#define SCNdFAST32   &quot;ld&quot;
+</I>&gt;<i> -#define SCNiFAST32   &quot;li&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define SCNd64       &quot;I64d&quot;
+</I>&gt;<i> -#define SCNi64       &quot;I64i&quot;
+</I>&gt;<i> -#define SCNdLEAST64  &quot;I64d&quot;
+</I>&gt;<i> -#define SCNiLEAST64  &quot;I64i&quot;
+</I>&gt;<i> -#define SCNdFAST64   &quot;I64d&quot;
+</I>&gt;<i> -#define SCNiFAST64   &quot;I64i&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define SCNdMAX     &quot;I64d&quot;
+</I>&gt;<i> -#define SCNiMAX     &quot;I64i&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#ifdef _WIN64 // [
+</I>&gt;<i> -#  define SCNdPTR     &quot;I64d&quot;
+</I>&gt;<i> -#  define SCNiPTR     &quot;I64i&quot;
+</I>&gt;<i> -#else  // _WIN64 ][
+</I>&gt;<i> -#  define SCNdPTR     &quot;ld&quot;
+</I>&gt;<i> -#  define SCNiPTR     &quot;li&quot;
+</I>&gt;<i> -#endif  // _WIN64 ]
+</I>&gt;<i> -
+</I>&gt;<i> -// The fscanf macros for unsigned integers are:
+</I>&gt;<i> -#define SCNo8       &quot;o&quot;
+</I>&gt;<i> -#define SCNu8       &quot;u&quot;
+</I>&gt;<i> -#define SCNx8       &quot;x&quot;
+</I>&gt;<i> -#define SCNX8       &quot;X&quot;
+</I>&gt;<i> -#define SCNoLEAST8  &quot;o&quot;
+</I>&gt;<i> -#define SCNuLEAST8  &quot;u&quot;
+</I>&gt;<i> -#define SCNxLEAST8  &quot;x&quot;
+</I>&gt;<i> -#define SCNXLEAST8  &quot;X&quot;
+</I>&gt;<i> -#define SCNoFAST8   &quot;o&quot;
+</I>&gt;<i> -#define SCNuFAST8   &quot;u&quot;
+</I>&gt;<i> -#define SCNxFAST8   &quot;x&quot;
+</I>&gt;<i> -#define SCNXFAST8   &quot;X&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define SCNo16       &quot;ho&quot;
+</I>&gt;<i> -#define SCNu16       &quot;hu&quot;
+</I>&gt;<i> -#define SCNx16       &quot;hx&quot;
+</I>&gt;<i> -#define SCNX16       &quot;hX&quot;
+</I>&gt;<i> -#define SCNoLEAST16  &quot;ho&quot;
+</I>&gt;<i> -#define SCNuLEAST16  &quot;hu&quot;
+</I>&gt;<i> -#define SCNxLEAST16  &quot;hx&quot;
+</I>&gt;<i> -#define SCNXLEAST16  &quot;hX&quot;
+</I>&gt;<i> -#define SCNoFAST16   &quot;ho&quot;
+</I>&gt;<i> -#define SCNuFAST16   &quot;hu&quot;
+</I>&gt;<i> -#define SCNxFAST16   &quot;hx&quot;
+</I>&gt;<i> -#define SCNXFAST16   &quot;hX&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define SCNo32       &quot;lo&quot;
+</I>&gt;<i> -#define SCNu32       &quot;lu&quot;
+</I>&gt;<i> -#define SCNx32       &quot;lx&quot;
+</I>&gt;<i> -#define SCNX32       &quot;lX&quot;
+</I>&gt;<i> -#define SCNoLEAST32  &quot;lo&quot;
+</I>&gt;<i> -#define SCNuLEAST32  &quot;lu&quot;
+</I>&gt;<i> -#define SCNxLEAST32  &quot;lx&quot;
+</I>&gt;<i> -#define SCNXLEAST32  &quot;lX&quot;
+</I>&gt;<i> -#define SCNoFAST32   &quot;lo&quot;
+</I>&gt;<i> -#define SCNuFAST32   &quot;lu&quot;
+</I>&gt;<i> -#define SCNxFAST32   &quot;lx&quot;
+</I>&gt;<i> -#define SCNXFAST32   &quot;lX&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define SCNo64       &quot;I64o&quot;
+</I>&gt;<i> -#define SCNu64       &quot;I64u&quot;
+</I>&gt;<i> -#define SCNx64       &quot;I64x&quot;
+</I>&gt;<i> -#define SCNX64       &quot;I64X&quot;
+</I>&gt;<i> -#define SCNoLEAST64  &quot;I64o&quot;
+</I>&gt;<i> -#define SCNuLEAST64  &quot;I64u&quot;
+</I>&gt;<i> -#define SCNxLEAST64  &quot;I64x&quot;
+</I>&gt;<i> -#define SCNXLEAST64  &quot;I64X&quot;
+</I>&gt;<i> -#define SCNoFAST64   &quot;I64o&quot;
+</I>&gt;<i> -#define SCNuFAST64   &quot;I64u&quot;
+</I>&gt;<i> -#define SCNxFAST64   &quot;I64x&quot;
+</I>&gt;<i> -#define SCNXFAST64   &quot;I64X&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#define SCNoMAX     &quot;I64o&quot;
+</I>&gt;<i> -#define SCNuMAX     &quot;I64u&quot;
+</I>&gt;<i> -#define SCNxMAX     &quot;I64x&quot;
+</I>&gt;<i> -#define SCNXMAX     &quot;I64X&quot;
+</I>&gt;<i> -
+</I>&gt;<i> -#ifdef _WIN64 // [
+</I>&gt;<i> -#  define SCNoPTR     &quot;I64o&quot;
+</I>&gt;<i> -#  define SCNuPTR     &quot;I64u&quot;
+</I>&gt;<i> -#  define SCNxPTR     &quot;I64x&quot;
+</I>&gt;<i> -#  define SCNXPTR     &quot;I64X&quot;
+</I>&gt;<i> -#else  // _WIN64 ][
+</I>&gt;<i> -#  define SCNoPTR     &quot;lo&quot;
+</I>&gt;<i> -#  define SCNuPTR     &quot;lu&quot;
+</I>&gt;<i> -#  define SCNxPTR     &quot;lx&quot;
+</I>&gt;<i> -#  define SCNXPTR     &quot;lX&quot;
+</I>&gt;<i> -#endif  // _WIN64 ]
+</I>&gt;<i> -
+</I>&gt;<i> -#endif // __STDC_FORMAT_MACROS ]
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.8.2 Functions for greatest-width integer types
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.8.2.1 The imaxabs function
+</I>&gt;<i> -#define imaxabs _abs64
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.8.2.2 The imaxdiv function
+</I>&gt;<i> -
+</I>&gt;<i> -// This is modified version of div() function from Microsoft's div.c found
+</I>&gt;<i> -// in %MSVC.NET%\crt\src\div.c
+</I>&gt;<i> -#ifdef STATIC_IMAXDIV // [
+</I>&gt;<i> -static
+</I>&gt;<i> -#else // STATIC_IMAXDIV ][
+</I>&gt;<i> -_inline
+</I>&gt;<i> -#endif // STATIC_IMAXDIV ]
+</I>&gt;<i> -imaxdiv_t __cdecl imaxdiv(intmax_t numer, intmax_t denom)
+</I>&gt;<i> -{
+</I>&gt;<i> -   imaxdiv_t result;
+</I>&gt;<i> -
+</I>&gt;<i> -   result.quot = numer / denom;
+</I>&gt;<i> -   result.rem = numer % denom;
+</I>&gt;<i> -
+</I>&gt;<i> -   if (numer &lt; 0 &amp;&amp; result.rem &gt; 0) {
+</I>&gt;<i> -      // did division wrong; must fix up
+</I>&gt;<i> -      ++result.quot;
+</I>&gt;<i> -      result.rem -= denom;
+</I>&gt;<i> -   }
+</I>&gt;<i> -
+</I>&gt;<i> -   return result;
+</I>&gt;<i> -}
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.8.2.3 The strtoimax and strtoumax functions
+</I>&gt;<i> -#define strtoimax _strtoi64
+</I>&gt;<i> -#define strtoumax _strtoui64
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.8.2.4 The wcstoimax and wcstoumax functions
+</I>&gt;<i> -#define wcstoimax _wcstoi64
+</I>&gt;<i> -#define wcstoumax _wcstoui64
+</I>&gt;<i> -
+</I>&gt;<i> -
+</I>&gt;<i> -#endif // _MSC_INTTYPES_H_ ]
+</I>&gt;<i> diff --git a/include/msvc_compat/stdbool.h b/include/msvc_compat/stdbool.h
+</I>&gt;<i> deleted file mode 100644
+</I>&gt;<i> index da9ee8b..0000000
+</I>&gt;<i> --- a/include/msvc_compat/stdbool.h
+</I>&gt;<i> +++ /dev/null
+</I>&gt;<i> @@ -1,16 +0,0 @@
+</I>&gt;<i> -#ifndef stdbool_h
+</I>&gt;<i> -#define stdbool_h
+</I>&gt;<i> -
+</I>&gt;<i> -#include &lt;wtypes.h&gt;
+</I>&gt;<i> -
+</I>&gt;<i> -/* MSVC doesn't define _Bool or bool in C, but does have BOOL */
+</I>&gt;<i> -/* Note this doesn't pass autoconf's test because (bool) 0.5 != true */
+</I>&gt;<i> -typedef BOOL _Bool;
+</I>&gt;<i> -
+</I>&gt;<i> -#define bool _Bool
+</I>&gt;<i> -#define true 1
+</I>&gt;<i> -#define false 0
+</I>&gt;<i> -
+</I>&gt;<i> -#define __bool_true_false_are_defined 1
+</I>&gt;<i> -
+</I>&gt;<i> -#endif /* stdbool_h */
+</I>&gt;<i> diff --git a/include/msvc_compat/stdint.h b/include/msvc_compat/stdint.h
+</I>&gt;<i> deleted file mode 100644
+</I>&gt;<i> index d02608a..0000000
+</I>&gt;<i> --- a/include/msvc_compat/stdint.h
+</I>&gt;<i> +++ /dev/null
+</I>&gt;<i> @@ -1,247 +0,0 @@
+</I>&gt;<i> -// ISO C9x  compliant stdint.h for Microsoft Visual Studio
+</I>&gt;<i> -// Based on ISO/IEC 9899:TC2 Committee draft (May 6, 2005) WG14/N1124 
+</I>&gt;<i> -// 
+</I>&gt;<i> -//  Copyright (c) 2006-2008 Alexander Chemeris
+</I>&gt;<i> -// 
+</I>&gt;<i> -// Redistribution and use in source and binary forms, with or without
+</I>&gt;<i> -// modification, are permitted provided that the following conditions are met:
+</I>&gt;<i> -// 
+</I>&gt;<i> -//   1. Redistributions of source code must retain the above copyright notice,
+</I>&gt;<i> -//      this list of conditions and the following disclaimer.
+</I>&gt;<i> -// 
+</I>&gt;<i> -//   2. Redistributions in binary form must reproduce the above copyright
+</I>&gt;<i> -//      notice, this list of conditions and the following disclaimer in the
+</I>&gt;<i> -//      documentation and/or other materials provided with the distribution.
+</I>&gt;<i> -// 
+</I>&gt;<i> -//   3. The name of the author may be used to endorse or promote products
+</I>&gt;<i> -//      derived from this software without specific prior written permission.
+</I>&gt;<i> -// 
+</I>&gt;<i> -// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+</I>&gt;<i> -// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+</I>&gt;<i> -// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+</I>&gt;<i> -// EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+</I>&gt;<i> -// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+</I>&gt;<i> -// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+</I>&gt;<i> -// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+</I>&gt;<i> -// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+</I>&gt;<i> -// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+</I>&gt;<i> -// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</I>&gt;<i> -// 
+</I>&gt;<i> -///////////////////////////////////////////////////////////////////////////////
+</I>&gt;<i> -
+</I>&gt;<i> -#ifndef _MSC_VER // [
+</I>&gt;<i> -#error &quot;Use this header only with Microsoft Visual C++ compilers!&quot;
+</I>&gt;<i> -#endif // _MSC_VER ]
+</I>&gt;<i> -
+</I>&gt;<i> -#ifndef _MSC_STDINT_H_ // [
+</I>&gt;<i> -#define _MSC_STDINT_H_
+</I>&gt;<i> -
+</I>&gt;<i> -#if _MSC_VER &gt; 1000
+</I>&gt;<i> -#pragma once
+</I>&gt;<i> -#endif
+</I>&gt;<i> -
+</I>&gt;<i> -#include &lt;limits.h&gt;
+</I>&gt;<i> -
+</I>&gt;<i> -// For Visual Studio 6 in C++ mode and for many Visual Studio versions when
+</I>&gt;<i> -// compiling for ARM we should wrap &lt;wchar.h&gt; include with 'extern &quot;C++&quot; {}'
+</I>&gt;<i> -// or compiler give many errors like this:
+</I>&gt;<i> -//   error C2733: second C linkage of overloaded function 'wmemchr' not allowed
+</I>&gt;<i> -#ifdef __cplusplus
+</I>&gt;<i> -extern &quot;C&quot; {
+</I>&gt;<i> -#endif
+</I>&gt;<i> -#  include &lt;wchar.h&gt;
+</I>&gt;<i> -#ifdef __cplusplus
+</I>&gt;<i> -}
+</I>&gt;<i> -#endif
+</I>&gt;<i> -
+</I>&gt;<i> -// Define _W64 macros to mark types changing their size, like intptr_t.
+</I>&gt;<i> -#ifndef _W64
+</I>&gt;<i> -#  if !defined(__midl) &amp;&amp; (defined(_X86_) || defined(_M_IX86)) &amp;&amp; _MSC_VER &gt;= 1300
+</I>&gt;<i> -#     define _W64 __w64
+</I>&gt;<i> -#  else
+</I>&gt;<i> -#     define _W64
+</I>&gt;<i> -#  endif
+</I>&gt;<i> -#endif
+</I>&gt;<i> -
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.1 Integer types
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.1.1 Exact-width integer types
+</I>&gt;<i> -
+</I>&gt;<i> -// Visual Studio 6 and Embedded Visual C++ 4 doesn't
+</I>&gt;<i> -// realize that, e.g. char has the same size as __int8
+</I>&gt;<i> -// so we give up on __intX for them.
+</I>&gt;<i> -#if (_MSC_VER &lt; 1300)
+</I>&gt;<i> -   typedef signed char       int8_t;
+</I>&gt;<i> -   typedef signed short      int16_t;
+</I>&gt;<i> -   typedef signed int        int32_t;
+</I>&gt;<i> -   typedef unsigned char     uint8_t;
+</I>&gt;<i> -   typedef unsigned short    uint16_t;
+</I>&gt;<i> -   typedef unsigned int      uint32_t;
+</I>&gt;<i> -#else
+</I>&gt;<i> -   typedef signed __int8     int8_t;
+</I>&gt;<i> -   typedef signed __int16    int16_t;
+</I>&gt;<i> -   typedef signed __int32    int32_t;
+</I>&gt;<i> -   typedef unsigned __int8   uint8_t;
+</I>&gt;<i> -   typedef unsigned __int16  uint16_t;
+</I>&gt;<i> -   typedef unsigned __int32  uint32_t;
+</I>&gt;<i> -#endif
+</I>&gt;<i> -typedef signed __int64       int64_t;
+</I>&gt;<i> -typedef unsigned __int64     uint64_t;
+</I>&gt;<i> -
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.1.2 Minimum-width integer types
+</I>&gt;<i> -typedef int8_t    int_least8_t;
+</I>&gt;<i> -typedef int16_t   int_least16_t;
+</I>&gt;<i> -typedef int32_t   int_least32_t;
+</I>&gt;<i> -typedef int64_t   int_least64_t;
+</I>&gt;<i> -typedef uint8_t   uint_least8_t;
+</I>&gt;<i> -typedef uint16_t  uint_least16_t;
+</I>&gt;<i> -typedef uint32_t  uint_least32_t;
+</I>&gt;<i> -typedef uint64_t  uint_least64_t;
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.1.3 Fastest minimum-width integer types
+</I>&gt;<i> -typedef int8_t    int_fast8_t;
+</I>&gt;<i> -typedef int16_t   int_fast16_t;
+</I>&gt;<i> -typedef int32_t   int_fast32_t;
+</I>&gt;<i> -typedef int64_t   int_fast64_t;
+</I>&gt;<i> -typedef uint8_t   uint_fast8_t;
+</I>&gt;<i> -typedef uint16_t  uint_fast16_t;
+</I>&gt;<i> -typedef uint32_t  uint_fast32_t;
+</I>&gt;<i> -typedef uint64_t  uint_fast64_t;
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.1.4 Integer types capable of holding object pointers
+</I>&gt;<i> -#ifdef _WIN64 // [
+</I>&gt;<i> -   typedef signed __int64    intptr_t;
+</I>&gt;<i> -   typedef unsigned __int64  uintptr_t;
+</I>&gt;<i> -#else // _WIN64 ][
+</I>&gt;<i> -   typedef _W64 signed int   intptr_t;
+</I>&gt;<i> -   typedef _W64 unsigned int uintptr_t;
+</I>&gt;<i> -#endif // _WIN64 ]
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.1.5 Greatest-width integer types
+</I>&gt;<i> -typedef int64_t   intmax_t;
+</I>&gt;<i> -typedef uint64_t  uintmax_t;
+</I>&gt;<i> -
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.2 Limits of specified-width integer types
+</I>&gt;<i> -
+</I>&gt;<i> -#if !defined(__cplusplus) || defined(__STDC_LIMIT_MACROS) // [   See footnote 220 at page 257 and footnote 221 at page 259
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.2.1 Limits of exact-width integer types
+</I>&gt;<i> -#define INT8_MIN     ((int8_t)_I8_MIN)
+</I>&gt;<i> -#define INT8_MAX     _I8_MAX
+</I>&gt;<i> -#define INT16_MIN    ((int16_t)_I16_MIN)
+</I>&gt;<i> -#define INT16_MAX    _I16_MAX
+</I>&gt;<i> -#define INT32_MIN    ((int32_t)_I32_MIN)
+</I>&gt;<i> -#define INT32_MAX    _I32_MAX
+</I>&gt;<i> -#define INT64_MIN    ((int64_t)_I64_MIN)
+</I>&gt;<i> -#define INT64_MAX    _I64_MAX
+</I>&gt;<i> -#define UINT8_MAX    _UI8_MAX
+</I>&gt;<i> -#define UINT16_MAX   _UI16_MAX
+</I>&gt;<i> -#define UINT32_MAX   _UI32_MAX
+</I>&gt;<i> -#define UINT64_MAX   _UI64_MAX
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.2.2 Limits of minimum-width integer types
+</I>&gt;<i> -#define INT_LEAST8_MIN    INT8_MIN
+</I>&gt;<i> -#define INT_LEAST8_MAX    INT8_MAX
+</I>&gt;<i> -#define INT_LEAST16_MIN   INT16_MIN
+</I>&gt;<i> -#define INT_LEAST16_MAX   INT16_MAX
+</I>&gt;<i> -#define INT_LEAST32_MIN   INT32_MIN
+</I>&gt;<i> -#define INT_LEAST32_MAX   INT32_MAX
+</I>&gt;<i> -#define INT_LEAST64_MIN   INT64_MIN
+</I>&gt;<i> -#define INT_LEAST64_MAX   INT64_MAX
+</I>&gt;<i> -#define UINT_LEAST8_MAX   UINT8_MAX
+</I>&gt;<i> -#define UINT_LEAST16_MAX  UINT16_MAX
+</I>&gt;<i> -#define UINT_LEAST32_MAX  UINT32_MAX
+</I>&gt;<i> -#define UINT_LEAST64_MAX  UINT64_MAX
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.2.3 Limits of fastest minimum-width integer types
+</I>&gt;<i> -#define INT_FAST8_MIN    INT8_MIN
+</I>&gt;<i> -#define INT_FAST8_MAX    INT8_MAX
+</I>&gt;<i> -#define INT_FAST16_MIN   INT16_MIN
+</I>&gt;<i> -#define INT_FAST16_MAX   INT16_MAX
+</I>&gt;<i> -#define INT_FAST32_MIN   INT32_MIN
+</I>&gt;<i> -#define INT_FAST32_MAX   INT32_MAX
+</I>&gt;<i> -#define INT_FAST64_MIN   INT64_MIN
+</I>&gt;<i> -#define INT_FAST64_MAX   INT64_MAX
+</I>&gt;<i> -#define UINT_FAST8_MAX   UINT8_MAX
+</I>&gt;<i> -#define UINT_FAST16_MAX  UINT16_MAX
+</I>&gt;<i> -#define UINT_FAST32_MAX  UINT32_MAX
+</I>&gt;<i> -#define UINT_FAST64_MAX  UINT64_MAX
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.2.4 Limits of integer types capable of holding object pointers
+</I>&gt;<i> -#ifdef _WIN64 // [
+</I>&gt;<i> -#  define INTPTR_MIN   INT64_MIN
+</I>&gt;<i> -#  define INTPTR_MAX   INT64_MAX
+</I>&gt;<i> -#  define UINTPTR_MAX  UINT64_MAX
+</I>&gt;<i> -#else // _WIN64 ][
+</I>&gt;<i> -#  define INTPTR_MIN   INT32_MIN
+</I>&gt;<i> -#  define INTPTR_MAX   INT32_MAX
+</I>&gt;<i> -#  define UINTPTR_MAX  UINT32_MAX
+</I>&gt;<i> -#endif // _WIN64 ]
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.2.5 Limits of greatest-width integer types
+</I>&gt;<i> -#define INTMAX_MIN   INT64_MIN
+</I>&gt;<i> -#define INTMAX_MAX   INT64_MAX
+</I>&gt;<i> -#define UINTMAX_MAX  UINT64_MAX
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.3 Limits of other integer types
+</I>&gt;<i> -
+</I>&gt;<i> -#ifdef _WIN64 // [
+</I>&gt;<i> -#  define PTRDIFF_MIN  _I64_MIN
+</I>&gt;<i> -#  define PTRDIFF_MAX  _I64_MAX
+</I>&gt;<i> -#else  // _WIN64 ][
+</I>&gt;<i> -#  define PTRDIFF_MIN  _I32_MIN
+</I>&gt;<i> -#  define PTRDIFF_MAX  _I32_MAX
+</I>&gt;<i> -#endif  // _WIN64 ]
+</I>&gt;<i> -
+</I>&gt;<i> -#define SIG_ATOMIC_MIN  INT_MIN
+</I>&gt;<i> -#define SIG_ATOMIC_MAX  INT_MAX
+</I>&gt;<i> -
+</I>&gt;<i> -#ifndef SIZE_MAX // [
+</I>&gt;<i> -#  ifdef _WIN64 // [
+</I>&gt;<i> -#     define SIZE_MAX  _UI64_MAX
+</I>&gt;<i> -#  else // _WIN64 ][
+</I>&gt;<i> -#     define SIZE_MAX  _UI32_MAX
+</I>&gt;<i> -#  endif // _WIN64 ]
+</I>&gt;<i> -#endif // SIZE_MAX ]
+</I>&gt;<i> -
+</I>&gt;<i> -// WCHAR_MIN and WCHAR_MAX are also defined in &lt;wchar.h&gt;
+</I>&gt;<i> -#ifndef WCHAR_MIN // [
+</I>&gt;<i> -#  define WCHAR_MIN  0
+</I>&gt;<i> -#endif  // WCHAR_MIN ]
+</I>&gt;<i> -#ifndef WCHAR_MAX // [
+</I>&gt;<i> -#  define WCHAR_MAX  _UI16_MAX
+</I>&gt;<i> -#endif  // WCHAR_MAX ]
+</I>&gt;<i> -
+</I>&gt;<i> -#define WINT_MIN  0
+</I>&gt;<i> -#define WINT_MAX  _UI16_MAX
+</I>&gt;<i> -
+</I>&gt;<i> -#endif // __STDC_LIMIT_MACROS ]
+</I>&gt;<i> -
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.4 Limits of other integer types
+</I>&gt;<i> -
+</I>&gt;<i> -#if !defined(__cplusplus) || defined(__STDC_CONSTANT_MACROS) // [   See footnote 224 at page 260
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.4.1 Macros for minimum-width integer constants
+</I>&gt;<i> -
+</I>&gt;<i> -#define INT8_C(val)  val##i8
+</I>&gt;<i> -#define INT16_C(val) val##i16
+</I>&gt;<i> -#define INT32_C(val) val##i32
+</I>&gt;<i> -#define INT64_C(val) val##i64
+</I>&gt;<i> -
+</I>&gt;<i> -#define UINT8_C(val)  val##ui8
+</I>&gt;<i> -#define UINT16_C(val) val##ui16
+</I>&gt;<i> -#define UINT32_C(val) val##ui32
+</I>&gt;<i> -#define UINT64_C(val) val##ui64
+</I>&gt;<i> -
+</I>&gt;<i> -// 7.18.4.2 Macros for greatest-width integer constants
+</I>&gt;<i> -#define INTMAX_C   INT64_C
+</I>&gt;<i> -#define UINTMAX_C  UINT64_C
+</I>&gt;<i> -
+</I>&gt;<i> -#endif // __STDC_CONSTANT_MACROS ]
+</I>&gt;<i> -
+</I>&gt;<i> -
+</I>&gt;<i> -#endif // _MSC_STDINT_H_ ]
+</I>&gt;<i> -- 
+</I>&gt;<i> 2.0.0.rc2
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I></PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000840.html">[PATCH] Don't use msvc_compat's C99 headers with MSVC versions that	have (some) C99 support
+</A></li>
+	<LI>Next message: <A HREF="000842.html">[PATCH] Don't use msvc_compat's C99 headers with MSVC versions that	have (some) C99 support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#841">[ date ]</a>
+              <a href="thread.html#841">[ thread ]</a>
+              <a href="subject.html#841">[ subject ]</a>
+              <a href="author.html#841">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,215 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Need help with patch allowing to iterate over all objects
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20help%20with%20patch%20allowing%20to%20iterate%20over%20all%20objects&In-Reply-To=%3CCAJTmd9p2qaTS%2BZ9H8SVCBPaTDpChYO2fg4u6WXoCi%3Dyh9eTsJg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000443.html">
+   <LINK REL="Next"  HREF="000445.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Need help with patch allowing to iterate over all objects</H1>
+    <B>Benoit Jacob</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20help%20with%20patch%20allowing%20to%20iterate%20over%20all%20objects&In-Reply-To=%3CCAJTmd9p2qaTS%2BZ9H8SVCBPaTDpChYO2fg4u6WXoCi%3Dyh9eTsJg%40mail.gmail.com%3E"
+       TITLE="Need help with patch allowing to iterate over all objects">jacob.benoit.1 at gmail.com
+       </A><BR>
+    <I>Fri Aug 24 12:37:33 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000443.html">Need help with patch allowing to iterate over all objects
+</A></li>
+        <LI>Next message: <A HREF="000445.html">Need help with patch allowing to iterate over all objects
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#444">[ date ]</a>
+              <a href="thread.html#444">[ thread ]</a>
+              <a href="subject.html#444">[ subject ]</a>
+              <a href="author.html#444">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>And another crash, also an assertion about nfree not having the expected value:
+
+&lt;jemalloc&gt;: /hack/mozilla-central/memory/jemalloc/src/src/arena.c:165:
+Failed assertion: &quot;run-&gt;nfree &lt; bin_info-&gt;nregs&quot;
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000000000411605 in moz_abort () at
+/hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+116       MOZ_CRASH();
+(gdb) bt
+#0  0x0000000000411605 in moz_abort () at
+/hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+#1  0x000000000041743a in arena_run_reg_dalloc (run=0x7fffbe37f000,
+ptr=0x7fffbe38af00) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:165
+#2  0x000000000041c5e7 in arena_dalloc_bin_locked
+(arena=0x7ffff6c00180, chunk=0x7fffbe300000, ptr=0x7fffbe38af00,
+mapelm=0x7fffbe300ce8) at
+/hack/mozilla-central/memory/jemalloc/src/src/arena.c:1590
+#3  0x000000000043c583 in tcache_bin_flush_small (tbin=0x7ffff6b022c8,
+binind=21, rem=51, tcache=0x7ffff6b02000) at
+/hack/mozilla-central/memory/jemalloc/src/src/tcache.c:128
+#4  0x000000000043bdd3 in tcache_dalloc_small (tcache=0x7ffff6b02000,
+ptr=0x7fffca24ff00, binind=21) at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:399
+#5  0x00000000004132e8 in arena_dalloc (arena=0x7ffff6c00180,
+chunk=0x7fffca200000, ptr=0x7fffca24ff00, try_tcache=true) at
+/hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:956
+#6  0x000000000042e13d in idalloc (ptr=0x7fffca24ff00) at
+src/include/jemalloc/internal/jemalloc_internal.h:840
+#7  0x000000000042e18f in iqalloc (ptr=0x7fffca24ff00) at
+src/include/jemalloc/internal/jemalloc_internal.h:852
+#8  0x0000000000432a58 in real_je_free (ptr=0x7fffca24ff00) at
+/hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1212
+#9  0x00000000004330d8 in free (ptr=0x7fffca24ff20) at
+/hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1458
+#10 0x00007ffff7fe8022 in moz_free (ptr=0x7fffca24ff20) at
+/hack/mozilla-central/memory/mozalloc/mozalloc.cpp:51
+#11 0x00007ffff472490c in nsStringBuffer::Release
+(this=0x7fffca24ff20) at
+/hack/mozilla-central/xpcom/string/src/nsSubstring.cpp:161
+#12 0x00007ffff3e4c777 in FinalizeDOMString (fin=0x7ffff64b5058,
+chars=0x7fffca24ff28) at
+/hack/mozilla-central/js/xpconnect/src/XPCString.cpp:27
+#13 0x00007ffff514a137 in JSExternalString::finalize
+(this=0x7fffbf38d6c0, fop=0x7fffffffa000) at
+/hack/mozilla-central/js/src/vm/String-inl.h:439
+#14 0x00007ffff515f2a8 in js::gc::Arena::finalize&lt;JSExternalString&gt;
+(this=0x7fffbf38d000, fop=0x7fffffffa000,
+thingKind=js::gc::FINALIZE_EXTERNAL_STRING, thingSize=32) at
+/hack/mozilla-central/js/src/jsgc.cpp:319
+
+
+What can I do to help you help me?
+
+Could anyone at least give me a quick explanation of what these
+assertions are about?
+
+Thanks!
+Benoit
+
+
+2012/8/21 Benoit Jacob &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jacob.benoit.1 at gmail.com</A>&gt;:
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> I am attaching a patch that allows to iterate over all objects.
+</I>&gt;<i>
+</I>&gt;<i> This is not a request for upstreaming: these patches cause crashes and I
+</I>&gt;<i> need help understanding these. And even if it didn't crash, this patch
+</I>&gt;<i> causes a severe overhead in memory usage and no attempt has been made to
+</I>&gt;<i> mitigate it. The goal of this effort is to allow custom developer builds of
+</I>&gt;<i> Firefox to introspect their own allocated blocks.
+</I>&gt;<i>
+</I>&gt;<i> The patch (attached to this email) works by renaming the public functions
+</I>&gt;<i> such as je_malloc() to real_je_malloc() and implementing custom je_malloc()
+</I>&gt;<i> to allocate a larger block, and use the extra space to store the data of a
+</I>&gt;<i> doubly-linked list element.
+</I>&gt;<i>
+</I>&gt;<i> In principle, this should be entirely transparent to the user (except for
+</I>&gt;<i> the increased memory usage), so I don't understand the crashes.
+</I>&gt;<i>
+</I>&gt;<i> The crashes aren't immediate: I can run Firefox (this patch if for Firefox's
+</I>&gt;<i> copy of jemalloc 3.0) for a while and browse a few pages without crashing.
+</I>&gt;<i>
+</I>&gt;<i> The crashes are assertion failures like this:
+</I>&gt;<i>
+</I>&gt;<i> Program received signal SIGSEGV, Segmentation fault.
+</I>&gt;<i> 0x0000000000411605 in moz_abort ()
+</I>&gt;<i>     at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+</I>&gt;<i> 116       MOZ_CRASH();
+</I>&gt;<i> (gdb) bt
+</I>&gt;<i> #0  0x0000000000411605 in moz_abort ()
+</I>&gt;<i>     at /hack/mozilla-central/memory/build/extraMallocFuncs.c:116
+</I>&gt;<i> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+</I>&gt;<i> bin=0x7ffff6c007c8)
+</I>&gt;<i>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+</I>&gt;<i> #2  0x000000000041b225 in arena_tcache_fill_small (arena=0x7ffff6c00180,
+</I>&gt;<i>     tbin=0x7ffff6b02148, binind=9, prof_accumbytes=0)
+</I>&gt;<i>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1232
+</I>&gt;<i> #3  0x000000000043c239 in tcache_alloc_small_hard (tcache=0x7ffff6b02000,
+</I>&gt;<i>     tbin=0x7ffff6b02148, binind=9)
+</I>&gt;<i>     at /hack/mozilla-central/memory/jemalloc/src/src/tcache.c:72
+</I>&gt;<i> #4  0x000000000043b7dc in tcache_alloc_small (tcache=0x7ffff6b02000,
+</I>&gt;<i> size=160, zero=false)
+</I>&gt;<i>     at
+</I>&gt;<i> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/tcache.h:302
+</I>&gt;<i> #5  0x0000000000412c26 in arena_malloc (arena=0x0, size=160, zero=false,
+</I>&gt;<i> try_tcache=true)
+</I>&gt;<i>     at
+</I>&gt;<i> /hack/mozilla-central/memory/jemalloc/src/include/jemalloc/internal/arena.h:869
+</I>&gt;<i> #6  0x000000000042dce8 in imalloc (size=160)
+</I>&gt;<i>     at src/include/jemalloc/internal/jemalloc_internal.h:735
+</I>&gt;<i> #7  0x000000000043111c in real_je_malloc (size=160)
+</I>&gt;<i>     at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:829
+</I>&gt;<i> #8  0x0000000000432fa3 in malloc (size=128)
+</I>&gt;<i>     at /hack/mozilla-central/memory/jemalloc/src/src/jemalloc.c:1425
+</I>&gt;<i> #9  0x00007ffff7fe803c in moz_xmalloc (size=128)
+</I>&gt;<i>     at /hack/mozilla-central/memory/mozalloc/mozalloc.cpp:57
+</I>&gt;<i> #10 0x00007ffff2dcb74d in nsTArrayInfallibleAllocator::Malloc (size=128)
+</I>&gt;<i>     at ../../dist/include/nsTArray.h:56
+</I>&gt;<i> ...
+</I>&gt;<i>
+</I>&gt;<i> Printing some variables here:
+</I>&gt;<i>
+</I>&gt;<i> (gdb) up
+</I>&gt;<i> #1  0x000000000041afdf in arena_bin_malloc_hard (arena=0x7ffff6c00180,
+</I>&gt;<i> bin=0x7ffff6c007c8)
+</I>&gt;<i>     at /hack/mozilla-central/memory/jemalloc/src/src/arena.c:1189
+</I>&gt;<i> 1189            assert(bin-&gt;runcur-&gt;nfree &gt; 0);
+</I>&gt;<i> (gdb) p bin
+</I>&gt;<i> $1 = (arena_bin_t *) 0x7ffff6c007c8
+</I>&gt;<i> (gdb) p *bin
+</I>&gt;<i> $2 = {lock = {lock = {__data = {__lock = 1, __count = 0, __owner = 6469,
+</I>&gt;<i> __nusers = 1,
+</I>&gt;<i>         __kind = 0, __spins = 0, __list = {__prev = 0x0, __next = 0x0}},
+</I>&gt;<i>       __size = &quot;\001\000\000\000\000\000\000\000E\031\000\000\001&quot;, '\000'
+</I>&gt;<i> &lt;repeats 26 times&gt;, __align = 1}}, runcur = 0x7fffc2ced000, runs = {rbt_root
+</I>&gt;<i> = 0x7fffca3004d8, rbt_nil = {{
+</I>&gt;<i>         u = {rb_link = {rbn_left = 0x7ffff6c00800, rbn_right_red =
+</I>&gt;<i> 0x7ffff6c00800},
+</I>&gt;<i>           ql_link = {qre_next = 0x7ffff6c00800, qre_prev = 0x7ffff6c00800}},
+</I>&gt;<i>         prof_ctx = 0x7ffff6c00800}, bits = 0}}, stats = {allocated =
+</I>&gt;<i> 8896000,
+</I>&gt;<i>     nmalloc = 197757, ndalloc = 142157, nrequests = 300344, nfills = 5545,
+</I>&gt;<i>     nflushes = 2848, nruns = 2802, reruns = 5838, curruns = 1143}}
+</I>&gt;<i> (gdb) p bin-&gt;runcur
+</I>&gt;<i> $3 = (arena_run_t *) 0x7fffc2ced000
+</I>&gt;<i> (gdb) p *(bin-&gt;runcur)
+</I>&gt;<i> $4 = {bin = 0x7ffff6c007c8, nextind = 4544384, nfree = 0}
+</I>&gt;<i>
+</I>&gt;<i> Any help would be greatly appreciated.
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Benoit
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000443.html">Need help with patch allowing to iterate over all objects
+</A></li>
+	<LI>Next message: <A HREF="000445.html">Need help with patch allowing to iterate over all objects
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#444">[ date ]</a>
+              <a href="thread.html#444">[ thread ]</a>
+              <a href="subject.html#444">[ subject ]</a>
+              <a href="author.html#444">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

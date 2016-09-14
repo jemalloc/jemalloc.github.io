@@ -1,0 +1,1282 @@
+"""
+/*
+ * Copyright (C) 2011 Netapp: Phil Ezolt  <ezolt@netapp.com>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice(s), this list of conditions and the following disclaimer as
+ *    the first lines of this file unmodified other than the possible
+ *    addition of one or more copyright notices.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice(s), this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *******************************************************************************
+ *
+ */
+"""
+
+"""
+-----------------------------------------------------------------------
+GDB pretty printers for jemalloc (dump the heap of a live process)
+-----------------------------------------------------------------------
+This file contains GDB (>=7.X) python pretty-printers to navigate the jemalloc heap in
+a live process or core.  
+
+With these, you can attach to processes that use jemalloc and analyze the heap. 
+It allows you to figure out what size each. 
+
+NOTE: These does NOT require any special malloc compilation flags. 
+It has been tested on linux 32-bit/64-bit & FreeBSD remote 32-bit/64-bit. 
+
+In particular you can: 
+1) See how much of each size allocation is currently in use.
+
+   If you're in a live process, you can issue the command multiple
+   times, and see what has changed after each time you issue it.
+
+2) Dump all memory of a given size to disk. (For subsequent analysis...)
+
+3) Run heuristics over the pieces of memory to try to determine their types.
+
+   This is helpful to figure out WHAT type of datastructure is being used or leaking.
+   Right now, the heurisitc only covers strings.. but can be expanded. 
+
+   FWIW. RedHat does a similar thing but it is very heavily focused on cpython. (https://fedorahosted.org/gdb-heap/)
+   Now that these are open-sourced, maybe we can combine our efforts? 
+
+4) Print out regions of memory (of a given size) as pointers
+   This is yet another attempt to figure out exactly WHICH datastructures are at a particular piece of heap memory.
+
+   Sometimes, it helps to find pointers, and if those pointers point to something unique... 
+
+Why would you need this?
+------------------------
+1) If you're trying to figure out WHERE a process's heap memory is going you can start here.
+
+   You still have the difficult problem of mapping those allocations back to the code that made them.. but if you can
+   figure out WHAT sizes are being allocated.. you might be able to reason about why it is being allocated.
+
+2) If you're trying to figure out WHERE a memory leak is coming from.
+   You can start with a core, and then narrow down exactly what sized memory has been leaking.
+
+   If you can find a datastructure of the right size (or print out the memory)... you might be able to
+   figure out what datastructure is leaking.
+   ...
+
+   Why not just use valgrind?  Fair question... but you might only have a core OR a live process and
+   can't restart things.  If you can attach with gdb you can use these macros to figure it out...
+
+3) If you're trying to figure out how memory allocation is changing over time.
+
+   Since you can see the difference between the last allocation report and the current, you can
+   run 'heap' once, run your command, and then run 'heap' again.  It will show you what has changed..
+
+TODO:
+----
+So.. These are not complete... (is SW ever complete?)
+
+1) With release V1.0 of these macros/pretty-printers, I only support the version of jemalloc included in FreeBSD.
+
+   Many changes to the fundamental jemalloc datastructures have been made in the head-of-line
+   jemalloc, so these macros need to be up-dated to handle all versions.  (At least the latest...)
+
+   I'd like the macros to handle both (all?) versions at the same time RATHER than taylor it the head-of-line jemalloc source. 
+
+2) Correlate arenas with threads.  (Wouldn't it be nice to filter down allocations made for the current thread... Or at least
+   the arena of the current thread?)
+
+3) Better detection of common data types. (Especially common C++ & STL types...)
+
+4) Find a way to operate on the DIFFS between runs of the command.  (snapshot/diff?)
+
+   Let's say a process allocates 1 meg between my first issue of the 'heap' command the second. 
+   
+   It would be really nice to be able to analyze the DIFFERENCE rather than the state when the second run completes.
+   That way I could more accurately figure out what it is allocating. 
+
+   FWIW. This is nice, but will likely take gobs of gdb memory. 
+
+5) Caveot.. For some reason, with REALLY big numbers of allocations gdb core dumps. (Out of memory itself??)  I need to figure out why..
+
+6) So... It would ALSO be nice to work backwards...
+
+  Ie. Take a pointer and figure out the size, etc.  jemalloc has a
+  function to do this, so it shouldn't be that hard to add a pretty
+  printer to do it.
+
+...
+I hope that people find these useful and help me make them better...
+
+10/17/2011 V 1.0 Phil Ezolt <ezolt@netapp.com>
+"""
+
+import datetime
+import gdb
+import os
+import commands
+import sys
+import string
+import tempfile
+import gc
+
+from time import time
+from operator import itemgetter
+
+
+import re
+
+# This is the previous bucket dictionary (with stats)
+previous_bucket_dictionary={}
+
+
+class ShowJemallocHEAPCommand (gdb.Command):
+    """Show heap utilization for user-space cores and processes (BETA)
+
+       The code walks jemalloc heap datastructures to determine heap usage.
+
+       It splits the memory usage into buckets by size.
+
+       BETA: It is very memory intensive and can cause gdb to core.
+
+       Example:
+       (ugdb-amd64-7.2-02) heap
+
+       FreeBSD Heap Analysis
+       ---------------------
+       Searching process virtual address space for 'chunks' of the heap... DONE.
+
+       Calculating memory usage for 'chunks' in 5 heap arenas:
+         Walking Arena  0 (0x898f78) with   2 'chunks'...  DONE.
+         Walking Arena  1 (0x89a6f8) with   0 'chunks'...  DONE.
+         Walking Arena  2 (0x89b278) with   0 'chunks'...  DONE.
+         Walking Arena  3 (0x899b78) with  19 'chunks'...  DONE.
+         Walking Arena  4 (0x89bdf8) with   0 'chunks'...  DONE.
+         Walking global 'Huge' allocations...  DONE.
+
+         Heap allocation distribution (by size)
+         =================================================
+           2 bytes *         96 allocs ( 0%) =           192 bytes ( 0%)
+           4 bytes *         84 allocs ( 0%) =           336 bytes ( 0%)
+           8 bytes *       2544 allocs ( 1%) =         20352 bytes ( 0%)
+          16 bytes *       9569 allocs ( 4%) =        153104 bytes ( 0%)
+          32 bytes *      47567 allocs (20%) =       1522144 bytes ( 9%)
+          ...
+           ^                    ^        ^               ^            ^
+           |                    |        |               |            |
+          Bin Size       Num allocs    % all allocs  Total Bytes   % of total bytes
+
+       Paper describing jemalloc: http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf
+       More jemalloc details: http://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919
+
+       'heap    stats [size]' => (default) Dump information about how the heap is used.
+       'heap     dump [size]' => Write all of the memory to appropriately sized files.
+       'heap  analyze [size]' => Try to the determine (and print) the objects located at the allocated memory.
+       'heap  examine [size]' => Examine region as if it was a bunch of pointers. (ie. 'x /2a 0xdeadbeef')
+     """
+
+
+    def __init__ (self):
+        super (ShowJemallocHEAPCommand, self).__init__ ("heap",
+                                                    gdb.COMMAND_SUPPORT,
+                                                    gdb.COMPLETE_FILENAME)
+    # This will walk through the tree of HUGE allocations.... 
+    # 
+    # FIXME: We could/should parameterize this and we'll have a generic 
+    # way to walk RB trees in the malloc code. 
+
+    def walk_RB_tree(self,val,nil,RB_type):
+        addr_of_nil = nil.address.cast(gdb.lookup_type("unsigned long"))
+
+        addr = val.cast(gdb.lookup_type("unsigned long"))
+        if addr & 0x1:
+            # This ugliness actually masks off the lower bit
+            # Yes.. I could just find the appropriately sized mask.. and mask it off..
+            # But.. This is what I implemented first and it will work on 32-bit and 64-bit platforms.
+            # 
+            # Hey, if you REALLY don't like it. Go ahead and fix it.
+            # 
+            # I'm serious. 
+            # 
+            # I thought so. 
+            # 
+            # (Alright it's late.) 
+            #
+            tmp = val.cast(gdb.lookup_type("unsigned long"))
+            tmp = tmp - 1 
+            val = tmp.cast(gdb.lookup_type(RB_type).pointer())
+            #print "LOW BIT SET!"
+        
+        current = gdb.Value(addr_of_nil)
+        arena_nil = current.cast(gdb.lookup_type(RB_type).pointer())
+        
+        if val == arena_nil:
+            return []
+
+        #print 'Addr of nil: %x Addr of val: %s'%(addr_of_nil,val)
+
+        # FIXME: If we paramterized this we'll have a generic way to walk an RB tree
+        #print "addr: %s size:%s" %(val['addr'],val['size'])
+
+        result=[(int(val['addr'].cast(gdb.lookup_type("unsigned long"))),int(val['size'].cast(gdb.lookup_type("unsigned long"))))]
+        node_type='link_ad'
+
+        result = result + self.walk_RB_tree(val[node_type]['rbn_left'],nil,RB_type)
+        result = result + self.walk_RB_tree(val[node_type]['rbn_right_red'],nil,RB_type)
+
+        return result
+
+    # Get the All of the potential virtual address if we are in a core.
+    # Returns a list (start_address,end_address) pairs. (each are longs)
+
+    def get_maps_in_core(self):
+        info_target=gdb.execute("info target",to_string=True)
+
+        # If we are a core, this is easier.
+        # Since every region of in the 'info target' output.
+        # The potential matches have 'is load' in their output line.
+
+        potential_chunks=[]
+
+        for line in info_target.split('\n'):
+            # Grab lines that have 'is load' in them.
+            if (line.find('is load')!=-1):
+                start_address = long(line.split()[0],0)
+                end_address = long(line.split()[2],0)
+
+                potential_chunks = potential_chunks + [(start_address, end_address)]
+
+        return potential_chunks
+
+    def check_for_FreeBSD(self):
+        isFreeBSD=False
+
+        info_target=gdb.execute("info target",to_string=True)
+        for line in info_target.split('\n'):
+            if (line.find('file type')!=-1) and (line.find('freebsd')!=-1):
+                isFreeBSD=True
+
+        return isFreeBSD
+
+    # Check to see if we're on a local system.
+    def check_for_local(self):
+        isLocal=False
+
+        info_target=gdb.execute("info target",to_string=True)
+        for line in info_target.split('\n'):
+            if (line.find('Unix child process:')!=-1):
+                isLocal=True
+
+        return isLocal
+
+    # Parse the '/proc/maps' file of the process (FreeBSD format)
+    def get_proc_maps_FreeBSD(self,file):
+        potential_chunks=[]
+
+        for line in file.xreadlines():
+            if (line.find('rw-')!=-1):
+                start_address=string.atoi(line.split()[0],16)
+                end_address=string.atoi(line.split()[1],16)
+
+                potential_chunks = potential_chunks + [(start_address, end_address)]
+
+        return potential_chunks
+
+    # Parse the '/proc/maps' file of the process (Linux format)
+    def get_proc_maps_Linux (self,file):
+        potential_chunks=[]
+
+        for line in file.xreadlines():
+            if (line.find('rw-')!=-1):
+                start_address=string.atoi(line.split()[0].split('-')[0],16)
+                end_address=string.atoi(line.split()[0].split('-')[1],16)
+                potential_chunks = potential_chunks + [(start_address, end_address)]
+
+        return potential_chunks
+
+    # Alright... So we're likely in a live process.
+    # BUT.. Is it a on linux or FreeBSD? And is it local or remote?
+
+    def get_maps_in_live_proc(self,debug=False):
+        potential_chunks=[]
+
+        # Find the pid... we're going to walk '/proc/maps'
+        for inferior in gdb.inferiors():
+            pid = inferior.pid
+
+        if debug:
+            print "Debugging a Live process (PID: %d)."%(pid)
+
+        # Figure out if we're debugging a linux or FreeBSD process
+        isFreeBSD=self.check_for_FreeBSD()
+
+        # Figure out if we're debugging a local or remote host.
+        isLocal=self.check_for_local()
+
+        if isFreeBSD:
+            mapfile="/proc/%d/map"%(pid)
+        else:
+            mapfile="/proc/%d/maps"%(pid)
+
+        if isLocal==True:
+            # Open the local map file.
+            file = open(mapfile)
+            if debug:
+                print "Local process"
+        else:
+            if debug:
+                print "Remote process"
+            # Create a temp file, and copy the map over to it.
+            file = tempfile.NamedTemporaryFile(delete=True)
+            map_file_resp = gdb.execute("remote get %s %s"%(mapfile,file.name))
+
+        if debug:
+            print "    mapfile: %s"%(mapfile)
+
+        if (isFreeBSD):
+            if debug:
+                print "    On FreeBSD"
+            potential_chunks=self.get_proc_maps_FreeBSD(file)
+        else:
+            if debug:
+                print "    On Linux"
+            potential_chunks=self.get_proc_maps_Linux(file)
+
+        file.close()
+
+        return potential_chunks
+
+    # This returns true if the address is part of the
+    # 'huge' chunks
+
+    def addr_in_huge_chunk(self,huge_chunks,addr):
+        for chunk in huge_chunks:
+            (start_addr,size)=chunk
+            if start_addr<=addr and addr < start_addr+size:
+                return True
+
+        return False 
+
+    # This code is searches the processes's address space for chunks allocated by malloc.
+    # (jemalloc doesn't track this itself.)
+    #
+    # This code looks through each of the memory sections (as returned by 'info target').
+    # It splits the it into 'chunk-size' segments.
+    #
+    # THEN it iterates through each of those potential arena_chunks, casts them to
+    # a (arena_chunk_t *) pointer.  It dereferences the '.arena' pointer, AND if
+    # if that points to one of the known arenas, we assume this chunk was allocated by
+    # jemalloc.
+    #
+    # (Hacky, but works...)
+    #
+    # FWIW.  We return a dictionary keyed by 'arena address' where each entry a list of chunks for the arena.
+    #
+
+    def find_all_heap_chunks(self,huge_chunks, debug=False):
+        frame = gdb.selected_frame()
+        narenas = gdb.Frame.read_var(frame, "narenas")
+        arenas = gdb.Frame.read_var(frame, "arenas")
+        chunksize = gdb.Frame.read_var(frame, "chunksize")
+
+
+        if debug:
+            print
+            print "Chunksize: 0x%x"%(chunksize)
+
+        arena_dictionary={}
+
+        # FIXME: Sometimes it seems like narenas isn't properly
+        #        set... I'm not sure why.. Let's assume we have
+        #        at least one.
+        if narenas==0:
+            narenas=1
+
+        # We create a dictionary of the legit arena pointers
+        for i in range(narenas):
+            if debug:
+                print "arena_start: %d"%i
+            arena_start = long(arenas[i].cast(gdb.lookup_type("unsigned long")))
+            # Oddly, early on, some of the arena pointers are NULL.
+            if arena_start!=0:
+                arena_dictionary[arena_start]=[]
+                if debug:
+                    print "Adding Arena %d (0x%x)"%(i,arena_start)
+
+        # Next.. We're going to search through all of the memory regions looking for
+        # chunks which have pointers to arenas at the right places.
+
+        # First guess that we're in a core...
+        potential_chunks = self.get_maps_in_core()
+
+        # Ok... that didn't work.
+        # We must be on a live process.
+        if (len(potential_chunks)==0):
+            potential_chunks = self.get_maps_in_live_proc(debug)
+
+        if debug:
+            print "Memory map for process/core:"
+            print potential_chunks
+
+        for address_pair in potential_chunks:
+            (start_address,end_address) = address_pair
+
+            current_address = start_address
+            if debug:
+                print "ADDRESS:0x%x 0x%x"%(start_address,end_address)
+
+            # Ok.  Here's the trick.  We need to make sure that this is the size of a legitamite chunk.
+            # We also need to make sure the datastructure points to an arena that we know about.
+
+            # This is a heuristic.  We could match something that really ISN'T a chunk.. but the odds are low. (?)
+
+            while (current_address < end_address) and ((end_address-current_address)>=int(chunksize)) :
+                if debug:
+                    print "   Iter ADDRESS:0x%x (size: 0x%x chunksize:0x%x)"%(current_address,end_address-current_address,int(chunksize)),
+
+                if self.addr_in_huge_chunk(huge_chunks,current_address):
+                    if debug:
+                        print "      (Address part of a HUGE chunk... Skipping.)"
+
+                    current_address += int(chunksize)
+                    continue 
+
+                # Cast the start_address to (arena_chunk_t *)
+                chunk_start = gdb.Value(current_address).cast(gdb.lookup_type("arena_chunk_t").pointer())
+
+                # Now... Grab the address that the 'chunk.arena' points to..
+                potential_addr_of_arena = long(chunk_start['arena'].cast(gdb.lookup_type("unsigned long")))
+                # If 'chunk->arena' is in our list of arenas, assume that this region is a chunk allocated by jemalloc.
+
+                if debug:
+                    print 'Chunk_Start: 0x%x Arena: 0x%x'%(current_address,potential_addr_of_arena)
+
+                if arena_dictionary.has_key(potential_addr_of_arena):
+                    # Ah good.  We found a matching arena... We now  assume this is a chunk allocated from the OS by jemalloc
+                    if debug:
+                        print '      FOUND: Chunk_Start: 0x%x Arena: 0x%x'%(current_address,potential_addr_of_arena)
+                    arena_dictionary[potential_addr_of_arena]=arena_dictionary[potential_addr_of_arena]+[current_address]
+                else:
+                    if debug:
+                        print
+                    pass
+
+                current_address += int(chunksize)
+
+        return (arena_dictionary,chunksize)
+
+
+    # Given a chunk return all pointers of the requested size.
+
+    def return_pointers_from_chunk(self,chunk_start,arena_start,request_size=None):
+            ulong_type = gdb.lookup_type("unsigned long")
+            arena_run_ptr_type = gdb.lookup_type("arena_run_t").pointer()
+
+            debug = False
+            # FIXME: This whole block should be figured out/initiallized once.
+
+            PAGE_MASK = 0xFFF
+            PAGE_SIZE = 4096
+            SIZEOF_INT = 32
+            SIZEOF_INT_2POW = 2
+
+            # FIXME: 256 is hardcoded..
+            num_pages_per_chunk = 256
+
+            jemalloc2=False
+
+            #
+            frame = gdb.selected_frame()
+
+            # FIXME: this is for jemalloc 2.X
+            #        It is really incomplete and doesn't work.
+            #       ... I'll get there when the FreeBSD heap analysis is complete ..
+            if (jemalloc2):
+                arena_bin_info = gdb.Frame.read_var(frame, "arena_bin_info")
+
+
+            # Dictionary of lists of pointers... indexed by size.
+            # Default to an empty
+            pointer_dictionary={}
+            addr_list = []
+
+            arena = gdb.Value(arena_start).cast(gdb.lookup_type("arena_t").pointer())
+            arena_bins = arena['bins']
+
+            if (debug):
+                print "arena_start: %x " % (arena_start)
+
+            # Turn the current chunk in a pointer.. and operate on it.
+            arena_chunk = gdb.Value(chunk_start).cast(gdb.lookup_type("arena_chunk_t").pointer())
+            map = arena_chunk['map']
+
+            previous_run = gdb.Value(0x0).cast(arena_run_ptr_type)
+
+            if (debug):
+                print "Chunk_start: 0x%x"%(chunk_start)
+
+            for page in range(num_pages_per_chunk):
+                addr = map[page]['bits'].cast(ulong_type)
+
+                # If the page is allocated,
+
+                if addr & 0x1:
+                    if (debug):
+                        print
+                        print "    Allocated Memory: addr: 0x%x page: %d bits: 0x%x"% (addr, page, map[page]['bits']),
+
+                    if addr & 0x2:
+                        # This is a MEDIUM allocation.
+                        size = (addr & ~PAGE_MASK)
+                        used = int(size)
+                        if debug:
+                            print "MEDIUM (%d)" % used
+
+                        if (used !=0):
+                            if pointer_dictionary.has_key(used):
+                                pointer_dictionary[used] += [(chunk_start  + page * PAGE_SIZE)]
+                            else:
+                                pointer_dictionary[used] = [(chunk_start  + page * PAGE_SIZE)]
+                    else:
+                        if debug:
+                            print "SMALL",
+
+                        # This is a SMALL allocation.
+                        addr = (addr & ~PAGE_MASK)
+
+                        if (jemalloc2):
+                            # FIXME (BIG!): We need to do something with the addr...
+                            run = gdb.Value(chunk_start+(map_bias*PAGE_SIZE)).cast(arena_run_ptr_type)
+                        else:
+                            run = gdb.Value(addr).cast(arena_run_ptr_type)
+
+                        # We only want to look at this run if it is DIFFERENT from the last.
+                        # (since runs can span multiple pages.)
+                        #print "RUN: %x"%long(gdb.Value(run).cast(ulong_type))
+                        #print "should be: 0xb7003000"
+                        #print *(arena_run_t *)0xb7003000
+
+                        if (run != previous_run):
+                            previous_run = run
+
+                            # A pointer to the bin information about this run.
+                            # Contains information about
+                            bin  = run['bin']
+
+                            # FIXME: Not complete
+                            if (jemalloc2):
+                                # From
+
+                                print "bin: %x arena_bins: %x"%(gdb.Value(bin).cast(ulong_type), gdb.Value(arena_bins).cast(ulong_type))
+                                bin_index = (gdb.Value(bin).cast(ulong_type) - gdb.Value(arena_bins).cast(ulong_type))/gdb.lookup_type("arena_bin_t").sizeof
+
+                                # size_t binind = bin - arena->bins;
+                                print "BIN INDEX:%d"%(bin_index)
+                                #gdb.Value(arena_start).cast(gdb.lookup_type("arena_t").pointer())
+                                #arena = gdb.Value(arena_start).cast(gdb.lookup_type("arena_t").pointer())
+
+                                # The size of the individual objects in this bin. (It will be less than 4k)
+                                reg_size = int(arena_bin_info[bin_index]['reg_size'])
+
+                                # The offset into the run where the data actually starts.
+                                reg0_offset = int((arena_bin_info[bin_index]['reg0_offset']))
+
+                                # This is the actual number of regions in this run.
+                                nregs = int((arena_bin_info[bin_index]['nregs']))
+
+                                # There are a series of bitmaps that represent each individual
+                                # Allocation. (one bit per item)
+                                # If it is (1), that means the allocation is available.
+                                # If it is (0), that means the allocation is taken.
+
+                                # Iterate through all of the bitmasks.
+                                num_bitmasks = arena_bin_info[bin_index]['regs_mask_nelms']
+
+                            else:
+                                # The size of the individual objects in this bin. (It will be less than 4k)
+                                reg_size = int(bin['reg_size'])
+
+                                # The offset into the run where the data actually starts.
+                                reg0_offset = int(bin['reg0_offset'])
+
+                                # This is the actual number of regions in this run.
+                                nregs = int(bin['nregs'])
+
+                                # There are a series of bitmaps that represent each individual
+                                # Allocation. (one bit per item)
+                                # If it is (1), that means the allocation is available.
+                                # If it is (0), that means the allocation is taken.
+
+                                # Iterate through all of the bitmasks.
+                                num_bitmasks = bin['regs_mask_nelms']
+
+
+                            for i in range(num_bitmasks):
+                                mask = run['regs_mask'][i]
+                                if debug:
+                                    print "Num: %d Mask: 0x%x\n"%(i,int(mask))
+
+                                regind_offset =  ((i<< (SIZEOF_INT_2POW) + 3))
+
+                                for bit in range(SIZEOF_INT):
+                                    if (mask & 0x1) == 0 :
+                                        # This is taken directly from the malloc source itself.
+                                        regind = regind_offset + bit
+
+                                        # My goodness this is subtle.
+                                        # We can have a 0 for a given bit in the bitmask if:
+                                        # 1) This piece is allocated.
+                                        # -or-
+                                        # 2) We are at the end of the bitmask that DOESN'T actually have any memory behind it.
+                                        #
+                                        # (The bit masks might have a few bits at the end which don't actually address memory.)
+                                        #
+                                        # The original malloc only turns bits ON in the regions that are addressable, so the end bits
+                                        # are always off. (Look for 'remainer' in freebsd/lib/libc/stdlib/malloc.c)
+                                        #
+                                        # This could be a problem: ie, if we can't distinguish between case 1 & 2.
+                                        # Fortunately... they store the number of buckets so we can break before derefencing something incorrectly.
+                                        #
+
+                                        if (regind >= nregs):
+                                            break
+
+                                        ret = addr + reg0_offset + (reg_size * regind)
+
+                                        #print "Run: 0x%x Size: 0x%x address: 0x:%x"%(addr, reg_size,address)
+                                        if pointer_dictionary.has_key(reg_size):
+                                            pointer_dictionary[reg_size] += [int(ret)]
+                                        else:
+                                            pointer_dictionary[reg_size] = [int(ret)]
+
+                                    #print "i: %d Mask: 0x%x"%(i,int(mask))
+                                    mask = mask >> 1
+
+                                """
+                            	i = run->regs_minelm;
+                                mask = run->regs_mask[i];
+                                if (mask != 0) {
+                                    /* Usable allocation found. */
+                                    bit = ffs((int)mask) - 1;
+                                    regind = ((i << (SIZEOF_INT_2POW + 3)) + bit);
+                                    assert(regind < bin->nregs);
+                                    ret = (void *)(((uintptr_t)run) + bin->reg0_offset + (bin->reg_size * regind));
+                                    /* Clear bit. */
+                                    mask ^= (1U << bit);
+                                    run->regs_mask[i] = mask;
+                                    return (ret);
+                                }
+                                """
+
+                        #print 'ALLOCATED: %d bytes %d %x '%(size,used,map)
+                else: # If the page is NOT allocated
+                    #print
+                    pass
+
+            #print pointer_dictionary
+            if request_size == None:
+                return pointer_dictionary
+            else:
+                tmp_dictionary = {}
+                if  pointer_dictionary.has_key(request_size):
+                    tmp_dictionary[request_size] = pointer_dictionary[request_size]
+                return tmp_dictionary
+
+    # Given an arena, return all of the pointers of the requested size.
+
+    def return_pointers_from_arena(self,arena_dictionary,arena_start,request_size=None):
+        pointer_dictionary={}
+
+        total_pointer_dictionary={}
+
+        for chunk_start in arena_dictionary[arena_start]:
+            pointer_dictionary = self.return_pointers_from_chunk(chunk_start,arena_start,request_size)
+            #print "(0x%x)"%(chunk_start),
+            for key in pointer_dictionary.keys():
+                if (total_pointer_dictionary.has_key(key)):
+                    total_pointer_dictionary[key]+=pointer_dictionary[key]
+                else:
+                    total_pointer_dictionary[key]=pointer_dictionary[key]
+
+        #print total_pointer_dictionary
+        return total_pointer_dictionary
+
+
+    # Returns all of the pointers from the 'huge' area. 
+    def return_pointers_from_huge(self,huge_chunks,request_size=None):
+        total_pointer_dictionary={}
+
+        # Iterate through all of the huge chunks, and drop them in a pointer dictionary
+        for chunk in huge_chunks:
+            (address,size)=chunk
+
+            if (request_size == None) or (request_size == size): 
+                if (total_pointer_dictionary.has_key(size)):
+                    total_pointer_dictionary[size]+=[address]
+                else:
+                    total_pointer_dictionary[size]=[address]
+
+        return total_pointer_dictionary
+
+
+    #
+    #  This is some prototype heap decoding stuff..
+    #   Given a list of pointers, this iterates through each of them and tries to print them
+    #   as a string..
+
+    def print_pointers(self, pointer_list):
+        total_matched = 0
+
+        for pointer in pointer_list:
+            # print "_____START 4K BLOCK_____",
+
+            # There is something special here.. .
+
+            #print (gdb.Value(pointer+0x10).cast(gdb.lookup_type("char").pointer().pointer())).dereference()
+
+            # FIXME: This is left-over code... we've hard-coded the 0x10 that's not cool...
+            # We need to make this more generic and use it..
+            try:
+                potential_string = (gdb.Value(pointer+0x10).cast(gdb.lookup_type("char").pointer().pointer())).dereference().string(encoding='ascii')
+                total_matched = total_matched+1
+
+                if (potential_string!="ESTABLISHED"):
+                    print potential_string
+            except (RuntimeError, UnicodeDecodeError):
+                potential_string = ""
+
+            #print potential_string
+
+        return total_matched
+        # END
+
+    # Try to find all of the threads in the system, and
+    # which arenas they are currently using.
+
+    def find_threads_per_arena(self,narenas):
+        arena_to_thread={}
+        if (self.check_for_FreeBSD()):
+            arena_to_thread=self.find_threads_per_arena_FreeBSD(narenas)
+
+        return arena_to_thread
+
+    # Walk the Internal FreeBSD datastructures to look for the list of
+    # threads.  Maps those threads to malloc allocation arenas, and
+    # return that dictionary.
+
+    def find_threads_per_arena_FreeBSD(self,narenas):
+        arena_to_thread={}
+        frame = gdb.selected_frame()
+
+        # This is a linked list of threads
+        try:
+            thread_list = gdb.Frame.read_var(frame, "_thread_list")
+        except:
+            thread_list = 0x0
+            return {}
+
+        thread_list=thread_list['tqh_first']
+
+        while (thread_list !=0x0):
+            if thread_list['tid'] != 1:
+                arena_id = int(thread_list['tid'])%int(narenas)
+
+                if arena_to_thread.has_key(arena_id):
+                    arena_to_thread[arena_id]+=["%s %s"%(str(thread_list['tid']),str(thread_list['start_routine']))]
+                else:
+                    arena_to_thread[arena_id]=["%s %s"%(str(thread_list['tid']),str(thread_list['start_routine']))]
+
+            thread_list=thread_list['tle']['tqe_next']
+
+        return arena_to_thread
+        """
+        for key in arena_to_thread.keys():
+            print
+            print "Arena: %d"%(key)
+            print "----------"
+            for thread in arena_to_thread[key]:
+                print "     %s"%(thread)
+        """
+
+    # FIXME: This is kinda hokey right now...
+    #        I suspect if I used the datastructure better, I wouldn't need to relook at the arenas/narenas
+
+    def print_threads_per_arena(self,threads_per_arena,arena_dictionary,chunksize):
+
+        frame = gdb.selected_frame()
+        narenas = gdb.Frame.read_var(frame, "narenas")
+        arenas = gdb.Frame.read_var(frame, "arenas")
+
+        for arena_id in range(narenas):
+            arena_start = long(arenas[arena_id].cast(gdb.lookup_type("unsigned long")))
+
+            if threads_per_arena.has_key(arena_id):
+                thread_num=threads_per_arena[arena_id]
+            else:
+                thread_num=[]
+
+            bytes = comma(len(arena_dictionary[arena_start])*chunksize)
+            print "Arena %2d:  %s bytes with %d threads "%(arena_id,bytes,len(thread_num))
+
+            if threads_per_arena.has_key(arena_id):
+                for thread in threads_per_arena[arena_id]:
+                    print "     %s"%(thread)
+
+    # Dump all of the vm memory used by the app..
+    # Both the small/regular chunks AND the huge chunks.
+
+    def find_jemalloc_vm_usage(self,arena_dictionary,chunksize,huge_chunks):
+        total_vm_usage=0
+        for arena in arena_dictionary.keys():
+            total_vm_usage+=(len(arena_dictionary[arena])*chunksize)
+
+        for chunk in huge_chunks:
+            (address,size)=chunk
+            total_vm_usage+=size
+
+        return total_vm_usage
+
+
+    def get_heap_size_buckets(self,arena_dictionary,huge_chunks,request_size=None):
+        bucket_dictionary={}
+        i=0
+
+        # Now iterate over each arena, and get ALL of the pointers
+        for arena in arena_dictionary.keys():
+            print "  Walking Arena %2d (0x%x) with %3d 'chunks'... "%(i,arena,len(arena_dictionary[arena])),
+            sys.stdout.flush()
+            i+=1
+            pointer_dictionary={}
+            pointer_dictionary=self.return_pointers_from_arena(arena_dictionary,arena,request_size)
+
+            for size in pointer_dictionary.keys():
+                if (bucket_dictionary.has_key(size)):
+                    bucket_dictionary[size]+=len(pointer_dictionary[size])
+                else:
+                    bucket_dictionary[size]=len(pointer_dictionary[size])
+
+            print "DONE."
+            # This will garbage collect the outstanding python memory.
+            # If we don't do this, we run out of memory and livegdb/coregdb cores...
+            gc.collect()
+
+        # Now... go through all of the huge_chunks, and do the same thing.
+        print "  Walking global 'Huge' allocations... ",
+
+        pointer_dictionary={}
+        pointer_dictionary=self.return_pointers_from_huge(huge_chunks,request_size)
+
+        for size in pointer_dictionary.keys():
+            if (bucket_dictionary.has_key(size)):
+                bucket_dictionary[size]+=len(pointer_dictionary[size])
+            else:
+                bucket_dictionary[size]=len(pointer_dictionary[size])
+
+        print "DONE."
+
+        return bucket_dictionary
+
+
+    # Use Gdb to dump all of the heap pointers of a given size
+    # This will write all of these files to a particular directory
+    #
+
+    def dump_memory_of_size(self,arena_dictionary,huge_chunks,request_size=None):
+        i=0
+        # Now iterate over each arena, and get ALL of the pointers
+        if (request_size==None):
+            print "Dumping heap memory of all sizes."
+        else:
+            print "Dumping heap memory of size (%d)."%(request_size)
+
+        for arena in arena_dictionary.keys():
+            print "  Walking Arena %2d (0x%x) with %3d 'chunks'... "%(i,arena,len(arena_dictionary[arena])),
+            sys.stdout.flush()
+            i+=1
+            pointer_dictionary={}
+            pointer_dictionary=self.return_pointers_from_arena(arena_dictionary,arena,request_size)
+
+            for size in pointer_dictionary.keys():
+                for address in pointer_dictionary[size]:
+                    info = gdb.execute('dump memory 0x%x 0x%x 0x%x'% (address,address,address+size))
+
+            print "DONE."
+
+
+        # Now... go through all of the huge_chunks, and do the same thing.
+        print "  Walking global 'Huge' allocations... ",
+
+        pointer_dictionary={}
+        pointer_dictionary=self.return_pointers_from_huge(huge_chunks,request_size)
+
+        for size in pointer_dictionary.keys():
+            for address in pointer_dictionary[size]:
+                info = gdb.execute('dump memory 0x%x 0x%x 0x%x'% (address,address,address+size))
+
+        print "DONE."
+
+
+    # This is weak right now, but it is trying to turn the areas into datastructures that we know about. 
+    # In particular, Strings... but we could probably get more clever. 
+    # 
+
+    def analyze_helper(self, address):
+        # FIXME:
+        # Right now this is a hacky attempt to detect a std::string.. there's bound to be a better way to do this..
+        # I don't like this 0x10 hack.. std::string actually points the string at an offset, we should figure that out dynamically.
+
+        """
+        try:
+            potential_string = (gdb.Value(pointer+0x10).cast(gdb.lookup_type("char").pointer().pointer())).dereference().string(encoding='ascii')
+            total_matched = total_matched+1
+
+            if (potential_string!="ESTABLISHED"):
+                print potential_string
+        except (RuntimeError, UnicodeDecodeError):
+            potential_string = ""
+        """
+
+        try:
+            potential_string = (gdb.Value(address).cast(gdb.lookup_type("char").pointer())).string(encoding='ascii')
+        except (RuntimeError, UnicodeDecodeError):
+            potential_string = ""
+
+        if (len(potential_string) > 2):
+            print potential_string
+            return True
+
+        return False
+
+
+    # Try to figure out what each of these pointers are... Let's try to turn them into a string.
+    #
+
+    def analyze_memory_of_size(self,arena_dictionary,huge_chunks,request_size=None):
+        matched_heap_allocs = 0
+        total_heap_allocs = 0
+
+        print
+        # Now iterate over each arena, and get ALL of the pointers
+        if (request_size==None):
+            print "Analyze heap memory of 'all' sizes."
+        else:
+            print "Analyze heap memory of (%d byte) sizes."%(request_size)
+
+        print "------------------------------"
+        print "Printing All Detected patterns"
+        print "------------------------------"
+
+        i=0
+        for arena in arena_dictionary.keys():
+            print "  Walking Arena %2d (0x%x) with %3d 'chunks'... "%(i,arena,len(arena_dictionary[arena])),
+            sys.stdout.flush()
+            i+=1
+            pointer_dictionary={}
+            pointer_dictionary=self.return_pointers_from_arena(arena_dictionary,arena,request_size)
+
+            for size in pointer_dictionary.keys():
+                for address in pointer_dictionary[size]:
+                    total_heap_allocs +=1
+                    if (self.analyze_helper(address)):
+                        matched_heap_allocs +=1
+
+            print "DONE."
+
+
+        # Now... go through all of the huge_chunks, and do the same thing.
+        print "  Walking global 'Huge' allocations... ",
+
+        pointer_dictionary={}
+        pointer_dictionary=self.return_pointers_from_huge(huge_chunks,request_size)
+
+        for size in pointer_dictionary.keys():
+            for address in pointer_dictionary[size]:
+                total_heap_allocs +=1
+                if (self.analyze_helper(address)):
+                    matched_heap_allocs +=1
+
+        print "DONE."
+
+        return (total_heap_allocs, matched_heap_allocs)
+
+
+    def examine_memory_of_size(self,arena_dictionary,huge_chunks,request_size=None):
+
+        # Find the size of a pointer..
+        pointer_size=gdb.lookup_type("char").pointer().sizeof
+
+        print
+        # Now iterate over each arena, and get ALL of the pointers
+        if (request_size==None):
+            print "Examine heap memory of 'all' sizes as pointers"
+        else:
+            print "Examine heap memory of (%d byte) sizes as pointers."%(request_size)
+
+        print "------------------------------"
+        print "Printing All Detected patterns"
+        print "------------------------------"
+
+        i=0
+        for arena in arena_dictionary.keys():
+            print "  Walking Arena %2d (0x%x) with %3d 'chunks'... "%(i,arena,len(arena_dictionary[arena])),
+            sys.stdout.flush()
+            i+=1
+            pointer_dictionary={}
+            pointer_dictionary=self.return_pointers_from_arena(arena_dictionary,arena,request_size)
+
+            for size in pointer_dictionary.keys():
+                if (size>=pointer_size):
+                    for address in pointer_dictionary[size]:
+                        num_addresses = size/pointer_size
+                        # FIXME: So we MIGHT be able to go further.. by checking to see if
+                        #        a pointer is actually in the heap. For now.. let's stop here..
+                        #
+                        print "**"
+                        gdb.execute('x /%da 0x%x'%(num_addresses,address))
+
+            print "DONE."
+
+        # Now... go through all of the huge_chunks, and do the same thing.
+        print "  Walking global 'Huge' allocations... ",
+
+        pointer_dictionary={}
+        pointer_dictionary=self.return_pointers_from_huge(huge_chunks,request_size)
+
+        for size in pointer_dictionary.keys():
+            if (size>=pointer_size):
+                for address in pointer_dictionary[size]:
+                    num_addresses = size/pointer_size
+                    # FIXME: So we MIGHT be able to go further.. by checking to see if
+                    #        a pointer is actually in the heap. For now.. let's stop here..
+                    #
+                    print "**"
+                    gdb.execute('x /%da 0x%x'%(num_addresses,address))
+
+        print "DONE."
+
+
+        return
+
+    def print_heap_summary(self,bucket_dictionary,previous_bucket_dictionary):
+        previous_total_heap_size = 0
+        previous_total_heap_allocations = 0
+
+
+        # This is there to handle the case where the NEW
+        # dictionary is missing a slot that the old one has.
+        for key in previous_bucket_dictionary.keys():
+            if not bucket_dictionary.has_key(key):
+                bucket_dictionary[key]=0
+
+            previous_total_heap_size+=(previous_bucket_dictionary[key]*key)
+            previous_total_heap_allocations+=(previous_bucket_dictionary[key])
+
+        total_heap_size = 0
+        total_heap_allocations = 0
+
+        size_buckets = bucket_dictionary.keys()
+        size_buckets.sort()
+
+        # Find the total
+        for key in size_buckets:
+            total_heap_size+=(bucket_dictionary[key]*key)
+            total_heap_allocations+=(bucket_dictionary[key])
+
+        print
+        print "Heap allocation distribution (by size)"
+        print "================================================="
+
+
+        for key in size_buckets:
+            diff_string = ""
+
+            if (previous_bucket_dictionary != {}):
+                if (previous_bucket_dictionary.has_key(key)):
+                    alloc_diff = (bucket_dictionary[key]-previous_bucket_dictionary[key])
+                else:
+                    # If we didn't have any previously, we've added all of these.
+                    alloc_diff = bucket_dictionary[key]
+
+                size_diff = alloc_diff*key
+                if (alloc_diff != 0):
+                    diff_string = "[%+8s allocs %+8s bytes since last 'heap']"%(comma(alloc_diff),comma(size_diff))
+
+            print "%8d bytes * %10s allocs (%2d%%) = %13s bytes (%2d%%) %s"%(key,comma(bucket_dictionary[key]),(bucket_dictionary[key]*100/total_heap_allocations),comma(bucket_dictionary[key]*key),bucket_dictionary[key]*key*100/total_heap_size, diff_string)
+        # This will garbage collect the outstanding python memory.
+        # If we don't do this, we run out of memory and livegdb/coregdb cores...
+        gc.collect()
+
+
+        diff_string = ""
+
+        if previous_total_heap_size !=0:
+            diff_string = "[%+10s allocs %+10s bytes since last 'heap']"%(comma(total_heap_allocations-previous_total_heap_allocations),comma(total_heap_size-previous_total_heap_size))
+
+        print
+        print "Heap: %s allocs (%s bytes) %s"%(comma(total_heap_allocations),comma(total_heap_size),diff_string)
+
+        return (total_heap_allocations,total_heap_size)
+
+    #
+    # Print out all of the pointers in a way that makes it easy to compare when unit-testing this.
+    #
+    # NOTE: I have another test app that allocates a bunch of random
+    #       memory sizes & frees and then dumps out the heap in a very
+    #       similar format.. that way we can just diff the output of
+    #       the macros with the output of the test program.
+    #
+
+    def unittest(self,arena_dictionary,huge_chunks):
+        print
+
+
+        # Now iterate over each arena, and get ALL of the pointers
+        for arena in arena_dictionary.keys():
+            sys.stdout.flush()
+            pointer_dictionary={}
+            pointer_dictionary=self.return_pointers_from_arena(arena_dictionary,arena)
+
+            for size in pointer_dictionary.keys():
+                for address in pointer_dictionary[size]:
+                    print "GDB_UNIT_TEST: size: %d addr: 0x%x"%(size,address)
+
+        # Now do the same thing for the huge chunks.
+        pointer_dictionary={}
+        pointer_dictionary=self.return_pointers_from_huge(huge_chunks)
+
+        for size in pointer_dictionary.keys():
+            for address in pointer_dictionary[size]:
+                print "GDB_UNIT_TEST: size: %d addr: 0x%x"%(size,address)
+
+        print "DONE."
+
+
+    def invoke(self, arg, from_tty):
+        debug = False
+
+        # Look for the 'narenas' variable to see if we are in core that is using jemalloc
+        # (Available in FreeBSD 7.0 and above...)
+        try:
+            frame = gdb.selected_frame()
+            narenas = gdb.Frame.read_var(frame, "narenas")
+            arenas = gdb.Frame.read_var(frame, "arenas")
+        except:
+            # FIXME: Check to see if the process is running.
+            print "FAILURE: Heap Analysis only works on releases of FreeBSD with jemalloc (>7.0) ."
+            return
+
+        # FIXME: We need to handle huge allocaions...
+        #
+        huge = gdb.Frame.read_var(frame, "huge")
+        huge_chunks=self.walk_RB_tree(huge['rbt_root'],huge['rbt_nil'],'extent_node_t')
+
+        print
+        print "Jemalloc Heap Analysis"
+        print "----------------------"
+        print "Searching process virtual address space for 'chunks' of the heap...",
+        sys.stdout.flush()
+
+        (arena_dictionary,chunksize) = self.find_all_heap_chunks(huge_chunks,debug)
+        
+        print "DONE."
+        vm_usage=self.find_jemalloc_vm_usage(arena_dictionary,chunksize,huge_chunks)
+
+        if (arg=="unittest"):
+            self.unittest(arena_dictionary,huge_chunks)
+            return
+
+        # FIXME: Ideally we can give people MORE information by allowing them to
+        # filter by thread...
+        #
+        # ie: What allocations were made for all the threads in the arena this thread is using?
+
+        threads_per_arena = self.find_threads_per_arena(narenas)
+        #self.print_threads_per_arena(threads_per_arena,arena_dictionary,chunksize)
+
+        param=""
+        if arg!="":
+            if (len(arg.split())>1):
+                command=arg.split()[0]
+                param=arg.split()[1]
+            else:
+                command=arg.split()[0]
+        else:
+            command="stats"
+
+        if (command=="dump"):
+            size=None
+            if param!="":
+                size=string.atoi(param)
+            # Write all of the memory to appropriately sized files.
+            self.dump_memory_of_size(arena_dictionary,huge_chunks,size)
+        elif (command=="analyze"):
+            size=None
+            if param!="":
+                size=string.atoi(param)
+
+            # Try to figure out what all of these pointers are...
+            (total_heap_allocations, matched_heap_allocations) = self.analyze_memory_of_size(arena_dictionary,huge_chunks,size)
+
+            # FIXME: We might want track how much of the memory we properly analyzed..
+            print "    %d of %d allocations matched."% (matched_heap_allocations,total_heap_allocations)
+
+        elif (command=="examine"):
+            size=None
+            if param!="":
+                size=string.atoi(param)
+            # pretend this memory is pointers and dump it out.
+            self.examine_memory_of_size(arena_dictionary,huge_chunks,size)
+
+        elif (command=="stats"):
+            size=None
+            if param!="":
+                size=string.atoi(param)
+
+            # By default we print out the bucket size info about the heap
+            print
+            print "Calculating memory usage details for each 'chunks' in %d heap arenas: "% len(arena_dictionary)
+            bucket_dictionary=self.get_heap_size_buckets(arena_dictionary,huge_chunks,size)
+
+            global previous_bucket_dictionary
+
+            (total_heap_allocations,total_heap_size) = self.print_heap_summary(bucket_dictionary,previous_bucket_dictionary)
+
+            if (size==None):
+                print "Total VM allocated by heap: %s bytes (In-use by application: %s)" %(comma(vm_usage),comma(total_heap_size))
+            else:
+                print "Total VM allocated by heap: %s bytes (Memory of size %s bytes in-use by application: %s)" %(comma(vm_usage),comma(size),comma(total_heap_size))
+
+            # Save off the current one
+            previous_bucket_dictionary = bucket_dictionary
+        else:
+            print " 'heap' command '%s' is unknown. "%(command)
+
+        return
+
+ShowJemallocHEAPCommand ()
+
+
+import locale
+
+# Take an int and return a comma seperated string.
+def comma(value):
+    # This is so we can get comma seperated numbers below
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    return locale.format("%d",value, grouping=True)
+

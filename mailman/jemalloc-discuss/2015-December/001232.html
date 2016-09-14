@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH v2] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%20v2%5D%20Call%20malloc_tsd_boot0%20from%20malloc_init_hard_recursible&In-Reply-To=%3C1450895532-11202-1-git-send-email-cparaschiv%40ixiacom.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001231.html">
+   <LINK REL="Next"  HREF="001225.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH v2] Call malloc_tsd_boot0 from malloc_init_hard_recursible</H1>
+    <B>Cosmin Paraschiv</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%20v2%5D%20Call%20malloc_tsd_boot0%20from%20malloc_init_hard_recursible&In-Reply-To=%3C1450895532-11202-1-git-send-email-cparaschiv%40ixiacom.com%3E"
+       TITLE="[PATCH v2] Call malloc_tsd_boot0 from malloc_init_hard_recursible">cparaschiv at ixiacom.com
+       </A><BR>
+    <I>Wed Dec 23 10:32:12 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001231.html">[PATCH] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+</A></li>
+        <LI>Next message: <A HREF="001225.html">malloc profile from a core dump
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1232">[ date ]</a>
+              <a href="thread.html#1232">[ thread ]</a>
+              <a href="subject.html#1232">[ subject ]</a>
+              <a href="author.html#1232">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+When using LinuxThreads, malloc bootstrapping deadlocks, since malloc_tsd_boot0
+ends up calling pthread_setspecific, which causes recursive allocation. Fix it,
+by moving the malloc_tsd_boot0 call to malloc_init_hard_recursible.
+
+The deadlock has been introduced by commit 8bb3198f72, when tsd_boot was split
+and the top half, tsd_boot0, got an extra tsd_wrapper_set call.
+
+Signed-off-by: Cosmin Paraschiv &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cparaschiv at ixiacom.com</A>&gt;
+---
+ src/jemalloc.c | 21 ++++++++++++++++-----
+ 1 file changed, 16 insertions(+), 5 deletions(-)
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Call-malloc_tsd_boot0-from-malloc_init_hard_recursib.patch
+Type: text/x-patch
+Size: 1532 bytes
+Desc: not available
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151223/c34a6bbd/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151223/c34a6bbd/attachment.bin</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001231.html">[PATCH] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+</A></li>
+	<LI>Next message: <A HREF="001225.html">malloc profile from a core dump
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1232">[ date ]</a>
+              <a href="thread.html#1232">[ thread ]</a>
+              <a href="subject.html#1232">[ subject ]</a>
+              <a href="author.html#1232">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

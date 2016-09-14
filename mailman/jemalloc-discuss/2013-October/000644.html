@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warnings%20when%20doing%20calloc%20in%20jemalloc%203.4&In-Reply-To=%3C29F84D80-CEE3-4D2B-84AC-CBAF95EB30C8%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000643.html">
+   <LINK REL="Next"  HREF="000646.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warnings%20when%20doing%20calloc%20in%20jemalloc%203.4&In-Reply-To=%3C29F84D80-CEE3-4D2B-84AC-CBAF95EB30C8%40canonware.com%3E"
+       TITLE="valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4">jasone at canonware.com
+       </A><BR>
+    <I>Sat Oct 19 21:46:18 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000643.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+        <LI>Next message: <A HREF="000646.html">[PATCH 0/2] Add support for old systems based on LinuxThreads.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#644">[ date ]</a>
+              <a href="thread.html#644">[ thread ]</a>
+              <a href="subject.html#644">[ subject ]</a>
+              <a href="author.html#644">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jul 8, 2013, at 9:23 AM, Piyush Patel &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">piyush at netskope.com</A>&gt; wrote:
+&gt;<i> I've ran into similar issue that Daniel Mezzato ran into(email thread around Dec 11, 2012).  I get following warnings:
+</I>&gt;<i> 
+</I>&gt;<i> ==28997== Conditional jump or move depends on uninitialised value(s)
+</I>&gt;<i> ==28997==    at 0x4E438C1: arena_run_split (arena.c:454)
+</I>&gt;<i> ==28997==    by 0x4E441DF: arena_run_alloc_helper (arena.c:645)
+</I>&gt;<i> ==28997==    by 0x4E469ED: arena_malloc_large (arena.c:665)
+</I>&gt;<i> ==28997==    by 0x4E3BA48: calloc (arena.h:930)
+</I>&gt;<i> ==28997==    by 0x400661: main (jemalloc_test.cpp:8)
+</I>&gt;<i> ==28997== 
+</I>&gt;<i> ==28997== Conditional jump or move depends on uninitialised value(s)
+</I>&gt;<i> ==28997==    at 0x4E438E9: arena_run_split (arena.c:454)
+</I>&gt;<i> ==28997==    by 0x4E441DF: arena_run_alloc_helper (arena.c:645)
+</I>&gt;<i> ==28997==    by 0x4E469ED: arena_malloc_large (arena.c:665)
+</I>&gt;<i> ==28997==    by 0x4E3BA48: calloc (arena.h:930)
+</I>&gt;<i> ==28997==    by 0x400661: main (jemalloc_test.cpp:8)
+</I>
+A fix is now available in the dev branch:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/87a02d2bb18dbcb2955541b849bc95862e864803">https://github.com/jemalloc/jemalloc/commit/87a02d2bb18dbcb2955541b849bc95862e864803</A>
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131019/e131edbf/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131019/e131edbf/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000643.html">3.4.0 build log using gcc-4.8.1
+</A></li>
+	<LI>Next message: <A HREF="000646.html">[PATCH 0/2] Add support for old systems based on LinuxThreads.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#644">[ date ]</a>
+              <a href="thread.html#644">[ thread ]</a>
+              <a href="subject.html#644">[ subject ]</a>
+              <a href="author.html#644">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

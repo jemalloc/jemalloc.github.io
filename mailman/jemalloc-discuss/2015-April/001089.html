@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Embedding user metadata along with jemalloc metadata
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Embedding%20user%20metadata%20along%20with%20jemalloc%20metadata&In-Reply-To=%3CCAGvmEXgzRWFuG3cYRQ_UFS6L9PW%3D7FFAU3KWjUJnwdRPMzvvgA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001085.html">
+   <LINK REL="Next"  HREF="001086.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Embedding user metadata along with jemalloc metadata</H1>
+    <B>SNL</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Embedding%20user%20metadata%20along%20with%20jemalloc%20metadata&In-Reply-To=%3CCAGvmEXgzRWFuG3cYRQ_UFS6L9PW%3D7FFAU3KWjUJnwdRPMzvvgA%40mail.gmail.com%3E"
+       TITLE="Embedding user metadata along with jemalloc metadata">snl20465 at gmail.com
+       </A><BR>
+    <I>Wed Apr 29 03:20:05 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001085.html">Embedding user metadata along with jemalloc metadata
+</A></li>
+        <LI>Next message: <A HREF="001086.html">Live allocation iterator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1089">[ date ]</a>
+              <a href="thread.html#1089">[ thread ]</a>
+              <a href="subject.html#1089">[ subject ]</a>
+              <a href="author.html#1089">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Does this question make sense from use case point of view ? Any inputs will
+be highly appreciated.
+
+On Mon, Apr 13, 2015 at 1:02 PM, SNL &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">snl20465 at gmail.com</A>&gt; wrote:
+
+&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> On each allocation, I need to book keep 64 bytes of metadata which
+</I>&gt;<i> describes that allocation. Currently, I do store this metadata outside and
+</I>&gt;<i> look it up when need arises. Needless to say this slows down things for
+</I>&gt;<i> heavily multithreaded programs. I am trying to optimize my design and data
+</I>&gt;<i> structures. It would be great if I can store my metadata along with
+</I>&gt;<i> jemalloc and look it up using jemalloc's quick look up which is already
+</I>&gt;<i> optimized for concurrency.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> I found following threads to be relevant, any inputs on existing
+</I>&gt;<i> implementations will be helpful.
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/issues/203">https://github.com/jemalloc/jemalloc/issues/203</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/1aab320b/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/1aab320b/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001085.html">Embedding user metadata along with jemalloc metadata
+</A></li>
+	<LI>Next message: <A HREF="001086.html">Live allocation iterator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1089">[ date ]</a>
+              <a href="thread.html#1089">[ thread ]</a>
+              <a href="subject.html#1089">[ subject ]</a>
+              <a href="author.html#1089">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3.5.0 regressions on i586
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203.5.0%20regressions%20on%20i586&In-Reply-To=%3CCAJ1KOAghkJQF01X8PQ_ULOyF%3DGVUr3CWji5Bmnx3PK%2BRRrNeoQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000721.html">
+   <LINK REL="Next"  HREF="000724.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3.5.0 regressions on i586</H1>
+    <B>&#304;smail D&#246;nmez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203.5.0%20regressions%20on%20i586&In-Reply-To=%3CCAJ1KOAghkJQF01X8PQ_ULOyF%3DGVUr3CWji5Bmnx3PK%2BRRrNeoQ%40mail.gmail.com%3E"
+       TITLE="jemalloc 3.5.0 regressions on i586">ismail at donmez.ws
+       </A><BR>
+    <I>Tue Jan 28 00:57:08 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000721.html">proposal to include jemalloc in Ruby
+</A></li>
+        <LI>Next message: <A HREF="000724.html">jemalloc 3.5.0 regressions on i586
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#723">[ date ]</a>
+              <a href="thread.html#723">[ thread ]</a>
+              <a href="subject.html#723">[ subject ]</a>
+              <a href="author.html#723">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+With jemalloc 3.5.0 we have a testsuite regression on openSUSE 13.1/i586
+with gcc 4.8.1,
+configured with ./configure --enable-cc-silence
+
+make check fails:
+
+test_stats_chunks:test/unit/stats.c:41: Failed assertion:
+(jet_mallctl(&quot;stats.chunks.total&quot;, &amp;total, &amp;sz, ((void *)0), 0)) ==
+(expected) --&gt; 22 != 0: test_stats_chunks
+
+test_stats_arenas_bins:test/unit/stats.c:291: Failed assertion:
+(jet_mallctl(&quot;stats.arenas.0.bins.0.curruns&quot;, &amp;curruns, &amp;sz, ((void *)0),
+0)) == (expected) --&gt; 22 != 0: test_stats_arenas_bins
+
+test_stats_arenas_lruns:test/unit/stats.c:343: Failed assertion:
+(jet_mallctl(&quot;stats.arenas.0.lruns.0.curruns&quot;, &amp;curruns, &amp;sz, ((void *)0),
+0)) == (expected) --&gt; 22 != 0: test_stats_arenas_lruns
+
+test_oom_errors:test/integration/aligned_alloc.c:59: Failed assertion: (p
+!= ((void *)0) || je_get_errno() != 12) == (false) --&gt; true != false:
+test_oom_errors
+
+test_alignment_errors:test/integration/mallocx.c:53: Failed assertion: (p)
+== (NULL) --&gt; 0x40000000 != 0x0: test_alignment_errors
+
+test_oom_errors:test/integration/posix_memalign.c:53: Failed assertion:
+(posix_memalign(&amp;p, alignment, size)) != (0) --&gt; 0 == 0: test_oom_errors
+
+64bit builds are fine.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140128/da6d38db/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140128/da6d38db/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000721.html">proposal to include jemalloc in Ruby
+</A></li>
+	<LI>Next message: <A HREF="000724.html">jemalloc 3.5.0 regressions on i586
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#723">[ date ]</a>
+              <a href="thread.html#723">[ thread ]</a>
+              <a href="subject.html#723">[ subject ]</a>
+              <a href="author.html#723">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

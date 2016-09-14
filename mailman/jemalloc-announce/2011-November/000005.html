@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 2.2.5 released
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%202.2.5%20released&In-Reply-To=%3C4EC1C0B5.6040606%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000004.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 2.2.5 released</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-announce%40canonware.com?Subject=Re%3A%20jemalloc%202.2.5%20released&In-Reply-To=%3C4EC1C0B5.6040606%40canonware.com%3E"
+       TITLE="jemalloc 2.2.5 released">jasone at canonware.com
+       </A><BR>
+    <I>Mon Nov 14 17:30:29 PST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000004.html">jemalloc 2.2.4 released
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#5">[ date ]</a>
+              <a href="thread.html#5">[ thread ]</a>
+              <a href="subject.html#5">[ subject ]</a>
+              <a href="author.html#5">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>jemalloc 2.2.5 is now available.  This version fixes a serious bug 
+related to reallocation of huge objects (~4 MiB and larger).
+
+   Bug fixes:
+   - Fix huge_ralloc() race when using mremap(2).  This is a serious bug
+     that could cause memory corruption and/or crashes.
+   - Fix huge_ralloc() to maintain chunk statistics.
+   - Fix malloc_stats_print(..., &quot;a&quot;) output.
+
+For the complete ChangeLog, see:
+   <A HREF="http://www.canonware.com/jemalloc/ChangeLog.html">http://www.canonware.com/jemalloc/ChangeLog.html</A>
+
+Direct download:
+   <A HREF="http://www.canonware.com/download/jemalloc/jemalloc-2.2.5.tar.bz2">http://www.canonware.com/download/jemalloc/jemalloc-2.2.5.tar.bz2</A>
+
+Starting point for general information:
+   <A HREF="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000004.html">jemalloc 2.2.4 released
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#5">[ date ]</a>
+              <a href="thread.html#5">[ thread ]</a>
+              <a href="subject.html#5">[ subject ]</a>
+              <a href="author.html#5">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-announce">More information about the jemalloc-announce
+mailing list</a><br>
+</body></html>

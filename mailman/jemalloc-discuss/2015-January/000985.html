@@ -1,0 +1,223 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-3.6.0 erroneously recycles already-allocated memory
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-3.6.0%20erroneously%20recycles%20already-allocated%20memory&In-Reply-To=%3C20150119211126.GA26747%40asml.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000984.html">
+   <LINK REL="Next"  HREF="000986.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-3.6.0 erroneously recycles already-allocated memory</H1>
+    <B>Kurt Wampler</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-3.6.0%20erroneously%20recycles%20already-allocated%20memory&In-Reply-To=%3C20150119211126.GA26747%40asml.com%3E"
+       TITLE="jemalloc-3.6.0 erroneously recycles already-allocated memory">Kurt.Wampler at asml.com
+       </A><BR>
+    <I>Mon Jan 19 13:11:43 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000984.html">memalign() bug found &amp; fixed
+</A></li>
+        <LI>Next message: <A HREF="000986.html">jemalloc-3.6.0 erroneously recycles already-allocated memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#985">[ date ]</a>
+              <a href="thread.html#985">[ thread ]</a>
+              <a href="subject.html#985">[ subject ]</a>
+              <a href="author.html#985">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello again, this time with a more complicated problem.
+
+Context:
+
+We have an x86_64 Linux C++ application which installs a &quot;NewHandler&quot; that
+attempts to cope with an out-of-memory situation [malloc() returns NULL
+pointer] in two ways: (1) It performs some amount of garbage collection,
+and if this fails to free enough memory, (2) it attempts to raise the soft
+virtual memory ceiling with a call to setrlimit(RLIMIT_AS,&lt;new_limit&gt;).
+
+Expected Behavior:
+
+When jemalloc's malloc() is called from libstdc++'s &quot;new&quot; operator, but
+mmap() returns a NULL pointer to jemalloc, indicating an out-of-memory
+condition, jemalloc's malloc() is expected to return a NULL pointer to
+its caller, which will in turn trigger our predefined &quot;NewHandler&quot;.
+
+Observed Behavior:
+
+We found that jemalloc's malloc() does not immediately return a NULL pointer
+after the first failed mmap().  Instead, it returns a series of pointers
+that it had already given to the application, and only returns a NULL pointer
+after the second mmap() fails.  Reassigning already-in-use chunks of memory is
+of course deadly, and our application eventually segfaults.
+
+As evidence of this behavior, I'm including an strace logging the two mmap()
+calls, the malloc() return values before and after the first failed mmap(),
+and the subsequent NULL return from malloc() after the second failed mmap(),
+finally triggering the invocation of the &quot;NewHandler&quot;.  Note that address
+0x2aaade7ffa60 is handed out twice, without ever being freed.  The same
+is true for addresses 0x2aaade7ffab0, 0x2aaade7ffb00, 0x2aaade7ffb50,
+0x2aaade7ffba0, 0x2aaade7ffbf0, 0x2aaade7ffc40, 0x2aaade7ffc9, and
+0x2aaade7ffce0 -- all get handed out twice(!)
+
+I'm also including a partial call stack showing the calls from operator
+new() on down, taken at the moment where the first mmap() fails.
+
+Single-stepping in gdb from that point onward, I find that the NULL returned
+by mmap() is handed up approximately 10 levels before things go awry.  The
+code seems to re-check in several other places for available memory, but
+without finding anything it can dole out.  When it has bubbled up to the
+function je_tcache_alloc_small_hard(), this function calls tcache_alloc_easy().
+In tcache_alloc_easy(), tbin-&gt;ncached is 9, and tbin-&gt;avail[8..0] contains
+the 9 addresses mentioned above.  It seems to be erroneously handing them
+out again from there.
+
+This test case can be reproduced at will within a few minutes of run time.
+
+We have not yet attempted to devise a fix; it took several days of
+investigation to reach this degree of understanding of the problem.
+
+Regards,
+
+Kurt Wampler  (<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Kurt.Wampler at asml.com</A>)
+
+
+&lt;Begin call stack&gt;
+
+#0  emit_backtrace () at src/chunk_mmap.c:22
+#1  0x00002b1ca7a5ed75 in pages_map (addr=0x0, size=4194304) at src/chunk_mmap.c:53
+#2  0x00002b1ca7a5f122 in je_chunk_alloc_mmap (size=4194304, alignment=4194304, zero=0x41c8f9ff) at src/chunk_mmap.c:206
+#3  0x00002b1ca7a5de2b in je_chunk_alloc (size=4194304, alignment=4194304, base=false, zero=0x41c8f9ff, dss_prec=dss_prec_disabled) at src/chunk.c:167
+#4  0x00002b1ca7a5704b in arena_chunk_init_hard (arena=0x2b1ca904b900) at src/arena.c:556
+#5  0x00002b1ca7a5722a in arena_chunk_alloc (arena=0x2b1ca904b900) at src/arena.c:618
+#6  0x00002b1ca7a578be in arena_run_alloc_small (arena=0x2b1ca904b900, size=4096, binind=5) at src/arena.c:758
+#7  0x00002b1ca7a593c3 in arena_bin_nonfull_run_get (arena=0x2b1ca904b900, bin=0x2b1ca904bd18) at src/arena.c:1377
+#8  0x00002b1ca7a594d5 in arena_bin_malloc_hard (arena=0x2b1ca904b900, bin=0x2b1ca904bd18) at src/arena.c:1423
+#9  0x00002b1ca7a59740 in je_arena_tcache_fill_small (arena=0x2b1ca904b900, tbin=0x2aaab08060c8, binind=5, prof_accumbytes=0) at src/arena.c:1481
+#10 0x00002b1ca7a74a58 in je_tcache_alloc_small_hard (tcache=0x2aaab0806000, tbin=0x2aaab08060c8, binind=5) at src/tcache.c:72
+#11 0x00002b1ca7a7420b in je_tcache_alloc_small (tcache=0x2aaab0806000, size=80, zero=false) at include/jemalloc/internal/tcache.h:303
+#12 0x00002b1ca7a4fa2a in je_arena_malloc (arena=0x0, size=80, zero=false, try_tcache=true) at include/jemalloc/internal/arena.h:957
+#13 0x00002b1ca7a482a7 in je_imalloct (size=80, try_tcache=true, arena=0x0) at include/jemalloc/internal/jemalloc_internal.h:771
+#14 0x00002b1ca7a482ef in je_imalloc (size=80) at include/jemalloc/internal/jemalloc_internal.h:780
+#15 0x00002b1ca7a4b1e5 in malloc (size=80) at src/jemalloc.c:929
+#16 0x00000034e8caf50a in operator new () from /lib64/libstdc++.so.6
+
+&lt;End call stack&gt;
+
+
+&lt;Begin strace log&gt;
+
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffa60\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffab0\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffb00\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffb50\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffba0\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffbf0\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffc40\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffc90\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffce0\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(136) @ 0x34e8caf50a ret: 0x2aaade7ec700\n&quot;, 47) = 47
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 mmap(NULL, 4194304, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = -1 ENOMEM (Cannot allocate memory)
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffa60\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffab0\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffb00\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffb50\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffba0\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffbf0\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffc40\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffc90\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x2aaade7ffce0\n&quot;, 46) = 46
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0833840\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(24) @ 0x34e8caf50a ret: 0x2aaab0833840\n&quot;, 46) = 46
+530413 mmap(NULL, 4194304, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = -1 ENOMEM (Cannot allocate memory)
+530413 write(2, &quot;malloc(80) @ 0x34e8caf50a ret: 0x0\n&quot;, 35) = 35
+530413 write(2, &quot;malloc(568) @ 0x37fee6170a ret: 0x2aaadbd58b00\n&quot;, 47) = 47
+530413 open(&quot;/proc/530275/statm&quot;, O_RDONLY) = 11
+530413 fstat(11, {st_mode=S_IFREG|0444, st_size=0, ...}) = 0
+530413 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x2aaadf000000
+530413 read(11, &quot;255102 201354 4801 15221 0 208421 0\n&quot;, 1024) = 36
+530413 close(11)                        = 0
+530413 munmap(0x2aaadf000000, 4096)     = 0
+530413 write(2, &quot;free @ 0x37fee60d5b ptr: 0x2aaadbd58b00\n&quot;, 40) = 40
+530413 write(2, &quot;malloc(568) @ 0x37fee6170a ret: 0x2aaadbd58b00\n&quot;, 47) = 47
+530413 open(&quot;/proc/meminfo&quot;, O_RDONLY)  = 11
+530413 fstat(11, {st_mode=S_IFREG|0444, st_size=0, ...}) = 0
+530413 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x2aaade800000
+530413 read(11, &quot;MemTotal:     132057416 kB\nMemFree:      15519972 &quot;..., 2048) = 783
+530413 read(11, &quot;&quot;, 1024)               = 0
+530413 close(11)                        = 0
+530413 munmap(0x2aaade800000, 4096)     = 0
+530413 write(2, &quot;free @ 0x37fee60d5b ptr: 0x2aaadbd58b00\n&quot;, 40) = 40
+530413 write(2, &quot;NewHandler called, mem 1044897792, free mem 223057&quot;..., 57) = 57
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0ad9510\n&quot;, 40) = 40
+530413 write(2, &quot;free @ 0x34e8cae20e ptr: 0x2aaab0ad9600\n&quot;, 40) = 40
+
+&lt;End strace log&gt;
+-- The information contained in this communication and any attachments is confidential and may be privileged, and is for the sole use of the intended recipient(s). Any unauthorized review, use, disclosure or distribution is prohibited. Unless explicitly stated otherwise in the body of this communication or the attachment thereto (if any), the information is provided on an AS-IS basis without any express or implied warranties or liabilities. To the extent you are relying on this information, you are doing so at your own risk. If you are not the intended recipient, please notify the sender immediately by replying to this message and destroy all copies of this message and any attachments. The sender nor the company/group of companies he or she represents shall be liable for the proper and complete transmission of the information contained in this communication, or for any delay in its receipt.
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000984.html">memalign() bug found &amp; fixed
+</A></li>
+	<LI>Next message: <A HREF="000986.html">jemalloc-3.6.0 erroneously recycles already-allocated memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#985">[ date ]</a>
+              <a href="thread.html#985">[ thread ]</a>
+              <a href="subject.html#985">[ subject ]</a>
+              <a href="author.html#985">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

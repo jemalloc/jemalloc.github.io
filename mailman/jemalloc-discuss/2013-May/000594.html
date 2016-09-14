@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> High amount of private clean data in smaps
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3COFD601CD90.832E71A2-ON85257B7A.00729344-85257B7A.0072B266%40us.ibm.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000593.html">
+   <LINK REL="Next"  HREF="000595.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>High amount of private clean data in smaps</H1>
+    <B>Kurtis Martin</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3COFD601CD90.832E71A2-ON85257B7A.00729344-85257B7A.0072B266%40us.ibm.com%3E"
+       TITLE="High amount of private clean data in smaps">kurtism at us.ibm.com
+       </A><BR>
+    <I>Wed May 29 13:52:45 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000593.html">Default *make install* failing with the absence of	doc/jemalloc.html
+</A></li>
+        <LI>Next message: <A HREF="000595.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#594">[ date ]</a>
+              <a href="thread.html#594">[ thread ]</a>
+              <a href="subject.html#594">[ subject ]</a>
+              <a href="author.html#594">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>We have a java application which has a native component written in C, that 
+makes use of JNI to manage several of our objects that we directly 
+allocate via jemalloc.  One of the goals for our C code is to not allow 
+our processes RSS size to grow beyond a certain point.  To do this our app 
+monitors jemallocs stats.cactive, when it sees that cactive reach a 
+certain point we write certain some of our objects to disk then we free 
+the allocated memory.  In this case, the objects that we are freeing are 
+4K and above, so when we free the pages holding these objects should no 
+longer be active.  That part seems to be working.
+
+After several hours of running our application at full load, we start to 
+see our RSS go beyond what is expected.  This unexpected growth seems to 
+happen faster for some instances of our application vs others.  I compared 
+the /proc smaps file between instances of our app that had a high RSS to 
+those with expected RSS.  In both cases smap shows a really large map that 
+I think belongs to jemalloc.  I believe it belongs to jemalloc, because if 
+it didn't the sum of jemallocs active size + the RSS size of this map goes 
+well beyond our processes overall RSS size. 
+
+The thing that is really strange about this mmap is that it's 
+Private_Clean sizes is really high, e.g. 1.4 GBs.  I don't know much about 
+private clean pages, other than what a few google searchs told me about 
+them being pages that have not been modified since they were mapped.  I'm 
+hopeful that you can tell me more about private clean pages and if/why 
+jemalloc would have maps with such high private clean pages.
+
+Here's one such map from my smaps file and the jemalloc stats around the 
+same time.  At this time /proc status showed our VmRSS size was 10440804 
+kB:
+
+7f41dc200000-7f437a400000 rw-p 00000000 00:00 0 
+Size:            6785024 kB
+Rss:             4037056 kB
+Pss:             4037056 kB
+Shared_Clean:          0 kB
+Shared_Dirty:          0 kB
+Private_Clean:   1499364 kB
+Private_Dirty:   2537692 kB
+Referenced:      2536428 kB
+Swap:                  0 kB
+KernelPageSize:        4 kB
+MMUPageSize:           4 kB
+
+Jemalloc stats:
+
+___ Begin jemalloc statistics ___
+Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+Assertions disabled
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 21
+  opt.dss: &quot;secondary&quot;
+  opt.narenas: 96
+  opt.lg_dirty_mult: 6
+  opt.stats_print: false
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+CPUs: 24
+Arenas: 96
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 64:1
+Chunk size: 2097152 (2^21)
+Allocated: 7350097392, active: 7438028800, mapped: 13549699072
+Current active ceiling: 7486832640
+chunks: nchunks   highchunks    curchunks
+           6927         6622         6461
+huge: nmalloc      ndalloc    allocated
+            0            0            0
+
+Merged arenas stats:
+assigned threads: 93
+dss allocation precedence: N/A
+dirty pages: 1815925:2559 active:dirty, 10091062 sweeps, 30421949 
+madvises, 135567186 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:     1072125424    106372291     99191380    106372291
+large:     6277971968     51052119     50542543     51052119
+total:     7350097392    157424410    149733923    157424410
+active:    7438028800
+mapped:   13545504768
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc 
+newruns       reruns      curruns
+            0     8  501   1          128           30           14    11  
+         0            7
+            1    16  252   1          672           42            0    11  
+         0           11
+            2    32  126   1           64            2            0     1  
+         0            1
+            3    48   84   1    114892800     16709174     14315574 43714  
+   1159683        30488
+            4    64   63   1       851264       167481       154180  3075  
+      1219          235
+            5    80   50   1    190426160     36559908     34179581 115227 
+     4236615        50957
+            6    96   84   2         2112           30            8    11  
+         0            7
+[7..10]
+           11   224   72   4          224            1            0     1  
+         0            1
+[12]
+           13   320   63   5    765952000     52935623     50542023 64485  
+  14712013        40300
+[14..27]
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+[1]
+         8192     2           30            8           30           22
+        12288     3     51050157     50542023     51050157       508134
+        16384     4         1920          512         1920         1408
+[13]
+        73728    18            1            0            1            1
+[23]
+       172032    42            1            0            1            1
+[214]
+      1052672   257           10            0           10           10
+[252]
+--- End jemalloc statistics ---
+
+
+Any help is greatly appreciated
+.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130529/05c02b33/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130529/05c02b33/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000593.html">Default *make install* failing with the absence of	doc/jemalloc.html
+</A></li>
+	<LI>Next message: <A HREF="000595.html">High amount of private clean data in smaps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#594">[ date ]</a>
+              <a href="thread.html#594">[ thread ]</a>
+              <a href="subject.html#594">[ subject ]</a>
+              <a href="author.html#594">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

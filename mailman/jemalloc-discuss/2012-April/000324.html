@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 14/14] Remove leftovers from the vsnprintf check in	malloc_vsnprintf
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2014/14%5D%20Remove%20leftovers%20from%20the%20vsnprintf%20check%20in%0A%09malloc_vsnprintf&In-Reply-To=%3C1334833439-5736-3-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000325.html">
+   <LINK REL="Next"  HREF="000327.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 14/14] Remove leftovers from the vsnprintf check in	malloc_vsnprintf</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2014/14%5D%20Remove%20leftovers%20from%20the%20vsnprintf%20check%20in%0A%09malloc_vsnprintf&In-Reply-To=%3C1334833439-5736-3-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 14/14] Remove leftovers from the vsnprintf check in	malloc_vsnprintf">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Apr 19 04:03:59 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000325.html">[PATCH 13/14] Fixup definition of the tls_callback for win32
+</A></li>
+        <LI>Next message: <A HREF="000327.html">[PATCH 15/15] Fix intmax_t configure error message
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#324">[ date ]</a>
+              <a href="thread.html#324">[ thread ]</a>
+              <a href="subject.html#324">[ subject ]</a>
+              <a href="author.html#324">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+Commit 4eeb52f removed vsnprintf validation, but left a now unused va_copy.
+It so happens that MSVC doesn't support va_copy.
+---
+ src/util.c |    4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/src/util.c b/src/util.c
+index 2f1c8f0..e31644d 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -286,7 +286,6 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 	int ret;
+ 	size_t i;
+ 	const char *f;
+-	va_list tap;
+ 
+ #define	APPEND_C(c) do {						\
+ 	if (i &lt; size)							\
+@@ -357,9 +356,6 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 	}								\
+ } while (0)
+ 
+-	if (config_debug)
+-		va_copy(tap, ap);
+-
+ 	i = 0;
+ 	f = format;
+ 	while (true) {
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000325.html">[PATCH 13/14] Fixup definition of the tls_callback for win32
+</A></li>
+	<LI>Next message: <A HREF="000327.html">[PATCH 15/15] Fix intmax_t configure error message
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#324">[ date ]</a>
+              <a href="thread.html#324">[ thread ]</a>
+              <a href="subject.html#324">[ subject ]</a>
+              <a href="author.html#324">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

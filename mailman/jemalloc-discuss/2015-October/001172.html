@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc usage for bare metal cortex A53 : Multicore 
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20usage%20for%20bare%20metal%20cortex%20A53%20%3A%20Multicore%20&In-Reply-To=%3CCCB8317357699442B304E7B1149BB718033FDB71C6%40EAPEX1MAIL2.st.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001173.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc usage for bare metal cortex A53 : Multicore </H1>
+    <B>Monika TRIPATHI</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20usage%20for%20bare%20metal%20cortex%20A53%20%3A%20Multicore%20&In-Reply-To=%3CCCB8317357699442B304E7B1149BB718033FDB71C6%40EAPEX1MAIL2.st.com%3E"
+       TITLE="jemalloc usage for bare metal cortex A53 : Multicore ">monika.tripathi at st.com
+       </A><BR>
+    <I>Mon Oct  5 04:53:33 PDT 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001173.html">Jemalloc on CYGWIN
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1172">[ date ]</a>
+              <a href="thread.html#1172">[ thread ]</a>
+              <a href="subject.html#1172">[ subject ]</a>
+              <a href="author.html#1172">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+This is regarding usage of jemalloc, I want to use jemalloc for bare metal cortex A53 malloc (since bare metal gcc does not support malloc for multicore).
+
+when I use gcc
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6/lto-wrapper
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu/Linaro 4.6.3-1ubuntu5' --with-bugurl=<A HREF="file:///usr/share/doc/gcc-4.6/README.Bugs">file:///usr/share/doc/gcc-4.6/README.Bugs</A> --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.6 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --enable-plugin --enable-objc-gc --disable-werror --with-arch-32=i686 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.6.3 (Ubuntu/Linaro 4.6.3-1ubuntu5) \
+
+Then I can see the make is OK , where as when I use &quot;bare-4.8.2-3/bin//arm-none-eabi-gcc&quot;
+Then I get error
+
+In file included from include/jemalloc/internal/jemalloc_internal.h:5:0,
+                 from src/jemalloc.c:2:
+include/jemalloc/internal/jemalloc_internal_decls.h:11:24: fatal error: sys/mman.h: No such file or directory
+#  include &lt;sys/mman.h&gt;
+                        ^
+compilation terminated.
+make: *** [src/jemalloc.pic.o] Error 1
+
+Now the problem is since I am working in baremetal I have to use &quot;&quot;bare-4.8.2-3/bin//arm-none-eabi-gcc&quot;
+
+
+So please let me know if there is any limitation for jemalloc i.e. if it don't work with bare metal.
+
+Thanks and Regards,
+Monika
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151005/9378ef64/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151005/9378ef64/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001173.html">Jemalloc on CYGWIN
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1172">[ date ]</a>
+              <a href="thread.html#1172">[ thread ]</a>
+              <a href="subject.html#1172">[ subject ]</a>
+              <a href="author.html#1172">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

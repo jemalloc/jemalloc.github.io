@@ -1,0 +1,425 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3C1334080233-20646-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000238.html">
+   <LINK REL="Next"  HREF="000235.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20chunk_aligned_alloc%20function%20handling%20alignment%0A%09constraints%20on%20chunks&In-Reply-To=%3C1334080233-20646-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr 10 10:50:33 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000238.html">[PATCH] Remove MAP_NORESERVE support
+</A></li>
+        <LI>Next message: <A HREF="000235.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#234">[ date ]</a>
+              <a href="thread.html#234">[ thread ]</a>
+              <a href="subject.html#234">[ subject ]</a>
+              <a href="author.html#234">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ include/jemalloc/internal/chunk.h      |   15 ++++++++++-
+ include/jemalloc/internal/chunk_dss.h  |    2 +-
+ include/jemalloc/internal/chunk_mmap.h |    2 +-
+ src/chunk.c                            |    7 ++---
+ src/chunk_dss.c                        |   46 +++++++++++++++++++-------------
+ src/chunk_mmap.c                       |   28 +++++++++----------
+ src/huge.c                             |   33 ++---------------------
+ 7 files changed, 63 insertions(+), 70 deletions(-)
+
+diff --git a/include/jemalloc/internal/chunk.h b/include/jemalloc/internal/chunk.h
+index 8e24e8f..8ade6eb 100644
+--- a/include/jemalloc/internal/chunk.h
++++ b/include/jemalloc/internal/chunk.h
+@@ -42,7 +42,7 @@ extern size_t		chunk_npages;
+ extern size_t		map_bias; /* Number of arena chunk header pages. */
+ extern size_t		arena_maxclass; /* Max size class for arenas. */
+ 
+-void	*chunk_alloc(size_t size, bool base, bool *zero);
++void	*chunk_aligned_alloc(size_t size, size_t align, bool base, bool *zero);
+ void	chunk_dealloc(void *chunk, size_t size, bool unmap);
+ bool	chunk_boot0(void);
+ bool	chunk_boot1(void);
+@@ -51,6 +51,19 @@ bool	chunk_boot1(void);
+ /******************************************************************************/
+ #ifdef JEMALLOC_H_INLINES
+ 
++#ifndef JEMALLOC_ENABLE_INLINE
++void 	*chunk_alloc(size_t size, bool base, bool *zero);
++#endif
++
++#if (defined(JEMALLOC_ENABLE_INLINE) || defined(JEMALLOC_CHUNK_C_))
++JEMALLOC_INLINE void *
++chunk_alloc(size_t size, bool base, bool *zero)
++{
++
++	return chunk_aligned_alloc(size, chunksize, base, zero);
++}
++#endif
++
+ #endif /* JEMALLOC_H_INLINES */
+ /******************************************************************************/
+ 
+diff --git a/include/jemalloc/internal/chunk_dss.h b/include/jemalloc/internal/chunk_dss.h
+index a39a203..6ef97aa 100644
+--- a/include/jemalloc/internal/chunk_dss.h
++++ b/include/jemalloc/internal/chunk_dss.h
+@@ -9,7 +9,7 @@
+ /******************************************************************************/
+ #ifdef JEMALLOC_H_EXTERNS
+ 
+-void	*chunk_alloc_dss(size_t size, bool *zero);
++void	*chunk_alloc_dss(size_t size, size_t align, bool *zero);
+ bool	chunk_in_dss(void *chunk);
+ bool	chunk_dealloc_dss(void *chunk, size_t size);
+ bool	chunk_dss_boot(void);
+diff --git a/include/jemalloc/internal/chunk_mmap.h b/include/jemalloc/internal/chunk_mmap.h
+index 3f60315..54f693c 100644
+--- a/include/jemalloc/internal/chunk_mmap.h
++++ b/include/jemalloc/internal/chunk_mmap.h
+@@ -9,7 +9,7 @@
+ /******************************************************************************/
+ #ifdef JEMALLOC_H_EXTERNS
+ 
+-void	*chunk_alloc_mmap(size_t size);
++void	*chunk_alloc_mmap(size_t size, size_t align);
+ void	chunk_dealloc_mmap(void *chunk, size_t size);
+ 
+ bool	chunk_mmap_boot(void);
+diff --git a/src/chunk.c b/src/chunk.c
+index 8fcd61e..fc0a1a3 100644
+--- a/src/chunk.c
++++ b/src/chunk.c
+@@ -27,19 +27,20 @@ size_t		arena_maxclass; /* Max size class for arenas. */
+  * advantage of them if they are returned.
+  */
+ void *
+-chunk_alloc(size_t size, bool base, bool *zero)
++chunk_aligned_alloc(size_t size, size_t align, bool base, bool *zero)
+ {
+ 	void *ret;
+ 
+ 	assert(size != 0);
+ 	assert((size &amp; chunksize_mask) == 0);
++	assert((align &amp; chunksize_mask) == 0);
+ 
+ 	if (config_dss) {
+-		ret = chunk_alloc_dss(size, zero);
++		ret = chunk_alloc_dss(size, align, zero);
+ 		if (ret != NULL)
+ 			goto RETURN;
+ 	}
+-	ret = chunk_alloc_mmap(size);
++	ret = chunk_alloc_mmap(size, align);
+ 	if (ret != NULL) {
+ 		*zero = true;
+ 		goto RETURN;
+diff --git a/src/chunk_dss.c b/src/chunk_dss.c
+index 405dc29..ed14d7f 100644
+--- a/src/chunk_dss.c
++++ b/src/chunk_dss.c
+@@ -28,41 +28,49 @@ static extent_tree_t	dss_chunks_ad;
+ /******************************************************************************/
+ /* Function prototypes for non-inline static functions. */
+ 
+-static void	*chunk_recycle_dss(size_t size, bool *zero);
++static void	*chunk_recycle_dss(size_t size, size_t align, bool *zero);
+ static extent_node_t *chunk_dealloc_dss_record(void *chunk, size_t size);
+ 
+ /******************************************************************************/
+ 
+ static void *
+-chunk_recycle_dss(size_t size, bool *zero)
++chunk_recycle_dss(size_t size, size_t align, bool *zero)
+ {
+ 	extent_node_t *node, key;
+ 
+ 	cassert(config_dss);
+ 
+ 	key.addr = NULL;
+-	key.size = size;
++	key.size = size + align - chunksize;
+ 	malloc_mutex_lock(&amp;dss_mtx);
+ 	node = extent_tree_szad_nsearch(&amp;dss_chunks_szad, &amp;key);
+ 	if (node != NULL) {
+-		void *ret = node-&gt;addr;
++		size_t offset = (size_t)((uintptr_t)(node-&gt;addr) &amp; (align - 1));
++		void *ret;
++		if (offset &gt; 0)
++			offset = align - offset;
++		ret = (void *)((uintptr_t)(node-&gt;addr) + offset);
+ 
+ 		/* Remove node from the tree. */
+ 		extent_tree_szad_remove(&amp;dss_chunks_szad, node);
+-		if (node-&gt;size == size) {
+-			extent_tree_ad_remove(&amp;dss_chunks_ad, node);
+-			base_node_dealloc(node);
+-		} else {
+-			/*
+-			 * Insert the remainder of node's address range as a
+-			 * smaller chunk.  Its position within dss_chunks_ad
+-			 * does not change.
+-			 */
+-			assert(node-&gt;size &gt; size);
+-			node-&gt;addr = (void *)((uintptr_t)node-&gt;addr + size);
+-			node-&gt;size -= size;
++		extent_tree_ad_remove(&amp;dss_chunks_ad, node);
++		if (offset &gt; 0) {
++			/* Insert the leading space as a smaller chunk. */
++			node-&gt;size = offset;
+ 			extent_tree_szad_insert(&amp;dss_chunks_szad, node);
++			extent_tree_ad_insert(&amp;dss_chunks_ad, node);
+ 		}
++		if (align - chunksize &gt; offset) {
++			if (offset &gt; 0)
++				node = base_node_alloc();
++			/* Insert the trailing space as a smaller chunk. */
++			node-&gt;addr = (void *)((uintptr_t)(ret) + size);
++			node-&gt;size = align - chunksize - offset;
++			extent_tree_szad_insert(&amp;dss_chunks_szad, node);
++			extent_tree_ad_insert(&amp;dss_chunks_ad, node);
++		} else if (offset == 0)
++			base_node_dealloc(node);
++
+ 		malloc_mutex_unlock(&amp;dss_mtx);
+ 
+ 		if (*zero)
+@@ -75,13 +83,13 @@ chunk_recycle_dss(size_t size, bool *zero)
+ }
+ 
+ void *
+-chunk_alloc_dss(size_t size, bool *zero)
++chunk_alloc_dss(size_t size, size_t align, bool *zero)
+ {
+ 	void *ret;
+ 
+ 	cassert(config_dss);
+ 
+-	ret = chunk_recycle_dss(size, zero);
++	ret = chunk_recycle_dss(size, align, zero);
+ 	if (ret != NULL)
+ 		return (ret);
+ 
+@@ -110,7 +118,7 @@ chunk_alloc_dss(size_t size, bool *zero)
+ 			 * chunk-align the end of the DSS.
+ 			 */
+ 			incr = (intptr_t)size
+-			    - (intptr_t)CHUNK_ADDR2OFFSET(dss_max);
++			    - (intptr_t)((uintptr_t)(dss_max) &amp; (align - 1));
+ 			if (incr == (intptr_t)size)
+ 				ret = dss_max;
+ 			else {
+diff --git a/src/chunk_mmap.c b/src/chunk_mmap.c
+index 6d16191..e3e70fc 100644
+--- a/src/chunk_mmap.c
++++ b/src/chunk_mmap.c
+@@ -17,8 +17,8 @@ malloc_tsd_funcs(JEMALLOC_INLINE, mmap_unaligned, bool, false,
+ 
+ static void	*pages_map(void *addr, size_t size);
+ static void	pages_unmap(void *addr, size_t size);
+-static void	*chunk_alloc_mmap_slow(size_t size, bool unaligned);
+-static void	*chunk_alloc_mmap_internal(size_t size);
++static void	*chunk_alloc_mmap_slow(size_t size, size_t align, bool unaligned);
++static void	*chunk_alloc_mmap_internal(size_t size, size_t align);
+ 
+ /******************************************************************************/
+ 
+@@ -73,7 +73,7 @@ pages_unmap(void *addr, size_t size)
+ }
+ 
+ static void *
+-chunk_alloc_mmap_slow(size_t size, bool unaligned)
++chunk_alloc_mmap_slow(size_t size, size_t align, bool unaligned)
+ {
+ 	void *ret;
+ 	size_t offset;
+@@ -82,21 +82,21 @@ chunk_alloc_mmap_slow(size_t size, bool unaligned)
+ 	if (size + chunksize &lt;= size)
+ 		return (NULL);
+ 
+-	ret = pages_map(NULL, size + chunksize);
++	ret = pages_map(NULL, size + align);
+ 	if (ret == NULL)
+ 		return (NULL);
+ 
+ 	/* Clean up unneeded leading/trailing space. */
+-	offset = CHUNK_ADDR2OFFSET(ret);
++	offset = (size_t)((uintptr_t)(ret) &amp; (align - 1));
+ 	if (offset != 0) {
+ 		/* Note that mmap() returned an unaligned mapping. */
+ 		unaligned = true;
+ 
+ 		/* Leading space. */
+-		pages_unmap(ret, chunksize - offset);
++		pages_unmap(ret, align - offset);
+ 
+ 		ret = (void *)((uintptr_t)ret +
+-		    (chunksize - offset));
++		    (align - offset));
+ 
+ 		/* Trailing space. */
+ 		pages_unmap((void *)((uintptr_t)ret + size),
+@@ -104,7 +104,7 @@ chunk_alloc_mmap_slow(size_t size, bool unaligned)
+ 	} else {
+ 		/* Trailing space only. */
+ 		pages_unmap((void *)((uintptr_t)ret + size),
+-		    chunksize);
++		    align);
+ 	}
+ 
+ 	/*
+@@ -121,7 +121,7 @@ chunk_alloc_mmap_slow(size_t size, bool unaligned)
+ }
+ 
+ static void *
+-chunk_alloc_mmap_internal(size_t size)
++chunk_alloc_mmap_internal(size_t size, size_t align)
+ {
+ 	void *ret;
+ 
+@@ -160,7 +160,7 @@ chunk_alloc_mmap_internal(size_t size)
+ 		if (ret == NULL)
+ 			return (NULL);
+ 
+-		offset = CHUNK_ADDR2OFFSET(ret);
++		offset = (size_t)((uintptr_t)(ret) &amp; (align - 1));
+ 		if (offset != 0) {
+ 			bool mu = true;
+ 			mmap_unaligned_tsd_set(&amp;mu);
+@@ -172,7 +172,7 @@ chunk_alloc_mmap_internal(size_t size)
+ 				 * the reliable-but-expensive method.
+ 				 */
+ 				pages_unmap(ret, size);
+-				ret = chunk_alloc_mmap_slow(size, true);
++				ret = chunk_alloc_mmap_slow(size, align, true);
+ 			} else {
+ 				/* Clean up unneeded leading space. */
+ 				pages_unmap(ret, chunksize - offset);
+@@ -181,16 +181,16 @@ chunk_alloc_mmap_internal(size_t size)
+ 			}
+ 		}
+ 	} else
+-		ret = chunk_alloc_mmap_slow(size, false);
++		ret = chunk_alloc_mmap_slow(size, align, false);
+ 
+ 	return (ret);
+ }
+ 
+ void *
+-chunk_alloc_mmap(size_t size)
++chunk_alloc_mmap(size_t size, size_t align)
+ {
+ 
+-	return (chunk_alloc_mmap_internal(size));
++	return (chunk_alloc_mmap_internal(size, align));
+ }
+ 
+ void
+diff --git a/src/huge.c b/src/huge.c
+index a4e6cc8..efcf5fa 100644
+--- a/src/huge.c
++++ b/src/huge.c
+@@ -69,7 +69,7 @@ void *
+ huge_palloc(size_t size, size_t alignment, bool zero)
+ {
+ 	void *ret;
+-	size_t alloc_size, chunk_size, offset;
++	size_t chunk_size;
+ 	extent_node_t *node;
+ 
+ 	/*
+@@ -84,46 +84,17 @@ huge_palloc(size_t size, size_t alignment, bool zero)
+ 
+ 	chunk_size = CHUNK_CEILING(size);
+ 
+-	if (size &gt;= alignment)
+-		alloc_size = chunk_size + alignment - chunksize;
+-	else
+-		alloc_size = (alignment &lt;&lt; 1) - chunksize;
+-
+ 	/* Allocate an extent node with which to track the chunk. */
+ 	node = base_node_alloc();
+ 	if (node == NULL)
+ 		return (NULL);
+ 
+-	ret = chunk_alloc(alloc_size, false, &amp;zero);
++	ret = chunk_aligned_alloc(size, alignment, false, &amp;zero);
+ 	if (ret == NULL) {
+ 		base_node_dealloc(node);
+ 		return (NULL);
+ 	}
+ 
+-	offset = (uintptr_t)ret &amp; (alignment - 1);
+-	assert((offset &amp; chunksize_mask) == 0);
+-	assert(offset &lt; alloc_size);
+-	if (offset == 0) {
+-		/* Trim trailing space. */
+-		chunk_dealloc((void *)((uintptr_t)ret + chunk_size), alloc_size
+-		    - chunk_size, true);
+-	} else {
+-		size_t trailsize;
+-
+-		/* Trim leading space. */
+-		chunk_dealloc(ret, alignment - offset, true);
+-
+-		ret = (void *)((uintptr_t)ret + (alignment - offset));
+-
+-		trailsize = alloc_size - (alignment - offset) - chunk_size;
+-		if (trailsize != 0) {
+-		    /* Trim trailing space. */
+-		    assert(trailsize &lt; alloc_size);
+-		    chunk_dealloc((void *)((uintptr_t)ret + chunk_size),
+-			trailsize, true);
+-		}
+-	}
+-
+ 	/* Insert node into huge. */
+ 	node-&gt;addr = ret;
+ 	node-&gt;size = chunk_size;
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000238.html">[PATCH] Remove MAP_NORESERVE support
+</A></li>
+	<LI>Next message: <A HREF="000235.html">[PATCH] Add a chunk_aligned_alloc function handling alignment	constraints on chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#234">[ date ]</a>
+              <a href="thread.html#234">[ thread ]</a>
+              <a href="subject.html#234">[ subject ]</a>
+              <a href="author.html#234">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

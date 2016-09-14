@@ -1,0 +1,551 @@
+From bakermb at ornl.gov  Thu Nov  5 11:00:20 2015
+From: bakermb at ornl.gov (Baker, Matthew B.)
+Date: Thu, 5 Nov 2015 19:00:20 +0000
+Subject: Make install broken?
+Message-ID: <D2611174.7AFD%bakermb@ornl.gov>
+
+Hello all,
+
+I was building jemalloc from the 4.0.4 tarball and it looks like the 'make install' is broken.
+I do:
+./configure --prefix=$HOME/jemalloc-bin/
+make
+make install
+
+during make install I get this error:
+
+install -m 644 doc/jemalloc.html /ccs/home/bzf/jemalloc-bin/share/doc/jemalloc
+install: cannot stat `doc/jemalloc.html': No such file or directory
+make: *** [install_doc_html] Error 1
+
+It looks like the normal make won't build documentation, but make install will try and install it anyways.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151105/11b3130f/attachment.html>
+
+From jasone at canonware.com  Thu Nov  5 12:31:33 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 5 Nov 2015 12:31:33 -0800
+Subject: Make install broken?
+In-Reply-To: <D2611174.7AFD%bakermb@ornl.gov>
+References: <D2611174.7AFD%bakermb@ornl.gov>
+Message-ID: <1ACB2912-841C-40C4-8FAE-1EC4ACDE404E@canonware.com>
+
+On Nov 5, 2015, at 11:00 AM, Baker, Matthew B. <bakermb at ornl.gov> wrote:
+> I was building jemalloc from the 4.0.4 tarball and it looks like the ?make install? is broken.
+> I do:
+> ./configure --prefix=$HOME/jemalloc-bin/
+> make
+> make install
+> 
+> during make install I get this error:
+> 
+> install -m 644 doc/jemalloc.html /ccs/home/bzf/jemalloc-bin/share/doc/jemalloc
+> install: cannot stat `doc/jemalloc.html': No such file or directory
+> make: *** [install_doc_html] Error 1
+> 
+> It looks like the normal make won?t build documentation, but make install will try and install it anyways.
+
+
+You should use this tarball:
+
+	https://github.com/jemalloc/jemalloc/releases/download/4.0.4/jemalloc-4.0.4.tar.bz2 <https://github.com/jemalloc/jemalloc/releases/download/4.0.4/jemalloc-4.0.4.tar.bz2>
+
+Not this one:
+
+	https://github.com/jemalloc/jemalloc/archive/4.0.4.tar.gz <https://github.com/jemalloc/jemalloc/archive/4.0.4.tar.gz>
+
+The former has pre-generated configure script, documentation, etc., in order to reduce build dependencies.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151105/ce413fb0/attachment.html>
+
+From ejones at twitter.com  Fri Nov  6 09:50:38 2015
+From: ejones at twitter.com (Evan Jones)
+Date: Fri, 6 Nov 2015 12:50:38 -0500
+Subject: Relationship between opt.prof and opt.prof_leak
+Message-ID: <CAG4wsO5BxX94vddj2iJaAHd_ZvhGqahpATi_SMO6NUtZX-X11g@mail.gmail.com>
+
+Jemalloc's profiling and leak debugging features are super useful, and I've
+used them multiple times to figure out Java native memory leak issues.
+However, I realized I'm not actually sure how the opt.prof and
+opt.prof_leak options relate. I *think* they work like the following, but I
+didn't find the docs super clear, and I only looked at the code for about
+10 minutes. I'm happy to submit a patch to the docs to try and clarify
+this, once I understand it completely:
+
+
+* There is only one type of dump. It contains both "allocated" counts and
+"in use" counts (or free counts which can be used to calculate in use).
+* By default, jeprof will show you the *in use* counts. However, it can
+show you the *allocated* counts instead with --alloc_space or
+--alloc_objects.
+* By default, dumps are "incremental": They contain the objects allocated
+since the last dump. If you want dumps that contain everything since the
+process was started, enable opt.prof_accum.
+
+
+Are these statements accurate? Thanks!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151106/44b9a0e6/attachment.html>
+
+From jasone at canonware.com  Fri Nov  6 12:45:28 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 6 Nov 2015 12:45:28 -0800
+Subject: Relationship between opt.prof and opt.prof_leak
+In-Reply-To: <CAG4wsO5BxX94vddj2iJaAHd_ZvhGqahpATi_SMO6NUtZX-X11g@mail.gmail.com>
+References: <CAG4wsO5BxX94vddj2iJaAHd_ZvhGqahpATi_SMO6NUtZX-X11g@mail.gmail.com>
+Message-ID: <9858FFA5-EA23-4105-B6F0-91169C016A12@canonware.com>
+
+On Nov 6, 2015, at 9:50 AM, Evan Jones <ejones at twitter.com> wrote:
+> Jemalloc's profiling and leak debugging features are super useful, and I've used them multiple times to figure out Java native memory leak issues. However, I realized I'm not actually sure how the opt.prof and opt.prof_leak options relate. I *think* they work like the following, but I didn't find the docs super clear, and I only looked at the code for about 10 minutes. I'm happy to submit a patch to the docs to try and clarify this, once I understand it completely:
+> 
+> 
+> * There is only one type of dump. It contains both "allocated" counts and "in use" counts (or free counts which can be used to calculate in use).
+
+The two types of stats are:
+- Current bytes/objects, aka "inuse" in pprof/jeprof terminology.  These are counts of how many sampled objects currently exist.  Use these stats to understand current memory usage.
+- Cumulative bytes/objects, aka "alloc" in pprof/jeprof terminology.  These are counts of how many sampled bytes/objects have existed since the most recent stats reset (process start or "prof.reset" mallctl call).  Use these stats to understand total allocation volume.
+
+> * By default, jeprof will show you the *in use* counts. However, it can show you the *allocated* counts instead with --alloc_space or --alloc_objects.
+
+Correct.
+
+> * By default, dumps are "incremental": They contain the objects allocated since the last dump. If you want dumps that contain everything since the process was started, enable opt.prof_accum.
+
+No, dumps are always based on the most recent stats reset (process start or "prof.reset" mallctl call).  You can view incremental differences between two dumps by using the --base option to jeprof.
+
+Jason
+
+From ejones at twitter.com  Fri Nov  6 12:53:17 2015
+From: ejones at twitter.com (Evan Jones)
+Date: Fri, 6 Nov 2015 15:53:17 -0500
+Subject: Relationship between opt.prof and opt.prof_leak
+In-Reply-To: <9858FFA5-EA23-4105-B6F0-91169C016A12@canonware.com>
+References: <CAG4wsO5BxX94vddj2iJaAHd_ZvhGqahpATi_SMO6NUtZX-X11g@mail.gmail.com>
+	<9858FFA5-EA23-4105-B6F0-91169C016A12@canonware.com>
+Message-ID: <CAG4wsO4xQqL9kDYVgVXae2eKpGvRe3QLar+7cPOqJJ10pS9x-w@mail.gmail.com>
+
+On Fri, Nov 6, 2015 at 3:45 PM, Jason Evans <jasone at canonware.com> wrote:
+>
+> No, dumps are always based on the most recent stats reset (process start
+> or "prof.reset" mallctl call).  You can view incremental differences
+> between two dumps by using the --base option to jeprof.
+>
+
+Is this true if you use opt.lg_prof_interval? Then what is the point of the
+opt.prof_accum option?
+
+Thanks for the clarification, this was useful. I'll try to make an edit to
+the manual, since I found it confusing.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151106/ff089805/attachment.html>
+
+From jasone at canonware.com  Fri Nov  6 13:57:19 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 6 Nov 2015 13:57:19 -0800
+Subject: Relationship between opt.prof and opt.prof_leak
+In-Reply-To: <CAG4wsO4xQqL9kDYVgVXae2eKpGvRe3QLar+7cPOqJJ10pS9x-w@mail.gmail.com>
+References: <CAG4wsO5BxX94vddj2iJaAHd_ZvhGqahpATi_SMO6NUtZX-X11g@mail.gmail.com>
+	<9858FFA5-EA23-4105-B6F0-91169C016A12@canonware.com>
+	<CAG4wsO4xQqL9kDYVgVXae2eKpGvRe3QLar+7cPOqJJ10pS9x-w@mail.gmail.com>
+Message-ID: <9789EEEF-B70C-4A44-949E-18BB103CFCC8@canonware.com>
+
+On Nov 6, 2015, at 12:53 PM, Evan Jones <ejones at twitter.com> wrote:
+> On Fri, Nov 6, 2015 at 3:45 PM, Jason Evans <jasone at canonware.com <mailto:jasone at canonware.com>> wrote:
+> No, dumps are always based on the most recent stats reset (process start or "prof.reset" mallctl call).  You can view incremental differences between two dumps by using the --base option to jeprof.
+> 
+> Is this true if you use opt.lg_prof_interval? Then what is the point of the opt.prof_accum option?
+
+opt.lg_prof_interval is merely a dump triggering mechanism.  opt.prof_accum controls whether cumulative stats are collected at all.
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151106/eddf7996/attachment.html>
+
+From ejones at twitter.com  Fri Nov  6 14:01:51 2015
+From: ejones at twitter.com (Evan Jones)
+Date: Fri, 6 Nov 2015 17:01:51 -0500
+Subject: Relationship between opt.prof and opt.prof_leak
+In-Reply-To: <9789EEEF-B70C-4A44-949E-18BB103CFCC8@canonware.com>
+References: <CAG4wsO5BxX94vddj2iJaAHd_ZvhGqahpATi_SMO6NUtZX-X11g@mail.gmail.com>
+	<9858FFA5-EA23-4105-B6F0-91169C016A12@canonware.com>
+	<CAG4wsO4xQqL9kDYVgVXae2eKpGvRe3QLar+7cPOqJJ10pS9x-w@mail.gmail.com>
+	<9789EEEF-B70C-4A44-949E-18BB103CFCC8@canonware.com>
+Message-ID: <CAG4wsO6Xh_4uXXd5hGqi-usK=o=cUj3TU=4Tpo6ZoS4oX0BBnQ@mail.gmail.com>
+
+On Fri, Nov 6, 2015 at 4:57 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Nov 6, 2015, at 12:53 PM, Evan Jones <ejones at twitter.com> wrote:
+>
+> On Fri, Nov 6, 2015 at 3:45 PM, Jason Evans <jasone at canonware.com> wrote:
+>>
+>> No, dumps are always based on the most recent stats reset (process start
+>> or "prof.reset" mallctl call).  You can view incremental differences
+>> between two dumps by using the --base option to jeprof.
+>>
+>
+> Is this true if you use opt.lg_prof_interval? Then what is the point of
+> the opt.prof_accum option?
+>
+>
+> opt.lg_prof_interval is merely a dump triggering mechanism.
+>  opt.prof_accum controls whether cumulative stats are collected at all.
+>
+
+There must be something stupid that I don't understand then. You said:
+"dumps are always based on the most recent stats reset", which is usually
+the process start time, unless you do some manual reset. Does this mean
+that prof_accum is *only* useful if you do manually trigger resets using
+mallctl("prof.reset")? Does this mean that with prof_accum:true, the dumps
+contain *both* the data since the last reset *and* the data since profiling
+was enabled?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151106/9d644e87/attachment.html>
+
+From jasone at canonware.com  Sun Nov  8 11:35:39 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 8 Nov 2015 11:35:39 -0800
+Subject: Relationship between opt.prof and opt.prof_leak
+In-Reply-To: <CAG4wsO6Xh_4uXXd5hGqi-usK=o=cUj3TU=4Tpo6ZoS4oX0BBnQ@mail.gmail.com>
+References: <CAG4wsO5BxX94vddj2iJaAHd_ZvhGqahpATi_SMO6NUtZX-X11g@mail.gmail.com>
+	<9858FFA5-EA23-4105-B6F0-91169C016A12@canonware.com>
+	<CAG4wsO4xQqL9kDYVgVXae2eKpGvRe3QLar+7cPOqJJ10pS9x-w@mail.gmail.com>
+	<9789EEEF-B70C-4A44-949E-18BB103CFCC8@canonware.com>
+	<CAG4wsO6Xh_4uXXd5hGqi-usK=o=cUj3TU=4Tpo6ZoS4oX0BBnQ@mail.gmail.com>
+Message-ID: <488450D3-AE35-47C1-B92B-BB07A7E8FD71@canonware.com>
+
+On Nov 6, 2015, at 2:01 PM, Evan Jones <ejones at twitter.com> wrote:
+> On Fri, Nov 6, 2015 at 4:57 PM, Jason Evans <jasone at canonware.com <mailto:jasone at canonware.com>> wrote:
+> On Nov 6, 2015, at 12:53 PM, Evan Jones <ejones at twitter.com <mailto:ejones at twitter.com>> wrote:
+>> On Fri, Nov 6, 2015 at 3:45 PM, Jason Evans <jasone at canonware.com <mailto:jasone at canonware.com>> wrote:
+>> No, dumps are always based on the most recent stats reset (process start or "prof.reset" mallctl call).  You can view incremental differences between two dumps by using the --base option to jeprof.
+>> 
+>> Is this true if you use opt.lg_prof_interval? Then what is the point of the opt.prof_accum option?
+> 
+> opt.lg_prof_interval is merely a dump triggering mechanism.  opt.prof_accum controls whether cumulative stats are collected at all.
+> 
+> There must be something stupid that I don't understand then. You said: "dumps are always based on the most recent stats reset", which is usually the process start time, unless you do some manual reset. Does this mean that prof_accum is *only* useful if you do manually trigger resets using mallctl("prof.reset")? Does this mean that with prof_accum:true, the dumps contain *both* the data since the last reset *and* the data since profiling was enabled?
+
+Take the following function as an example, run with MALLOC_CONF=prof:true,prof_accum:true :
+
+	void	g(void *p);
+
+	void
+	f(void) {
+		unsigned i;
+
+		for (i = 0; i < (1U << 20); i++) {
+			void *p = malloc(1U << 30);
+			if (i == (1U << 19)) {
+				mallctl("prof.dump", NULL, NULL, NULL, 0); /* A */
+				mallctl("prof.reset", NULL, NULL, NULL, 0);
+				mallctl("prof.dump", NULL, NULL, NULL, 0); /* B */
+			}
+			if (p != NULL) {
+				g(p);
+				free(p);
+			}
+		}
+		mallctl("prof.dump", NULL, NULL, NULL, 0); /* C */
+	}
+
+What will the heap profiling stats (as interpreted by jeprof) dumped at A, B, and C say regarding the malloc() site in f()?
+
+A:
+  - Current: ~1 object, ~2^30 bytes
+  - Cumulative: ~2^19 objects, ~2^49 bytes
+B:
+  - Current: 0 objects, 0 bytes
+  - Cumulative: 0 objects, 0 bytes
+C:
+  - Current: 0 objects, 0 bytes
+  - Cumulative: ~2^19 objects, ~2^49 bytes
+
+opt.prof_accum controls whether jemalloc maintains the cumulative stats.  With MALLOC_CONF=prof:true,prof_accum:false, you will get no cumulative stats at all, no matter when/whether any resets occurred.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151108/e7c527fe/attachment.html>
+
+From magickid2001 at 163.com  Mon Nov 16 01:10:15 2015
+From: magickid2001 at 163.com (=?GBK?B?zuK9tcH6?=)
+Date: Mon, 16 Nov 2015 17:10:15 +0800 (CST)
+Subject: how can I check whether any given address was allocated by jemalloc?
+Message-ID: <10ecfefa.e358.1510f8f1925.Coremail.magickid2001@163.com>
+
+How can I check whether any given address was allocated by jemalloc? Is that possible?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151116/bb13a43e/attachment.html>
+
+From ejones at twitter.com  Mon Nov 16 07:21:19 2015
+From: ejones at twitter.com (Evan Jones)
+Date: Mon, 16 Nov 2015 10:21:19 -0500
+Subject: Relationship between opt.prof and opt.prof_leak
+In-Reply-To: <488450D3-AE35-47C1-B92B-BB07A7E8FD71@canonware.com>
+References: <CAG4wsO5BxX94vddj2iJaAHd_ZvhGqahpATi_SMO6NUtZX-X11g@mail.gmail.com>
+	<9858FFA5-EA23-4105-B6F0-91169C016A12@canonware.com>
+	<CAG4wsO4xQqL9kDYVgVXae2eKpGvRe3QLar+7cPOqJJ10pS9x-w@mail.gmail.com>
+	<9789EEEF-B70C-4A44-949E-18BB103CFCC8@canonware.com>
+	<CAG4wsO6Xh_4uXXd5hGqi-usK=o=cUj3TU=4Tpo6ZoS4oX0BBnQ@mail.gmail.com>
+	<488450D3-AE35-47C1-B92B-BB07A7E8FD71@canonware.com>
+Message-ID: <CAG4wsO62q=5HNLXmcWMdxjEDq7MLwfqiQbZVZtOjrdFRyDOKOg@mail.gmail.com>
+
+This explanation makes perfect sense, thanks! I'm also assuming that with
+prof_accum:true, the stats that are logged are *only* the cumulative stats,
+so when you run jeprof that s what you get.
+
+This was extremely helpful, I'm going to try to create a patch for the
+jemalloc man page to make it clearer. This is a super, super useful
+feature, and I'm not sure why I found the configuration options so
+confusing, since I think they are fairly straightforward now that I
+understand them.
+
+
+On Sun, Nov 8, 2015 at 2:35 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Nov 6, 2015, at 2:01 PM, Evan Jones <ejones at twitter.com> wrote:
+>
+> On Fri, Nov 6, 2015 at 4:57 PM, Jason Evans <jasone at canonware.com> wrote:
+>
+>> On Nov 6, 2015, at 12:53 PM, Evan Jones <ejones at twitter.com> wrote:
+>>
+>> On Fri, Nov 6, 2015 at 3:45 PM, Jason Evans <jasone at canonware.com> wrote:
+>>>
+>>> No, dumps are always based on the most recent stats reset (process start
+>>> or "prof.reset" mallctl call).  You can view incremental differences
+>>> between two dumps by using the --base option to jeprof.
+>>>
+>>
+>> Is this true if you use opt.lg_prof_interval? Then what is the point of
+>> the opt.prof_accum option?
+>>
+>>
+>> opt.lg_prof_interval is merely a dump triggering mechanism.
+>>  opt.prof_accum controls whether cumulative stats are collected at all.
+>>
+>
+> There must be something stupid that I don't understand then. You said:
+> "dumps are always based on the most recent stats reset", which is usually
+> the process start time, unless you do some manual reset. Does this mean
+> that prof_accum is *only* useful if you do manually trigger resets using
+> mallctl("prof.reset")? Does this mean that with prof_accum:true, the dumps
+> contain *both* the data since the last reset *and* the data since profiling
+> was enabled?
+>
+>
+> Take the following function as an example, run with
+> MALLOC_CONF=prof:true,prof_accum:true :
+>
+> void g(void *p);
+>
+> void
+> f(void) {
+> unsigned i;
+>
+> for (i = 0; i < (1U << 20); i++) {
+> void *p = malloc(1U << 30);
+> if (i == (1U << 19)) {
+> mallctl("prof.dump", NULL, NULL, NULL, 0); /* A */
+> mallctl("prof.reset", NULL, NULL, NULL, 0);
+> mallctl("prof.dump", NULL, NULL, NULL, 0); /* B */
+> }
+> if (p != NULL) {
+> g(p);
+> free(p);
+> }
+> }
+> mallctl("prof.dump", NULL, NULL, NULL, 0); /* C */
+> }
+>
+> What will the heap profiling stats (as interpreted by jeprof) dumped at A,
+> B, and C say regarding the malloc() site in f()?
+>
+> A:
+>   - Current: ~1 object, ~2^30 bytes
+>   - Cumulative: ~2^19 objects, ~2^49 bytes
+> B:
+>   - Current: 0 objects, 0 bytes
+>   - Cumulative: 0 objects, 0 bytes
+> C:
+>   - Current: 0 objects, 0 bytes
+>   - Cumulative: ~2^19 objects, ~2^49 bytes
+>
+> opt.prof_accum controls whether jemalloc maintains the cumulative stats.
+> With MALLOC_CONF=prof:true,prof_accum:false, you will get no cumulative
+> stats at all, no matter when/whether any resets occurred.
+>
+> Jason
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151116/a8a1ffc0/attachment.html>
+
+From magickid2001 at 163.com  Sun Nov  8 23:25:35 2015
+From: magickid2001 at 163.com (=?GBK?B?zuK9tcH6?=)
+Date: Mon, 9 Nov 2015 15:25:35 +0800 (CST)
+Subject: How can I use jemalloc in windows application by hooking system alloc?
+Message-ID: <78d676ed.b52f.150eb22c22c.Coremail.magickid2001@163.com>
+
+I want to use jemalloc to improve my application performance. There are a lot of third party libs in my application, I do not want to recompile them all. I think hook is a possible way.
+Is there any solution to this problem?
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151109/67b76447/attachment.html>
+
+From jasone at canonware.com  Mon Nov 16 07:59:35 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 16 Nov 2015 07:59:35 -0800
+Subject: how can I check whether any given address was allocated by
+	jemalloc?
+In-Reply-To: <10ecfefa.e358.1510f8f1925.Coremail.magickid2001@163.com>
+References: <10ecfefa.e358.1510f8f1925.Coremail.magickid2001@163.com>
+Message-ID: <664CC32A-B7D1-4878-BBD3-0E26D411605F@canonware.com>
+
+On Nov 16, 2015, at 1:10 AM, ??? <magickid2001 at 163.com <mailto:magickid2001 at 163.com>> wrote:
+> How can I check whether any given address was allocated by jemalloc? Is that possible?
+
+If you configure with --enable-ivsalloc, malloc_usable_size() and sallocx() will return 0 for addresses not managed by jemalloc.  Without --enable-ivsalloc, these functions have undefined behavior (crashes are common) for addresses not managed by jemalloc.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151116/4cdb14bb/attachment.html>
+
+From cparaschiv at ixiacom.com  Wed Nov 18 08:02:00 2015
+From: cparaschiv at ixiacom.com (Cosmin Paraschiv)
+Date: Wed, 18 Nov 2015 18:02:00 +0200
+Subject: [PATCH] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+Message-ID: <1447862520-28997-1-git-send-email-cparaschiv@ixiacom.com>
+
+
+When using LinuxThreads, malloc bootstrapping deadlocks, since malloc_tsd_boot0
+ends up calling pthread_setspecific, which causes recursive allocation. Fix it,
+by moving the malloc_tsd_boot0 call to malloc_init_hard_recursible.
+
+The deadlock has been introduced by commit 8bb3198f72, when tsd_boot was split
+and the top half, tsd_boot0, got an extra tsd_wrapper_set call.
+
+Signed-off-by: Cosmin Paraschiv <cparaschiv at ixiacom.com>
+---
+ src/jemalloc.c | 23 +++++++++++++++++------
+ 1 file changed, 17 insertions(+), 6 deletions(-)
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Call-malloc_tsd_boot0-from-malloc_init_hard_recursib.patch
+Type: text/x-patch
+Size: 1569 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151118/7a700a9a/attachment.bin>
+
+From jv at websupergoo.com  Thu Nov 19 02:08:05 2015
+From: jv at websupergoo.com (Jos Vernon)
+Date: Thu, 19 Nov 2015 10:08:05 +0000
+Subject: Configuration Script for Windows
+Message-ID: <CALcfDgAcf_pHR12SH=_mQC0C8Kh0FjfXV6UbAJD7fPQQ2kwEQw@mail.gmail.com>
+
+Hi
+
+I've been using the GitHub shines77/jemalloc-win32 for a while -  that uses
+jemalloc 3.6.0.
+
+However recently I've hit problems relating to leaks in highly threaded
+environments. I know these are jemalloc related because if I swap out
+jemalloc for a different memory manager then they go away.
+
+So it would seem to me that the first thing to do is to upgrade to 4.0.4 to
+see if the issue is resolved. However I am having some problem getting this
+to work under MSVC.
+
+I can see that this is supposed to work because I can see MSVC bits in the
+config code. However there are lots of questions about this and a notable
+dearth of people who have been successful in this area. That includes me
+after my first day. :-(
+
+The MSVC bit is easy. It's getting the config to generate the right bits
+that is difficult.
+
+I'm using cygwin. I've put the Visual Studio 2012 environment variables
+into my shell so I can use MSVC CL and then I've done an ./autogen.sl
+CC=CL.
+
+This seems to work more or less ok. The results look feasible,.But then I'm
+missing important bits like sensible values in size_classes.h.
+
+I would love any pointers here. I'm pretty hot on VC++ so once I get the
+config going it will be fine. I am sure that will also be useful for other
+people who want to do similar things.
+
+Jos
+
+----------------------------------------------------------------------
+jos vernon
+http://www.websupergoo.com/
+.NET Image Components & Consultancy
+----------------------------------------------------------------------
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151119/496e1e2a/attachment.html>
+
+From jakob.buchgraber at tum.de  Wed Nov 25 08:14:38 2015
+From: jakob.buchgraber at tum.de (Jakob Buchgraber)
+Date: Wed, 25 Nov 2015 17:14:38 +0100
+Subject: jemalloc hooks clarifications
+Message-ID: <CANP6M4s0Xc+k7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA@mail.gmail.com>
+
+Hello Jason,
+
+I am playing around with the memory management hooks introduced in version
+4.
+So I wrote a delegate for the default chunk hooks, that additionally report
+to
+stdout what's happening [1].
+
+The test program allocates 1GB of memory and immediately frees it.
+It then tries to allocate 4MB and 8MB. The output is as follows
+
+ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1,
+arena_ind 0, ret 0x7f2f52a00000
+DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length
+1073741824, arena_ind 0
+PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824,
+arena_ind 0
+FREED
+ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1,
+arena_ind 0, ret 0x7f2f52a00000
+ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1,
+arena_ind 0, ret 0x7f2f52e00000
+
+Given that the 1GB has not been deallocated, but purged I would expect
+the last two ALLOCations not to have happened. Instead I would expect
+the virtual memory from the 1GB allocation before to be reused?
+
+I am running jemalloc 4.0.4 on Linux.
+
+Also, on an unrelated note, is it generally safe to trigger purging for
+arena A
+from within an allocation chunk hook of arena B, with A <> B?
+The reason why am asking this question is that I would generally want to
+run with purging disabled on all arenas, but if some threshold of committed
+memory is surpassed I would like to enable purging for some arenas.
+Does this sound feasible?
+
+Thanks,
+Jakob
+
+[1] https://gist.github.com/buchgr/243b0aa9a2abeda2ac39
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151125/1e60ca48/attachment.html>
+

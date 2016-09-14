@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc hooks clarifications
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20hooks%20clarifications&In-Reply-To=%3CCBD9B88C-46DF-4950-91DC-DA910D578787%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001218.html">
+   <LINK REL="Next"  HREF="001219.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc hooks clarifications</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20hooks%20clarifications&In-Reply-To=%3CCBD9B88C-46DF-4950-91DC-DA910D578787%40canonware.com%3E"
+       TITLE="jemalloc hooks clarifications">jasone at canonware.com
+       </A><BR>
+    <I>Wed Dec 23 09:20:24 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001218.html">jemalloc hooks clarifications
+</A></li>
+        <LI>Next message: <A HREF="001219.html">Failed assertion: &quot;pageind &gt;= map_bias&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1230">[ date ]</a>
+              <a href="thread.html#1230">[ thread ]</a>
+              <a href="subject.html#1230">[ subject ]</a>
+              <a href="author.html#1230">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 25, 2015, at 8:14 AM, Jakob Buchgraber &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jakob.buchgraber at tum.de</A>&gt; wrote:
+&gt;<i> I am playing around with the memory management hooks introduced in version 4.
+</I>&gt;<i> So I wrote a delegate for the default chunk hooks, that additionally report to
+</I>&gt;<i> stdout what's happening [1]. 
+</I>&gt;<i> 
+</I>&gt;<i> The test program allocates 1GB of memory and immediately frees it.
+</I>&gt;<i> It then tries to allocate 4MB and 8MB. The output is as follows
+</I>&gt;<i> 
+</I>&gt;<i> ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52a00000
+</I>&gt;<i> DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+</I>&gt;<i> DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824, arena_ind 0
+</I>&gt;<i> PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824, arena_ind 0
+</I>&gt;<i> FREED
+</I>&gt;<i> ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52a00000
+</I>&gt;<i> ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52e00000
+</I>&gt;<i> 
+</I>&gt;<i> Given that the 1GB has not been deallocated, but purged I would expect 
+</I>&gt;<i> the last two ALLOCations not to have happened. Instead I would expect
+</I>&gt;<i> the virtual memory from the 1GB allocation before to be reused?
+</I>
+It looks to me like the first ALLOC gets 2^30 bytes at 0x7f2f52a00000, and the DALLOC/DECOMMIT/PURGE logging indicates that during free() the memory is madvise()d away, but the virtual memory is cached for future use.  Then the ALLOCs of 2^22 and 2^23 bytes use the lowest contiguous parts of the cached virtual memory (0x7f2f52a00000 == 0x7f2f52a00000 for the 2^30 and 2^22 allocations).  If I understand correctly, this exactly matches your expectations.
+
+&gt;<i> Also, on an unrelated note, is it generally safe to trigger purging for arena A
+</I>&gt;<i> from within an allocation chunk hook of arena B, with A &lt;&gt; B? 
+</I>&gt;<i> The reason why am asking this question is that I would generally want to 
+</I>&gt;<i> run with purging disabled on all arenas, but if some threshold of committed 
+</I>&gt;<i> memory is surpassed I would like to enable purging for some arenas. 
+</I>&gt;<i> Does this sound feasible?
+</I>
+Currently this will probably work, but isn't in general safe.  I have some long term plans to allocate internal metadata from the auto arenas (maybe just arena 0, maybe any auto arena, depending on how things work out), so that it is possible to do low overhead full arena reset without losing critical metadata (<A HREF="https://github.com/jemalloc/jemalloc/issues/146">https://github.com/jemalloc/jemalloc/issues/146</A>).  These changes would create the potential for deadlock in what you're proposing.
+
+Cheers,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001218.html">jemalloc hooks clarifications
+</A></li>
+	<LI>Next message: <A HREF="001219.html">Failed assertion: &quot;pageind &gt;= map_bias&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1230">[ date ]</a>
+              <a href="thread.html#1230">[ thread ]</a>
+              <a href="subject.html#1230">[ subject ]</a>
+              <a href="author.html#1230">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

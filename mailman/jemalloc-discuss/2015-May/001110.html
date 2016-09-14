@@ -1,0 +1,198 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Add chunk_dealloc_dss() to jemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Add%20chunk_dealloc_dss%28%29%20to%20jemalloc&In-Reply-To=%3CCACthwYiYnZtUk0V%3DPEbUzw7Q1-PLBUsTLKRP5St%3DE6zg-vMgAA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001111.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Add chunk_dealloc_dss() to jemalloc</H1>
+    <B>sanjay khanna</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Add%20chunk_dealloc_dss%28%29%20to%20jemalloc&In-Reply-To=%3CCACthwYiYnZtUk0V%3DPEbUzw7Q1-PLBUsTLKRP5St%3DE6zg-vMgAA%40mail.gmail.com%3E"
+       TITLE="Add chunk_dealloc_dss() to jemalloc">khannasusa at gmail.com
+       </A><BR>
+    <I>Tue May 26 12:18:24 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001111.html">patch to compile with clang/llvm for Android arm64 and mips	targets
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1110">[ date ]</a>
+              <a href="thread.html#1110">[ thread ]</a>
+              <a href="subject.html#1110">[ subject ]</a>
+              <a href="author.html#1110">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi folks
+
+I am finding that on freebsd systems using DSS as primary and mmap as
+secondary way to map pages/chunks, the resident/VM size of process never
+goes down. This is because chunk_unmap() never does anything to reduce
+dss_max.
+
+The complete diff below shows a possible way to reduce memory footprint of
+a running program. Since I am not an active jemalloc coder/contributor, I
+would request active coders to comment on it and commit it if they find it
+useful.
+
+These diffs are based off of 3.5.0.
+test program= starts with a size of 1MB, malloc(), then free() and doubles
+size. then  loop 10x times.
+
+SIZE = total size of the test program (text, data and stack)
+dss_max = this is the variable in the code used to track max BRK
+
+----Before-------                     ----- After -----------
+SIZE    dss_max                   SIZE    dss_max
+18572K    0x9000000        18572K    0x9000000
+26764K    0x9800000        1384K    0x9400000
+43148K    0xa800000        30860K    0x9c00000
+75916K    0xc800000        47244K    0xac00000
+138M    0x10800000        80012K    0xcc00000
+266M    0x18800000        142M    0x10c00000
+522M    0x28800000        270M    0x18c00000
+1034M    0x48800000        526M    0x28c00000
+2058M    0x88800000        1038M    0x48c00000
+2058M    0x88800000        14476K    0x8c00000
+
+
+The data above shows the VM size of the program shrinking and expanding as
+the need may be with the fix. This will be very useful for embedded systems
+which are always tight on memory.
+
+thanks
+--sk
+
+Index: external/bsd/jemalloc/dist/include/jemalloc/internal/chunk_dss.h
+===================================================================
+--- external/bsd/jemalloc/dist/include/jemalloc/internal/chunk_dss.h
+(revision 715468)
++++ external/bsd/jemalloc/dist/include/jemalloc/internal/chunk_dss.h
+(working copy)
+@@ -35,6 +35,7 @@ bool  chunk_dss_boot(void);
+ void   chunk_dss_prefork(void);
+ void   chunk_dss_postfork_parent(void);
+ void   chunk_dss_postfork_child(void);
++bool    chunk_dealloc_dss(void *, size_t);
+
+ #endif /* JEMALLOC_H_EXTERNS */
+ /******************************************************************************/
+Index: external/bsd/jemalloc/dist/src/chunk.c
+===================================================================
+--- external/bsd/jemalloc/dist/src/chunk.c      (revision 715468)
++++ external/bsd/jemalloc/dist/src/chunk.c      (working copy)
+@@ -305,7 +305,7 @@ chunk_unmap(void *chunk, size_t size)
+        assert(size != 0);
+        assert((size &amp; chunksize_mask) == 0);
+
+-       if (config_dss &amp;&amp; chunk_in_dss(chunk))
++       if (config_dss &amp;&amp; chunk_in_dss(chunk) &amp;&amp; chunk_dealloc_dss(chunk,
+size))
+                chunk_record(&amp;chunks_szad_dss, &amp;chunks_ad_dss, chunk, size);
+        else if (chunk_dealloc_mmap(chunk, size))
+                chunk_record(&amp;chunks_szad_mmap, &amp;chunks_ad_mmap, chunk,
+size);
+Index: external/bsd/jemalloc/dist/src/chunk_dss.c
+===================================================================
+--- external/bsd/jemalloc/dist/src/chunk_dss.c  (revision 715468)
++++ external/bsd/jemalloc/dist/src/chunk_dss.c  (working copy)
+@@ -139,6 +139,28 @@ chunk_alloc_dss(size_t size, size_t alignment, boo
+ }
+
+ bool
++chunk_dealloc_dss(void *chunk, size_t size)
++{
++    bool ret;
++    int rc;
++
++    if (config_munmap == false) {
++       return true;
++    }
++
++    cassert(config_dss);
++    malloc_mutex_lock(&amp;dss_mtx);
++    if (((uintptr_t)chunk + (uintptr_t)size) == (uintptr_t)dss_max) {
++       int rc;
++       rc = brk(chunk);
++       dss_max = chunk;
++       return(rc != 0);
++    }
++    malloc_mutex_unlock(&amp;dss_mtx);
++    return true;
++}
++
++bool
+ chunk_in_dss(void *chunk)
+ {
+        bool ret;
+Index:
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_unnamespace.h
+===================================================================
+---
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_unnamespace.h
+(revision 715468)
++++
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_unnamespace.h
+(working copy)
+@@ -129,6 +129,7 @@
+ #undef chunk_dss_prec_set
+ #undef chunk_dss_prefork
+ #undef chunk_in_dss
++#undef chunk_dealloc_dss
+ #undef chunk_npages
+ #undef chunk_postfork_child
+ #undef chunk_postfork_parent
+Index:
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_namespace.h
+===================================================================
+---
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_namespace.h
+(revision 715468)
++++
+external/bsd/jemalloc/lib/libjemalloc/include/jemalloc/internal/private_namespace.h
+(working copy)
+@@ -129,6 +129,7 @@
+ #define        chunk_dss_prec_set JEMALLOC_N(chunk_dss_prec_set)
+ #define        chunk_dss_prefork JEMALLOC_N(chunk_dss_prefork)
+ #define        chunk_in_dss JEMALLOC_N(chunk_in_dss)
++#define        chunk_dealloc_dss JEMALLOC_N(chunk_dealloc_dss)
+ #define        chunk_npages JEMALLOC_N(chunk_npages)
+ #define        chunk_postfork_child JEMALLOC_N(chunk_postfork_child)
+ #define        chunk_postfork_parent JEMALLOC_N(chunk_postfork_parent)
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150526/8addc5b2/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150526/8addc5b2/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001111.html">patch to compile with clang/llvm for Android arm64 and mips	targets
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1110">[ date ]</a>
+              <a href="thread.html#1110">[ thread ]</a>
+              <a href="subject.html#1110">[ subject ]</a>
+              <a href="author.html#1110">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

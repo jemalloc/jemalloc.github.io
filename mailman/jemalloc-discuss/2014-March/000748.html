@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc out of memory crash 3.5.*
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20out%20of%20memory%20crash%203.5.%2A&In-Reply-To=%3C20140327223525.27eedad4%40darkbook.lan.box%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000747.html">
+   <LINK REL="Next"  HREF="000749.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc out of memory crash 3.5.*</H1>
+    <B>Ricardo Nabinger Sanchez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20out%20of%20memory%20crash%203.5.%2A&In-Reply-To=%3C20140327223525.27eedad4%40darkbook.lan.box%3E"
+       TITLE="jemalloc out of memory crash 3.5.*">rnsanchez at wait4.org
+       </A><BR>
+    <I>Thu Mar 27 18:35:25 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000747.html">jemalloc out of memory crash 3.5.*
+</A></li>
+        <LI>Next message: <A HREF="000749.html">jemalloc out of memory crash 3.5.*
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#748">[ date ]</a>
+              <a href="thread.html#748">[ thread ]</a>
+              <a href="subject.html#748">[ subject ]</a>
+              <a href="author.html#748">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Christopher,
+
+On Thu, 27 Mar 2014 12:42:01 -0700
+Christopher Pride &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cpride at cpride.net</A>&gt; wrote:
+
+&gt;<i> We hit a jemalloc out of memory crash in the 3.5.* line. It looks like a
+</I>&gt;<i> simple NULL check is missing from a refactor. More information is
+</I>&gt;<i> documented in the pull request for a fix on github here:
+</I>&gt;<i> 
+</I>&gt;<i> <A HREF="https://github.com/jemalloc/jemalloc/pull/60">https://github.com/jemalloc/jemalloc/pull/60</A>
+</I>
+Any chance this crash looks like this one?
+
+Program received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7ffff68ed700 (LWP 2213)]
+0x00007ffff7258498 in je_arena_mapbitsp_read (mapbitsp=0x48) at include/jemalloc/internal/arena.h:525
+525 &#160; &#160; &#160; &#160; &#160; &#160; return (*mapbitsp);
+(gdb) bt f
+#0 &#160;0x00007ffff7258498 in je_arena_mapbitsp_read (mapbitsp=0x48) at include/jemalloc/internal/arena.h:525
+No locals.
+#1 &#160;0x00007ffff72584c8 in je_arena_mapbits_get (chunk=0x0, pageind=8) at include/jemalloc/internal/arena.h:532
+No locals.
+#2 &#160;0x00007ffff72584ed in je_arena_mapbits_unallocated_size_get (chunk=0x0, pageind=8) at include/jemalloc/internal/arena.h:540
+&#160; &#160; &#160; &#160; mapbits = 140737339856325
+#3 &#160;0x00007ffff72601fe in arena_avail_insert (arena=0x7ffff64a4d40, chunk=0x0, pageind=8, npages=1016, maybe_adjac_pred=false,&#160;
+&#160; &#160; maybe_adjac_succ=false) at src/arena.c:218
+No locals.
+#4 &#160;0x00007ffff72617fd in arena_chunk_alloc (arena=0x7ffff64a4d40) at src/arena.c:621
+&#160; &#160; &#160; &#160; chunk = 0x0
+#5 &#160;0x00007ffff7261c8a in arena_run_alloc_large (arena=0x7ffff64a4d40, size=331776, zero=true) at src/arena.c:699
+&#160; &#160; &#160; &#160; chunk = 0x7ffff68ec0c0
+&#160; &#160; &#160; &#160; run = 0x0
+#6 &#160;0x00007ffff7264a83 in je_arena_malloc_large (arena=0x7ffff64a4d40, size=331776, zero=true) at src/arena.c:1663
+&#160; &#160; &#160; &#160; ret = 0x7fffe264a03c
+&#160; &#160; &#160; &#160; idump = false
+#7 &#160;0x00007ffff7259afa in je_arena_malloc (arena=0x0, size=327704, zero=true, try_tcache=true) at include/jemalloc/internal/arena.h:971
+&#160; &#160; &#160; &#160; tcache = 0x7fffe264a020
+#8 &#160;0x00007ffff7251ec8 in je_icalloct (size=327704, try_tcache=true, arena=0x0) at include/jemalloc/internal/jemalloc_internal.h:788
+No locals.
+#9 &#160;0x00007ffff7251f04 in je_icalloc (size=327704) at include/jemalloc/internal/jemalloc_internal.h:797
+No locals.
+#10 0x00007ffff72559e6 in calloc (num=1, size=327704) at src/jemalloc.c:1158
+&#160; &#160; &#160; &#160; ret = 0x7fffe0c00977
+&#160; &#160; &#160; &#160; num_size = 327704
+&#160; &#160; &#160; &#160; usize = 331776
+&lt;...&gt;
+
+I had saved this backtrace for further inspection a few weeks ago, and it
+is reasonably easy to reproduce.  My scenario matches the OOM mentioned in
+the pull request.
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           <A HREF="http://rnsanchez.wait4.org/">http://rnsanchez.wait4.org/</A>
+  &quot;Left to themselves, things tend to go from bad to worse.&quot;
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000747.html">jemalloc out of memory crash 3.5.*
+</A></li>
+	<LI>Next message: <A HREF="000749.html">jemalloc out of memory crash 3.5.*
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#748">[ date ]</a>
+              <a href="thread.html#748">[ thread ]</a>
+              <a href="subject.html#748">[ subject ]</a>
+              <a href="author.html#748">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

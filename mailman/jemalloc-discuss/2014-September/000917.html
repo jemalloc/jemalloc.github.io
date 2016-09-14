@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Rounding up huge allocations to page boundaries instead of chunks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Rounding%20up%20huge%20allocations%20to%20page%20boundaries%20instead%20of%20chunks&In-Reply-To=%3C9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000916.html">
+   <LINK REL="Next"  HREF="000918.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Rounding up huge allocations to page boundaries instead of chunks</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Rounding%20up%20huge%20allocations%20to%20page%20boundaries%20instead%20of%20chunks&In-Reply-To=%3C9E06E2F3-9BE0-44E3-8EDC-4A9FA99F8F06%40canonware.com%3E"
+       TITLE="Rounding up huge allocations to page boundaries instead of chunks">jasone at canonware.com
+       </A><BR>
+    <I>Fri Sep  5 14:40:08 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000916.html">[OS X] Configuring jemalloc via je_malloc_conf
+</A></li>
+        <LI>Next message: <A HREF="000918.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#917">[ date ]</a>
+              <a href="thread.html#917">[ thread ]</a>
+              <a href="subject.html#917">[ subject ]</a>
+              <a href="author.html#917">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Aug 21, 2014, at 2:52 PM, Guilherme Goncalves &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ggp at mozilla.com</A>&gt; wrote:
+&gt;<i> As part of our effort to move to jemalloc3 on Firefox, it would be interesting to upstream the
+</I>&gt;<i> changes introduced into mozjemalloc in bug 683597 [1]. Basically, we've observed that, at least
+</I>&gt;<i> on Linux and OSX, the operating system will commit pages lazily when they're written to (as opposed
+</I>&gt;<i> to when they're mapped by jemalloc). This distorts the allocation stats for huge allocations, as
+</I>&gt;<i> they are rounded up to chunk boundaries.
+</I>&gt;<i> 
+</I>&gt;<i> For a concrete example, a huge allocation of size 1 chunk + 1 byte will cause jemalloc to map 2
+</I>&gt;<i> chunks, but the application will only ever physically use 1 chunk + 1 page. I haven't found any
+</I>&gt;<i> stats on jemalloc3 that reflect this smaller memory footprint; as far as I can see, all of the
+</I>&gt;<i> available stats.* metrics report multiples of the chunk size. There was some previous discussion
+</I>&gt;<i> about this on this list a few years ago, but it didn't seem to move forward at the time [2].
+</I>&gt;<i> 
+</I>&gt;<i> Would you be interested in upstreaming such change? I took a shot at adapting the old patch on that
+</I>&gt;<i> bug to the current jemalloc3 repository [3], and it doesn't look like this would introduce too much
+</I>&gt;<i> bookkeeping. I did seem to break some assumptions in other API functions (see the FIXME note on
+</I>&gt;<i> huge_salloc), so it may be easier to just introduce a new statistic instead of tweaking the existing
+</I>&gt;<i> size field in chunks. Thoughts?
+</I>&gt;<i> 
+</I>&gt;<i> 1- <A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=683597">https://bugzilla.mozilla.org/show_bug.cgi?id=683597</A>
+</I>&gt;<i> 2- <A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2012-April/000221.html">http://www.canonware.com/pipermail/jemalloc-discuss/2012-April/000221.html</A>
+</I>&gt;<i> 3- <A HREF="https://github.com/guilherme-pg/jemalloc/commit/9ca3ca5f92053f3e605f7b470ade6e53e8fa5160">https://github.com/guilherme-pg/jemalloc/commit/9ca3ca5f92053f3e605f7b470ade6e53e8fa5160</A>
+</I>
+The main reason for the current approach for huge allocation size classes is that even if jemalloc avoids allocating virtual memory for the trailing unneeded space, every chunk must start at a chunk alignment boundary, so the resulting virtual memory holes are unusable by jemalloc.  In principle these holes could be useful to some auxiliary allocator in applications that use mmap() directly, but that's not a common use case.  Furthermore, these virtual memory holes cause map fragmentation in the kernel-level virtual memory data structures, and such holes are especially harmful on Linux, which uses linear map scan algorithms in some critical paths.  We have strong pressure to actually map full chunks, so historically I held the opinion that if we're mapping the virtual memory, we might as well make it available to the application.
+
+That said, I laid some groundwork for unifying size classes (<A HREF="https://github.com/jemalloc/jemalloc/issues/77">https://github.com/jemalloc/jemalloc/issues/77</A>) this spring:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0">https://github.com/jemalloc/jemalloc/commit/d04047cc29bbc9d1f87a9346d1601e3dd87b6ca0</A>
+
+The practical impact to your use case is that we'd go from having
+
+	[4MiB, 8MiB, ..., (4n)MiB]
+to
+	[4MiB, 5MiB, 6MiB, 7MiB],
+	[8MiB, 10MiB, 12MiB, 14MiB],
+	[...],
+	[(4m)MiB, (4m+1)MiB, (4m+2)MiB, (4m+3)MiB]
+
+The implementation for the 4MiB..14MiB size classes will in effect need to manipulate the chunk metadata in the same way as your patch does.
+
+Will this sufficiently address your accounting concerns?  There's the potential to over-report active memory by nearly 1.2X in the worst case, but that's a lot better than nearly 2X as things currently are.
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000916.html">[OS X] Configuring jemalloc via je_malloc_conf
+</A></li>
+	<LI>Next message: <A HREF="000918.html">Rounding up huge allocations to page boundaries instead of chunks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#917">[ date ]</a>
+              <a href="thread.html#917">[ thread ]</a>
+              <a href="subject.html#917">[ subject ]</a>
+              <a href="author.html#917">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

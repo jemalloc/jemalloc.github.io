@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> crash on je_arena_dalloc_bin_locked
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20crash%20on%20je_arena_dalloc_bin_locked&In-Reply-To=%3CCAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK%2B2STu-9w%2B%3DrV3A2jQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000873.html">
+   <LINK REL="Next"  HREF="000875.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>crash on je_arena_dalloc_bin_locked</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20crash%20on%20je_arena_dalloc_bin_locked&In-Reply-To=%3CCAMAQheNabeje1rqJj-EpcQ35TT5-QA8EK%2B2STu-9w%2B%3DrV3A2jQ%40mail.gmail.com%3E"
+       TITLE="crash on je_arena_dalloc_bin_locked">edsiper at gmail.com
+       </A><BR>
+    <I>Tue Jul  8 13:28:03 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000873.html">Allocation latency during fork
+</A></li>
+        <LI>Next message: <A HREF="000875.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#874">[ date ]</a>
+              <a href="thread.html#874">[ thread ]</a>
+              <a href="subject.html#874">[ subject ]</a>
+              <a href="author.html#874">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi All,
+
+i am using jemalloc as part of our web services framework stack and
+running on high loads (after every 6 hours of work) i find common
+segfaults like the one described here.
+
+It was triggered on je_arena_dalloc_bin_locked(..). Do you have some
+idea that what can be causing the problem ?
+
+(gdb) bt
+#0  0x00007f50eab23425 in __GI_raise (sig=&lt;optimized out&gt;) at
+../nptl/sysdeps/unix/sysv/linux/raise.c:64
+#1  0x00007f50eab26b8b in __GI_abort () at abort.c:91
+#2  0x000000000040d232 in mk_signal_handler (signo=11,
+si=0x7f50de7f96f0, context=0x7f50de7f95c0) at mk_signals.c:108
+#3  &lt;signal handler called&gt;
+#4  je_arena_dalloc_bin_locked (arena=0x7f50ea409240,
+chunk=0x7f50e4c00000, ptr=&lt;optimized out&gt;, mapelm=&lt;optimized out&gt;) at
+src/arena.c:1897
+#5  0x000000000043fd55 in je_tcache_bin_flush_small
+(tbin=0x7f50dac06248, binind=17, rem=0, tcache=0x7f50dac06000) at
+src/tcache.c:127
+#6  0x000000000044052d in je_tcache_event_hard (tcache=0x7f50dac06000)
+at src/tcache.c:39
+#7  0x000000000041a61f in je_tcache_event (tcache=0x7f50dac06000) at
+include/jemalloc/internal/tcache.h:271
+#8  je_tcache_alloc_large (size=&lt;optimized out&gt;, tcache=&lt;optimized
+out&gt;, zero=&lt;optimized out&gt;) at include/jemalloc/internal/tcache.h:384
+#9  je_arena_malloc (zero=false, size=&lt;optimized out&gt;, arena=0x0,
+try_tcache=true) at include/jemalloc/internal/arena.h:969
+#10 je_imalloct (arena=0x0, try_tcache=true, size=&lt;optimized out&gt;) at
+include/jemalloc/internal/jemalloc_internal.h:771
+#11 je_imalloc (size=&lt;optimized out&gt;) at
+include/jemalloc/internal/jemalloc_internal.h:780
+#12 je_malloc (size=&lt;optimized out&gt;) at src/jemalloc.c:929
+#13 0x00000000004161bc in mk_mem_malloc (size=24) at ./include/mk_memory.h:49
+#14 0x00007f50e8d251fc in cb_dashboard (dr=0x7f50d86e8800) at main.c:340
+#15 0x00007f50ea8e1c90 in duda_map_static_check (dr=0x7f50d86e8800) at
+duda_map.c:111
+#16 0x00007f50ea8de6e7 in duda_service_run (plugin=0x7f50ea00e280,
+cs=0x7f50d8740000, sr=0x7f50d8741058, web_service=0x7f50ea03d100) at
+duda.c:934
+#17 0x00007f50ea8dead7 in _mkp_stage_30 (plugin=0x7f50ea00e280,
+cs=0x7f50d8740000, sr=0x7f50d8741058) at duda.c:1072
+#18 0x0000000000417739 in mk_plugin_stage_run (hook=16, socket=505,
+conx=0x0, cs=0x7f50d8740000, sr=0x7f50d8741058) at mk_plugin.c:627
+#19 0x0000000000412c0a in mk_http_init (cs=0x7f50d8740000,
+sr=0x7f50d8741058) at mk_http.c:388
+#20 0x0000000000409f1d in mk_request_process (cs=0x7f50d8740000,
+sr=0x7f50d8741058) at mk_request.c:589
+#21 0x000000000040a25c in mk_handler_write (socket=505,
+cs=0x7f50d8740000) at mk_request.c:709
+#22 0x000000000041180e in mk_conn_write (socket=505) at mk_connection.c:150
+#23 0x000000000040f441 in mk_epoll_init (efd=23, max_events=249996) at
+mk_epoll.c:263
+#24 0x0000000000410129 in mk_sched_launch_worker_loop
+(thread_conf=0x7f50ea013370) at mk_scheduler.c:407
+#25 0x00007f50eaeb3e9a in start_thread (arg=0x7f50de7fe700) at
+pthread_create.c:308
+#26 0x00007f50eabe0ccd in clone () at
+../sysdeps/unix/sysv/linux/x86_64/clone.S:112
+#27 0x0000000000000000 in ?? ()
+
+we are using Jemalloc 3.6.0 (stable) on Linux.
+
+best
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000873.html">Allocation latency during fork
+</A></li>
+	<LI>Next message: <A HREF="000875.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#874">[ date ]</a>
+              <a href="thread.html#874">[ thread ]</a>
+              <a href="subject.html#874">[ subject ]</a>
+              <a href="author.html#874">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

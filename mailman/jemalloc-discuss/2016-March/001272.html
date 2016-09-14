@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Interpretation of bit patters in arena_chunk_map_bits_s
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Interpretation%20of%20bit%20patters%20in%20arena_chunk_map_bits_s&In-Reply-To=%3CCAL8RdmTwU2tF59fpmzwtjNHBeaBW47LCmYB%2Bi8x%2BpfdcnBCNDw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001273.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Interpretation of bit patters in arena_chunk_map_bits_s</H1>
+    <B>Yasaswini G</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Interpretation%20of%20bit%20patters%20in%20arena_chunk_map_bits_s&In-Reply-To=%3CCAL8RdmTwU2tF59fpmzwtjNHBeaBW47LCmYB%2Bi8x%2BpfdcnBCNDw%40mail.gmail.com%3E"
+       TITLE="Interpretation of bit patters in arena_chunk_map_bits_s">yasaswinig7 at gmail.com
+       </A><BR>
+    <I>Tue Mar  8 11:33:40 PST 2016</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001273.html">Interpretation of bit patters in arena_chunk_map_bits_s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1272">[ date ]</a>
+              <a href="thread.html#1272">[ thread ]</a>
+              <a href="subject.html#1272">[ subject ]</a>
+              <a href="author.html#1272">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+What does the three patterns signify under each one of the allocation type
+(unallocated(dirty/clean), small, large)  in &quot;arena_chunk_map_bits_s&quot;
+
+I understand the allocation types (unallocated, small, large),  but I am
+not sure why there are three different patters under each allocation type.
+
+For example under Unallocated (clean), we have following bit patterns:
+     *Unallocated (clean):*
+     *     ssssssss ssssssss sss+++++ +++dum-a         - pattern1
+     *     xxxxxxxx xxxxxxxx xxxxxxxx xxx-Uxxx             - pattern2
+     *     ssssssss ssssssss sss+++++ +++dUm-a         - pattern3
+
+According to pattern2, if bit3 is set (U) then remaining bits are don't
+care, but according to pattern3, when bit3 is set (U), bit 13 - bit 31
+(s....s) is still valid as run_size.
+
+The comments inside struct are elaborate, but I am still confused. May be I
+am missing something. I am trying to understand the logical interpretation
+of each one of those patterns!  Appreciate, if someone could explain with
+an example/direct me to a reference point.
+
+Thanks
+Yasaswini
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160308/65b2ec2b/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160308/65b2ec2b/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001273.html">Interpretation of bit patters in arena_chunk_map_bits_s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1272">[ date ]</a>
+              <a href="thread.html#1272">[ thread ]</a>
+              <a href="subject.html#1272">[ subject ]</a>
+              <a href="author.html#1272">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,523 @@
+From antony.dovgal at gmail.com  Tue Mar 11 04:03:37 2014
+From: antony.dovgal at gmail.com (Antony Dovgal)
+Date: Tue, 11 Mar 2014 15:03:37 +0400
+Subject: mallctl() returns zeroes with jemalloc-prefix
+Message-ID: <531EED89.30700@gmail.com>
+
+Hello all,
+
+I'm trying to investigate the following issue:
+jemalloc's mallctl() stops working when the lib is compiled with --with-jemalloc-prefix=<anything>
+Does anyone have any idea how to fix this?
+
+Here's a quick demonstration of the problem:
+
+./configure --prefix=/local --with-jemalloc-prefix=test_ && make install
+
+Modify the canonical example accordingly:
+------------
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <jemalloc/jemalloc.h>
+
+void
+do_something(size_t i)
+{
+
+         // Leak some memory.
+         malloc(i * 100);
+}
+
+int
+main(int argc, char **argv)
+{
+         size_t i, sz;
+
+         for (i = 0; i < 100; i++) {
+                 do_something(i);
+
+                 // Update the statistics cached by mallctl.
+                 uint64_t epoch = 1;
+                 sz = sizeof(epoch);
+                 test_mallctl("epoch", &epoch, &sz, &epoch, sz); //PREFIX
+
+                 // Get basic allocation statistics.  Take care to check for
+                 // errors, since --enable-stats must have been specified at
+                 // build time for these statistics to be available.
+                 size_t sz, allocated, active, mapped;
+                 sz = sizeof(size_t);
+                 if (test_mallctl("stats.allocated", &allocated, &sz, NULL, 0) == 0 //PREFIX
+                     && test_mallctl("stats.active", &active, &sz, NULL, 0) == 0 //PREFIX
+                     && test_mallctl("stats.mapped", &mapped, &sz, NULL, 0) == 0) { //PREFIX
+                         fprintf(stderr,
+                             "Current allocated/active/mapped: %zu/%zu/%zu\n",
+                             allocated, active, mapped);
+                 }
+         }
+
+         return (0);
+}
+------------
+
+And the output of this code looks like this:
+...
+Current allocated/active/mapped: 0/0/4194304
+Current allocated/active/mapped: 0/0/4194304
+Current allocated/active/mapped: 0/0/4194304
+Current allocated/active/mapped: 0/0/4194304
+...
+
+The ctl tree looks ok and the entries are indeed found, but for some reason they are empty (well, except for stats.mapped).
+And yes, everything works fine as long as I don't use any prefix.
+
+-- 
+Wbr,
+Antony Dovgal
+---
+http://pinba.org - realtime profiling for PHP
+
+
+From jasone at canonware.com  Tue Mar 11 08:35:13 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 11 Mar 2014 08:35:13 -0700
+Subject: mallctl() returns zeroes with jemalloc-prefix
+In-Reply-To: <531EED89.30700@gmail.com>
+References: <531EED89.30700@gmail.com>
+Message-ID: <D6A9909F-B9F3-401C-B45D-AB31BA7554BF@canonware.com>
+
+On Mar 11, 2014, at 4:03 AM, Antony Dovgal <antony.dovgal at gmail.com> wrote:
+> I'm trying to investigate the following issue:
+> jemalloc's mallctl() stops working when the lib is compiled with --with-jemalloc-prefix=<anything>
+> Does anyone have any idea how to fix this?
+> 
+> Here's a quick demonstration of the problem:
+> 
+> ./configure --prefix=/local --with-jemalloc-prefix=test_ && make install
+> 
+> Modify the canonical example accordingly:
+> ------------
+> #include <stdio.h>
+> #include <stdlib.h>
+> #include <stdint.h>
+> #include <jemalloc/jemalloc.h>
+> 
+> void
+> do_something(size_t i)
+> {
+> 
+>        // Leak some memory.
+>        malloc(i * 100);
+
+Call test_malloc() instead of malloc() here, and I think your program will work as intended.  Alternatively, you can #define JEMALLOC_MANGLE prior to #include <jemalloc/jemalloc.h>, and all calls to jemalloc APIs will be mangled for you.  The JEMALLOC_MANGLE alternative is more fragile in practice though, so use it with care if at all.
+
+> [...]
+> ------------
+> 
+> And the output of this code looks like this:
+> ...
+> Current allocated/active/mapped: 0/0/4194304
+> Current allocated/active/mapped: 0/0/4194304
+> Current allocated/active/mapped: 0/0/4194304
+> Current allocated/active/mapped: 0/0/4194304
+> ...
+> 
+> The ctl tree looks ok and the entries are indeed found, but for some reason they are empty (well, except for stats.mapped).
+> And yes, everything works fine as long as I don't use any prefix.
+
+Jason
+
+From antony.dovgal at gmail.com  Tue Mar 11 08:46:39 2014
+From: antony.dovgal at gmail.com (Antony Dovgal)
+Date: Tue, 11 Mar 2014 19:46:39 +0400
+Subject: mallctl() returns zeroes with jemalloc-prefix
+In-Reply-To: <D6A9909F-B9F3-401C-B45D-AB31BA7554BF@canonware.com>
+References: <531EED89.30700@gmail.com>
+	<D6A9909F-B9F3-401C-B45D-AB31BA7554BF@canonware.com>
+Message-ID: <531F2FDF.6030706@gmail.com>
+
+On 03/11/2014 07:35 PM, Jason Evans wrote:
+>>        malloc(i * 100);
+>
+> Call test_malloc() instead of malloc() here, and I think your program will work as intended.
+
+Thanks.
+I knew it's got to be something stupid =|
+
+-- 
+Wbr,
+Antony Dovgal
+
+
+
+From i at eivanov.com  Mon Mar 17 01:13:27 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Mon, 17 Mar 2014 12:13:27 +0400
+Subject: Option to filter out small allocations in statistics to avoid getting
+	extra stacks
+Message-ID: <CAO6Ho0cLV4_nSCtmhfaruYmrQ_duACEjdME+hd5T880JcaC3Fg@mail.gmail.com>
+
+Hi,
+
+We use opt.prof_accum to profile memory allocations. Sometimes performance
+degradation is too high because getting stacks is a heavy operation. In
+resulting backtraces we see some relatively small allocations we are not
+interested in. With DTrace our usual case is to cut allocations smaller
+than 16 KB. I would like to add option to cut allocations smaller, than
+specified one, e.g. "opt.prof_cut" (ssize_t). Will it be accepted upstream?
+
+-- 
+Cheers,
+Evgeniy
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140317/e6c650c9/attachment.html>
+
+From jasone at canonware.com  Mon Mar 17 11:38:49 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 17 Mar 2014 11:38:49 -0700
+Subject: Option to filter out small allocations in statistics to avoid
+	getting extra stacks
+In-Reply-To: <CAO6Ho0cLV4_nSCtmhfaruYmrQ_duACEjdME+hd5T880JcaC3Fg@mail.gmail.com>
+References: <CAO6Ho0cLV4_nSCtmhfaruYmrQ_duACEjdME+hd5T880JcaC3Fg@mail.gmail.com>
+Message-ID: <11F596AE-B7DC-4F26-9605-8935CB99705D@canonware.com>
+
+On Mar 17, 2014, at 1:13 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+> We use opt.prof_accum to profile memory allocations. Sometimes performance degradation is too high because getting stacks is a heavy operation. In resulting backtraces we see some relatively small allocations we are not interested in. With DTrace our usual case is to cut allocations smaller than 16 KB. I would like to add option to cut allocations smaller, than specified one, e.g. "opt.prof_cut" (ssize_t). Will it be accepted upstream?
+
+The way to reduce backtracing overhead is to increase the sample interval, e.g. MALLOC_CONF=lg_prof_sample:20 doubles the default from an average of one sample per 2^19 bytes (512 KiB) to 2^20 bytes (1 MiB).  If you systematically ignore small allocations you bias the sample, which invalidates the math that allows sample-based profiling to converge on reality.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140317/1c7d7922/attachment.html>
+
+From i at eivanov.com  Wed Mar 19 03:45:35 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Wed, 19 Mar 2014 14:45:35 +0400
+Subject: Option to filter out small allocations in statistics to avoid
+	getting extra stacks
+In-Reply-To: <11F596AE-B7DC-4F26-9605-8935CB99705D@canonware.com>
+References: <CAO6Ho0cLV4_nSCtmhfaruYmrQ_duACEjdME+hd5T880JcaC3Fg@mail.gmail.com>
+	<11F596AE-B7DC-4F26-9605-8935CB99705D@canonware.com>
+Message-ID: <CAO6Ho0f8j6a-BiAj7tcpKF0e1RB__Za14v-6L2L-xnDFibYh1w@mail.gmail.com>
+
+Hi Jason,
+
+I agree, but sometimes you need to hunt big allocations and according
+our experience (high frequency and algorithmic trading) cutting helps
+a lot.
+
+On Mon, Mar 17, 2014 at 10:38 PM, Jason Evans <jasone at canonware.com> wrote:
+> On Mar 17, 2014, at 1:13 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+>
+> We use opt.prof_accum to profile memory allocations. Sometimes performance
+> degradation is too high because getting stacks is a heavy operation. In
+> resulting backtraces we see some relatively small allocations we are not
+> interested in. With DTrace our usual case is to cut allocations smaller than
+> 16 KB. I would like to add option to cut allocations smaller, than specified
+> one, e.g. "opt.prof_cut" (ssize_t). Will it be accepted upstream?
+>
+>
+> The way to reduce backtracing overhead is to increase the sample interval,
+> e.g. MALLOC_CONF=lg_prof_sample:20 doubles the default from an average of
+> one sample per 2^19 bytes (512 KiB) to 2^20 bytes (1 MiB).  If you
+> systematically ignore small allocations you bias the sample, which
+> invalidates the math that allows sample-based profiling to converge on
+> reality.
+>
+> Jason
+
+
+
+-- 
+Cheers,
+Evgeniy
+
+
+From cpride at cpride.net  Thu Mar 27 12:42:01 2014
+From: cpride at cpride.net (Christopher Pride)
+Date: Thu, 27 Mar 2014 12:42:01 -0700
+Subject: jemalloc out of memory crash 3.5.*
+Message-ID: <CAHG2HHzqE+ECUXxkPmAEuZiE5dj=oUPWT9Y4-i0nJX1viBJ1mw@mail.gmail.com>
+
+We hit a jemalloc out of memory crash in the 3.5.* line. It looks like a
+simple NULL check is missing from a refactor. More information is
+documented in the pull request for a fix on github here:
+
+https://github.com/jemalloc/jemalloc/pull/60
+
+Chris
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140327/5caba312/attachment.html>
+
+From rnsanchez at wait4.org  Thu Mar 27 18:35:25 2014
+From: rnsanchez at wait4.org (Ricardo Nabinger Sanchez)
+Date: Thu, 27 Mar 2014 22:35:25 -0300
+Subject: jemalloc out of memory crash 3.5.*
+In-Reply-To: <CAHG2HHzqE+ECUXxkPmAEuZiE5dj=oUPWT9Y4-i0nJX1viBJ1mw@mail.gmail.com>
+References: <CAHG2HHzqE+ECUXxkPmAEuZiE5dj=oUPWT9Y4-i0nJX1viBJ1mw@mail.gmail.com>
+Message-ID: <20140327223525.27eedad4@darkbook.lan.box>
+
+Hello Christopher,
+
+On Thu, 27 Mar 2014 12:42:01 -0700
+Christopher Pride <cpride at cpride.net> wrote:
+
+> We hit a jemalloc out of memory crash in the 3.5.* line. It looks like a
+> simple NULL check is missing from a refactor. More information is
+> documented in the pull request for a fix on github here:
+> 
+> https://github.com/jemalloc/jemalloc/pull/60
+
+Any chance this crash looks like this one?
+
+Program received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7ffff68ed700 (LWP 2213)]
+0x00007ffff7258498 in je_arena_mapbitsp_read (mapbitsp=0x48) at include/jemalloc/internal/arena.h:525
+525 ? ? ? ? ? ? return (*mapbitsp);
+(gdb) bt f
+#0 ?0x00007ffff7258498 in je_arena_mapbitsp_read (mapbitsp=0x48) at include/jemalloc/internal/arena.h:525
+No locals.
+#1 ?0x00007ffff72584c8 in je_arena_mapbits_get (chunk=0x0, pageind=8) at include/jemalloc/internal/arena.h:532
+No locals.
+#2 ?0x00007ffff72584ed in je_arena_mapbits_unallocated_size_get (chunk=0x0, pageind=8) at include/jemalloc/internal/arena.h:540
+? ? ? ? mapbits = 140737339856325
+#3 ?0x00007ffff72601fe in arena_avail_insert (arena=0x7ffff64a4d40, chunk=0x0, pageind=8, npages=1016, maybe_adjac_pred=false,?
+? ? maybe_adjac_succ=false) at src/arena.c:218
+No locals.
+#4 ?0x00007ffff72617fd in arena_chunk_alloc (arena=0x7ffff64a4d40) at src/arena.c:621
+? ? ? ? chunk = 0x0
+#5 ?0x00007ffff7261c8a in arena_run_alloc_large (arena=0x7ffff64a4d40, size=331776, zero=true) at src/arena.c:699
+? ? ? ? chunk = 0x7ffff68ec0c0
+? ? ? ? run = 0x0
+#6 ?0x00007ffff7264a83 in je_arena_malloc_large (arena=0x7ffff64a4d40, size=331776, zero=true) at src/arena.c:1663
+? ? ? ? ret = 0x7fffe264a03c
+? ? ? ? idump = false
+#7 ?0x00007ffff7259afa in je_arena_malloc (arena=0x0, size=327704, zero=true, try_tcache=true) at include/jemalloc/internal/arena.h:971
+? ? ? ? tcache = 0x7fffe264a020
+#8 ?0x00007ffff7251ec8 in je_icalloct (size=327704, try_tcache=true, arena=0x0) at include/jemalloc/internal/jemalloc_internal.h:788
+No locals.
+#9 ?0x00007ffff7251f04 in je_icalloc (size=327704) at include/jemalloc/internal/jemalloc_internal.h:797
+No locals.
+#10 0x00007ffff72559e6 in calloc (num=1, size=327704) at src/jemalloc.c:1158
+? ? ? ? ret = 0x7fffe0c00977
+? ? ? ? num_size = 327704
+? ? ? ? usize = 331776
+<...>
+
+I had saved this backtrace for further inspection a few weeks ago, and it
+is reasonably easy to reproduce.  My scenario matches the OOM mentioned in
+the pull request.
+
+Cheers,
+
+-- 
+Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+  "Left to themselves, things tend to go from bad to worse."
+
+
+From cpride at cpride.net  Thu Mar 27 18:48:12 2014
+From: cpride at cpride.net (Christopher Pride)
+Date: Thu, 27 Mar 2014 18:48:12 -0700
+Subject: jemalloc out of memory crash 3.5.*
+In-Reply-To: <20140327223525.27eedad4@darkbook.lan.box>
+References: <CAHG2HHzqE+ECUXxkPmAEuZiE5dj=oUPWT9Y4-i0nJX1viBJ1mw@mail.gmail.com>
+	<20140327223525.27eedad4@darkbook.lan.box>
+Message-ID: <CAHG2HHzzEPJ91gZYpAxfx96wH+t+j1rMBVWmfyBgAeXkNwNmkw@mail.gmail.com>
+
+I believe that is the same crash if you have the debugging asserts turned
+on. With the debugging asserts turned off it will crash on the next line
+with code in arena_avail_insert.
+
+Chris
+
+
+On Thu, Mar 27, 2014 at 6:35 PM, Ricardo Nabinger Sanchez <
+rnsanchez at wait4.org> wrote:
+
+> Hello Christopher,
+>
+> On Thu, 27 Mar 2014 12:42:01 -0700
+> Christopher Pride <cpride at cpride.net> wrote:
+>
+> > We hit a jemalloc out of memory crash in the 3.5.* line. It looks like a
+> > simple NULL check is missing from a refactor. More information is
+> > documented in the pull request for a fix on github here:
+> >
+> > https://github.com/jemalloc/jemalloc/pull/60
+>
+> Any chance this crash looks like this one?
+>
+> Program received signal SIGSEGV, Segmentation fault.
+> [Switching to Thread 0x7ffff68ed700 (LWP 2213)]
+> 0x00007ffff7258498 in je_arena_mapbitsp_read (mapbitsp=0x48) at
+> include/jemalloc/internal/arena.h:525
+> 525             return (*mapbitsp);
+> (gdb) bt f
+> #0  0x00007ffff7258498 in je_arena_mapbitsp_read (mapbitsp=0x48) at
+> include/jemalloc/internal/arena.h:525
+> No locals.
+> #1  0x00007ffff72584c8 in je_arena_mapbits_get (chunk=0x0, pageind=8) at
+> include/jemalloc/internal/arena.h:532
+> No locals.
+> #2  0x00007ffff72584ed in je_arena_mapbits_unallocated_size_get
+> (chunk=0x0, pageind=8) at include/jemalloc/internal/arena.h:540
+>         mapbits = 140737339856325
+> #3  0x00007ffff72601fe in arena_avail_insert (arena=0x7ffff64a4d40,
+> chunk=0x0, pageind=8, npages=1016, maybe_adjac_pred=false,
+>     maybe_adjac_succ=false) at src/arena.c:218
+> No locals.
+> #4  0x00007ffff72617fd in arena_chunk_alloc (arena=0x7ffff64a4d40) at
+> src/arena.c:621
+>         chunk = 0x0
+> #5  0x00007ffff7261c8a in arena_run_alloc_large (arena=0x7ffff64a4d40,
+> size=331776, zero=true) at src/arena.c:699
+>         chunk = 0x7ffff68ec0c0
+>         run = 0x0
+> #6  0x00007ffff7264a83 in je_arena_malloc_large (arena=0x7ffff64a4d40,
+> size=331776, zero=true) at src/arena.c:1663
+>         ret = 0x7fffe264a03c
+>         idump = false
+> #7  0x00007ffff7259afa in je_arena_malloc (arena=0x0, size=327704,
+> zero=true, try_tcache=true) at include/jemalloc/internal/arena.h:971
+>         tcache = 0x7fffe264a020
+> #8  0x00007ffff7251ec8 in je_icalloct (size=327704, try_tcache=true,
+> arena=0x0) at include/jemalloc/internal/jemalloc_internal.h:788
+> No locals.
+> #9  0x00007ffff7251f04 in je_icalloc (size=327704) at
+> include/jemalloc/internal/jemalloc_internal.h:797
+> No locals.
+> #10 0x00007ffff72559e6 in calloc (num=1, size=327704) at
+> src/jemalloc.c:1158
+>         ret = 0x7fffe0c00977
+>         num_size = 327704
+>         usize = 331776
+> <...>
+>
+> I had saved this backtrace for further inspection a few weeks ago, and it
+> is reasonably easy to reproduce.  My scenario matches the OOM mentioned in
+> the pull request.
+>
+> Cheers,
+>
+> --
+> Ricardo Nabinger Sanchez           http://rnsanchez.wait4.org/
+>   "Left to themselves, things tend to go from bad to worse."
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140327/74ca7df3/attachment.html>
+
+From i at eivanov.com  Fri Mar 28 04:28:46 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Fri, 28 Mar 2014 15:28:46 +0400
+Subject: How to reset profile counters / data during program execution
+Message-ID: <CAO6Ho0ePUL-JPNwNzDOQrpGjmoRcVpq8pnnEYXacX6oW64NFqQ@mail.gmail.com>
+
+Hi,
+
+I enable / disable profiling on the fly via prof_active. Each time I dump
+results (prof_accum is true). Is there any way to reset statistics / stack
+traces between?
+
+-- 
+Cheers,
+Evgeniy
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140328/a73790da/attachment.html>
+
+From i at eivanov.com  Fri Mar 28 05:56:52 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Fri, 28 Mar 2014 16:56:52 +0400
+Subject: How to reset profile counters / data during program execution
+In-Reply-To: <CAO6Ho0ePUL-JPNwNzDOQrpGjmoRcVpq8pnnEYXacX6oW64NFqQ@mail.gmail.com>
+References: <CAO6Ho0ePUL-JPNwNzDOQrpGjmoRcVpq8pnnEYXacX6oW64NFqQ@mail.gmail.com>
+Message-ID: <CAO6Ho0chLm3vc5xwFf3y9Qp9afqfOvDgz1HDmRTW-_iBQooU0A@mail.gmail.com>
+
+And if it is not supported, is it easy / safe / performance safe to
+implement such option? Any hints are appreciated.
+
+
+On Fri, Mar 28, 2014 at 3:28 PM, Evgeniy Ivanov <i at eivanov.com> wrote:
+
+> Hi,
+>
+> I enable / disable profiling on the fly via prof_active. Each time I dump
+> results (prof_accum is true). Is there any way to reset statistics /
+> stack traces between?
+>
+> --
+> Cheers,
+> Evgeniy
+>
+
+
+
+-- 
+Cheers,
+Evgeniy
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140328/1a572107/attachment.html>
+
+From jasone at canonware.com  Fri Mar 28 11:10:52 2014
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 28 Mar 2014 11:10:52 -0700
+Subject: How to reset profile counters / data during program execution
+In-Reply-To: <CAO6Ho0ePUL-JPNwNzDOQrpGjmoRcVpq8pnnEYXacX6oW64NFqQ@mail.gmail.com>
+References: <CAO6Ho0ePUL-JPNwNzDOQrpGjmoRcVpq8pnnEYXacX6oW64NFqQ@mail.gmail.com>
+Message-ID: <54CC4FC3-5F7E-4378-BBB9-5E43C93FDF38@canonware.com>
+
+On Mar 28, 2014, at 4:28 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+> I enable / disable profiling on the fly via prof_active. Each time I dump results (prof_accum is true). Is there any way to reset statistics / stack traces between?
+
+It isn't possible to reset the heap profiling state within jemalloc, but there is an easy solution to what you're trying to do: dump a profile at the point where you would like to reset, and pass it to pprof using the --base option.  This will cause pprof to subtract out everything that shows up in the base profile.
+
+Jason
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140328/35d172e8/attachment.html>
+
+From i at eivanov.com  Fri Mar 28 11:19:53 2014
+From: i at eivanov.com (Evgeniy Ivanov)
+Date: Fri, 28 Mar 2014 22:19:53 +0400
+Subject: How to reset profile counters / data during program execution
+In-Reply-To: <54CC4FC3-5F7E-4378-BBB9-5E43C93FDF38@canonware.com>
+References: <CAO6Ho0ePUL-JPNwNzDOQrpGjmoRcVpq8pnnEYXacX6oW64NFqQ@mail.gmail.com>
+	<54CC4FC3-5F7E-4378-BBB9-5E43C93FDF38@canonware.com>
+Message-ID: <CAO6Ho0fDDbnyo617dor86sOu0jOD1WTgSytkkCS-Pe-coTvxFQ@mail.gmail.com>
+
+Thank you very much, Jason! That's a relief.
+
+
+On Fri, Mar 28, 2014 at 10:10 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Mar 28, 2014, at 4:28 AM, Evgeniy Ivanov <i at eivanov.com> wrote:
+>
+> I enable / disable profiling on the fly via prof_active. Each time I dump
+> results (prof_accum is true). Is there any way to reset statistics /
+> stack traces between?
+>
+>
+> It isn't possible to reset the heap profiling state within jemalloc, but
+> there is an easy solution to what you're trying to do: dump a profile at
+> the point where you would like to reset, and pass it to pprof using the
+> --base option.  This will cause pprof to subtract out everything that shows
+> up in the base profile.
+>
+> Jason
+>
+>
+
+
+-- 
+Cheers,
+Evgeniy
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140328/5ca85231/attachment.html>
+

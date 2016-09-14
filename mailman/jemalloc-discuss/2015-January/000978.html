@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Assertion fail question
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Assertion%20fail%20question&In-Reply-To=%3CCAB8upq%2BgBNJTbvw%2Bzd7%3Dk%2B-e59i3MU3WKSO%3DWJh-G%2Bp545on-w%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000979.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Assertion fail question</H1>
+    <B>Marcin Zalewski</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Assertion%20fail%20question&In-Reply-To=%3CCAB8upq%2BgBNJTbvw%2Bzd7%3Dk%2B-e59i3MU3WKSO%3DWJh-G%2Bp545on-w%40mail.gmail.com%3E"
+       TITLE="Assertion fail question">marcin.zalewski at gmail.com
+       </A><BR>
+    <I>Thu Jan  1 10:44:54 PST 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000979.html">Assertion fail question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#978">[ date ]</a>
+              <a href="thread.html#978">[ thread ]</a>
+              <a href="subject.html#978">[ subject ]</a>
+              <a href="author.html#978">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I am using the latest jemalloc dev (9c6a8d) compiled only with
+--enable-debug. I am getting the following two assertions fail in my
+program (16 threads):
+
+src/arena.c:182: Failed assertion: &quot;bitmap_get(run-&gt;bitmap,
+&amp;bin_info-&gt;bitmap_info, regind)&quot;
+include/jemalloc/internal/tcache.h:212: Failed assertion: &quot;tcache-&gt;ev_cnt
+&lt;= TCACHE_GC_INCR&quot;
+
+Is there something obvious that I am doing wrong? I would appreciate any
+help.
+
+Thank you,
+Marcin
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150101/a61b04a4/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150101/a61b04a4/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000979.html">Assertion fail question
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#978">[ date ]</a>
+              <a href="thread.html#978">[ thread ]</a>
+              <a href="subject.html#978">[ subject ]</a>
+              <a href="author.html#978">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

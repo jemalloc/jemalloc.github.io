@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Embedding user metadata along with jemalloc metadata
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Embedding%20user%20metadata%20along%20with%20jemalloc%20metadata&In-Reply-To=%3CCAGvmEXhYEx68pPc8umoKf-b2VJmxVJu_Hq6xVxB7jrhHNhcA%3DQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001089.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Embedding user metadata along with jemalloc metadata</H1>
+    <B>SNL</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Embedding%20user%20metadata%20along%20with%20jemalloc%20metadata&In-Reply-To=%3CCAGvmEXhYEx68pPc8umoKf-b2VJmxVJu_Hq6xVxB7jrhHNhcA%3DQ%40mail.gmail.com%3E"
+       TITLE="Embedding user metadata along with jemalloc metadata">snl20465 at gmail.com
+       </A><BR>
+    <I>Mon Apr 13 00:32:08 PDT 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001089.html">Embedding user metadata along with jemalloc metadata
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1085">[ date ]</a>
+              <a href="thread.html#1085">[ thread ]</a>
+              <a href="subject.html#1085">[ subject ]</a>
+              <a href="author.html#1085">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On each allocation, I need to book keep 64 bytes of metadata which
+describes that allocation. Currently, I do store this metadata outside and
+look it up when need arises. Needless to say this slows down things for
+heavily multithreaded programs. I am trying to optimize my design and data
+structures. It would be great if I can store my metadata along with
+jemalloc and look it up using jemalloc's quick look up which is already
+optimized for concurrency.
+
+
+I found following threads to be relevant, any inputs on existing
+implementations will be helpful.
+
+<A HREF="https://github.com/jemalloc/jemalloc/issues/203">https://github.com/jemalloc/jemalloc/issues/203</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150413/1b9782d0/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150413/1b9782d0/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001089.html">Embedding user metadata along with jemalloc metadata
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1085">[ date ]</a>
+              <a href="thread.html#1085">[ thread ]</a>
+              <a href="subject.html#1085">[ subject ]</a>
+              <a href="author.html#1085">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

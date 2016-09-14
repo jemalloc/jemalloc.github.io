@@ -1,0 +1,298 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Add support for MSVC
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Add%20support%20for%20MSVC&In-Reply-To=%3C20120430104448.GA8246%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000363.html">
+   <LINK REL="Next"  HREF="000367.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Add support for MSVC</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Add%20support%20for%20MSVC&In-Reply-To=%3C20120430104448.GA8246%40glandium.org%3E"
+       TITLE="[PATCH 7/7] Add support for MSVC">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 30 03:44:48 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000363.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+        <LI>Next message: <A HREF="000367.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#366">[ date ]</a>
+              <a href="thread.html#366">[ thread ]</a>
+              <a href="subject.html#366">[ subject ]</a>
+              <a href="author.html#366">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Apr 30, 2012 at 12:38:31PM +0200, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> Tested with MSVC 8 32 and 64 bits.
+</I>
+BTW, MSVC gives some interesting warnings, some of which might be worth
+investigating (especially the C4146 ones).
+
+I'm attaching a log for each of 32 and 64 bits builds.
+
+Cheers,
+
+Mike
+-------------- next part --------------
+util.c
+../src/util.c(175) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+jemalloc.c
+c:\MinGW\msys\1.0\home\mh\jemalloc\foo\include\jemalloc/internal/jemalloc_internal.h(614) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+c:\MinGW\msys\1.0\home\mh\jemalloc\foo\include\jemalloc/internal/jemalloc_internal.h(750) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+../src/jemalloc.c(539) : warning C4244: '=' : conversion from 'uintmax_t' to 'size_t', possible loss of data
+../src/jemalloc.c(541) : warning C4244: '=' : conversion from 'uintmax_t' to 'size_t', possible loss of data
+../src/jemalloc.c(548) : warning C4244: '=' : conversion from 'uintmax_t' to 'size_t', possible loss of data
+arena.c
+../src/arena.c(1438) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+atomic.c
+c:\MinGW\msys\1.0\home\mh\jemalloc\include\jemalloc/internal/atomic.h(170) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+base.c
+bitmap.c
+chunk.c
+../src/chunk.c(58) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+chunk_dss.c
+../src/chunk_dss.c(75) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+chunk_mmap.c
+../src/chunk_mmap.c(146) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+ckh.c
+../src/ckh.c(544) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/ckh.c(545) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/ckh.c(547) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/ckh.c(549) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/ckh.c(592) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/ckh.c(593) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/ckh.c(596) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/ckh.c(597) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+ctl.c
+extent.c
+hash.c
+huge.c
+mb.c
+mutex.c
+prof.c
+../src/prof.c(804) : warning C4013: 'getpid' undefined; assuming extern returning int
+../src/prof.c(1064) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/prof.c(1065) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/prof.c(1067) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+../src/prof.c(1069) : warning C4244: '=' : conversion from 'uint64_t' to 'size_t', possible loss of data
+quarantine.c
+rtree.c
+stats.c
+../src/stats.c(347) : warning C4090: 'function' : different 'const' qualifiers
+../src/stats.c(394) : warning C4090: 'function' : different 'const' qualifiers
+tcache.c
+tsd.c
+LINK : lib/jemalloc.dll not found or not built by the last incremental link; performing full link
+   Creating library lib/jemalloc.lib and object lib/jemalloc.exp
+aligned_alloc.c
+LINK : test/aligned_alloc.exe not found or not built by the last incremental link; performing full link
+   Creating library test/aligned_alloc.lib and object test/aligned_alloc.exp
+allocated.c
+LINK : test/allocated.exe not found or not built by the last incremental link; performing full link
+   Creating library test/allocated.lib and object test/allocated.exp
+bitmap.c
+../test/bitmap.c(109) : warning C4018: '&lt;' : signed/unsigned mismatch
+../test/bitmap.c(128) : warning C4018: '&lt;' : signed/unsigned mismatch
+LINK : test/bitmap.exe not found or not built by the last incremental link; performing full link
+   Creating library test/bitmap.lib and object test/bitmap.exp
+mremap.c
+LINK : test/mremap.exe not found or not built by the last incremental link; performing full link
+   Creating library test/mremap.lib and object test/mremap.exp
+posix_memalign.c
+LINK : test/posix_memalign.exe not found or not built by the last incremental link; performing full link
+   Creating library test/posix_memalign.lib and object test/posix_memalign.exp
+thread_arena.c
+LINK : test/thread_arena.exe not found or not built by the last incremental link; performing full link
+   Creating library test/thread_arena.lib and object test/thread_arena.exp
+thread_tcache_enabled.c
+LINK : test/thread_tcache_enabled.exe not found or not built by the last incremental link; performing full link
+   Creating library test/thread_tcache_enabled.lib and object test/thread_tcache_enabled.exp
+allocm.c
+LINK : test/allocm.exe not found or not built by the last incremental link; performing full link
+   Creating library test/allocm.lib and object test/allocm.exp
+rallocm.c
+LINK : test/rallocm.exe not found or not built by the last incremental link; performing full link
+   Creating library test/rallocm.lib and object test/rallocm.exp
+=========================================
+test/aligned_alloc ... pass
+test/allocated ... pass
+test/bitmap ... pass
+test/mremap ... pass
+test/posix_memalign ... pass
+test/thread_arena ... pass
+test/thread_tcache_enabled ... pass
+test/allocm ... pass
+test/rallocm ... pass
+=========================================
+Failures: 0/9
+-------------- next part --------------
+util.c
+../src/util.c(55) : warning C4267: 'function' : conversion from 'size_t' to 'unsigned int', possible loss of data
+../src/util.c(71) : warning C4267: 'function' : conversion from 'size_t' to 'DWORD', possible loss of data
+../src/util.c(175) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+../src/util.c(562) : warning C4267: '=' : conversion from 'size_t' to 'int', possible loss of data
+jemalloc.c
+include\jemalloc/internal/jemalloc_internal.h(614) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+include\jemalloc/internal/jemalloc_internal.h(750) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+../src/jemalloc.c(758) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+../src/jemalloc.c(765) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+arena.c
+../include\jemalloc/internal/arena.h(475) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../include\jemalloc/internal/arena.h(515) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+../src/arena.c(141) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+../src/arena.c(1438) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+../src/arena.c(2023) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../src/arena.c(2051) : warning C4267: '=' : conversion from 'size_t' to 'uint32_t', possible loss of data
+../src/arena.c(2063) : warning C4267: '+=' : conversion from 'size_t' to 'uint32_t', possible loss of data
+../src/arena.c(2073) : warning C4267: '=' : conversion from 'size_t' to 'uint32_t', possible loss of data
+../src/arena.c(2092) : warning C4267: '=' : conversion from 'size_t' to 'uint32_t', possible loss of data
+../src/arena.c(2104) : warning C4267: '+=' : conversion from 'size_t' to 'uint32_t', possible loss of data
+../src/arena.c(2116) : warning C4267: '=' : conversion from 'size_t' to 'uint32_t', possible loss of data
+../src/arena.c(2132) : warning C4267: '=' : conversion from 'size_t' to 'uint32_t', possible loss of data
+atomic.c
+../include\jemalloc/internal/atomic.h(60) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+../include\jemalloc/internal/atomic.h(170) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+base.c
+bitmap.c
+../include\jemalloc/internal/bitmap.h(70) : warning C4267: 'initializing' : conversion from 'size_t' to 'unsigned int', possible loss of data
+chunk.c
+../src/chunk.c(58) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+../src/chunk.c(298) : warning C4267: 'function' : conversion from 'size_t' to 'unsigned int', possible loss of data
+chunk_dss.c
+../src/chunk_dss.c(75) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+chunk_mmap.c
+../src/chunk_mmap.c(146) : warning C4146: unary minus operator applied to unsigned type, result still unsigned
+ckh.c
+../src/ckh.c(281) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+../src/ckh.c(327) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+ctl.c
+../src/ctl.c(649) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../src/ctl.c(790) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../src/ctl.c(1196) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+../src/ctl.c(1214) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+extent.c
+hash.c
+huge.c
+mb.c
+mutex.c
+prof.c
+../src/prof.c(586) : warning C4267: '=' : conversion from 'size_t' to 'unsigned int', possible loss of data
+../src/prof.c(804) : warning C4013: 'getpid' undefined; assuming extern returning int
+../src/prof.c(814) : warning C4244: '+=' : conversion from 'ssize_t' to 'unsigned int', possible loss of data
+quarantine.c
+rtree.c
+../src/rtree.c(10) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+stats.c
+../src/stats.c(347) : warning C4090: 'function' : different 'const' qualifiers
+../src/stats.c(394) : warning C4090: 'function' : different 'const' qualifiers
+tcache.c
+../src/tcache.c(402) : warning C4334: '&lt;&lt;' : result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+../src/tcache.c(405) : warning C4334: '&lt;&lt;' : result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+tsd.c
+LINK : lib/jemalloc.dll not found or not built by the last incremental link; performing full link
+   Creating library lib/jemalloc.lib and object lib/jemalloc.exp
+aligned_alloc.c
+LINK : test/aligned_alloc.exe not found or not built by the last incremental link; performing full link
+   Creating library test/aligned_alloc.lib and object test/aligned_alloc.exp
+allocated.c
+LINK : test/allocated.exe not found or not built by the last incremental link; performing full link
+   Creating library test/allocated.lib and object test/allocated.exp
+bitmap.c
+../test/bitmap.c(109) : warning C4018: '&lt;' : signed/unsigned mismatch
+../test/bitmap.c(128) : warning C4018: '&lt;' : signed/unsigned mismatch
+LINK : test/bitmap.exe not found or not built by the last incremental link; performing full link
+   Creating library test/bitmap.lib and object test/bitmap.exp
+mremap.c
+LINK : test/mremap.exe not found or not built by the last incremental link; performing full link
+   Creating library test/mremap.lib and object test/mremap.exp
+posix_memalign.c
+LINK : test/posix_memalign.exe not found or not built by the last incremental link; performing full link
+   Creating library test/posix_memalign.lib and object test/posix_memalign.exp
+thread_arena.c
+LINK : test/thread_arena.exe not found or not built by the last incremental link; performing full link
+   Creating library test/thread_arena.lib and object test/thread_arena.exp
+thread_tcache_enabled.c
+LINK : test/thread_tcache_enabled.exe not found or not built by the last incremental link; performing full link
+   Creating library test/thread_tcache_enabled.lib and object test/thread_tcache_enabled.exp
+allocm.c
+../test/allocm.c(73) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(73) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(77) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(77) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(80) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(80) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(84) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(84) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(97) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(97) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(101) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(101) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(105) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(105) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(115) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(115) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(119) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(119) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(122) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(122) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(126) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(126) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(145) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(145) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(155) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+../test/allocm.c(155) : warning C4267: 'function' : conversion from 'size_t' to 'int', possible loss of data
+LINK : test/allocm.exe not found or not built by the last incremental link; performing full link
+   Creating library test/allocm.lib and object test/allocm.exp
+rallocm.c
+LINK : test/rallocm.exe not found or not built by the last incremental link; performing full link
+   Creating library test/rallocm.lib and object test/rallocm.exp
+=========================================
+test/aligned_alloc ... pass
+test/allocated ... pass
+test/bitmap ... pass
+test/mremap ... pass
+test/posix_memalign ... pass
+test/thread_arena ... pass
+test/thread_tcache_enabled ... pass
+test/allocm ... pass
+test/rallocm ... pass
+=========================================
+Failures: 0/9
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000363.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+	<LI>Next message: <A HREF="000367.html">[PATCH 7/7] Add support for MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#366">[ date ]</a>
+              <a href="thread.html#366">[ thread ]</a>
+              <a href="subject.html#366">[ subject ]</a>
+              <a href="author.html#366">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

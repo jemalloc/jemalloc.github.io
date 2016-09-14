@@ -1,0 +1,823 @@
+From rogier+jemalloc at fastly.com  Thu Dec  3 11:35:24 2015
+From: rogier+jemalloc at fastly.com (Rogier 'DocWilco' Mulhuijzen)
+Date: Thu, 03 Dec 2015 19:35:24 +0000
+Subject: jemalloc hooks clarifications
+In-Reply-To: <CANP6M4s0Xc+k7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA@mail.gmail.com>
+References: <CANP6M4s0Xc+k7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA@mail.gmail.com>
+Message-ID: <CAF05Cc8dT+TMDzypWh8TmwQ5t9x=MwuXu0dez_Dvoi6fCSPPww@mail.gmail.com>
+
+Maybe I'm saying something stupid, but isn't there a DALLOC on the second
+line of your output?
+
+On Thu, Dec 3, 2015 at 10:52 AM Jakob Buchgraber <jakob.buchgraber at tum.de>
+wrote:
+
+> Hello Jason,
+>
+> I am playing around with the memory management hooks introduced in version
+> 4.
+> So I wrote a delegate for the default chunk hooks, that additionally
+> report to
+> stdout what's happening [1].
+>
+> The test program allocates 1GB of memory and immediately frees it.
+> It then tries to allocate 4MB and 8MB. The output is as follows
+>
+> ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1,
+> arena_ind 0, ret 0x7f2f52a00000
+> DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+> DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length
+> 1073741824, arena_ind 0
+> PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824,
+> arena_ind 0
+> FREED
+> ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1,
+> arena_ind 0, ret 0x7f2f52a00000
+> ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1,
+> arena_ind 0, ret 0x7f2f52e00000
+>
+> Given that the 1GB has not been deallocated, but purged I would expect
+> the last two ALLOCations not to have happened. Instead I would expect
+> the virtual memory from the 1GB allocation before to be reused?
+>
+> I am running jemalloc 4.0.4 on Linux.
+>
+> Also, on an unrelated note, is it generally safe to trigger purging for
+> arena A
+> from within an allocation chunk hook of arena B, with A <> B?
+> The reason why am asking this question is that I would generally want to
+> run with purging disabled on all arenas, but if some threshold of
+> committed
+> memory is surpassed I would like to enable purging for some arenas.
+> Does this sound feasible?
+>
+> Thanks,
+> Jakob
+>
+> [1] https://gist.github.com/buchgr/243b0aa9a2abeda2ac39
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151203/b5fab8e2/attachment.html>
+
+From jakob.buchgraber at tum.de  Fri Dec  4 03:10:43 2015
+From: jakob.buchgraber at tum.de (Jakob Buchgraber)
+Date: Fri, 4 Dec 2015 12:10:43 +0100
+Subject: jemalloc hooks clarifications
+In-Reply-To: <CAF05Cc8dT+TMDzypWh8TmwQ5t9x=MwuXu0dez_Dvoi6fCSPPww@mail.gmail.com>
+References: <CANP6M4s0Xc+k7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA@mail.gmail.com>
+	<CAF05Cc8dT+TMDzypWh8TmwQ5t9x=MwuXu0dez_Dvoi6fCSPPww@mail.gmail.com>
+Message-ID: <CANP6M4v8nAdbLkcsZHwYhdju=AxCgeOx5-yOtzEanLSnc8xWxQ@mail.gmail.com>
+
+On Thu, Dec 3, 2015 at 8:35 PM, Rogier 'DocWilco' Mulhuijzen <
+rogier+jemalloc at fastly.com> wrote:
+
+> Maybe I'm saying something stupid, but isn't there a DALLOC on the second
+> line of your output?
+>
+
+That output just states that dalloc was called. However, the dalloc chunk
+hook opts out of deallocation. So next jemalloc calls decommit, again with
+decommit opting out of decommitting the memory and so finally purge gets
+called, which one can't opt out from.
+
+If the memory was deallocated, only dalloc would have been called (no
+decommit or purge).
+
+Best,
+Jakob
+
+On Thu, Dec 3, 2015 at 10:52 AM Jakob Buchgraber <jakob.buchgraber at tum.de>
+> wrote:
+>
+>> Hello Jason,
+>>
+>> I am playing around with the memory management hooks introduced in
+>> version 4.
+>> So I wrote a delegate for the default chunk hooks, that additionally
+>> report to
+>> stdout what's happening [1].
+>>
+>> The test program allocates 1GB of memory and immediately frees it.
+>> It then tries to allocate 4MB and 8MB. The output is as follows
+>>
+>> ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1,
+>> arena_ind 0, ret 0x7f2f52a00000
+>> DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+>> DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length
+>> 1073741824, arena_ind 0
+>> PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length
+>> 1073741824, arena_ind 0
+>> FREED
+>> ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1,
+>> arena_ind 0, ret 0x7f2f52a00000
+>> ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1,
+>> arena_ind 0, ret 0x7f2f52e00000
+>>
+>> Given that the 1GB has not been deallocated, but purged I would expect
+>> the last two ALLOCations not to have happened. Instead I would expect
+>> the virtual memory from the 1GB allocation before to be reused?
+>>
+>> I am running jemalloc 4.0.4 on Linux.
+>>
+>> Also, on an unrelated note, is it generally safe to trigger purging for
+>> arena A
+>> from within an allocation chunk hook of arena B, with A <> B?
+>> The reason why am asking this question is that I would generally want to
+>> run with purging disabled on all arenas, but if some threshold of
+>> committed
+>> memory is surpassed I would like to enable purging for some arenas.
+>> Does this sound feasible?
+>>
+>> Thanks,
+>> Jakob
+>>
+>> [1] https://gist.github.com/buchgr/243b0aa9a2abeda2ac39
+>>
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>
+
+
+-- 
+
+Mit freundlichen Gr??en / Best Regards
+Jakob Buchgraber
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151204/6adc8d45/attachment.html>
+
+From edsiper at gmail.com  Wed Dec  9 18:19:47 2015
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Wed, 9 Dec 2015 20:19:47 -0600
+Subject: Failed assertion: "pageind >= map_bias"
+Message-ID: <CAMAQheP7tgG1PQ7_jGb=uM1jqZg7nwCXAO6WBpHeKK_7_4CG-g@mail.gmail.com>
+
+Hi,
+
+I am facing a segfault when using Jemalloc, it happens with Jemalloc 3.x
+and 4.0.4. If I use the default system memory allocator (Linux) there is no
+issues (valgrind cannot find any corruption).
+
+Would you please advice any step to determinate if the problem it's on my
+code or on jemalloc it self ?
+
+---
+<jemalloc>:
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:575:
+Failed assertion: "pageind >= map_bias"
+
+Program received signal SIGABRT, Aborted.
+[Switching to Thread 0x7ffff51ff700 (LWP 4613)]
+0x00007ffff7622267 in __GI_raise (sig=sig at entry=6) at
+../sysdeps/unix/sysv/linux/raise.c:55
+55    ../sysdeps/unix/sysv/linux/raise.c: No such file or directory.
+(gdb) bt
+#0  0x00007ffff7622267 in __GI_raise (sig=sig at entry=6) at
+../sysdeps/unix/sysv/linux/raise.c:55
+#1  0x00007ffff7623eca in __GI_abort () at abort.c:89
+#2  0x000000000042826e in je_arena_bitselm_get (chunk=<optimized out>,
+pageind=<optimized out>)
+    at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:576
+#3  0x000000000042e1e0 in je_arena_mapbitsp_get (pageind=0,
+chunk=0x7fffdc000000) at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:642
+#4  je_arena_mapbits_get (pageind=0, chunk=0x7fffdc000000) at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:656
+#5  je_arena_mapbits_allocated_get (pageind=0, chunk=0x7fffdc000000) at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:766
+#6  je_arena_salloc (ptr=ptr at entry=0x7fffdc000910, demote=demote at entry=false)
+at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:1217
+#7  0x00000000004238fb in je_isalloc (demote=false, ptr=0x7fffdc000910) at
+include/jemalloc/internal/jemalloc_internal.h:880
+#8  ifree (tcache=0x7ffff704c000, ptr=0x7fffdc000910, tsd=0x7ffff51ff650)
+at /home/edsiper/coding/monkey/deps/jemalloc/src/jemalloc.c:1740
+#9  je_free (ptr=0x7fffdc000910) at
+/home/edsiper/coding/monkey/deps/jemalloc/src/jemalloc.c:1839
+#10 0x0000000000419537 in mk_mem_free (ptr=0x7fffdc000910) at
+/home/edsiper/coding/monkey/mk_core/include/mk_core/mk_memory.h:96
+#11 0x000000000041991c in mk_iov_free_marked (mk_io=0x7ffff447f000) at
+/home/edsiper/coding/monkey/mk_core/mk_iov.c:143
+#12 0x00000000004198c7 in mk_iov_free (mk_io=0x7ffff447f000) at
+/home/edsiper/coding/monkey/mk_core/mk_iov.c:126
+#13 0x00007ffff6dfcc1a in fcgi_exit (handler=0x7ffff446a1c0) at
+/home/edsiper/coding/monkey/plugins/fastcgi/fcgi_handler.c:405
+#14 0x00007ffff6dfd09b in cb_fastcgi_on_read (data=0x7ffff446a1c0) at
+/home/edsiper/coding/monkey/plugins/fastcgi/fcgi_handler.c:521
+#15 0x0000000000412598 in mk_server_worker_loop () at
+/home/edsiper/coding/monkey/mk_server/mk_server.c:455
+#16 0x000000000040aa6b in mk_sched_launch_worker_loop
+(thread_conf=0x7ffff701c538) at
+/home/edsiper/coding/monkey/mk_server/mk_scheduler.c:394
+#17 0x00007ffff7bc26aa in start_thread (arg=0x7ffff51ff700) at
+pthread_create.c:333
+#18 0x00007ffff76f3eed in clone () at
+../sysdeps/unix/sysv/linux/x86_64/clone.S:109
+---
+
+thanks
+
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151209/8b1f37f8/attachment.html>
+
+From jasone at canonware.com  Thu Dec 10 09:42:55 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 10 Dec 2015 09:42:55 -0800
+Subject: Failed assertion: "pageind >= map_bias"
+In-Reply-To: <CAMAQheP7tgG1PQ7_jGb=uM1jqZg7nwCXAO6WBpHeKK_7_4CG-g@mail.gmail.com>
+References: <CAMAQheP7tgG1PQ7_jGb=uM1jqZg7nwCXAO6WBpHeKK_7_4CG-g@mail.gmail.com>
+Message-ID: <CA1EEB52-0B33-417F-9658-A12FA396AE72@canonware.com>
+
+On Dec 9, 2015, at 6:19 PM, Eduardo Silva <edsiper at gmail.com> wrote:
+> I am facing a segfault when using Jemalloc, it happens with Jemalloc 3.x and 4.0.4. If I use the default system memory allocator (Linux) there is no issues (valgrind cannot find any corruption).
+> 
+> Would you please advice any step to determinate if the problem it's on my code or on jemalloc it self ?
+> ---
+> <jemalloc>: /home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:575: Failed assertion: "pageind >= map_bias"
+> 
+> [...]
+> #9  je_free (ptr=0x7fffdc000910) at /home/edsiper/coding/monkey/deps/jemalloc/src/jemalloc.c:1839
+> [...]
+> ---
+
+
+You're trying to pass a pointer to free() that is within the chunk header.  Given that the pointer is 0x7fffdc000910, your program is probably doing something very wrong (e.g. corrupting a pointer, or trying to free memory that came from another allocator), because jemalloc will never provide memory to the application with such alignment (i.e. an interior pointer to the first page of a chunk).
+
+Jason
+
+
+From edsiper at gmail.com  Thu Dec 10 09:54:06 2015
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Thu, 10 Dec 2015 11:54:06 -0600
+Subject: Failed assertion: "pageind >= map_bias"
+In-Reply-To: <CA1EEB52-0B33-417F-9658-A12FA396AE72@canonware.com>
+References: <CAMAQheP7tgG1PQ7_jGb=uM1jqZg7nwCXAO6WBpHeKK_7_4CG-g@mail.gmail.com>
+	<CA1EEB52-0B33-417F-9658-A12FA396AE72@canonware.com>
+Message-ID: <CAMAQheMKq51UcCMoTYnZ7tNSZE-SACgSc1FVbHqMzABcS_Xjsw@mail.gmail.com>
+
+>
+> You're trying to pass a pointer to free() that is within the chunk
+> header.  Given that the pointer is 0x7fffdc000910, your program is probably
+> doing something very wrong (e.g. corrupting a pointer, or trying to free
+> memory that came from another allocator), because jemalloc will never
+> provide memory to the application with such alignment (i.e. an interior
+> pointer to the first page of a chunk).
+>
+>
+>
+Thanks, I will keep investigating. But what could be main reason of why the
+default memory allocator malloc(3) is not failing ?, I cannot reproduce the
+problem without jemalloc.
+
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151210/cb13c460/attachment.html>
+
+From danielmicay at gmail.com  Thu Dec 10 09:57:13 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Thu, 10 Dec 2015 12:57:13 -0500
+Subject: Failed assertion: "pageind >= map_bias"
+In-Reply-To: <CAMAQheMKq51UcCMoTYnZ7tNSZE-SACgSc1FVbHqMzABcS_Xjsw@mail.gmail.com>
+References: <CAMAQheP7tgG1PQ7_jGb=uM1jqZg7nwCXAO6WBpHeKK_7_4CG-g@mail.gmail.com>
+	<CA1EEB52-0B33-417F-9658-A12FA396AE72@canonware.com>
+	<CAMAQheMKq51UcCMoTYnZ7tNSZE-SACgSc1FVbHqMzABcS_Xjsw@mail.gmail.com>
+Message-ID: <1449770233.8579.3.camel@gmail.com>
+
+> Thanks, I will keep investigating. But what could be main reason of
+> why the default memory allocator malloc(3) is not failing ?, I cannot
+> reproduce the problem without jemalloc.
+
+There are no guarantees when it comes to memory corruption. Perhaps you
+can find the issue with Address Sanitizer or Valgrind.
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: This is a digitally signed message part
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151210/ef28229f/attachment.sig>
+
+From edsiper at gmail.com  Thu Dec 10 13:13:18 2015
+From: edsiper at gmail.com (Eduardo Silva)
+Date: Thu, 10 Dec 2015 15:13:18 -0600
+Subject: Failed assertion: "pageind >= map_bias"
+In-Reply-To: <1449770233.8579.3.camel@gmail.com>
+References: <CAMAQheP7tgG1PQ7_jGb=uM1jqZg7nwCXAO6WBpHeKK_7_4CG-g@mail.gmail.com>
+	<CA1EEB52-0B33-417F-9658-A12FA396AE72@canonware.com>
+	<CAMAQheMKq51UcCMoTYnZ7tNSZE-SACgSc1FVbHqMzABcS_Xjsw@mail.gmail.com>
+	<1449770233.8579.3.camel@gmail.com>
+Message-ID: <CAMAQheODJCrHjRQNBDaiUhSKVD2Z5Dkknj8G2KbuoGibKzrgJg@mail.gmail.com>
+
+thanks for the assistance.
+
+I found that the root cause of the problem was:
+
+ - duplicate a string buffer with strdup(3)
+ - release the buffer with je_free()
+
+
+
+On Thu, Dec 10, 2015 at 11:57 AM, Daniel Micay <danielmicay at gmail.com>
+wrote:
+
+> > Thanks, I will keep investigating. But what could be main reason of
+> > why the default memory allocator malloc(3) is not failing ?, I cannot
+> > reproduce the problem without jemalloc.
+>
+> There are no guarantees when it comes to memory corruption. Perhaps you
+> can find the issue with Address Sanitizer or Valgrind.
+
+
+
+
+-- 
+Eduardo Silva
+http://edsiper.linuxchile.cl
+http://monkey-project.com
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151210/4dfd5bc9/attachment.html>
+
+From cparaschiv at ixiacom.com  Mon Dec 14 11:57:27 2015
+From: cparaschiv at ixiacom.com (Cosmin Paraschiv)
+Date: Mon, 14 Dec 2015 21:57:27 +0200
+Subject: [PATCH] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+In-Reply-To: <1447862520-28997-1-git-send-email-cparaschiv@ixiacom.com>
+References: <1447862520-28997-1-git-send-email-cparaschiv@ixiacom.com>
+Message-ID: <566F1F27.3040001@ixiacom.com>
+
+On 11/18/2015 6:02 PM, Cosmin Paraschiv wrote:
+> When using LinuxThreads, malloc bootstrapping deadlocks, since malloc_tsd_boot0
+> ends up calling pthread_setspecific, which causes recursive allocation. Fix it,
+> by moving the malloc_tsd_boot0 call to malloc_init_hard_recursible.
+>
+> The deadlock has been introduced by commit 8bb3198f72, when tsd_boot was split
+> and the top half, tsd_boot0, got an extra tsd_wrapper_set call.
+>
+> Signed-off-by: Cosmin Paraschiv <cparaschiv at ixiacom.com>
+> ---
+>   src/jemalloc.c | 23 +++++++++++++++++------
+>   1 file changed, 17 insertions(+), 6 deletions(-)
+>
+
+Bump.
+
+From awreece at gmail.com  Thu Dec 17 10:11:31 2015
+From: awreece at gmail.com (Alex Reece)
+Date: Thu, 17 Dec 2015 13:11:31 -0500
+Subject: malloc profile from a core dump
+Message-ID: <CANywC6Dk8ne+ytt4eBdbTz0gKMtw8tU0CRyjH5qW9HTB21jLbw@mail.gmail.com>
+
+Is is possible to generate a malloc profile from a core dump? I'm
+investigating the use of jemalloc for pretty aggressive checking (a la
+libumem's auditing / redzone checking / ::whatis) for testing debug builds.
+
+I've seen some similar questions in the areas (
+http://www.canonware.com/pipermail/jemalloc-discuss/2015-June/001125.html)
+and some other tools in the area (https://github.com/argp/unmask_jemalloc)
+but nothing really appears to stick out.
+
+Best,
+~Alex
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151217/01fbfa94/attachment.html>
+
+From mhall at mhcomputing.net  Thu Dec 17 23:38:45 2015
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Fri, 18 Dec 2015 02:38:45 -0500
+Subject: malloc profile from a core dump
+In-Reply-To: <CANywC6Dk8ne+ytt4eBdbTz0gKMtw8tU0CRyjH5qW9HTB21jLbw@mail.gmail.com>
+References: <CANywC6Dk8ne+ytt4eBdbTz0gKMtw8tU0CRyjH5qW9HTB21jLbw@mail.gmail.com>
+Message-ID: <20151218073845.GA26753@mhcomputing.net>
+
+Technically, couldn't you load it in gdb and print out some info from the 
+malloc statistics structs if stats collection was enabled?
+
+Matthew.
+
+On Thu, Dec 17, 2015 at 01:11:31PM -0500, Alex Reece wrote:
+> Is is possible to generate a malloc profile from a core dump? I'm
+> investigating the use of jemalloc for pretty aggressive checking (a la
+> libumem's auditing / redzone checking / ::whatis) for testing debug builds.
+> 
+> I've seen some similar questions in the areas (
+> http://www.canonware.com/pipermail/jemalloc-discuss/2015-June/001125.html)
+> and some other tools in the area (https://github.com/argp/unmask_jemalloc)
+> but nothing really appears to stick out.
+> 
+> Best,
+> ~Alex
+
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From Phillip.Ezolt at netapp.com  Thu Dec 17 10:28:58 2015
+From: Phillip.Ezolt at netapp.com (Ezolt, Phillip)
+Date: Thu, 17 Dec 2015 18:28:58 +0000
+Subject: malloc profile from a core dump
+In-Reply-To: <CANywC6Dk8ne+ytt4eBdbTz0gKMtw8tU0CRyjH5qW9HTB21jLbw@mail.gmail.com>
+References: <CANywC6Dk8ne+ytt4eBdbTz0gKMtw8tU0CRyjH5qW9HTB21jLbw@mail.gmail.com>
+Message-ID: <1450376937871.19824@netapp.com>
+
+FWIW. ?
+
+  For the older versions of jemalloc that was included with FreeBSD 7 & 8, I released the following gdb python macros:
+
+http://www.canonware.com/pipermail/jemalloc-discuss/2011-November/000051.html
+
+
+We (Netapp) use it for both cores and live debugging.
+
+...
+
+I haven't updated it to the most recent jemalloc, so it would require work... but it may be a starting place for you.
+
+
+Cheers,
+
+--Phil
+
+
+________________________________
+From: jemalloc-discuss-bounces at canonware.com <jemalloc-discuss-bounces at canonware.com> on behalf of Alex Reece <awreece at gmail.com>
+Sent: Thursday, December 17, 2015 1:11 PM
+To: jemalloc-discuss at canonware.com
+Subject: malloc profile from a core dump
+
+Is is possible to generate a malloc profile from a core dump? I'm investigating the use of jemalloc for pretty aggressive checking (a la libumem's auditing / redzone checking / ::whatis) for testing debug builds.
+
+I've seen some similar questions in the areas (http://www.canonware.com/pipermail/jemalloc-discuss/2015-June/001125.html) and some other tools in the area (https://github.com/argp/unmask_jemalloc) but nothing really appears to stick out.
+
+Best,
+~Alex
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151217/c4c57b85/attachment.html>
+
+From jasone at canonware.com  Wed Dec 23 08:56:34 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 Dec 2015 08:56:34 -0800
+Subject: [PATCH] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+In-Reply-To: <1447862520-28997-1-git-send-email-cparaschiv@ixiacom.com>
+References: <1447862520-28997-1-git-send-email-cparaschiv@ixiacom.com>
+Message-ID: <D7E9A7DF-2132-49E5-A9B4-46D249362D65@canonware.com>
+
+On Nov 18, 2015, at 8:02 AM, Cosmin Paraschiv <cparaschiv at ixiacom.com> wrote:
+> When using LinuxThreads, malloc bootstrapping deadlocks, since malloc_tsd_boot0
+> ends up calling pthread_setspecific, which causes recursive allocation. Fix it,
+> by moving the malloc_tsd_boot0 call to malloc_init_hard_recursible.
+> 
+> The deadlock has been introduced by commit 8bb3198f72, when tsd_boot was split
+> and the top half, tsd_boot0, got an extra tsd_wrapper_set call.
+
+This patch causes a test failure (on a Ubuntu 15.04 machine):
+
+---
+./autogen.sh --enable-prof --enable-debug && make check
+[...]
+MALLOC_CONF="prof:true" /bin/sh test/test.sh test/integration/aligned_alloc test/integration/allocated test/integration/sdallocx test/integration/mallocx test/integration/MALLOCX_ARENA test/integration/overflow test/integration/posix_memalign test/integration/rallocx test/integration/thread_arena test/integration/thread_tcache_enabled test/integration/xallocx test/integration/chunk
+=== test/integration/aligned_alloc ===
+<jemalloc>: include/jemalloc/internal/tsd.h:609: Failed assertion: "tsd_booted"
+Aborted (core dumped)
+---
+
+It will probably be at least several weeks before I have a chunk of time to look into this myself, so if you have the time, please get back to me with an updated patch.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed Dec 23 09:05:35 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 Dec 2015 09:05:35 -0800
+Subject: Configuration Script for Windows
+In-Reply-To: <CALcfDgAcf_pHR12SH=_mQC0C8Kh0FjfXV6UbAJD7fPQQ2kwEQw@mail.gmail.com>
+References: <CALcfDgAcf_pHR12SH=_mQC0C8Kh0FjfXV6UbAJD7fPQQ2kwEQw@mail.gmail.com>
+Message-ID: <A2BCB1C5-7C60-47C0-ABCD-5F047F6DC7C1@canonware.com>
+
+On Nov 19, 2015, at 2:08 AM, Jos Vernon <jv at websupergoo.com> wrote:
+> I've been using the GitHub shines77/jemalloc-win32 for a while -  that uses jemalloc 3.6.0.
+> 
+> However recently I've hit problems relating to leaks in highly threaded environments. I know these are jemalloc related because if I swap out jemalloc for a different memory manager then they go away.
+> 
+> So it would seem to me that the first thing to do is to upgrade to 4.0.4 to see if the issue is resolved. However I am having some problem getting this to work under MSVC.
+> 
+> I can see that this is supposed to work because I can see MSVC bits in the config code. However there are lots of questions about this and a notable dearth of people who have been successful in this area. That includes me after my first day. :-(
+> 
+> The MSVC bit is easy. It's getting the config to generate the right bits that is difficult. 
+> 
+> I'm using cygwin. I've put the Visual Studio 2012 environment variables into my shell so I can use MSVC CL and then I've done an ./autogen.sl CC=CL. 
+> 
+> This seems to work more or less ok. The results look feasible,.But then I'm missing important bits like sensible values in size_classes.h.
+> 
+> I would love any pointers here. I'm pretty hot on VC++ so once I get the config going it will be fine. I am sure that will also be useful for other people who want to do similar things.
+
+Personally, the only thing I use Windows for is to fire up a 64-bit MinGW environment and build/test jemalloc.  I spent several days leading up to the 4.0.0 release making the test suite run and pass, but my lack of familiarity with modern Windows makes pretty much every experience with it intensely frustrating, and I keep hoping that others more familiar with Windows will round off the rough edges and document build procedures.  I've heard of people working around configuration issues to successfully build using Cygwin, and I'm pretty sure Mozilla uses MSVC with jemalloc.
+
+Jason
+
+From jasone at canonware.com  Wed Dec 23 09:20:24 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 Dec 2015 09:20:24 -0800
+Subject: jemalloc hooks clarifications
+In-Reply-To: <CANP6M4s0Xc+k7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA@mail.gmail.com>
+References: <CANP6M4s0Xc+k7-Su4VwdGhdVM9oR9QtV_xJGZ8n17vkwcTwRoA@mail.gmail.com>
+Message-ID: <CBD9B88C-46DF-4950-91DC-DA910D578787@canonware.com>
+
+On Nov 25, 2015, at 8:14 AM, Jakob Buchgraber <jakob.buchgraber at tum.de> wrote:
+> I am playing around with the memory management hooks introduced in version 4.
+> So I wrote a delegate for the default chunk hooks, that additionally report to
+> stdout what's happening [1]. 
+> 
+> The test program allocates 1GB of memory and immediately frees it.
+> It then tries to allocate 4MB and 8MB. The output is as follows
+> 
+> ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52a00000
+> DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+> DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824, arena_ind 0
+> PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824, arena_ind 0
+> FREED
+> ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52a00000
+> ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52e00000
+> 
+> Given that the 1GB has not been deallocated, but purged I would expect 
+> the last two ALLOCations not to have happened. Instead I would expect
+> the virtual memory from the 1GB allocation before to be reused?
+
+It looks to me like the first ALLOC gets 2^30 bytes at 0x7f2f52a00000, and the DALLOC/DECOMMIT/PURGE logging indicates that during free() the memory is madvise()d away, but the virtual memory is cached for future use.  Then the ALLOCs of 2^22 and 2^23 bytes use the lowest contiguous parts of the cached virtual memory (0x7f2f52a00000 == 0x7f2f52a00000 for the 2^30 and 2^22 allocations).  If I understand correctly, this exactly matches your expectations.
+
+> Also, on an unrelated note, is it generally safe to trigger purging for arena A
+> from within an allocation chunk hook of arena B, with A <> B? 
+> The reason why am asking this question is that I would generally want to 
+> run with purging disabled on all arenas, but if some threshold of committed 
+> memory is surpassed I would like to enable purging for some arenas. 
+> Does this sound feasible?
+
+Currently this will probably work, but isn't in general safe.  I have some long term plans to allocate internal metadata from the auto arenas (maybe just arena 0, maybe any auto arena, depending on how things work out), so that it is possible to do low overhead full arena reset without losing critical metadata (https://github.com/jemalloc/jemalloc/issues/146).  These changes would create the potential for deadlock in what you're proposing.
+
+Cheers,
+Jason
+
+From cparaschiv at ixiacom.com  Wed Dec 23 10:13:59 2015
+From: cparaschiv at ixiacom.com (Cosmin Paraschiv)
+Date: Wed, 23 Dec 2015 20:13:59 +0200
+Subject: [PATCH] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+In-Reply-To: <D7E9A7DF-2132-49E5-A9B4-46D249362D65@canonware.com>
+References: <1447862520-28997-1-git-send-email-cparaschiv@ixiacom.com>
+	<D7E9A7DF-2132-49E5-A9B4-46D249362D65@canonware.com>
+Message-ID: <567AE467.20708@ixiacom.com>
+
+On 12/23/2015 06:56 PM, Jason Evans wrote:
+> This patch causes a test failure (on a Ubuntu 15.04 machine):
+>
+> ---
+> ./autogen.sh --enable-prof --enable-debug && make check
+> [...]
+> MALLOC_CONF="prof:true" /bin/sh test/test.sh test/integration/aligned_alloc test/integration/allocated test/integration/sdallocx test/integration/mallocx test/integration/MALLOCX_ARENA test/integration/overflow test/integration/posix_memalign test/integration/rallocx test/integration/thread_arena test/integration/thread_tcache_enabled test/integration/xallocx test/integration/chunk
+> === test/integration/aligned_alloc ===
+> <jemalloc>: include/jemalloc/internal/tsd.h:609: Failed assertion: "tsd_booted"
+> Aborted (core dumped)
+> ---
+
+I ran autogen.sh without '--enable-prof', so I missed the failure. It 
+seems that prof_boot2 calls tsd_fetch, so we must call malloc_tsd_boot0 
+beforehand. I'll send an updated version of the patch.
+
+Thanks,
+Cosmin
+
+From cparaschiv at ixiacom.com  Wed Dec 23 10:32:12 2015
+From: cparaschiv at ixiacom.com (Cosmin Paraschiv)
+Date: Wed, 23 Dec 2015 20:32:12 +0200
+Subject: [PATCH v2] Call malloc_tsd_boot0 from malloc_init_hard_recursible
+In-Reply-To: <D7E9A7DF-2132-49E5-A9B4-46D249362D65@canonware.com>
+References: <D7E9A7DF-2132-49E5-A9B4-46D249362D65@canonware.com>
+Message-ID: <1450895532-11202-1-git-send-email-cparaschiv@ixiacom.com>
+
+
+When using LinuxThreads, malloc bootstrapping deadlocks, since malloc_tsd_boot0
+ends up calling pthread_setspecific, which causes recursive allocation. Fix it,
+by moving the malloc_tsd_boot0 call to malloc_init_hard_recursible.
+
+The deadlock has been introduced by commit 8bb3198f72, when tsd_boot was split
+and the top half, tsd_boot0, got an extra tsd_wrapper_set call.
+
+Signed-off-by: Cosmin Paraschiv <cparaschiv at ixiacom.com>
+---
+ src/jemalloc.c | 21 ++++++++++++++++-----
+ 1 file changed, 16 insertions(+), 5 deletions(-)
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Call-malloc_tsd_boot0-from-malloc_init_hard_recursib.patch
+Type: text/x-patch
+Size: 1532 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151223/c34a6bbd/attachment.bin>
+
+From roel.vandepaar at percona.com  Wed Dec 23 14:58:05 2015
+From: roel.vandepaar at percona.com (Roel Van de Paar)
+Date: Thu, 24 Dec 2015 09:58:05 +1100
+Subject: Configuration Script for Windows
+In-Reply-To: <CALcfDgAcf_pHR12SH=_mQC0C8Kh0FjfXV6UbAJD7fPQQ2kwEQw@mail.gmail.com>
+References: <CALcfDgAcf_pHR12SH=_mQC0C8Kh0FjfXV6UbAJD7fPQQ2kwEQw@mail.gmail.com>
+Message-ID: <CAGQTitNkPNeJ24f-fFmaCv_RDjrsvH8UpeRmmnLBskctK7XUdQ@mail.gmail.com>
+
+Jos, the assertion that "if I swap out jemalloc for a different memory
+manager then they go away" equals "I know these [problems] are jemalloc
+related" is invalid, because it could be that a bug in the code related to
+the "highly threaded environments" is simply not being hit when using a
+different memory manager - i.e. the problem could still be in the source of
+whatever software you're working with also, even if it is somewhat less
+likely. A logical mistake to make.
+
+On Thu, Nov 19, 2015 at 9:08 PM, Jos Vernon <jv at websupergoo.com> wrote:
+
+> Hi
+>
+> I've been using the GitHub shines77/jemalloc-win32 for a while -  that
+> uses jemalloc 3.6.0.
+>
+> However recently I've hit problems relating to leaks in highly threaded
+> environments. I know these are jemalloc related because if I swap out
+> jemalloc for a different memory manager then they go away.
+>
+> So it would seem to me that the first thing to do is to upgrade to 4.0.4
+> to see if the issue is resolved. However I am having some problem getting
+> this to work under MSVC.
+>
+> I can see that this is supposed to work because I can see MSVC bits in the
+> config code. However there are lots of questions about this and a notable
+> dearth of people who have been successful in this area. That includes me
+> after my first day. :-(
+>
+> The MSVC bit is easy. It's getting the config to generate the right bits
+> that is difficult.
+>
+> I'm using cygwin. I've put the Visual Studio 2012 environment variables
+> into my shell so I can use MSVC CL and then I've done an ./autogen.sl
+> CC=CL.
+>
+> This seems to work more or less ok. The results look feasible,.But then
+> I'm missing important bits like sensible values in size_classes.h.
+>
+> I would love any pointers here. I'm pretty hot on VC++ so once I get the
+> config going it will be fine. I am sure that will also be useful for other
+> people who want to do similar things.
+>
+> Jos
+>
+> ----------------------------------------------------------------------
+> jos vernon
+> http://www.websupergoo.com/
+> .NET Image Components & Consultancy
+> ----------------------------------------------------------------------
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+
+
+-- 
+
+Kind Regards,
+God Bless,
+-- 
+Roel Van de Paar, CMDBA/CMDEV Senior QA Lead, Percona
+Tel: +61 2 8004 1288 (UTC+10)
+Mob: +61 427 141 635 (UTC+10)
+Skype: percona.rvandepaar
+http://www.percona.com/services.html
+
+Looking for Replication with Data Consistency?
+Try Percona XtraDB Cluster
+<http://www.percona.com/software/percona-xtradb-cluster>!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151224/4709c624/attachment.html>
+
+From jv at websupergoo.com  Thu Dec 24 02:31:57 2015
+From: jv at websupergoo.com (Jos Vernon)
+Date: Thu, 24 Dec 2015 10:31:57 +0000
+Subject: Configuration Script for Windows
+In-Reply-To: <A2BCB1C5-7C60-47C0-ABCD-5F047F6DC7C1@canonware.com>
+References: <CALcfDgAcf_pHR12SH=_mQC0C8Kh0FjfXV6UbAJD7fPQQ2kwEQw@mail.gmail.com>
+	<A2BCB1C5-7C60-47C0-ABCD-5F047F6DC7C1@canonware.com>
+Message-ID: <CALcfDgAi6EAaFGk4Zt3_VkGZz=ZPjRd-OsTGB2=HQB0E7KbikQ@mail.gmail.com>
+
+Hi
+
+Well the MinGW environment sounds interesting. Might try that. Thanks. :-)
+
+My suspicions about the issues I am seeing are that they are related to
+order of initialization of statics and tls. The MS runtime gets special
+treatment so calling into new from a static initialization or a tls
+initialization works just fine.
+
+However jemalloc doesn't get this type of special treatment so I can see
+that the order of initialization might be a bit random and that jemalloc
+might only be partially set up at the point it is called. This would fit
+with what I've reproduced so far which is related to odd behavior when
+calling at the point of thread initialization.
+
+More general allocation is fine. I exhaustively tested on our test suite
+and there were no leaks at all. But that has a fairly fixed number of
+threads which is why I didn't pick up the issues I describe above. It is
+terribly impressive as well - produced a speed improvement of about 10%.
+Though perhaps that says more about the MS runtime than it does about
+jemalloc. :-)
+
+I have always thought that the Windows DLL loading was terribly flaky.
+Forget the fact that half of what you want to call has not yet been
+initialized. The fact that you don't necessarily get all the thread load or
+unload events is just mad. But that is MS all over - scared to fix things
+for fear they might break them.
+
+Jos
+
+
+On Wed, Dec 23, 2015 at 5:05 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Nov 19, 2015, at 2:08 AM, Jos Vernon <jv at websupergoo.com> wrote:
+> > I've been using the GitHub shines77/jemalloc-win32 for a while -  that
+> uses jemalloc 3.6.0.
+> >
+> > However recently I've hit problems relating to leaks in highly threaded
+> environments. I know these are jemalloc related because if I swap out
+> jemalloc for a different memory manager then they go away.
+> >
+> > So it would seem to me that the first thing to do is to upgrade to 4.0.4
+> to see if the issue is resolved. However I am having some problem getting
+> this to work under MSVC.
+> >
+> > I can see that this is supposed to work because I can see MSVC bits in
+> the config code. However there are lots of questions about this and a
+> notable dearth of people who have been successful in this area. That
+> includes me after my first day. :-(
+> >
+> > The MSVC bit is easy. It's getting the config to generate the right bits
+> that is difficult.
+> >
+> > I'm using cygwin. I've put the Visual Studio 2012 environment variables
+> into my shell so I can use MSVC CL and then I've done an ./autogen.sl
+> CC=CL.
+> >
+> > This seems to work more or less ok. The results look feasible,.But then
+> I'm missing important bits like sensible values in size_classes.h.
+> >
+> > I would love any pointers here. I'm pretty hot on VC++ so once I get the
+> config going it will be fine. I am sure that will also be useful for other
+> people who want to do similar things.
+>
+> Personally, the only thing I use Windows for is to fire up a 64-bit MinGW
+> environment and build/test jemalloc.  I spent several days leading up to
+> the 4.0.0 release making the test suite run and pass, but my lack of
+> familiarity with modern Windows makes pretty much every experience with it
+> intensely frustrating, and I keep hoping that others more familiar with
+> Windows will round off the rough edges and document build procedures.  I've
+> heard of people working around configuration issues to successfully build
+> using Cygwin, and I'm pretty sure Mozilla uses MSVC with jemalloc.
+>
+> Jason
+
+
+
+
+-- 
+
+----------------------------------------------------------------------
+jos vernon
+http://www.websupergoo.com/
+.NET Image Components & Consultancy
+----------------------------------------------------------------------
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151224/84b99817/attachment.html>
+

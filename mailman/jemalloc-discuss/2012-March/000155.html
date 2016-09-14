@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Unbreak mac after commit 4e2e3dd
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Unbreak%20mac%20after%20commit%204e2e3dd&In-Reply-To=%3C1332262989-31979-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000153.html">
+   <LINK REL="Next"  HREF="000144.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Unbreak mac after commit 4e2e3dd</H1>
+    <B>mh+jemalloc at glandium.org</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Unbreak%20mac%20after%20commit%204e2e3dd&In-Reply-To=%3C1332262989-31979-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Unbreak mac after commit 4e2e3dd">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Mar 20 10:03:09 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000153.html">4e2e3dd Fix fork-related bugs.
+</A></li>
+        <LI>Next message: <A HREF="000144.html">d81e4bdd Implement malloc_vsnprintf().
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#155">[ date ]</a>
+              <a href="thread.html#155">[ thread ]</a>
+              <a href="subject.html#155">[ subject ]</a>
+              <a href="author.html#155">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ src/zone.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/zone.c b/src/zone.c
+index 5beed5f..a0372e1 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -152,7 +152,7 @@ zone_force_unlock(malloc_zone_t *zone)
+ {
+ 
+ 	if (isthreaded)
+-		jemalloc_postfork();
++		jemalloc_postfork_parent();
+ }
+ 
+ malloc_zone_t *
+-- 
+1.7.5.4
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000153.html">4e2e3dd Fix fork-related bugs.
+</A></li>
+	<LI>Next message: <A HREF="000144.html">d81e4bdd Implement malloc_vsnprintf().
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#155">[ date ]</a>
+              <a href="thread.html#155">[ thread ]</a>
+              <a href="subject.html#155">[ subject ]</a>
+              <a href="author.html#155">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

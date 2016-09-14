@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> List all live malloc'd blocks, with their size in bytes
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20List%20all%20live%20malloc%27d%20blocks%2C%20with%20their%20size%20in%20bytes&In-Reply-To=%3CCAJTmd9opDf0dWi-Vaw6jVCKDB1aCJjocti8%3DtQnxHWyhGN3sPQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000435.html">
+   <LINK REL="Next"  HREF="000436.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>List all live malloc'd blocks, with their size in bytes</H1>
+    <B>Benoit Jacob</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20List%20all%20live%20malloc%27d%20blocks%2C%20with%20their%20size%20in%20bytes&In-Reply-To=%3CCAJTmd9opDf0dWi-Vaw6jVCKDB1aCJjocti8%3DtQnxHWyhGN3sPQ%40mail.gmail.com%3E"
+       TITLE="List all live malloc'd blocks, with their size in bytes">jacob.benoit.1 at gmail.com
+       </A><BR>
+    <I>Wed Jul 25 14:55:22 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000435.html">List all live malloc'd blocks, with their size in bytes
+</A></li>
+        <LI>Next message: <A HREF="000436.html">Static linking performance seems to be slow first time.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#437">[ date ]</a>
+              <a href="thread.html#437">[ thread ]</a>
+              <a href="subject.html#437">[ subject ]</a>
+              <a href="author.html#437">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>2012/7/25 Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;:
+&gt;<i> On Jul 24, 2012, at 6:47 PM, Benoit Jacob wrote:
+</I>&gt;&gt;<i> I would like to know if jemalloc 3.0 is able to give a list of all
+</I>&gt;&gt;<i> currently live blocks, with their exact address and size.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> By &quot;live block&quot; I mean something that has been returned by malloc (or
+</I>&gt;&gt;<i> realloc, etc) and not yet free'd.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> If that is not possible, is there a &quot;right way&quot; to do so as a local
+</I>&gt;&gt;<i> patch to my version of jemalloc (with no particular aim at upstreaming
+</I>&gt;&gt;<i> this), or should I simply just instrument the malloc, free, etc.
+</I>&gt;&gt;<i> functions?
+</I>&gt;<i>
+</I>&gt;<i> jemalloc 3 doesn't maintain the data structures necessary to iterate over live blocks, though it would be possible if arenas kept track of all associated chunks so that the chunks could be iterated over.  Several years ago jemalloc had this ability, but I removed it because iteration was quite difficult to safely use (no allocation allowed), and the extra data structure overhead didn't seem warranted, given that the functionality was almost never used.
+</I>&gt;<i>
+</I>&gt;<i> Thread caches throw a monkey wrench in things, because from the perspective of arena data structures, cached blocks are allocated.  Therefore, it would be necessary to somehow cancel out the effects of caching, by disabling caching, flushing caches before iteration, or masking the cached blocks during iteration.
+</I>
+Thanks for the reply. Based on it, I understand that the better
+approach for me is to just instrument the user-facing malloc, free,
+etc. functions to allocate bigger blocks and store linked list
+pointers in the extra allocated space, to maintain a linked list of
+blocks. Let me know if for some reason that idea is bad ;-)
+
+Benoit
+
+&gt;<i>
+</I>&gt;<i> Jason
+</I>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000435.html">List all live malloc'd blocks, with their size in bytes
+</A></li>
+	<LI>Next message: <A HREF="000436.html">Static linking performance seems to be slow first time.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#437">[ date ]</a>
+              <a href="thread.html#437">[ thread ]</a>
+              <a href="subject.html#437">[ subject ]</a>
+              <a href="author.html#437">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

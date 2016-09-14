@@ -1,0 +1,109 @@
+From jacob.benoit.1 at gmail.com  Tue Jul 24 18:47:24 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Tue, 24 Jul 2012 21:47:24 -0400
+Subject: List all live malloc'd blocks, with their size in bytes
+Message-ID: <CAJTmd9rZ1Muf9CkznrAm7=RDq-=7N2hNGhRfJp=BWRX32drGhA@mail.gmail.com>
+
+Hi,
+
+I would like to know if jemalloc 3.0 is able to give a list of all
+currently live blocks, with their exact address and size.
+
+By "live block" I mean something that has been returned by malloc (or
+realloc, etc) and not yet free'd.
+
+If that is not possible, is there a "right way" to do so as a local
+patch to my version of jemalloc (with no particular aim at upstreaming
+this), or should I simply just instrument the malloc, free, etc.
+functions?
+
+Thanks,
+Benoit
+
+
+From jasone at canonware.com  Wed Jul 25 09:37:13 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 25 Jul 2012 09:37:13 -0700
+Subject: List all live malloc'd blocks, with their size in bytes
+In-Reply-To: <CAJTmd9rZ1Muf9CkznrAm7=RDq-=7N2hNGhRfJp=BWRX32drGhA@mail.gmail.com>
+References: <CAJTmd9rZ1Muf9CkznrAm7=RDq-=7N2hNGhRfJp=BWRX32drGhA@mail.gmail.com>
+Message-ID: <99412BA5-E0B3-4FE1-B5E4-F8A2DDB0CC25@canonware.com>
+
+On Jul 24, 2012, at 6:47 PM, Benoit Jacob wrote:
+> I would like to know if jemalloc 3.0 is able to give a list of all
+> currently live blocks, with their exact address and size.
+> 
+> By "live block" I mean something that has been returned by malloc (or
+> realloc, etc) and not yet free'd.
+> 
+> If that is not possible, is there a "right way" to do so as a local
+> patch to my version of jemalloc (with no particular aim at upstreaming
+> this), or should I simply just instrument the malloc, free, etc.
+> functions?
+
+jemalloc 3 doesn't maintain the data structures necessary to iterate over live blocks, though it would be possible if arenas kept track of all associated chunks so that the chunks could be iterated over.  Several years ago jemalloc had this ability, but I removed it because iteration was quite difficult to safely use (no allocation allowed), and the extra data structure overhead didn't seem warranted, given that the functionality was almost never used.
+
+Thread caches throw a monkey wrench in things, because from the perspective of arena data structures, cached blocks are allocated.  Therefore, it would be necessary to somehow cancel out the effects of caching, by disabling caching, flushing caches before iteration, or masking the cached blocks during iteration.
+
+Jason
+
+From srikanth.k39 at gmail.com  Wed Jul 25 12:16:49 2012
+From: srikanth.k39 at gmail.com (kandukuri srikanth)
+Date: Thu, 26 Jul 2012 00:46:49 +0530
+Subject: Static linking performance seems to be slow first time.
+Message-ID: <CAKz3SRkX8Zk9Tr79YWHC_7XUdqpt=oP_X-Q94=zmPSQ0ipfwxw@mail.gmail.com>
+
+We wanted to use static linking of jemalloc 3.0.
+
+We used libjemalloc.a in a sample program and measured time and we used
+-ljemalloc in the same sample program and measured the time.
+
+We observed dynamic linking gave a good performance than static linking.
+Can this be fixed with any configure flags?
+
+Our OS open SUSE 11.2 x86_64.
+
+Thanks and regards,
+Srikanth Kandukuri
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120726/93add239/attachment.html>
+
+From jacob.benoit.1 at gmail.com  Wed Jul 25 14:55:22 2012
+From: jacob.benoit.1 at gmail.com (Benoit Jacob)
+Date: Wed, 25 Jul 2012 17:55:22 -0400
+Subject: List all live malloc'd blocks, with their size in bytes
+In-Reply-To: <99412BA5-E0B3-4FE1-B5E4-F8A2DDB0CC25@canonware.com>
+References: <CAJTmd9rZ1Muf9CkznrAm7=RDq-=7N2hNGhRfJp=BWRX32drGhA@mail.gmail.com>
+	<99412BA5-E0B3-4FE1-B5E4-F8A2DDB0CC25@canonware.com>
+Message-ID: <CAJTmd9opDf0dWi-Vaw6jVCKDB1aCJjocti8=tQnxHWyhGN3sPQ@mail.gmail.com>
+
+2012/7/25 Jason Evans <jasone at canonware.com>:
+> On Jul 24, 2012, at 6:47 PM, Benoit Jacob wrote:
+>> I would like to know if jemalloc 3.0 is able to give a list of all
+>> currently live blocks, with their exact address and size.
+>>
+>> By "live block" I mean something that has been returned by malloc (or
+>> realloc, etc) and not yet free'd.
+>>
+>> If that is not possible, is there a "right way" to do so as a local
+>> patch to my version of jemalloc (with no particular aim at upstreaming
+>> this), or should I simply just instrument the malloc, free, etc.
+>> functions?
+>
+> jemalloc 3 doesn't maintain the data structures necessary to iterate over live blocks, though it would be possible if arenas kept track of all associated chunks so that the chunks could be iterated over.  Several years ago jemalloc had this ability, but I removed it because iteration was quite difficult to safely use (no allocation allowed), and the extra data structure overhead didn't seem warranted, given that the functionality was almost never used.
+>
+> Thread caches throw a monkey wrench in things, because from the perspective of arena data structures, cached blocks are allocated.  Therefore, it would be necessary to somehow cancel out the effects of caching, by disabling caching, flushing caches before iteration, or masking the cached blocks during iteration.
+
+Thanks for the reply. Based on it, I understand that the better
+approach for me is to just instrument the user-facing malloc, free,
+etc. functions to allocate bigger blocks and store linked list
+pointers in the extra allocated space, to maintain a linked list of
+blocks. Let me know if for some reason that idea is bad ;-)
+
+Benoit
+
+>
+> Jason
+
+

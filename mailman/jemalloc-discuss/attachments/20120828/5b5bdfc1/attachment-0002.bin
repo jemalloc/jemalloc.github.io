@@ -1,0 +1,90 @@
+>From 9b9b22072a576e042b55387dd5777d08277def99 Mon Sep 17 00:00:00 2001
+From: Alessandro Pignotti <a.pignotti@sssup.it>
+Date: Mon, 20 Aug 2012 13:26:49 +0200
+Subject: [PATCH 3/4] Add a method to iterate over objects allocated in an
+ arena
+
+---
+ include/jemalloc/internal/arena.h |    1 +
+ src/arena.c                       |   56 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 57 insertions(+)
+
+diff --git a/include/jemalloc/internal/arena.h b/include/jemalloc/internal/arena.h
+index 1f67e27..aae9c6f 100644
+--- a/include/jemalloc/internal/arena.h
++++ b/include/jemalloc/internal/arena.h
+@@ -444,6 +444,7 @@ void	arena_boot(void);
+ void	arena_prefork(arena_t *arena);
+ void	arena_postfork_parent(arena_t *arena);
+ void	arena_postfork_child(arena_t *arena);
++void	arena_iterate_regions(arena_t *arena, void (*callback)(void*, void*), void* arg);
+ 
+ #endif /* JEMALLOC_H_EXTERNS */
+ /******************************************************************************/
+diff --git a/src/arena.c b/src/arena.c
+index 9e7e2c4..2cae0fd 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -2231,3 +2231,59 @@ arena_postfork_child(arena_t *arena)
+ 		malloc_mutex_postfork_child(&arena->bins[i].lock);
+ 	malloc_mutex_postfork_child(&arena->lock);
+ }
++
++void
++arena_iterate_regions(arena_t *arena, void (*callback)(void*, void*), void* arg)
++{
++	arena_chunk_t* chunk;
++	ql_foreach(chunk, &arena->chunks, link_chunks)
++	{
++		int i;
++		/* Iterate over each page of the chunk, skipping the header ones */
++		for(i=0;i<(chunk_npages-map_bias);i++)
++		{
++			uintptr_t page_start;
++			if(!(chunk->map[i].bits&CHUNK_MAP_ALLOCATED))
++			{
++				/* The start page signals the size of the unallocated run. Skip it. */
++				size_t run_size = chunk->map[i].bits >> LG_PAGE;
++				i+=run_size-1;
++				continue;
++			}
++			page_start = ((uintptr_t)chunk)+((i+map_bias) << LG_PAGE);
++			if(chunk->map[i].bits&CHUNK_MAP_LARGE)
++			{
++				size_t run_size = chunk->map[i].bits >> LG_PAGE;
++				callback(arg, page_start);
++				/* Skip the needed amount of pages */
++				i+=run_size-1;
++			}
++			else
++			{
++				uintptr_t page_end = ((uintptr_t)chunk)+((i+map_bias+1) << LG_PAGE);
++				size_t page_offset = (chunk->map[i].bits >> LG_PAGE);
++
++				/* Get run data */
++				size_t binind = (chunk->map[i].bits & CHUNK_MAP_BININD_MASK) >> CHUNK_MAP_BININD_SHIFT;
++				arena_bin_info_t* bininfo = &arena_bin_info[binind];
++				size_t region_interval = bininfo->reg_interval;
++				size_t region_size = bininfo->reg_size;
++				uintptr_t run_start = (page_start - (page_offset << LG_PAGE));
++				bitmap_info_t* bitmapinfo = &bininfo->bitmap_info;
++				int bitmap_index = 0;
++				if(page_offset!=0)
++					bitmap_index = ((page_offset << LG_PAGE) - bininfo->reg0_offset + region_interval - 1) / region_interval;
++				uintptr_t regions = run_start + bininfo->reg0_offset + bitmap_index * region_interval;
++				bitmap_t* bitmap = run_start + bininfo->bitmap_offset;
++				for(;regions < page_end;regions+=region_interval)
++				{
++					if(bitmap_get(bitmap,bitmapinfo,bitmap_index))
++					{
++						callback(arg, (void*)regions);
++					}
++					bitmap_index++;
++				}
++			}
++		}
++	}
++}
+-- 
+1.7.9.5
+

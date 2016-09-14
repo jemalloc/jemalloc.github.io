@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> hang in jemalloc()
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20hang%20in%20jemalloc%28%29&In-Reply-To=%3C52E2571B.2090608%40yandex-team.ru%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000717.html">
+   <LINK REL="Next"  HREF="000721.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>hang in jemalloc()</H1>
+    <B>Alexey Kuts</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20hang%20in%20jemalloc%28%29&In-Reply-To=%3C52E2571B.2090608%40yandex-team.ru%3E"
+       TITLE="hang in jemalloc()">akuts at yandex-team.ru
+       </A><BR>
+    <I>Fri Jan 24 04:05:47 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000717.html">hang in jemalloc()
+</A></li>
+        <LI>Next message: <A HREF="000721.html">proposal to include jemalloc in Ruby
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#719">[ date ]</a>
+              <a href="thread.html#719">[ thread ]</a>
+              <a href="subject.html#719">[ subject ]</a>
+              <a href="author.html#719">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>we don't set any signal handlers,
+also grepping source code of lixml2.7.6
+i didn't find any sign of signal setting (except of SIGFPE in trionan.h)
+
+
+24.01.2014 5:00, Jason Evans &#1087;&#1080;&#1096;&#1077;&#1090;:
+&gt;<i> On Jan 21, 2014, at 2:46 AM, Alexey Kuts&lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">akuts at yandex-team.ru</A>&gt;  wrote:
+</I>&gt;&gt;<i> sometimes (maybe once per day) we have
+</I>&gt;&gt;<i> an annoying hang in jemalloc().
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> jemalloc-version: 3.4.1-0-g0135fb806e4137dc9cdf152541926a2bc95e33f0
+</I>&gt;&gt;<i> Ubuntu 12.04.3 LTS, 3.2.0-33-generic x86_64 GNU/Linux
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> #0  0x00007f6bd681a89c in __lll_lock_wait () from /lib/x86_64-linux-gnu/libpthread.so.0
+</I>&gt;&gt;<i> #1  0x00007f6bd6816080 in _L_lock_903 () from /lib/x86_64-linux-gnu/libpthread.so.0
+</I>&gt;&gt;<i> #2  0x00007f6bd6815f19 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libpthread.so.0
+</I>&gt;&gt;<i> #3  0x0000000000459127 in malloc_mutex_lock (mutex=0x7f6bd4400a08) at include/jemalloc/internal/mutex.h:77
+</I>&gt;&gt;<i> #4  tcache_bin_flush_small (tbin=&lt;optimized out&gt;, binind=15, rem=3, tcache=0x7f6bd4006000) at src/tcache.c:105
+</I>&gt;&gt;<i> #5  0x000000000045958d in tcache_event_hard (tcache=0x7f6bd4006000) at src/tcache.c:39
+</I>&gt;&gt;<i> #6  0x0000000000437ebe in tcache_event (tcache=0x7f6bd4006000) at include/jemalloc/internal/tcache.h:271
+</I>&gt;&gt;<i> #7  tcache_alloc_large (size=&lt;optimized out&gt;, tcache=&lt;optimized out&gt;, zero=&lt;optimized out&gt;) at include/jemalloc/internal/tcache.h:383
+</I>&gt;&gt;<i> #8  arena_malloc (zero=false, size=&lt;optimized out&gt;, arena=0x0, try_tcache=true) at include/jemalloc/internal/arena.h:944
+</I>&gt;&gt;<i> #9  imallocx (arena=0x0, try_tcache=true, size=&lt;optimized out&gt;) at include/jemalloc/internal/jemalloc_internal.h:798
+</I>&gt;&gt;<i> #10 imalloc (size=&lt;optimized out&gt;) at include/jemalloc/internal/jemalloc_internal.h:807
+</I>&gt;&gt;<i> #11 jemalloc (size=&lt;optimized out&gt;) at src/jemalloc.c:887
+</I>&gt;&gt;<i> #12 0x00007f6bd6d3bad8 in xmlStrndup () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;&gt;<i> #13 0x00007f6bd6ce3029 in xmlNodeListGetString () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;&gt;<i> #14 0x00007f6bd6d0038f in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;&gt;<i> #15 0x00007f6bd6d0034e in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;&gt;<i> #16 0x00007f6bd6d0034e in xmlValidateElement () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;&gt;<i> #17 0x00007f6bd6d00528 in xmlValidateDtd () from /usr/lib/x86_64-linux-gnu/libxml2.so.2
+</I>&gt;&gt;<i> #18 0x00007f6bd7005355 in xmlpp::DtdValidator::validate(xmlpp::Document const*) () from /usr/lib/libxml++-2.6.so.2
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Will appreciate any hints or suggestions
+</I>&gt;<i>
+</I>&gt;<i> I just audited the mutex operations, and I see no way that a bin mutex can enter the locked state without later being unlocked.  Is your application using the allocator inside signal handlers, by any chance?
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>
+Kuts Alexey
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000717.html">hang in jemalloc()
+</A></li>
+	<LI>Next message: <A HREF="000721.html">proposal to include jemalloc in Ruby
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#719">[ date ]</a>
+              <a href="thread.html#719">[ thread ]</a>
+              <a href="subject.html#719">[ subject ]</a>
+              <a href="author.html#719">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

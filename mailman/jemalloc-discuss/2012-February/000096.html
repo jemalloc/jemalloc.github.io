@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a build option to freeze the number of arenas to 1
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20build%20option%20to%20freeze%20the%20number%20of%20arenas%20to%201&In-Reply-To=%3CCAFWcpZ5GaVHgjbfOtGxZC%2B1PF7yXd3M0XfdKnk5zUnqVp8epPw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000095.html">
+   <LINK REL="Next"  HREF="000100.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a build option to freeze the number of arenas to 1</H1>
+    <B>Justin Lebar</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20build%20option%20to%20freeze%20the%20number%20of%20arenas%20to%201&In-Reply-To=%3CCAFWcpZ5GaVHgjbfOtGxZC%2B1PF7yXd3M0XfdKnk5zUnqVp8epPw%40mail.gmail.com%3E"
+       TITLE="[PATCH] Add a build option to freeze the number of arenas to 1">justin.lebar at gmail.com
+       </A><BR>
+    <I>Thu Feb 23 06:09:14 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000095.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+        <LI>Next message: <A HREF="000100.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#96">[ date ]</a>
+              <a href="thread.html#96">[ thread ]</a>
+              <a href="subject.html#96">[ subject ]</a>
+              <a href="author.html#96">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;&gt;<i> If any testing was done on Firefox with its fork of jemalloc to reach
+</I>&gt;&gt;<i> this conclusion, surely it's no longer valid.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I'd rather stick closer to the stock implementation until we can
+</I>&gt;&gt;<i> demonstrate that changes are beneficial.
+</I>&gt;<i>
+</I>&gt;<i> I really don't think Firefox will benefit from having as much arenas as
+</I>&gt;<i> there are CPUs, and each thread being bound to a given arena.
+</I>
+Running stuff off main thread is not so uncommon these days.  Web
+workers are the obvious case.  We intend to move image decoding off
+main thread.  I recall that audio/video decoding may run off main
+thread.  We intend to move compositing off main thread...
+
+&gt;<i> I'm pretty certain this will significantly increase its memory footprint.
+</I>
+The overhead of an arena is
+
+  constant bookkeeping (not affected by number of allocations) +
+  proportional bookkeeping (roughly proportional to number of allocations) +
+  fragmentation +
+  pages which could be decommitted but haven't been yet
+
+Proportional bookeeping is, in total, not affected, so we can ignore
+it.  My guess is that constant bookkeeping is negligible.  I'd further
+guess that adding arenas per-thread would likely decrease
+fragmentation within each arena.  And jemalloc can bound the
+not-yet-decommitted pages.
+
+Anyway, I'm not saying that it's impossible or even unlikely that this
+won't significantly increase memory usage, just that it's conceivable
+that it might not be so bad.
+
+&gt;<i> I also don't think things changed significantly with multiple arenas
+</I>&gt;<i> between the old jemalloc fork it uses and current jemalloc.
+</I>
+For one thing, would this change impact the lock-free alloc/dealloc
+path, either in terms of correctness or performance?
+
+But I also do not have evidence that one arena is the right thing for
+Firefox even with the current jemalloc, so comparing then-and-now is
+not particularly convincing...
+
+&gt;<i> Anyways, besides Mozilla, I'm pretty sure this can have some other uses.
+</I>
+Perhaps, depending on the overhead.
+
+I guess it's a relatively small change, so whatever.  I'm more
+concerned with turning it on in Firefox without evidence that it's
+beneficial.
+
+-Justin
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000095.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+	<LI>Next message: <A HREF="000100.html">[PATCH] Add a build option to freeze the number of arenas to 1
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#96">[ date ]</a>
+              <a href="thread.html#96">[ thread ]</a>
+              <a href="subject.html#96">[ subject ]</a>
+              <a href="author.html#96">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

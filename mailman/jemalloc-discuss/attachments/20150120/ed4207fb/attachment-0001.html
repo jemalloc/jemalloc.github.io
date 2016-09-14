@@ -1,0 +1,35 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;I&nbsp;will&nbsp;upgrade&nbsp;to&nbsp;dev&nbsp;version&nbsp;of&nbsp;jemalloc.&nbsp;Thanks&nbsp;for&nbsp;the&nbsp;quick&nbsp;input. &lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Tue,&nbsp;Jan&nbsp;20,&nbsp;2015&nbsp;at&nbsp;10:31&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;On&nbsp;Jan&nbsp;20,&nbsp;2015,&nbsp;at&nbsp;5:17&nbsp;AM,&nbsp;SNL&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:snl20465@gmail.com&quot;&gt;snl20465@gmail.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;Here&nbsp;is&nbsp;what&nbsp;I&nbsp;am&nbsp;doing&nbsp;currently:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;1.&nbsp;I&nbsp;am&nbsp;trying&nbsp;to&nbsp;carve&nbsp;out&nbsp;10&nbsp;MB&nbsp;memory&nbsp;area&nbsp;at&nbsp;the&nbsp;higher&nbsp;end&nbsp;of&nbsp;process&nbsp;address&nbsp;space&nbsp;using&nbsp;mmap&nbsp;(MAP_FIXED..).&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;2.&nbsp;I&nbsp;created&nbsp;a&nbsp;new&nbsp;arena&nbsp;using&nbsp;arenas.extend&nbsp;mallctl&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;3.&nbsp;I&nbsp;am&nbsp;using&nbsp;mallocx/dallocx&nbsp;with&nbsp;MALLOCX_ARENA(arena)&nbsp;as&nbsp;documented.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;The&nbsp;issue&nbsp;is&nbsp;how&nbsp;do&nbsp;I&nbsp;connect&nbsp;the&nbsp;arena&nbsp;to&nbsp;mmaped&nbsp;memory&nbsp;chunk&nbsp;?&nbsp;I&nbsp;see&nbsp;that&nbsp;new&nbsp;arena&nbsp;never&nbsp;gets&nbsp;initialized&nbsp;and&nbsp;all&nbsp;allocations&nbsp;continue&nbsp;to&nbsp;happen&nbsp;from&nbsp;arena&nbsp;0x0.&lt;br&gt;<br>
+&gt;&nbsp;I&nbsp;thought&nbsp;thread.arena&nbsp;mallctl&nbsp;will&nbsp;connect&nbsp;the&nbsp;arena&nbsp;to&nbsp;mmapped&nbsp;chunk&nbsp;but&nbsp;it&nbsp;just&nbsp;creates&nbsp;a&nbsp;thread&nbsp;&lt;-&gt;&nbsp;arena&nbsp;mapping.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;I&nbsp;looked&nbsp;at&nbsp;the&nbsp;sources&nbsp;to&nbsp;see&nbsp;if&nbsp;there&nbsp;is&nbsp;any&nbsp;other&nbsp;mallctl&nbsp;to&nbsp;create&nbsp;this&nbsp;association&nbsp;but&nbsp;there&nbsp;does&nbsp;not&nbsp;seem&nbsp;to&nbsp;be&nbsp;any,&nbsp;what&nbsp;am&nbsp;I&nbsp;missing&nbsp;here&nbsp;?&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;And&nbsp;older&nbsp;sample&nbsp;program&nbsp;I&nbsp;found&nbsp;on&nbsp;this&nbsp;mailing&nbsp;list,&nbsp;uses&nbsp;following&nbsp;mallctl&nbsp;which&nbsp;is&nbsp;not&nbsp;supported&nbsp;in&nbsp;jemalloc&nbsp;3.6.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;snprintf(path,&nbsp;sizeof(path),&nbsp;&quot;arena.%u.chunk.alloc&quot;,&nbsp;_arena);&lt;br&gt;<br>
+&gt; &nbsp; ret&nbsp;=&nbsp;__svm_mallctl(path,&nbsp;(void*)&amp;_chunk_alloc,&nbsp;&amp;sz,&nbsp;(void*)&amp;_chunk_alloc,&nbsp;sizeof(void&nbsp;*));&lt;br&gt;<br>
+&gt; &nbsp; assert&nbsp;(ret&nbsp;==&nbsp;0);&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;snprintf(path,&nbsp;sizeof(path),&nbsp;&quot;arena.%u.chunk.dalloc&quot;,&nbsp;_arena);&lt;br&gt;<br>
+&gt; &nbsp; ret&nbsp;=&nbsp;__svm_mallctl(path,&nbsp;(void*)&amp;_chunk_dalloc,&nbsp;&amp;sz,&nbsp;(void*)&amp;_chunk_dalloc,&nbsp;sizeof(void&nbsp;*));&lt;br&gt;<br>
+&gt; &nbsp; assert&nbsp;(ret&nbsp;==&nbsp;0);&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;This&nbsp;basically&nbsp;is&nbsp;asking&nbsp;jemalloc&nbsp;to&nbsp;callback&nbsp;user&nbsp;defined&nbsp;functions,&nbsp;is&nbsp;this&nbsp;functionality&nbsp;still&nbsp;available&nbsp;in&nbsp;jemalloc&nbsp;?&nbsp;Any&nbsp;inputs&nbsp;will&nbsp;be&nbsp;helpful.&nbsp;Thanks.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;&lt;/div&gt;The&nbsp;features&nbsp;you&#39;re&nbsp;trying&nbsp;to&nbsp;use&nbsp;only&nbsp;exist&nbsp;in&nbsp;the&nbsp;dev&nbsp;version&nbsp;of&nbsp;jemalloc&nbsp;so&nbsp;far&nbsp;(&quot;arena.&lt;i&gt;.chunk.alloc&quot;&nbsp;and&nbsp;&quot;arena.&lt;i&gt;.chunk.dalloc&quot;&nbsp;mallctl&nbsp;interfaces). &nbsp;Note&nbsp;that&nbsp;related&nbsp;control&nbsp;over&nbsp;dirty&nbsp;page&nbsp;purging&nbsp;still&nbsp;needs&nbsp;to&nbsp;be&nbsp;implemented&nbsp;(&lt;a&nbsp;href=&quot;https://github.com/jemalloc/jemalloc/issues/93&quot;&nbsp;target=&quot;_blank&quot;&gt;https://github.com/jemalloc/jemalloc/issues/93&lt;/a&gt;).&lt;br&gt;<br>
+&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+Jason&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;br&nbsp;clear=&quot;all&quot;&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;--&nbsp;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_signature&quot;&gt;&lt;br&gt;Cheers,&lt;br&gt;Sunny.&nbsp;&lt;br&gt;&lt;/div&gt;<br>
+&lt;/div&gt;<br>
+
+</tt>

@@ -1,0 +1,92 @@
+From jasone at canonware.com  Mon Jan 16 19:04:08 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 16 Jan 2012 19:04:08 -0800
+Subject: Is the swap feature useful?
+Message-ID: <4F14E528.8080007@canonware.com>
+
+Over the two years that jemalloc has had the swap feature (optionally 
+compiled in if --enable-swap is specified to configure), I've received 
+many general questions about the feature, but I have yet to hear of a 
+single person actually using it in an application.  As such I'm 
+considering removing the feature in jemalloc 3.0.0.  Does anyone find 
+the feature sufficiently useful to warrant its continued existence?
+
+Thanks,
+Jason
+
+
+From yoni at hola.org  Sun Jan 29 08:38:03 2012
+From: yoni at hola.org (Yoni Londner)
+Date: Sun, 29 Jan 2012 18:38:03 +0200
+Subject: realloc behavior
+Message-ID: <4F2575EB.7020700@hola.org>
+
+Hi,
+
+I just started using jemalloc, and one of our tests fail, because 
+realloc with size=0
+does malloc with size 1.
+
+from realloc spec at 
+http://pubs.opengroup.org/onlinepubs/000095399/functions/realloc.html :
+If/size/is 0 and/ptr/is not a null pointer, the object pointed to is freed.
+
+
+Why does jemalloc chooses to behave differently?
+
+
+Yoni.
+
+
+From yoni at hola.org  Tue Jan 31 02:25:07 2012
+From: yoni at hola.org (Yoni Londner)
+Date: Tue, 31 Jan 2012 12:25:07 +0200
+Subject: jemalloc win32 port
+Message-ID: <4F27C183.3020201@hola.org>
+
+Hi,
+
+I am working with Firefox version of jemalloc (x86 and x64), And it is 
+working as expected.
+But, I wanted to use the original version of jemalloc, mainly because 
+there are profiling features missing
+in Firefox's version, and because I wanted to be able to get bug fixes 
+and new features from TRUNK.
+So, I Ported jemalloc to win32 (using msvc10 on win7 x86)
+I did not completed all the work (yet), but i have a working version.
+These are the changes I made (patch attached):
+
+  * prn.h - apparently it is not possible to create a file named prn.xxx
+    on windows. I changed the name of the file to _prn.h
+  * atomic.h - added win32 intrinsic implementation
+  * compat_win32.h - all sort of definitions needed for win32 (most of
+    them from Firefox version + pthread handling - not completed yet)
+  * compat_win32.c - need to complete here win32_setspecific and
+    win32_setspecific by using ".CRT$XXX"
+  * arena.c, ctl.h, ctl.c, ckh.c - C99 compatibility
+  * hunk_mmap.c
+  * jemalloc_defs.h, jemalloc.h, jemalloc_internal.h - I don't have
+    configure, so I copied jemalloc_internal.h.in and hand edited it.
+  * mutex.h - win32 mutex (from Firefox version)
+  * chunk_mmap.c -pages_map/pages_unmap from Firefox version
+  * jemalloc.c - system settings (ncpus etc) + added _crtheap
+  * jemalloc.c - win32 crt specific functions (msize, calloc_impl,
+    _recalloc, get_heap_handle...)
+
+since jemalloc does not patch malloc and friends, I need to use a 
+striped version of msvcrt (removed malloc/free etc).
+I have a scripts to do this.
+
+I hope that after the work is done, you can commit this patch to the git.
+Any comments/suggestions/help are welcome
+
+Yoni.
+
+
+
+
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: jemalloc.patch
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120131/d335ea1d/attachment.ksh>
+

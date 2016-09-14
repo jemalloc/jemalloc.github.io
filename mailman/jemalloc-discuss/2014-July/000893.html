@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segmentation%20fault%20when%20a%20custom%20chunk%20allocator%20returns%20a%20memory%0A%09block%20larger%20than%20the%20chunk%20size&In-Reply-To=%3CFDD3CDBE-D80F-40B0-9A70-EC17A0D929BD%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000892.html">
+   <LINK REL="Next"  HREF="000894.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Segmentation%20fault%20when%20a%20custom%20chunk%20allocator%20returns%20a%20memory%0A%09block%20larger%20than%20the%20chunk%20size&In-Reply-To=%3CFDD3CDBE-D80F-40B0-9A70-EC17A0D929BD%40canonware.com%3E"
+       TITLE="Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size">jasone at canonware.com
+       </A><BR>
+    <I>Mon Jul 28 14:52:30 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000892.html">Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+</A></li>
+        <LI>Next message: <A HREF="000894.html">Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#893">[ date ]</a>
+              <a href="thread.html#893">[ thread ]</a>
+              <a href="subject.html#893">[ subject ]</a>
+              <a href="author.html#893">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jul 28, 2014, at 2:17 PM, meng &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">xqmeng at gmail.com</A>&gt; wrote:
+&gt;<i> I used the new chunk allocator feature to allocate memory from a fixed 2G memory region. Nevertheless, I got a seg. fault. 
+</I>&gt;<i> 
+</I>&gt;<i> The flow of my code is as following:  I first use &quot;arenas.extend&quot; mallctl to create a custom arena. Then I defined custom chunk_alloc() and chunk_dalloc() on this arena. In the initialization phase of my code, I use mmap() to reserve a memory region of size 2^32. In the custom chunk_alloc(), I return the pointer of the 2^32B memory region. Because lg_chunk is 2^22, I thought this should be fine. But the program ran into seg. fault within  arena_mapbits_unzeroed_set() called by arena_chunk_init_hard().  On the other hand, if the mmap() reserved a memory region of size 2^22, everything works fine. 
+</I>&gt;<i> 
+</I>&gt;<i> My question is: why does the custom chunk_alloc() always expect a memory block returned from mmap()/malloc() with the requested size equal to lg_chunk? I can't figure out what wrong it could be if the returned block is a multiple of lg_chunk
+</I>&gt;<i> 
+</I>&gt;<i> B.T.W. My code only uses mallocx() for a single 1024B buffer from the custom. Memory alignment problem shouldn't exist.
+</I>
+Is the address you're returning from the custom chunk_alloc() aligned at a multiple of the chunk size?
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000892.html">Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+</A></li>
+	<LI>Next message: <A HREF="000894.html">Segmentation fault when a custom chunk allocator returns a memory	block larger than the chunk size
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#893">[ date ]</a>
+              <a href="thread.html#893">[ thread ]</a>
+              <a href="subject.html#893">[ subject ]</a>
+              <a href="author.html#893">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

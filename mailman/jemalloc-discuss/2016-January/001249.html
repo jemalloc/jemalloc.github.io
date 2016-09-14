@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc hooks clarifications
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20hooks%20clarifications&In-Reply-To=%3CF01B34A9-F5FB-4333-82EA-73B34085578E%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001248.html">
+   <LINK REL="Next"  HREF="001250.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc hooks clarifications</H1>
+    <B>Jakob Buchgraber</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20hooks%20clarifications&In-Reply-To=%3CF01B34A9-F5FB-4333-82EA-73B34085578E%40gmail.com%3E"
+       TITLE="jemalloc hooks clarifications">bucjac at gmail.com
+       </A><BR>
+    <I>Tue Jan 19 09:56:00 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001248.html">Need Help in porting Jemalloc.
+</A></li>
+        <LI>Next message: <A HREF="001250.html">Jemalloc bug?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1249">[ date ]</a>
+              <a href="thread.html#1249">[ thread ]</a>
+              <a href="subject.html#1249">[ subject ]</a>
+              <a href="author.html#1249">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On Dec 23, 2015, at 6:20 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> On Nov 25, 2015, at 8:14 AM, Jakob Buchgraber &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jakob.buchgraber at tum.de</A>&gt; wrote:
+</I>&gt;&gt;<i> I am playing around with the memory management hooks introduced in version 4.
+</I>&gt;&gt;<i> So I wrote a delegate for the default chunk hooks, that additionally report to
+</I>&gt;&gt;<i> stdout what's happening [1]. 
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> The test program allocates 1GB of memory and immediately frees it.
+</I>&gt;&gt;<i> It then tries to allocate 4MB and 8MB. The output is as follows
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> ALLOC: new_addr 0, size 1073741824, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52a00000
+</I>&gt;&gt;<i> DALLOC: chunk 0x7f2f52a00000, size 1073741824, committed 1, arena_ind 0
+</I>&gt;&gt;<i> DECOMMIT: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824, arena_ind 0
+</I>&gt;&gt;<i> PURGE: chunk 0x7f2f52a00000, size 1073741824, offset 0, length 1073741824, arena_ind 0
+</I>&gt;&gt;<i> FREED
+</I>&gt;&gt;<i> ALLOC: new_addr 0, size 4194304, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52a00000
+</I>&gt;&gt;<i> ALLOC: new_addr 0, size 8388608, alignment 2097152, zero 1, commit 1, arena_ind 0, ret 0x7f2f52e00000
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Given that the 1GB has not been deallocated, but purged I would expect 
+</I>&gt;&gt;<i> the last two ALLOCations not to have happened. Instead I would expect
+</I>&gt;&gt;<i> the virtual memory from the 1GB allocation before to be reused?
+</I>&gt;<i> 
+</I>&gt;<i> It looks to me like the first ALLOC gets 2^30 bytes at 0x7f2f52a00000, and the DALLOC/DECOMMIT/PURGE logging indicates that during free() the memory is madvise()d away, but the virtual memory is cached for future use.  Then the ALLOCs of 2^22 and 2^23 bytes use the lowest contiguous parts of the cached virtual memory (0x7f2f52a00000 == 0x7f2f52a00000 for the 2^30 and 2^22 allocations).  If I understand correctly, this exactly matches your expectations.
+</I>&gt;<i> 
+</I>
+Thanks you are correct. I was confused by the call to ALLOC, as I (wrongfully) assumed that fetching a chunk of cached virtual memory doesn&#8217;t call the alloc chunk hook.
+
+I think there might be an issue with this approach though: <A HREF="https://github.com/jemalloc/jemalloc/issues/307">https://github.com/jemalloc/jemalloc/issues/307</A>
+
+&gt;&gt;<i> Also, on an unrelated note, is it generally safe to trigger purging for arena A
+</I>&gt;&gt;<i> from within an allocation chunk hook of arena B, with A &lt;&gt; B? 
+</I>&gt;&gt;<i> The reason why am asking this question is that I would generally want to 
+</I>&gt;&gt;<i> run with purging disabled on all arenas, but if some threshold of committed 
+</I>&gt;&gt;<i> memory is surpassed I would like to enable purging for some arenas. 
+</I>&gt;&gt;<i> Does this sound feasible?
+</I>&gt;<i> 
+</I>&gt;<i> Currently this will probably work, but isn't in general safe.  I have some long term plans to allocate internal metadata from the auto arenas (maybe just arena 0, maybe any auto arena, depending on how things work out), so that it is possible to do low overhead full arena reset without losing critical metadata (<A HREF="https://github.com/jemalloc/jemalloc/issues/146">https://github.com/jemalloc/jemalloc/issues/146</A>).  These changes would create the potential for deadlock in what you're proposing.
+</I>
+It&#8217;s deadlocking right now as well, as I am accessing stats from within the chunk hooks to determine which arenas to purge. I had to replace the malloc mutexes with recursive mutexes to make it work. Seems fine so far.
+
+Basically, I am running with lots of main memory (&gt; 1TB). Most of the time the program will only use a fraction of the available memory but some queries will require almost all the memory in some random arena. So even if I leave purging on and set lg_dirty_mult to say 3, some arenas might end up having cached 10s of GB of physical memory with others running out and the program will crash. Ideally, I would want BSD&#8217;s MADV_FREE on Linux. That patch never got merged though. So what I am doing is to add some logic that tracks the amount of committed physical memory and if some threshold is reached, I query the jemalloc stats and dynamically adjust the purging ratio. Does that make sense?
+
+Cheers,
+Jakob
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001248.html">Need Help in porting Jemalloc.
+</A></li>
+	<LI>Next message: <A HREF="001250.html">Jemalloc bug?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1249">[ date ]</a>
+              <a href="thread.html#1249">[ thread ]</a>
+              <a href="subject.html#1249">[ subject ]</a>
+              <a href="author.html#1249">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

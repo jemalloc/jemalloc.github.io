@@ -1,0 +1,44 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Hi&nbsp;Alexey,&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;I&nbsp;have&nbsp;run&nbsp;into&nbsp;similar&nbsp;issues&nbsp;(exorbitantly&nbsp;long&nbsp;wait&nbsp;times&nbsp;for&nbsp;the&nbsp;malloc&nbsp;mutex).&nbsp;The&nbsp;only&nbsp;way&nbsp;I&nbsp;could&nbsp;reduce&nbsp;the&nbsp;pain&nbsp;was&nbsp;to&nbsp;either&nbsp;reduce&nbsp;the&nbsp;number&nbsp;of&nbsp;threads,&nbsp;or&nbsp;reduce&nbsp;the&nbsp;amount&nbsp;of&nbsp;malloc/free()&nbsp;done&nbsp;by&nbsp;the&nbsp;application.&lt;/div&gt;<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;If&nbsp;you&#39;re&nbsp;using&nbsp;a&nbsp;library&nbsp;(like&nbsp;this&nbsp;xml&nbsp;one)&nbsp;it&nbsp;may&nbsp;be&nbsp;hard&nbsp;to&nbsp;reduce&nbsp;the&nbsp;number&nbsp;of&nbsp;malloc/frees()&nbsp;actually&nbsp;done.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Can&nbsp;you&nbsp;try&nbsp;getting&nbsp;a&nbsp;full&nbsp;set&nbsp;of&nbsp;stack&nbsp;traces&nbsp;on&nbsp;the&nbsp;next&nbsp;stall&nbsp;(for&nbsp;all&nbsp;threads?).&nbsp;I&nbsp;have&nbsp;a&nbsp;feeling&nbsp;that&nbsp;your&nbsp;particular&nbsp;stack&nbsp;trace&nbsp;may&nbsp;be&nbsp;held&nbsp;up&nbsp;behind&nbsp;an&nbsp;arena_flush()&nbsp;but&nbsp;it&#39;d&nbsp;be&nbsp;good&nbsp;to&nbsp;know&nbsp;for&nbsp;sure.&lt;/div&gt;<br>
+&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Tue,&nbsp;Jan&nbsp;21,&nbsp;2014&nbsp;at&nbsp;5:46&nbsp;AM,&nbsp;Alexey&nbsp;Kuts&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:akuts@yandex-team.ru&quot;&nbsp;target=&quot;_blank&quot;&gt;akuts@yandex-team.ru&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;Hi,&lt;br&gt;<br>
+&lt;br&gt;<br>
+sometimes&nbsp;(maybe&nbsp;once&nbsp;per&nbsp;day)&nbsp;we&nbsp;have&lt;br&gt;<br>
+an&nbsp;annoying&nbsp;hang&nbsp;in&nbsp;jemalloc().&lt;br&gt;<br>
+&lt;br&gt;<br>
+jemalloc-version:&nbsp;3.4.1-0-&lt;u&gt;&lt;/u&gt;g0135fb806e4137dc9cdf152541926&lt;u&gt;&lt;/u&gt;a2bc95e33f0&lt;br&gt;<br>
+Ubuntu&nbsp;12.04.3&nbsp;LTS,&nbsp;3.2.0-33-generic&nbsp;x86_64&nbsp;GNU/Linux&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+#0&nbsp; 0x00007f6bd681a89c&nbsp;in&nbsp;__lll_lock_wait&nbsp;()&nbsp;from&nbsp;/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libpthread.so.0&lt;br&gt;<br>
+#1&nbsp; 0x00007f6bd6816080&nbsp;in&nbsp;_L_lock_903&nbsp;()&nbsp;from&nbsp;/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libpthread.so.0&lt;br&gt;<br>
+#2&nbsp; 0x00007f6bd6815f19&nbsp;in&nbsp;pthread_mutex_lock&nbsp;()&nbsp;from&nbsp;/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libpthread.so.0&lt;br&gt;<br>
+#3&nbsp; 0x0000000000459127&nbsp;in&nbsp;malloc_mutex_lock&nbsp;(mutex=0x7f6bd4400a08)&nbsp;at&nbsp;include/jemalloc/internal/&lt;u&gt;&lt;/u&gt;mutex.h:77&lt;br&gt;<br>
+#4&nbsp; tcache_bin_flush_small&nbsp;(tbin=&lt;optimized&nbsp;out&gt;,&nbsp;binind=15,&nbsp;rem=3,&nbsp;tcache=0x7f6bd4006000)&nbsp;at&nbsp;src/tcache.c:105&lt;br&gt;<br>
+#5&nbsp; 0x000000000045958d&nbsp;in&nbsp;tcache_event_hard&nbsp;(tcache=0x7f6bd4006000)&nbsp;at&nbsp;src/tcache.c:39&lt;br&gt;<br>
+#6&nbsp; 0x0000000000437ebe&nbsp;in&nbsp;tcache_event&nbsp;(tcache=0x7f6bd4006000)&nbsp;at&nbsp;include/jemalloc/internal/&lt;u&gt;&lt;/u&gt;tcache.h:271&lt;br&gt;<br>
+#7&nbsp; tcache_alloc_large&nbsp;(size=&lt;optimized&nbsp;out&gt;,&nbsp;tcache=&lt;optimized&nbsp;out&gt;,&nbsp;zero=&lt;optimized&nbsp;out&gt;)&nbsp;at&nbsp;include/jemalloc/internal/&lt;u&gt;&lt;/u&gt;tcache.h:383&lt;br&gt;<br>
+#8&nbsp; arena_malloc&nbsp;(zero=false,&nbsp;size=&lt;optimized&nbsp;out&gt;,&nbsp;arena=0x0,&nbsp;try_tcache=true)&nbsp;at&nbsp;include/jemalloc/internal/&lt;u&gt;&lt;/u&gt;arena.h:944&lt;br&gt;<br>
+#9&nbsp; imallocx&nbsp;(arena=0x0,&nbsp;try_tcache=true,&nbsp;size=&lt;optimized&nbsp;out&gt;)&nbsp;at&nbsp;include/jemalloc/internal/&lt;u&gt;&lt;/u&gt;jemalloc_internal.h:798&lt;br&gt;<br>
+#10&nbsp;imalloc&nbsp;(size=&lt;optimized&nbsp;out&gt;)&nbsp;at&nbsp;include/jemalloc/internal/&lt;u&gt;&lt;/u&gt;jemalloc_internal.h:807&lt;br&gt;<br>
+#11&nbsp;jemalloc&nbsp;(size=&lt;optimized&nbsp;out&gt;)&nbsp;at&nbsp;src/jemalloc.c:887&lt;br&gt;<br>
+#12&nbsp;0x00007f6bd6d3bad8&nbsp;in&nbsp;xmlStrndup&nbsp;()&nbsp;from&nbsp;/usr/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libxml2.so.2&lt;br&gt;<br>
+#13&nbsp;0x00007f6bd6ce3029&nbsp;in&nbsp;xmlNodeListGetString&nbsp;()&nbsp;from&nbsp;/usr/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libxml2.so.2&lt;br&gt;<br>
+#14&nbsp;0x00007f6bd6d0038f&nbsp;in&nbsp;xmlValidateElement&nbsp;()&nbsp;from&nbsp;/usr/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libxml2.so.2&lt;br&gt;<br>
+#15&nbsp;0x00007f6bd6d0034e&nbsp;in&nbsp;xmlValidateElement&nbsp;()&nbsp;from&nbsp;/usr/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libxml2.so.2&lt;br&gt;<br>
+#16&nbsp;0x00007f6bd6d0034e&nbsp;in&nbsp;xmlValidateElement&nbsp;()&nbsp;from&nbsp;/usr/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libxml2.so.2&lt;br&gt;<br>
+#17&nbsp;0x00007f6bd6d00528&nbsp;in&nbsp;xmlValidateDtd&nbsp;()&nbsp;from&nbsp;/usr/lib/x86_64-linux-gnu/&lt;u&gt;&lt;/u&gt;libxml2.so.2&lt;br&gt;<br>
+#18&nbsp;0x00007f6bd7005355&nbsp;in&nbsp;xmlpp::DtdValidator::validate(&lt;u&gt;&lt;/u&gt;xmlpp::Document&nbsp;const*)&nbsp;()&nbsp;from&nbsp;/usr/lib/libxml++-2.6.so.2&lt;br&gt;<br>
+&lt;br&gt;<br>
+Will&nbsp;appreciate&nbsp;any&nbsp;hints&nbsp;or&nbsp;suggestions&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+--&nbsp;&lt;br&gt;<br>
+Kuts&nbsp;Alexey&lt;br&gt;<br>
+______________________________&lt;u&gt;&lt;/u&gt;_________________&lt;br&gt;<br>
+jemalloc-discuss&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:jemalloc-discuss@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jemalloc-discuss@canonware.com&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/&lt;u&gt;&lt;/u&gt;mailman/listinfo/jemalloc-&lt;u&gt;&lt;/u&gt;discuss&lt;/a&gt;&lt;br&gt;<br>
+&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

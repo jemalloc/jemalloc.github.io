@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3C20120320065331.GA23326%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000135.html">
+   <LINK REL="Next"  HREF="000172.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20use%20different%20prefixes%20for%20jemalloc-specific%0A%09functions%20and%20libc%20functions&In-Reply-To=%3C20120320065331.GA23326%40glandium.org%3E"
+       TITLE="[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Mar 19 23:53:31 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000135.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+        <LI>Next message: <A HREF="000172.html">[PATCH] Fix glibc hooks when using both --with-jemalloc-prefix and	--with-mangling
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#151">[ date ]</a>
+              <a href="thread.html#151">[ thread ]</a>
+              <a href="subject.html#151">[ subject ]</a>
+              <a href="author.html#151">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Mar 13, 2012 at 10:49:50AM +0100, Mike Hommey wrote:
+&gt;<i> On Mon, Mar 12, 2012 at 03:15:54PM -0700, Jason Evans wrote:
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; On Mar 12, 2012, at 1:36 PM, Jason Evans wrote:
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; &gt; On Mar 12, 2012, at 1:12 PM, Jason Evans wrote:
+</I>&gt;<i> &gt; &gt;&gt; On Mar 12, 2012, at 12:28 PM, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt;&gt;&gt; On Mon, Mar 12, 2012 at 11:44:41AM -0700, Jason Evans wrote:
+</I>&gt;<i> &gt; &gt;&gt;&gt;&gt; 
+</I>&gt;<i> &gt; &gt;&gt;&gt;&gt; The name mangling that is specified via --with-mangling overrides --with-jemalloc-prefix, so I thought this would do what you want.
+</I>&gt;<i> &gt; &gt;&gt;&gt;&gt; 
+</I>&gt;<i> &gt; &gt;&gt;&gt;&gt; ./autogen.sh --enable-cc-silence --enable-prof --enable-debug --with-mangling=malloc:__wrap_malloc,calloc:__wrap_calloc,realloc:__wrap_realloc,free:__wrap_free --with-jemalloc-prefix=je_
+</I>&gt;<i> &gt; &gt;&gt;&gt; 
+</I>&gt;<i> &gt; &gt;&gt;&gt; After running that, this is what jemalloc_defs.h contains:
+</I>&gt;<i> &gt; &gt;&gt;&gt; [&#8230;]
+</I>&gt;<i> &gt; &gt;&gt;&gt; 
+</I>&gt;<i> &gt; &gt;&gt;&gt; Even without --with-jemalloc-prefix=je_, I get the same output.
+</I>&gt;<i> &gt; &gt;&gt; 
+</I>&gt;<i> &gt; &gt;&gt; What operating system are you using?
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; I reproduced the problem on an Ubuntu 10.04 system, and will come up with a fix.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; This should be fixed now:
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt;   <A HREF="http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=08fc3b2d5173512a2c1fdbe11cf00c8c70bad503">http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=08fc3b2d5173512a2c1fdbe11cf00c8c70bad503</A>
+</I>&gt;<i> 
+</I>&gt;<i> It works as expected. Thanks.
+</I>
+It broke commit 4bb09830, because it made the hooks only present if
+there is no JEMALLOC_PREFIX, which is good, but not enough: I'm building
+with JEMALLOC_PREFIX=je_ and mangling to have malloc, free, etc.
+declared as malloc, free, etc., which is the typical case where the
+hooks from commit 4bb09830 are necessary (without the hooks, Firefox
+crashes on shutdown because libc tries to deallocate tls data with
+jemalloc's free, when it allocated it internally ; arguably, there's a
+bug in the libc, there).
+
+The only way I can think of that would make it work is to use a
+configure option to add the hooks (checking whether the mangling leads
+to the relevant functions overriding libc's doesn't look very possible
+from the preprocessor).
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000135.html">[PATCH] Allow to use different prefixes for jemalloc-specific	functions and libc functions
+</A></li>
+	<LI>Next message: <A HREF="000172.html">[PATCH] Fix glibc hooks when using both --with-jemalloc-prefix and	--with-mangling
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#151">[ date ]</a>
+              <a href="thread.html#151">[ thread ]</a>
+              <a href="subject.html#151">[ subject ]</a>
+              <a href="author.html#151">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add build options to disable either static or shared	library by default
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20build%20options%20to%20disable%20either%20static%20or%20shared%0A%09library%20by%20default&In-Reply-To=%3C20120224075646.GA18172%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000101.html">
+   <LINK REL="Next"  HREF="000104.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add build options to disable either static or shared	library by default</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20build%20options%20to%20disable%20either%20static%20or%20shared%0A%09library%20by%20default&In-Reply-To=%3C20120224075646.GA18172%40glandium.org%3E"
+       TITLE="[PATCH] Add build options to disable either static or shared	library by default">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Feb 23 23:56:46 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000101.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+        <LI>Next message: <A HREF="000104.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#102">[ date ]</a>
+              <a href="thread.html#102">[ thread ]</a>
+              <a href="subject.html#102">[ subject ]</a>
+              <a href="author.html#102">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Feb 23, 2012 at 05:14:31PM -0800, Jason Evans wrote:
+&gt;<i> On 02/23/2012 08:32 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt;On Thu, Feb 23, 2012 at 05:05:13PM +0100, Mike Hommey wrote:
+</I>&gt;<i> &gt;&gt;From: Mike Hommey&lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt;---
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt;We (Mozilla)'re most probably going to include jemalloc's build system
+</I>&gt;<i> &gt;&gt;to avoid any trouble, and it would be easier for us if calling make
+</I>&gt;<i> &gt;&gt;would only create the static library.
+</I>&gt;<i> &gt;
+</I>&gt;<i> &gt;In fact it doesn't really matter, there are other problems that makes us
+</I>&gt;<i> &gt;need a glue anyways, so you can forget this patch.
+</I>&gt;<i> 
+</I>&gt;<i> An alternative would be to split the make targets out a bit more, so
+</I>&gt;<i> that you can do something like:
+</I>&gt;<i> 
+</I>&gt;<i>   make build_lib_static
+</I>&gt;<i>   make install_lib_static install_bin install_include
+</I>&gt;<i> 
+</I>&gt;<i> Would that be helpful?
+</I>
+Not sure it would, at least for us. I'm sure it will be of use for some
+people, though.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000101.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+	<LI>Next message: <A HREF="000104.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#102">[ date ]</a>
+              <a href="thread.html#102">[ thread ]</a>
+              <a href="subject.html#102">[ subject ]</a>
+              <a href="author.html#102">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

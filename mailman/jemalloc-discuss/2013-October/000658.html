@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/2] Delay pthread_atfork registering.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Delay%20pthread_atfork%20registering.&In-Reply-To=%3CC40B741C-A391-4343-9901-DF2AB6E6D760%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000654.html">
+   <LINK REL="Next"  HREF="000648.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/2] Delay pthread_atfork registering.</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/2%5D%20Delay%20pthread_atfork%20registering.&In-Reply-To=%3CC40B741C-A391-4343-9901-DF2AB6E6D760%40canonware.com%3E"
+       TITLE="[PATCH 1/2] Delay pthread_atfork registering.">jasone at canonware.com
+       </A><BR>
+    <I>Thu Oct 24 16:44:32 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000654.html">[PATCH 1/2] Delay pthread_atfork registering.
+</A></li>
+        <LI>Next message: <A HREF="000648.html">[PATCH 2/2] Add support for LinuxThreads.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#658">[ date ]</a>
+              <a href="thread.html#658">[ thread ]</a>
+              <a href="subject.html#658">[ subject ]</a>
+              <a href="author.html#658">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Oct 23, 2013, at 1:00 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On Oct 23, 2013, at 9:20 AM, Leonard Crestez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">lcrestez at ixiacom.com</A>&gt; wrote:
+</I>&gt;&gt;<i> You mean between the &quot;malloc_initialized = true;&quot; and &quot;malloc_mutex_unlock(&amp;init_lock);&quot;?
+</I>&gt;<i> 
+</I>&gt;<i> Yes.
+</I>
+I got to looking closer at this change, and realized that the pthead_atfork() call really needs to be adjacent to the malloc_ncpus() call.
+
+Merged: <A HREF="https://github.com/jemalloc/jemalloc/commit/ac4403cacb225c0cf2c926179af39c21bd7bfc3a">https://github.com/jemalloc/jemalloc/commit/ac4403cacb225c0cf2c926179af39c21bd7bfc3a</A>
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000654.html">[PATCH 1/2] Delay pthread_atfork registering.
+</A></li>
+	<LI>Next message: <A HREF="000648.html">[PATCH 2/2] Add support for LinuxThreads.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#658">[ date ]</a>
+              <a href="thread.html#658">[ thread ]</a>
+              <a href="subject.html#658">[ subject ]</a>
+              <a href="author.html#658">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

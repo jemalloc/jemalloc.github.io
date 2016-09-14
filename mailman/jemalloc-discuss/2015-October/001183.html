@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory allocation/release hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3CD2456EDE.23655%25shamisp%40ornl.gov%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001182.html">
+   <LINK REL="Next"  HREF="001197.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory allocation/release hooks</H1>
+    <B>Shamis, Pavel</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3CD2456EDE.23655%25shamisp%40ornl.gov%3E"
+       TITLE="Memory allocation/release hooks">shamisp at ornl.gov
+       </A><BR>
+    <I>Thu Oct 15 12:02:26 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001182.html">Memory allocation/release hooks
+</A></li>
+        <LI>Next message: <A HREF="001197.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1183">[ date ]</a>
+              <a href="thread.html#1183">[ thread ]</a>
+              <a href="subject.html#1183">[ subject ]</a>
+              <a href="author.html#1183">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;&gt;<i>(b) Implementation of memory de-allocation hooks for RDMA hardware
+</I>&gt;&gt;&gt;&gt;<i>(Infiniband, ROCE, iWarp etc.). For optimization purpose we implement
+</I>&gt;&gt;&gt;&gt;<i>a lazy memory de-registration (memory unpinning) policy and we use the
+</I>&gt;&gt;&gt;&gt;<i>hook for the  notification of communication library about memory
+</I>&gt;&gt;&gt;&gt;<i>release event. On the event, we cleanup our registration cache and
+</I>&gt;&gt;&gt;&gt;<i>de-register (unpin) the memory on hardware.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> We have been using jemalloc for some time to manage, among other
+</I>&gt;&gt;&gt;<i>things, registered memory regions in HPX-5 (<A HREF="https://hpx.crest.iu.edu/">https://hpx.crest.iu.edu/</A>)
+</I>&gt;&gt;&gt;<i>for Verbs and uGNI. If you already have a mechanism which manages keys,
+</I>&gt;&gt;&gt;<i>then you can simply install a set of chunk hooks that can perform the
+</I>&gt;&gt;&gt;<i>registration/deregistration as necessary. We have found this to work
+</I>&gt;&gt;&gt;<i>quite well for our purposes.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> How do you load jemalloc ? Do you do LD_PRELOAD  or the user is expect
+</I>&gt;&gt;<i>to allocate the memory explicitly through HPX runtime ?
+</I>&gt;<i>
+</I>&gt;<i>We have allocator choice set up as a configuration-time dependency so
+</I>&gt;<i>it&#185;s relatively straightforward.
+</I>&gt;<i>
+</I>&gt;<i>When the user has selected jemalloc as the allocator (it&#185;s our default
+</I>&gt;<i>but we have a couple of other options) then a libjemalloc.so that
+</I>&gt;<i>supports the version 4 API is a configure-time requirement. We will just
+</I>&gt;<i>-rpath it into libhpx.so, and/or export it through hpx.pc for libhpx.a.
+</I>
+Got it !
+
+&gt;<i>
+</I>&gt;<i>PS: As an aside, we have [this outstanding
+</I>&gt;<i>issue](<A HREF="https://github.com/jemalloc/jemalloc/issues/203">https://github.com/jemalloc/jemalloc/issues/203</A>) which would be
+</I>&gt;<i>useful to us for key management. Since jemalloc already stores chunk
+</I>&gt;<i>metadata we&#185;re hoping that we could get 16-64 bytes of &#179;user&#178; metadata
+</I>&gt;<i>per chunk so we don&#185;t need to keep track of our own keys. Hopefully this
+</I>&gt;<i>will become available at some point.
+</I>
+It is a very convenient feature to have. Our plan was to implement own
+caching mechanism.
+Side note. By default you don't really want to invoke registration for
+every user memory allocation (this would be too expensive in term of
+memory consumption). Typically, we register the memory on a first RMA
+access. 
+
+Regards,
+Pasha
+
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001182.html">Memory allocation/release hooks
+</A></li>
+	<LI>Next message: <A HREF="001197.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1183">[ date ]</a>
+              <a href="thread.html#1183">[ thread ]</a>
+              <a href="subject.html#1183">[ subject ]</a>
+              <a href="author.html#1183">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

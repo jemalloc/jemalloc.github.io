@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Allow je_malloc_message to be overridden when linking statically
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Allow%20je_malloc_message%20to%20be%20overridden%20when%20linking%20statically&In-Reply-To=%3C1335957300-18609-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000384.html">
+   <LINK REL="Next"  HREF="000378.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Allow je_malloc_message to be overridden when linking statically</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Allow%20je_malloc_message%20to%20be%20overridden%20when%20linking%20statically&In-Reply-To=%3C1335957300-18609-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="Allow je_malloc_message to be overridden when linking statically">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May  2 04:15:00 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000384.html">Last call for 3.0.0
+</A></li>
+        <LI>Next message: <A HREF="000378.html">Allow je_malloc_message to be overridden when linking statically
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#377">[ date ]</a>
+              <a href="thread.html#377">[ thread ]</a>
+              <a href="subject.html#377">[ subject ]</a>
+              <a href="author.html#377">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+If an application wants to override je_malloc_message, it is better to define
+the symbol locally than to change its value in main(), which might be too late
+for various reasons.
+
+Due to je_malloc_message being initialized in util.c, statically linking
+jemalloc with an application defining je_malloc_message fails due to
+&quot;multiple definition of&quot; the symbol.
+
+Defining it without a value (like je_malloc_conf) makes it more easily
+overridable.
+---
+ src/stats.c |   22 +++++++---------------
+ src/util.c  |   10 ++++++----
+ 2 files changed, 13 insertions(+), 19 deletions(-)
+
+diff --git a/src/stats.c b/src/stats.c
+index 2854b30..1234e56 100644
+--- a/src/stats.c
++++ b/src/stats.c
+@@ -295,16 +295,6 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		abort();
+ 	}
+ 
+-	if (write_cb == NULL) {
+-		/*
+-		 * The caller did not provide an alternate write_cb callback
+-		 * function, so use the default one.  malloc_write() is an
+-		 * inline function, so use malloc_message() directly here.
+-		 */
+-		write_cb = je_malloc_message;
+-		cbopaque = NULL;
+-	}
+-
+ 	if (opts != NULL) {
+ 		unsigned i;
+ 
+@@ -330,7 +320,8 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		}
+ 	}
+ 
+-	write_cb(cbopaque, &quot;___ Begin jemalloc statistics ___\n&quot;);
++	malloc_cprintf(write_cb, cbopaque,
++	    &quot;___ Begin jemalloc statistics ___\n&quot;);
+ 	if (general) {
+ 		int err;
+ 		const char *cpv;
+@@ -375,7 +366,8 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			    &quot;  opt.&quot;#n&quot;: \&quot;%s\&quot;\n&quot;, cpv);		\
+ 		}
+ 
+-		write_cb(cbopaque, &quot;Run-time option settings:\n&quot;);
++		malloc_cprintf(write_cb, cbopaque,
++		    &quot;Run-time option settings:\n&quot;);
+ 		OPT_WRITE_BOOL(abort)
+ 		OPT_WRITE_SIZE_T(lg_chunk)
+ 		OPT_WRITE_SIZE_T(narenas)
+@@ -425,7 +417,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			    &quot;Min active:dirty page ratio per arena: %u:1\n&quot;,
+ 			    (1U &lt;&lt; ssv));
+ 		} else {
+-			write_cb(cbopaque,
++			malloc_cprintf(write_cb, cbopaque,
+ 			    &quot;Min active:dirty page ratio per arena: N/A\n&quot;);
+ 		}
+ 		if ((err = je_mallctl(&quot;arenas.tcache_max&quot;, &amp;sv, &amp;ssz, NULL, 0))
+@@ -447,7 +439,7 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 				    &quot; (2^%zd)\n&quot;,
+ 				    (((uint64_t)1U) &lt;&lt; ssv), ssv);
+ 			} else {
+-				write_cb(cbopaque,
++				malloc_cprintf(write_cb, cbopaque,
+ 				    &quot;Average profile dump interval: N/A\n&quot;);
+ 			}
+ 		}
+@@ -547,5 +539,5 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 			}
+ 		}
+ 	}
+-	write_cb(cbopaque, &quot;--- End jemalloc statistics ---\n&quot;);
++	malloc_cprintf(write_cb, cbopaque, &quot;--- End jemalloc statistics ---\n&quot;);
+ }
+diff --git a/src/util.c b/src/util.c
+index 4f71695..aa65621 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -56,8 +56,7 @@ wrtmessage(void *cbopaque, const char *s)
+ #endif
+ }
+ 
+-JEMALLOC_EXPORT void	(*je_malloc_message)(void *, const char *s) =
+-    wrtmessage;
++JEMALLOC_EXPORT void	(*je_malloc_message)(void *, const char *s);
+ 
+ /*
+  * Wrapper around malloc_message() that avoids the need for
+@@ -67,7 +66,10 @@ void
+ malloc_write(const char *s)
+ {
+ 
+-	je_malloc_message(NULL, s);
++	if (je_malloc_message)
++		je_malloc_message(NULL, s);
++	else
++		wrtmessage(NULL, s);
+ }
+ 
+ /*
+@@ -606,7 +608,7 @@ malloc_vcprintf(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		 * function, so use the default one.  malloc_write() is an
+ 		 * inline function, so use malloc_message() directly here.
+ 		 */
+-		write_cb = je_malloc_message;
++		write_cb = je_malloc_message ? je_malloc_message : wrtmessage;
+ 		cbopaque = NULL;
+ 	}
+ 
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000384.html">Last call for 3.0.0
+</A></li>
+	<LI>Next message: <A HREF="000378.html">Allow je_malloc_message to be overridden when linking statically
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#377">[ date ]</a>
+              <a href="thread.html#377">[ thread ]</a>
+              <a href="subject.html#377">[ subject ]</a>
+              <a href="author.html#377">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,78 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;sending&nbsp;the&nbsp;patch&nbsp;inline&nbsp;as&nbsp;the&nbsp;mail&nbsp;system&nbsp;does&nbsp;not&nbsp;see&nbsp;to&nbsp;like&nbsp;attachments.&lt;br&gt;&lt;br&gt;diff&nbsp;-rupN&nbsp;jemalloc-3.3.1/include/jemalloc/internal/chunk.h&nbsp;jemalloc-3.3.1_changed/include/jemalloc/internal/chunk.h&lt;br&gt;---&nbsp;jemalloc-3.3.1/include/jemalloc/internal/chunk.h   &nbsp;2013-03-07&nbsp;01:34:18.000000000&nbsp;+0530&lt;br&gt;<br>
+<br>
++++&nbsp;jemalloc-3.3.1_changed/include/jemalloc/internal/chunk.h   &nbsp;2013-04-26&nbsp;19:40:12.000000000&nbsp;+0530&lt;br&gt;@@&nbsp;-45,8&nbsp;+45,8&nbsp;@@&nbsp;extern&nbsp;size_t        &nbsp;arena_maxclass;&nbsp;/*&nbsp;Max&nbsp;si&lt;br&gt;&lt;br&gt; void  &nbsp;*chunk_alloc(size_t&nbsp;size,&nbsp;size_t&nbsp;alignment,&nbsp;bool&nbsp;base,&nbsp;bool&nbsp;*zero,&lt;br&gt;<br>
+<br>
+    &nbsp;dss_prec_t&nbsp;dss_prec);&lt;br&gt;-void  &nbsp;chunk_unmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size);&lt;br&gt;-void  &nbsp;chunk_dealloc(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&nbsp;bool&nbsp;unmap);&lt;br&gt;+void  &nbsp;chunk_unmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&nbsp;bool&nbsp;force_unmap);&lt;br&gt;+void  &nbsp;chunk_dealloc(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&nbsp;bool&nbsp;unmap,&nbsp;bool&nbsp;force_unmap);&lt;br&gt;<br>
+<br>
+ bool  &nbsp;chunk_boot(void);&lt;br&gt; void  &nbsp;chunk_prefork(void);&lt;br&gt; void  &nbsp;chunk_postfork_parent(void);&lt;br&gt;diff&nbsp;-rupN&nbsp;jemalloc-3.3.1/include/jemalloc/internal/chunk_mmap.h&nbsp;jemalloc-3.3.1_changed/include/jemalloc/internal/chunk_mmap.h&lt;br&gt;<br>
+<br>
+---&nbsp;jemalloc-3.3.1/include/jemalloc/internal/chunk_mmap.h      &nbsp;2013-03-07&nbsp;01:34:18.000000000&nbsp;+0530&lt;br&gt;+++&nbsp;jemalloc-3.3.1_changed/include/jemalloc/internal/chunk_mmap.h      &nbsp;2013-04-26&nbsp;19:34:36.000000000&nbsp;+0530&lt;br&gt;@@&nbsp;-12,7&nbsp;+12,7&nbsp;@@&lt;br&gt;<br>
+<br>
+ bool  &nbsp;pages_purge(void&nbsp;*addr,&nbsp;size_t&nbsp;length);&lt;br&gt;&lt;br&gt; void  &nbsp;*chunk_alloc_mmap(size_t&nbsp;size,&nbsp;size_t&nbsp;alignment,&nbsp;bool&nbsp;*zero);&lt;br&gt;-bool  &nbsp;chunk_dealloc_mmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size);&lt;br&gt;+bool  &nbsp;chunk_dealloc_mmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&nbsp;bool&nbsp;force_unmap);&lt;br&gt;<br>
+<br>
+&lt;br&gt; #endif&nbsp;/*&nbsp;JEMALLOC_H_EXTERNS&nbsp;*/&lt;br&gt; /******************************************************************************/&lt;br&gt; /******************************************************************************/&lt;br&gt;Binary&nbsp;files&nbsp;jemalloc-3.3.1/lib/libjemalloc.so.2&nbsp;and&nbsp;jemalloc-3.3.1_changed/lib/libjemalloc.so.2&nbsp;differ&lt;br&gt;<br>
+<br>
+diff&nbsp;-rupN&nbsp;jemalloc-3.3.1/src/arena.c&nbsp;jemalloc-3.3.1_changed/src/arena.c&lt;br&gt;---&nbsp;jemalloc-3.3.1/src/arena.c &nbsp;2013-03-07&nbsp;01:34:18.000000000&nbsp;+0530&lt;br&gt;+++&nbsp;jemalloc-3.3.1_changed/src/arena.c &nbsp;2013-04-26&nbsp;19:40:33.000000000&nbsp;+0530&lt;br&gt;<br>
+<br>
+@@&nbsp;-617,7&nbsp;+617,7&nbsp;@@&nbsp;arena_chunk_dealloc(arena_t&nbsp;*arena,&nbsp;aren&lt;br&gt;&lt;br&gt;               &nbsp;arena-&gt;spare&nbsp;=&nbsp;chunk;&lt;br&gt;               &nbsp;malloc_mutex_unlock(&amp;arena-&gt;lock);&lt;br&gt;-              &nbsp;chunk_dealloc((void&nbsp;*)spare,&nbsp;chunksize,&nbsp;true);&lt;br&gt;<br>
+<br>
++              &nbsp;chunk_dealloc((void&nbsp;*)spare,&nbsp;chunksize,&nbsp;true,&nbsp;false);&lt;br&gt;               &nbsp;malloc_mutex_lock(&amp;arena-&gt;lock);&lt;br&gt;               &nbsp;if&nbsp;(config_stats)&lt;br&gt;                       &nbsp;arena-&gt;stats.mapped&nbsp;-=&nbsp;chunksize;&lt;br&gt;<br>
+<br>
+diff&nbsp;-rupN&nbsp;jemalloc-3.3.1/src/chunk.c&nbsp;jemalloc-3.3.1_changed/src/chunk.c&lt;br&gt;---&nbsp;jemalloc-3.3.1/src/chunk.c &nbsp;2013-03-07&nbsp;01:34:18.000000000&nbsp;+0530&lt;br&gt;+++&nbsp;jemalloc-3.3.1_changed/src/chunk.c &nbsp;2013-04-26&nbsp;19:39:33.000000000&nbsp;+0530&lt;br&gt;<br>
+<br>
+@@&nbsp;-104,7&nbsp;+104,7&nbsp;@@&nbsp;chunk_recycle(extent_tree_t&nbsp;*chunks_szad&lt;br&gt;                       &nbsp;malloc_mutex_unlock(&amp;chunks_mtx);&lt;br&gt;                       &nbsp;node&nbsp;=&nbsp;base_node_alloc();&lt;br&gt;                       &nbsp;if&nbsp;(node&nbsp;==&nbsp;NULL)&nbsp;{&lt;br&gt;<br>
+<br>
+-                              &nbsp;chunk_dealloc(ret,&nbsp;size,&nbsp;true);&lt;br&gt;+                              &nbsp;chunk_dealloc(ret,&nbsp;size,&nbsp;true,&nbsp;false);&lt;br&gt;                               &nbsp;return&nbsp;(NULL);&lt;br&gt;                       &nbsp;}&lt;br&gt;<br>
+                       &nbsp;malloc_mutex_lock(&amp;chunks_mtx);&lt;br&gt;<br>
+@@&nbsp;-181,7&nbsp;+181,7&nbsp;@@&nbsp;label_return:&lt;br&gt;       &nbsp;if&nbsp;(ret&nbsp;!=&nbsp;NULL)&nbsp;{&lt;br&gt;               &nbsp;if&nbsp;(config_ivsalloc&nbsp;&amp;&amp;&nbsp;base&nbsp;==&nbsp;false)&nbsp;{&lt;br&gt;                       &nbsp;if&nbsp;(rtree_set(chunks_rtree,&nbsp;(uintptr_t)ret,&nbsp;ret))&nbsp;{&lt;br&gt;-                              &nbsp;chunk_dealloc(ret,&nbsp;size,&nbsp;true);&lt;br&gt;<br>
+<br>
++                              &nbsp;chunk_dealloc(ret,&nbsp;size,&nbsp;true,&nbsp;false);&lt;br&gt;                               &nbsp;return&nbsp;(NULL);&lt;br&gt;                       &nbsp;}&lt;br&gt;               &nbsp;}&lt;br&gt;@@&nbsp;-288,7&nbsp;+288,7&nbsp;@@&nbsp;chunk_record(extent_tree_t&nbsp;*chunks_szad,&lt;br&gt;<br>
+<br>
+ }&lt;br&gt;&lt;br&gt; void&lt;br&gt;-chunk_unmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size)&lt;br&gt;+chunk_unmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&nbsp;bool&nbsp;force_unmap)&lt;br&gt; {&lt;br&gt;       &nbsp;assert(chunk&nbsp;!=&nbsp;NULL);&lt;br&gt;       &nbsp;assert(CHUNK_ADDR2BASE(chunk)&nbsp;==&nbsp;chunk);&lt;br&gt;@@&nbsp;-297,12&nbsp;+297,12&nbsp;@@&nbsp;chunk_unmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size)&lt;br&gt;<br>
+<br>
+&lt;br&gt;       &nbsp;if&nbsp;(config_dss&nbsp;&amp;&amp;&nbsp;chunk_in_dss(chunk))&lt;br&gt;               &nbsp;chunk_record(&amp;chunks_szad_dss,&nbsp;&amp;chunks_ad_dss,&nbsp;chunk,&nbsp;size);&lt;br&gt;-      &nbsp;else&nbsp;if&nbsp;(chunk_dealloc_mmap(chunk,&nbsp;size))&lt;br&gt;+      &nbsp;else&nbsp;if&nbsp;(chunk_dealloc_mmap(chunk,&nbsp;size,&nbsp;force_unmap))&lt;br&gt;<br>
+<br>
+               &nbsp;chunk_record(&amp;chunks_szad_mmap,&nbsp;&amp;chunks_ad_mmap,&nbsp;chunk,&nbsp;size);&lt;br&gt; }&lt;br&gt;&lt;br&gt; void&lt;br&gt;-chunk_dealloc(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&nbsp;bool&nbsp;unmap)&lt;br&gt;+chunk_dealloc(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&nbsp;bool&nbsp;unmap,&nbsp;bool&nbsp;force_unmap)&lt;br&gt;<br>
+<br>
+ {&lt;br&gt;&lt;br&gt;       &nbsp;assert(chunk&nbsp;!=&nbsp;NULL);&lt;br&gt;@@&nbsp;-320,7&nbsp;+320,7&nbsp;@@&nbsp;chunk_dealloc(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&lt;br&gt;       &nbsp;}&lt;br&gt;&lt;br&gt;       &nbsp;if&nbsp;(unmap)&lt;br&gt;-              &nbsp;chunk_unmap(chunk,&nbsp;size);&lt;br&gt;+              &nbsp;chunk_unmap(chunk,&nbsp;size,&nbsp;force_unmap);&lt;br&gt;<br>
+<br>
+ }&lt;br&gt;&lt;br&gt; bool&lt;br&gt;diff&nbsp;-rupN&nbsp;jemalloc-3.3.1/src/chunk_dss.c&nbsp;jemalloc-3.3.1_changed/src/chunk_dss.c&lt;br&gt;---&nbsp;jemalloc-3.3.1/src/chunk_dss.c     &nbsp;2013-03-07&nbsp;01:34:18.000000000&nbsp;+0530&lt;br&gt;+++&nbsp;jemalloc-3.3.1_changed/src/chunk_dss.c     &nbsp;2013-04-26&nbsp;19:38:11.000000000&nbsp;+0530&lt;br&gt;<br>
+<br>
+@@&nbsp;-123,7&nbsp;+123,7&nbsp;@@&nbsp;chunk_alloc_dss(size_t&nbsp;size,&nbsp;size_t&nbsp;alig&lt;br&gt;                               &nbsp;dss_max&nbsp;=&nbsp;dss_next;&lt;br&gt;                               &nbsp;malloc_mutex_unlock(&amp;dss_mtx);&lt;br&gt;                               &nbsp;if&nbsp;(cpad_size&nbsp;!=&nbsp;0)&lt;br&gt;<br>
+<br>
+-                                      &nbsp;chunk_unmap(cpad,&nbsp;cpad_size);&lt;br&gt;+                                      &nbsp;chunk_unmap(cpad,&nbsp;cpad_size,&nbsp;false);&lt;br&gt;                               &nbsp;if&nbsp;(*zero)&nbsp;{&lt;br&gt;                                       &nbsp;VALGRIND_MAKE_MEM_UNDEFINED(ret,&nbsp;size);&lt;br&gt;<br>
+<br>
+                                       &nbsp;memset(ret,&nbsp;0,&nbsp;size);&lt;br&gt;diff&nbsp;-rupN&nbsp;jemalloc-3.3.1/src/chunk_mmap.c&nbsp;jemalloc-3.3.1_changed/src/chunk_mmap.c&lt;br&gt;---&nbsp;jemalloc-3.3.1/src/chunk_mmap.c    &nbsp;2013-03-07&nbsp;01:34:18.000000000&nbsp;+0530&lt;br&gt;<br>
+<br>
++++&nbsp;jemalloc-3.3.1_changed/src/chunk_mmap.c    &nbsp;2013-04-26&nbsp;19:48:15.000000000&nbsp;+0530&lt;br&gt;@@&nbsp;-200,11&nbsp;+200,10&nbsp;@@&nbsp;chunk_alloc_mmap(size_t&nbsp;size,&nbsp;size_t&nbsp;ali&lt;br&gt; }&lt;br&gt;&lt;br&gt; bool&lt;br&gt;-chunk_dealloc_mmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size)&lt;br&gt;<br>
+<br>
++chunk_dealloc_mmap(void&nbsp;*chunk,&nbsp;size_t&nbsp;size,&nbsp;bool&nbsp;force_unmap)&lt;br&gt; {&lt;br&gt;-&lt;br&gt;-      &nbsp;if&nbsp;(config_munmap)&lt;br&gt;+      &nbsp;if&nbsp;(config_munmap&nbsp;||&nbsp;force_unmap)&lt;br&gt;               &nbsp;pages_unmap(chunk,&nbsp;size);&lt;br&gt;&lt;br&gt;-      &nbsp;return&nbsp;(config_munmap&nbsp;==&nbsp;false);&lt;br&gt;<br>
+<br>
++      &nbsp;return&nbsp;(config_munmap&nbsp;==&nbsp;false)&nbsp;&amp;&amp;&nbsp;(force_unmap&nbsp;==&nbsp;false);&lt;br&gt; }&lt;br&gt;diff&nbsp;-rupN&nbsp;jemalloc-3.3.1/src/huge.c&nbsp;jemalloc-3.3.1_changed/src/huge.c&lt;br&gt;---&nbsp;jemalloc-3.3.1/src/huge.c  &nbsp;2013-03-07&nbsp;01:34:18.000000000&nbsp;+0530&lt;br&gt;<br>
+<br>
++++&nbsp;jemalloc-3.3.1_changed/src/huge.c  &nbsp;2013-04-26&nbsp;19:49:39.000000000&nbsp;+0530&lt;br&gt;@@&nbsp;-175,7&nbsp;+175,7&nbsp;@@&nbsp;huge_ralloc(void&nbsp;*ptr,&nbsp;size_t&nbsp;oldsize,&nbsp;s&lt;br&gt;                       &nbsp;if&nbsp;(opt_abort)&lt;br&gt;                               &nbsp;abort();&lt;br&gt;<br>
+<br>
+                       &nbsp;memcpy(ret,&nbsp;ptr,&nbsp;copysize);&lt;br&gt;-                      &nbsp;chunk_dealloc_mmap(ptr,&nbsp;oldsize);&lt;br&gt;+                      &nbsp;chunk_dealloc_mmap(ptr,&nbsp;oldsize,&nbsp;true);&lt;br&gt;               &nbsp;}&lt;br&gt;       &nbsp;}&nbsp;else&lt;br&gt;<br>
+<br>
+ #endif&lt;br&gt;@@&nbsp;-211,7&nbsp;+211,7&nbsp;@@&nbsp;huge_dalloc(void&nbsp;*ptr,&nbsp;bool&nbsp;unmap)&lt;br&gt;       &nbsp;if&nbsp;(unmap&nbsp;&amp;&amp;&nbsp;config_fill&nbsp;&amp;&amp;&nbsp;config_dss&nbsp;&amp;&amp;&nbsp;opt_junk)&lt;br&gt;               &nbsp;memset(node-&gt;addr,&nbsp;0x5a,&nbsp;node-&gt;size);&lt;br&gt;&lt;br&gt;<br>
+<br>
+-      &nbsp;chunk_dealloc(node-&gt;addr,&nbsp;node-&gt;size,&nbsp;unmap);&lt;br&gt;+      &nbsp;chunk_dealloc(node-&gt;addr,&nbsp;node-&gt;size,&nbsp;unmap,&nbsp;unmap);&lt;br&gt;&lt;br&gt;       &nbsp;base_node_dealloc(node);&lt;br&gt; }&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;<br>
+<br>
+On&nbsp;Mon,&nbsp;Apr&nbsp;29,&nbsp;2013&nbsp;at&nbsp;9:33&nbsp;AM,&nbsp;Abhishek&nbsp;Singh&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:abhishek@abhishek-singh.com&quot;&nbsp;target=&quot;_blank&quot;&gt;abhishek@abhishek-singh.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;<br>
+<br>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&gt;&lt;div&gt;Hi&nbsp;&lt;br&gt;&lt;br&gt;&lt;/div&gt;We&nbsp;are&nbsp;trying&nbsp;to&nbsp;replace&nbsp;glibc&nbsp;malloc&nbsp;with&nbsp;jemalloc&nbsp;because&nbsp;we&nbsp;have&nbsp;several&nbsp;concurrent&nbsp;allocations&nbsp;and&nbsp;in&nbsp;all&nbsp;our&nbsp;benchmarks&nbsp;jemalloc&nbsp;is&nbsp;consistently&nbsp;better&nbsp;than&nbsp;glibc&nbsp;malloc&nbsp;and&nbsp;many&nbsp;others.&nbsp;&lt;br&gt;<br>
+<br>
+<br>
+&lt;br&gt;Our&nbsp;setups&nbsp;start&nbsp;typically&nbsp;with&nbsp;96&nbsp;GB&nbsp;of&nbsp;RAM&nbsp;and&nbsp;up.&nbsp;We&nbsp;have&nbsp;observed&nbsp;that&nbsp;using&nbsp;jemalloc&nbsp;the&nbsp;virtual&nbsp;memory&nbsp;usage&nbsp;of&nbsp;our&nbsp;process&nbsp;rises&nbsp;up&nbsp;to&nbsp;around&nbsp;75GB.&nbsp;While&nbsp;the&nbsp;resident&nbsp;memory&nbsp;stays&nbsp;low&nbsp;and&nbsp;it&nbsp;is&nbsp;not&nbsp;a&nbsp;problem&nbsp;as&nbsp;such,&nbsp;when&nbsp;we&nbsp;try&nbsp;to&nbsp;fork&nbsp;a&nbsp;process&nbsp;from&nbsp;within&nbsp;here,&nbsp;it&nbsp;fails&nbsp;as&nbsp;the&nbsp;kernel&nbsp;assumes&nbsp;there&nbsp;is&nbsp;not&nbsp;enough&nbsp;memory&nbsp;to&nbsp;copy&nbsp;the&nbsp;VM&nbsp;space.&nbsp;Perhaps&nbsp;a&nbsp;vfork&nbsp;would&nbsp;be&nbsp;better&nbsp;but&nbsp;we&nbsp;can&#39;t&nbsp;use&nbsp;that&nbsp;for&nbsp;now.&lt;br&gt;<br>
+<br>
+<br>
+&lt;br&gt;So&nbsp;we&nbsp;have&nbsp;made&nbsp;some&nbsp;modifications&nbsp;to&nbsp;jemalloc&nbsp;so&nbsp;that&nbsp;all&nbsp;huge&nbsp;memory&nbsp;allocations&nbsp;are&nbsp;forced&nbsp;to&nbsp;unmap&nbsp;their&nbsp;memory&nbsp;on&nbsp;freeing&nbsp;up.&nbsp;Non&nbsp;huge&nbsp;memory&nbsp;allocations&nbsp;and&nbsp;freeing&nbsp;up&nbsp;remain&nbsp;the&nbsp;same.&nbsp;This&nbsp;seems&nbsp;to&nbsp;help&nbsp;us.&nbsp;I&nbsp;have&nbsp;attached&nbsp;the&nbsp;patch&nbsp;here&nbsp;which&nbsp;is&nbsp;against&nbsp;jemalloc-3.3.1.&nbsp;Please&nbsp;review&nbsp;and&nbsp;suggest&nbsp;if&nbsp;there&nbsp;is&nbsp;a&nbsp;better&nbsp;way&nbsp;to&nbsp;handle&nbsp;this.&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+<br>
+<br>
+&lt;br&gt;--&nbsp;&lt;br&gt;Regards&lt;br&gt;Abhishek <br>
+&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;<br>
+&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;br&nbsp;clear=&quot;all&quot;&gt;&lt;br&gt;--&nbsp;&lt;br&gt;Regards&lt;br&gt;Abhishek&nbsp;Kumar&nbsp;Singh<br>
+&lt;/div&gt;<br>
+
+</tt>

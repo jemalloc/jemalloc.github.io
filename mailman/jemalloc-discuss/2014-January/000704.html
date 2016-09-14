@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Possible glitch with prof_accum ouput (or maybe pprof)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Possible%20glitch%20with%20prof_accum%20ouput%20%28or%20maybe%20pprof%29&In-Reply-To=%3CCAO6Ho0eGm9T5e1xTwSFWNWKKDJ8bFuvd1MvXeByOZgCrfQ-oMQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000700.html">
+   <LINK REL="Next"  HREF="000701.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Possible glitch with prof_accum ouput (or maybe pprof)</H1>
+    <B>Evgeniy Ivanov</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Possible%20glitch%20with%20prof_accum%20ouput%20%28or%20maybe%20pprof%29&In-Reply-To=%3CCAO6Ho0eGm9T5e1xTwSFWNWKKDJ8bFuvd1MvXeByOZgCrfQ-oMQ%40mail.gmail.com%3E"
+       TITLE="Possible glitch with prof_accum ouput (or maybe pprof)">i at eivanov.com
+       </A><BR>
+    <I>Wed Jan 15 01:12:16 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000700.html">Possible glitch with prof_accum ouput (or maybe pprof)
+</A></li>
+        <LI>Next message: <A HREF="000701.html">Pthread spinlock support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#704">[ date ]</a>
+              <a href="thread.html#704">[ thread ]</a>
+              <a href="subject.html#704">[ subject ]</a>
+              <a href="author.html#704">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Jason, thanks a lot!
+
+On Tue, Jan 14, 2014 at 10:11 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On Jan 14, 2014, at 7:07 AM, Evgeniy Ivanov &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">i at eivanov.com</A>&gt; wrote:
+</I>&gt;&gt;<i> When I use prof_accum I get stacks like this one:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 0: 0 [100: 1228800] @ 0x7fe9ed4c6c88 0x400b37 0x400b59 0x400b69
+</I>&gt;&gt;<i> 0x400b7e 0x400c04 0x7fe9ec9a8d1d 0x4008e9
+</I>&gt;&gt;<i> 0: 0 [100: 60211200] @ 0x7fe9ed4c6c88 0x400b07 0x400b6e 0x400b7e
+</I>&gt;&gt;<i> 0x400c04 0x7fe9ec9a8d1d 0x4008e9
+</I>&gt;&gt;<i> 0: 0 [100: 1228800] @ 0x7fe9ed4c6c88 0x400b37 0x400b79 0x400c04
+</I>&gt;&gt;<i> 0x7fe9ec9a8d1d 0x4008e9
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> 100 function calls and bytes allocated are correct, but first counters
+</I>&gt;&gt;<i> are &quot;0: 0&quot;. I don't know, what they count, but these zeroes make pprof
+</I>&gt;&gt;<i> to ignore these lines.
+</I>&gt;<i>
+</I>&gt;<i> The zeros are the current allocations/bytes counters; the corresponding cumulative counters are tracking allocations that no longer exist.  In order to make pprof use the cumulative counters rather than the current counters, you need to specify --alloc_space or --alloc_objects (--inuse_space is the default).
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>
+
+
+-- 
+Cheers,
+Evgeniy
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000700.html">Possible glitch with prof_accum ouput (or maybe pprof)
+</A></li>
+	<LI>Next message: <A HREF="000701.html">Pthread spinlock support
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#704">[ date ]</a>
+              <a href="thread.html#704">[ thread ]</a>
+              <a href="subject.html#704">[ subject ]</a>
+              <a href="author.html#704">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

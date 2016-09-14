@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3.5.0 regressions on i586
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203.5.0%20regressions%20on%20i586&In-Reply-To=%3C80B94B7D-0F23-4D10-91B4-61263D7D8E70%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000736.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3.5.0 regressions on i586</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203.5.0%20regressions%20on%20i586&In-Reply-To=%3C80B94B7D-0F23-4D10-91B4-61263D7D8E70%40canonware.com%3E"
+       TITLE="jemalloc 3.5.0 regressions on i586">jasone at canonware.com
+       </A><BR>
+    <I>Mon Feb  3 16:01:28 PST 2014</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000736.html">jemalloc compiled for windows 7?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#735">[ date ]</a>
+              <a href="thread.html#735">[ thread ]</a>
+              <a href="subject.html#735">[ subject ]</a>
+              <a href="author.html#735">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 29, 2014, at 11:36 AM, &#304;smail D&#246;nmez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ismail at donmez.ws</A>&gt; wrote:
+&gt;<i> On Wed, Jan 29, 2014 at 9:24 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i> On Jan 29, 2014, at 11:17 AM, &#304;smail D&#246;nmez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ismail at donmez.ws</A>&gt; wrote:
+</I>&gt;&gt;<i> On Wed, Jan 29, 2014 at 9:09 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;&gt;<i> On Jan 29, 2014, at 4:28 AM, &#304;smail D&#246;nmez &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ismail at donmez.ws</A>&gt; wrote:
+</I>&gt;&gt;<i> &gt; I have 2 new failures:
+</I>&gt;&gt;<i> &gt;
+</I>&gt;&gt;<i> &gt; thd_start:test/unit/prof_accum.c:83: Failed assertion: (bt_count_prev+(i-i_prev)) &lt;= (bt_count) --&gt; 6 &gt; 1: thd_start
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> I'm guessing that this is due to the compiler being especially intelligent regarding mutual recursion for alloc_[01](), and I just added noinline attributes for those functions:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i>         <A HREF="https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62">https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62</A>
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> However, if the compiler is being that smart, it may also be smart enough to do tail call optimization despite an attempt in the code to thwart optimization.  It appears that the gcc flag to disable this is -fno-optimize-sibling-calls, but I'm reluctant to resort to that unless the noinline attribute fails to do the job.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> This one is still failing, also adding -fno-optimize-sibling-calls to CFLAGS didn't fix it.
+</I>&gt;<i> 
+</I>&gt;<i> Did -fno-optimize-sibling-calls make it through to the compilation commands?  If not, try using EXTRA_CFLAGS instead.  Assuming -fno-optimize-sibling-calls is actually getting used, I'm out of ideas as to how this is failing, and I may need to set up an equivalent environment to dig in further.
+</I>&gt;<i> 
+</I>&gt;<i> Its there: CFLAGS             : -O2 -fno-optimize-sibling-calls -std=gnu99 -fvisibility=hidden , just removing the -O2 fixes the problem. So its indeed an optimization problem, so how about compiling the tests with -O0 instead?
+</I>
+I gave some more thought to how to fix this problem, and eventually came to the realization that breaking the test into multiple compilation units is likely to be the most reliable long term solution.  Here's the issue I'm tracking this bug with:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues/49">https://github.com/jemalloc/jemalloc/issues/49</A>
+
+I haven't dug into how to gracefully implement this in the build system yet, but I'll get it sorted out prior to the next release.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140203/19af0316/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140203/19af0316/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000736.html">jemalloc compiled for windows 7?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#735">[ date ]</a>
+              <a href="thread.html#735">[ thread ]</a>
+              <a href="subject.html#735">[ subject ]</a>
+              <a href="author.html#735">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

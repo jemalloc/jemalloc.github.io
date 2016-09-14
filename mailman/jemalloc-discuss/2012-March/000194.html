@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Add a SYS_write definition on systems where it is not	defined in headers
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20SYS_write%20definition%20on%20systems%20where%20it%20is%20not%0A%09defined%20in%20headers&In-Reply-To=%3C20120327131536.GA25257%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000193.html">
+   <LINK REL="Next"  HREF="000204.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Add a SYS_write definition on systems where it is not	defined in headers</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Add%20a%20SYS_write%20definition%20on%20systems%20where%20it%20is%20not%0A%09defined%20in%20headers&In-Reply-To=%3C20120327131536.GA25257%40glandium.org%3E"
+       TITLE="[PATCH] Add a SYS_write definition on systems where it is not	defined in headers">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Mar 27 06:15:36 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000193.html">[PATCH] Add a SYS_write definition on systems where it is not	defined in headers
+</A></li>
+        <LI>Next message: <A HREF="000204.html">[PATCH] Add a SYS_write definition on systems where it is not	defined in headers
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#194">[ date ]</a>
+              <a href="thread.html#194">[ thread ]</a>
+              <a href="subject.html#194">[ subject ]</a>
+              <a href="author.html#194">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Mar 27, 2012 at 10:11:38AM -0300, Ricardo Nabinger Sanchez wrote:
+&gt;<i> Hello Mike,
+</I>&gt;<i> 
+</I>&gt;<i> On Tue, 27 Mar 2012 14:48:58 +0200
+</I>&gt;<i> Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh+jemalloc at glandium.org</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> &gt; +#if !defined(SYS_write) &amp;&amp; defined(__NR_write)
+</I>&gt;<i> &gt; +#define SYS_write __NR_write
+</I>&gt;<i> &gt; +#endif
+</I>&gt;<i> 
+</I>&gt;<i> Isn't this a good spot for something like the following?
+</I>&gt;<i> 
+</I>&gt;<i> #else
+</I>&gt;<i> #error &quot;SYS_write is broken on your system.&quot;
+</I>&gt;<i> #endif
+</I>&gt;<i> 
+</I>&gt;<i> Unless I'm overlooking something obvious, it should not be a good thing
+</I>&gt;<i> letting the compilation go past this point, assuming it will fail in a
+</I>&gt;<i> later stage anyway.
+</I>
+Well, considering it's going to fail later with a pretty self describing
+error message, it's probably not worth bothering.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000193.html">[PATCH] Add a SYS_write definition on systems where it is not	defined in headers
+</A></li>
+	<LI>Next message: <A HREF="000204.html">[PATCH] Add a SYS_write definition on systems where it is not	defined in headers
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#194">[ date ]</a>
+              <a href="thread.html#194">[ thread ]</a>
+              <a href="subject.html#194">[ subject ]</a>
+              <a href="author.html#194">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

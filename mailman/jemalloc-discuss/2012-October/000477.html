@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121024193654.GA26607%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000476.html">
+   <LINK REL="Next"  HREF="000478.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121024193654.GA26607%40glandium.org%3E"
+       TITLE="Memory usage regression">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Oct 24 12:36:54 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000476.html">[PATCH] Don't register jemalloc's zone allocator if something	else already replaced the system default zone
+</A></li>
+        <LI>Next message: <A HREF="000478.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#477">[ date ]</a>
+              <a href="thread.html#477">[ thread ]</a>
+              <a href="subject.html#477">[ subject ]</a>
+              <a href="author.html#477">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+One of the reasons Firefox has not switched to jemalloc 3 yet, despite
+the efforts to get it building against it, is that when we tested memory
+consumption, we observed a regression in memory usage, compared to the
+jemalloc fork we're currently using.
+
+I recently started to check what makes the difference, and I now have a
+500MB compressed log of malloc/calloc/realloc/memalign/free calls from a
+Firefox session doing a lot of things, with a few checkpoints. I can
+replay the log against both our old fork and the new jemalloc, stopping
+at any of the checkpoints. This allows to compare a strictly identical
+workload. This will also allow to possibly test the workload with older
+intermediate versions of jemalloc, as well as different config options,
+and possible fixes.
+
+With that replayed workload, I can see two main things:
+- The amount of resident memory used by jemalloc 3 is greater than that
+  of mozjemalloc after freeing big parts of what was allocated (in
+  Firefox, after closing all tabs, waiting for a settle, and forcing GC).
+  This is most likely due to different allocation patterns leading to
+  some kind of fragmentation after freeing part of the allocated memory.
+  See <A HREF="http://i.imgur.com/fQKi4.png">http://i.imgur.com/fQKi4.png</A> for a graphical representation of
+  what happens to the RSS value at the different checkpoints during the
+  Firefox workload.
+- The amount of mmap()ed memory is dangerously increasing during the
+  workload. It almost (but not quite) looks like jemalloc don't reuse
+  pages it purged. See <A HREF="http://i.imgur.com/klfJv.png">http://i.imgur.com/klfJv.png</A> ; VmData is
+  essentially the sum of all anonymous ranges of memory in the process.
+  Such an increase in VmData means we'd eventually exhaust the 32-bits
+  address space on 32-bits OSes, even though the resident memory usage
+  is pretty low.
+
+The data was gathered with commit 609ae59 ; mozjemalloc is our fork.
+
+Please tell me what kind of data could be useful to you ; for instance,
+I can provide a jemalloc stats dump at each step. I'm also going to try
+to get more data between the checkpoints, because, for instance, the
+peak RSS is around 350MB, which doesn't show up on the graph.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000476.html">[PATCH] Don't register jemalloc's zone allocator if something	else already replaced the system default zone
+</A></li>
+	<LI>Next message: <A HREF="000478.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#477">[ date ]</a>
+              <a href="thread.html#477">[ thread ]</a>
+              <a href="subject.html#477">[ subject ]</a>
+              <a href="author.html#477">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

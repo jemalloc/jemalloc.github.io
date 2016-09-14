@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc performance for very small allocations
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20performance%20for%20very%20small%20allocations&In-Reply-To=%3CBAY154-W185E683D345520A347B5EDEFB70%40phx.gbl%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000576.html">
+   <LINK REL="Next"  HREF="000580.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc performance for very small allocations</H1>
+    <B>Rajat Garg</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20performance%20for%20very%20small%20allocations&In-Reply-To=%3CBAY154-W185E683D345520A347B5EDEFB70%40phx.gbl%3E"
+       TITLE="jemalloc performance for very small allocations">garg_rajat at hotmail.com
+       </A><BR>
+    <I>Fri Apr 26 09:39:10 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000576.html">Fragmentation with jemalloc
+</A></li>
+        <LI>Next message: <A HREF="000580.html">jemalloc performance for very small allocations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#577">[ date ]</a>
+              <a href="thread.html#577">[ thread ]</a>
+              <a href="subject.html#577">[ subject ]</a>
+              <a href="author.html#577">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+Hi,
+ I am using jemalloc 3.1.0, compiled with gcc 4.1.2 on CentOS release 5.6 for a compute intensive multithreaded application where bulk of allocations falls in 8-byte, 16-byte (stats below). We are seeing very high runtime in tcache_alloc_small_hard(), arena_tcache_fill_small() and arena_bin_malloc_hard().  The 8 and 16 bytes allocations happen in very large number. We probably want the allocations to come form tcache_alloc_easy() to not hit the locks and take less runtime.  The allocations are mostly temporary in nature -- especially 8-byte ones -- so some number of 8-byte allocations are done, then they are freed and then alloc/free process repeated. 
+
+The runs use 8 threads (so 48 arenas and all other jemalloc settings are default) and are on an Intel Xeon server with 12-cores (no hyperthreading and no other user so no contention with other user; the peak memory in application is ~6.5GB and server has 128GB memory so no memory shortage/swapping etc.); the jemalloc output at the end of run is given below. As we can see, pretty much 8 and 16 byte bins are overloaded. 
+
+A run with TCACHE_NSLOTS_SMALL_MAX=10000, LG_TCACHE_MAXCLASS_DEFAULT=10, changing small bins to hold only upto 224 bytes (NBINS=15),  and hardcoding 
+tcache_bin_info[i].ncached_max = TCACHE_NSLOTS_SMALL_MAX in tcache.c file improves runtime by about 16% (for overall application runtime) but increases peak memory from 6.5GB to 6.7GB. We want the runtime to at least improve by another 10% without preferably any increase in peak memory (so even 6.5GB to 6.7GB is not desirable). 
+Any suggestions on what changes to jemalloc settings to try?
+thanks a lot!,
+--Rajat
+
+___ Begin jemalloc statistics ___
+Version: 3.1.0-0-g3b1f3aca54fede23299cde9034f7b909c3d290d7
+Assertions disabled
+Run-time option settings:
+  opt.abort: false
+  opt.lg_chunk: 22
+  opt.dss: &quot;secondary&quot;
+  opt.narenas: 48
+  opt.lg_dirty_mult: 5
+  opt.stats_print: false
+  opt.junk: false
+  opt.quarantine: 0
+  opt.redzone: false
+  opt.zero: false
+  opt.tcache: true
+  opt.lg_tcache_max: 15
+CPUs: 12
+Arenas: 48
+Pointer size: 8
+Quantum size: 16
+Page size: 4096
+Min active:dirty page ratio per arena: 32:1
+Maximum thread-cached size class: 32768
+Chunk size: 4194304 (2^22)
+Allocated: 1209815024, active: 1295314944, mapped: 1832910848
+Current active ceiling: 1321205760
+chunks: nchunks   highchunks    curchunks
+           446          443          437
+huge: nmalloc      ndalloc    allocated
+            0            0            0
+
+Merged arenas stats:
+assigned threads: 1
+dss allocation precedence: N/A
+dirty pages: 316239:9435 active:dirty, 1133 sweeps, 43514 madvises, 198766 purged
+            allocated      nmalloc      ndalloc    nrequests
+small:     1048219632  14499926892  14459296188  16587774427
+large:      161595392         1658         1282         2659
+total:     1209815024  14499928550  14459297470  16587777086
+active:    1295314944
+mapped:    1828716544
+bins:     bin  size regs pgs    allocated      nmalloc      ndalloc    nrequests       nfills     nflushes      newruns       reruns      curruns
+            0     8  501   1     17659680   7173034900   7170827440   8020202160     71750873     71709910       282770     17873119         4463
+            1    16  252   1    399942864   7263860606   7238864177   8275464931     72760253     72395028       138537   1394609632       105755
+            2    32  126   1    340674496     34841421     24195343    229801652       504480       257943       128506      1157771        89699
+            3    48   84   1     78136368      2304192       676351     11567784       101000        18024        22085        18898        19409
+            4    64   63   1      1573312      3402405      3377822      5487283       217389        67666        33203       121936          454
+            5    80   50   1     17949200      1591440      1367075      2726511       177324        40895        23869        56202         4552
+            6    96   84   2     25039488      7866030      7605202     19022100       150183        96444        40254       127493         3556
+            7   112   72   2     25960928      4878810      4647016      6646579       277346        80409        39762        81691         3309
+            8   128   63   2      4877696       345189       307082       887445        91917        17364         2600        18459          606
+            9   160   51   2      3152000       470435       450735       712418        81161        19755         6687        13692          388
+           10   192   63   3      7931712      1356246      1314935      2595825        81608        31104        18297        14202          792
+           11   224   72   4       583072      1666870      1664267      4112733        94788        84418        18487        14044           37
+           12   256   63   4      4441088       214118       196770       531195        50982        23215         2773         3298          332
+           13   320   63   5       161600      1507044      1506539      3623214       112592        45548        16571        22779            9
+           14   384   63   6     63520128      1115114       949697      1845693        61670        33546        15219         8725         3117
+           15   448   63   7     56578368       922862       796571       908379        69788        43446        13528         7001         2006
+           ...&lt;cut&gt;...
+large:   size pages      nmalloc      ndalloc    nrequests      curruns
+         4096     1          413          413          956            0
+         8192     2          378          378          821            0
+        12288     3           13           13           27            0
+        16384     4            2            2            3            0
+        20480     5            3            3            3            0
+        ...&lt;cut&gt;...
+
+ 		 	   		   		 	   		  
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130426/81539833/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130426/81539833/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000576.html">Fragmentation with jemalloc
+</A></li>
+	<LI>Next message: <A HREF="000580.html">jemalloc performance for very small allocations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#577">[ date ]</a>
+              <a href="thread.html#577">[ thread ]</a>
+              <a href="subject.html#577">[ subject ]</a>
+              <a href="author.html#577">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

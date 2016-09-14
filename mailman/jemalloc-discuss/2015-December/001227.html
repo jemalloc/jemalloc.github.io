@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> malloc profile from a core dump
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20malloc%20profile%20from%20a%20core%20dump&In-Reply-To=%3C1450376937871.19824%40netapp.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001225.html">
+   <LINK REL="Next"  HREF="001226.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>malloc profile from a core dump</H1>
+    <B>Ezolt, Phillip</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20malloc%20profile%20from%20a%20core%20dump&In-Reply-To=%3C1450376937871.19824%40netapp.com%3E"
+       TITLE="malloc profile from a core dump">Phillip.Ezolt at netapp.com
+       </A><BR>
+    <I>Thu Dec 17 10:28:58 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001225.html">malloc profile from a core dump
+</A></li>
+        <LI>Next message: <A HREF="001226.html">malloc profile from a core dump
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1227">[ date ]</a>
+              <a href="thread.html#1227">[ thread ]</a>
+              <a href="subject.html#1227">[ subject ]</a>
+              <a href="author.html#1227">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>FWIW. ?
+
+  For the older versions of jemalloc that was included with FreeBSD 7 &amp; 8, I released the following gdb python macros:
+
+<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2011-November/000051.html">http://www.canonware.com/pipermail/jemalloc-discuss/2011-November/000051.html</A>
+
+
+We (Netapp) use it for both cores and live debugging.
+
+...
+
+I haven't updated it to the most recent jemalloc, so it would require work... but it may be a starting place for you.
+
+
+Cheers,
+
+--Phil
+
+
+________________________________
+From: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss-bounces at canonware.com</A> &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss-bounces at canonware.com</A>&gt; on behalf of Alex Reece &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">awreece at gmail.com</A>&gt;
+Sent: Thursday, December 17, 2015 1:11 PM
+To: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+Subject: malloc profile from a core dump
+
+Is is possible to generate a malloc profile from a core dump? I'm investigating the use of jemalloc for pretty aggressive checking (a la libumem's auditing / redzone checking / ::whatis) for testing debug builds.
+
+I've seen some similar questions in the areas (<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2015-June/001125.html">http://www.canonware.com/pipermail/jemalloc-discuss/2015-June/001125.html</A>) and some other tools in the area (<A HREF="https://github.com/argp/unmask_jemalloc">https://github.com/argp/unmask_jemalloc</A>) but nothing really appears to stick out.
+
+Best,
+~Alex
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151217/c4c57b85/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151217/c4c57b85/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001225.html">malloc profile from a core dump
+</A></li>
+	<LI>Next message: <A HREF="001226.html">malloc profile from a core dump
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1227">[ date ]</a>
+              <a href="thread.html#1227">[ thread ]</a>
+              <a href="subject.html#1227">[ subject ]</a>
+              <a href="author.html#1227">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

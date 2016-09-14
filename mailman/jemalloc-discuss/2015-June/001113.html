@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> interpretation of malloc_stats_print() output
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20interpretation%20of%20malloc_stats_print%28%29%20output&In-Reply-To=%3CB91CF9B1-97B5-4273-A847-49A350CEAFB7%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001112.html">
+   <LINK REL="Next"  HREF="001114.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>interpretation of malloc_stats_print() output</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20interpretation%20of%20malloc_stats_print%28%29%20output&In-Reply-To=%3CB91CF9B1-97B5-4273-A847-49A350CEAFB7%40canonware.com%3E"
+       TITLE="interpretation of malloc_stats_print() output">jasone at canonware.com
+       </A><BR>
+    <I>Tue Jun  2 22:10:23 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001112.html">interpretation of malloc_stats_print() output
+</A></li>
+        <LI>Next message: <A HREF="001114.html">interpretation of malloc_stats_print() output
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1113">[ date ]</a>
+              <a href="thread.html#1113">[ thread ]</a>
+              <a href="subject.html#1113">[ subject ]</a>
+              <a href="author.html#1113">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 2, 2015, at 11:25 AM, Mayank Kumar (mayankum) &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mayankum at cisco.com</A> &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mayankum at cisco.com</A>&gt;&gt; wrote:
+&gt;<i> I am trying to match output from malloc_stats with output from top and also trying to figure out total process virtual memory usage from stats.
+</I>&gt;<i>  
+</I>&gt;<i> What fields in the stats should be added to get the total virtual memory for my process ?
+</I>
+For the version of jemalloc you're using, virtual memory can be computed by multiplying the number of chunks times the chunk size -- 396 MiB in this case.
+
+&gt;<i> Also is this link an accurate measurement of fragmentation for my process?
+</I>&gt;<i> <A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html">http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html</A> &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html">http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html</A>&gt;
+</I>&gt;<i>  
+</I>&gt;<i> from the link it seems active should be less than allocated, but I see otherwise. Is there a documentation somewhere to decipher this interesting output from jemalloc stats ?
+</I>
+The jemalloc manual documents all the statistics:
+
+	<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html</A> &lt;<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html</A>&gt;
+
+
+&gt;<i> CPUs: 2
+</I>&gt;<i> Arenas: 8
+</I>&gt;<i> Pointer size: 4
+</I>&gt;<i> Quantum size: 16
+</I>&gt;<i> Page size: 4096
+</I>&gt;<i> Min active:dirty page ratio per arena: 8:1
+</I>&gt;<i> Maximum thread-cached size class: 32768
+</I>&gt;<i> Chunk size: &gt;&gt;&gt;4194304&lt;&lt;&lt; (2^22)
+</I>&gt;<i> Allocated: 251363184, active: 270594048, mapped: 415236096
+</I>&gt;<i> Current active ceiling: 1488977920
+</I>&gt;<i> chunks: nchunks   highchunks    curchunks
+</I>&gt;<i>             100           99           &gt;&gt;&gt;99&lt;&lt;&lt;
+</I>&gt;<i> huge: nmalloc      ndalloc    allocated
+</I>&gt;<i>             0            0            0
+</I>&gt;<i>  [...]
+</I>
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150602/b20249c8/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150602/b20249c8/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001112.html">interpretation of malloc_stats_print() output
+</A></li>
+	<LI>Next message: <A HREF="001114.html">interpretation of malloc_stats_print() output
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1113">[ date ]</a>
+              <a href="thread.html#1113">[ thread ]</a>
+              <a href="subject.html#1113">[ subject ]</a>
+              <a href="author.html#1113">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

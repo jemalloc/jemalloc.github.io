@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> RFC: TCMalloc-style new/delete hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3C40A99521-9102-45B2-9376-7EBE7B1840EE%40couchbase.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000951.html">
+   <LINK REL="Next"  HREF="000954.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>RFC: TCMalloc-style new/delete hooks</H1>
+    <B>David Rigby</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20RFC%3A%20TCMalloc-style%20new/delete%20hooks&In-Reply-To=%3C40A99521-9102-45B2-9376-7EBE7B1840EE%40couchbase.com%3E"
+       TITLE="RFC: TCMalloc-style new/delete hooks">daver at couchbase.com
+       </A><BR>
+    <I>Tue Oct 14 10:19:14 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000951.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+        <LI>Next message: <A HREF="000954.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#953">[ date ]</a>
+              <a href="thread.html#953">[ thread ]</a>
+              <a href="subject.html#953">[ subject ]</a>
+              <a href="author.html#953">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> 
+</I>&gt;<i> On 14 Oct 2014, at 17:33, Paul Smith &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">paul at mad-scientist.net</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;&gt;<i> On Tue, 2014-10-14 at 16:13 +0000, David Rigby wrote:
+</I>&gt;&gt;<i> How would you (Jason?) feel about merging this patch, or something
+</I>&gt;&gt;<i> conceptually similar into upstream?
+</I>&gt;<i> 
+</I>&gt;<i> This implementation looks pretty thread-unsafe... FWIW...
+</I>&gt;<i> 
+</I>
+Agreed - it&#8217;s really a proof-of-concept - in my use-case I just install the new/delete hooks once on startup and basically leave them there until the end of the program.
+
+I wanted to at least see if people would accept the concept before adding appropriate thread-safety.
+
+
+
+DaveR
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000951.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+	<LI>Next message: <A HREF="000954.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#953">[ date ]</a>
+              <a href="thread.html#953">[ thread ]</a>
+              <a href="subject.html#953">[ subject ]</a>
+              <a href="author.html#953">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

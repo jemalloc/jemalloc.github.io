@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Jemalloc Porting
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20Porting&In-Reply-To=%3CCABBz-2Dht-wD2zHFs2EeOs7PSPzyAd5mGO2A4cO_aSbNxwPqLA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001243.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Jemalloc Porting</H1>
+    <B>vijay bhatt</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Jemalloc%20Porting&In-Reply-To=%3CCABBz-2Dht-wD2zHFs2EeOs7PSPzyAd5mGO2A4cO_aSbNxwPqLA%40mail.gmail.com%3E"
+       TITLE="Jemalloc Porting">veejppee at gmail.com
+       </A><BR>
+    <I>Wed Jan  6 01:03:53 PST 2016</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001243.html">Jemalloc Porting
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1235">[ date ]</a>
+              <a href="thread.html#1235">[ thread ]</a>
+              <a href="subject.html#1235">[ subject ]</a>
+              <a href="author.html#1235">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I have requirement to setup jemalloc for application, the
+specification is as follows:
+
+1   Allocations  (small, large ) is in terms of MB (2MB, 4MB, .........)
+
+2.  Allocations are always aligned to 2MB granularity
+3.  System Page size considered as 2MB (Linux Huge PAGE)
+4.  No request comes for allocation size less than 2MB, if such
+request comes then application will round up the size to 2Mb
+granularity
+
+Please provide how to do port jemalloc for such configuration, I want
+to avail jemalloc (small, large) size class  also for above
+requirement such that
+- small size will range from : 2MB, 4MB, 8MB ....... to 16MB
+- large size class ranges from 32MB, 64MB, 128 MB
+There is no intermediate allocation size i.e (3MB, 5MB etc )
+
+Thanks &amp; Regards,
+Vijay  Bhatt
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001243.html">Jemalloc Porting
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1235">[ date ]</a>
+              <a href="thread.html#1235">[ thread ]</a>
+              <a href="subject.html#1235">[ subject ]</a>
+              <a href="author.html#1235">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> realloc stack use under O0 for x86_64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3CC1DB42C4-58CE-4EB7-80BA-886104592F16%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001082.html">
+   <LINK REL="Next"  HREF="001084.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>realloc stack use under O0 for x86_64</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20realloc%20stack%20use%20under%20O0%20for%20x86_64&In-Reply-To=%3CC1DB42C4-58CE-4EB7-80BA-886104592F16%40indiana.edu%3E"
+       TITLE="realloc stack use under O0 for x86_64">ldalessa at indiana.edu
+       </A><BR>
+    <I>Wed Mar 25 18:29:23 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001082.html">realloc stack use under O0 for x86_64
+</A></li>
+        <LI>Next message: <A HREF="001084.html">jemalloc coring in je_bitmap_set
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1083">[ date ]</a>
+              <a href="thread.html#1083">[ thread ]</a>
+              <a href="subject.html#1083">[ subject ]</a>
+              <a href="author.html#1083">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On Mar 25, 2015, at 9:11 PM, Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> On Thu, Mar 26, 2015 at 12:57:28AM +0000, D'Alessandro, Luke K wrote:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> On Mar 25, 2015, at 8:34 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> On Mar 25, 2015, at 11:48 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;&gt;&gt;<i> We have a lightweight threading system where we are using very small stacks, on the order of 8-32k. We depend on jemalloc for scalable allocation.
+</I>&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;<i> When we compile jemalloc for debugging purposes, we see realloc using a large amount of stack space:
+</I>&gt;&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;&gt;<i> ```asm
+</I>&gt;&gt;&gt;&gt;<i> 0000000000070e48 &lt;realloc&gt;:
+</I>&gt;&gt;&gt;&gt;<i> 70e48:       55                      push   %rbp
+</I>&gt;&gt;&gt;&gt;<i> 70e49:       48 89 e5                mov    %rsp,%rbp
+</I>&gt;&gt;&gt;&gt;<i> 70e4c:       53                      push   %rbx
+</I>&gt;&gt;&gt;&gt;<i> 70e4d:       48 81 ec 68 62 00 00    sub    $0x6268,%rsp
+</I>&gt;&gt;&gt;&gt;<i> ```
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> Wow, that's far more stack space than I can imagine an explanation for.  What version of jemalloc is this happening with, which OS, compiler, etc.?
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Hi Jason,
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> This was with
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> jemalloc: 562d266511053a51406e91c78eba640cb46ad9c8
+</I>&gt;&gt;<i> ./configure CFLAGS=&quot;-O0 -g&#8221;
+</I>&gt;<i> 
+</I>&gt;<i> Add &quot;-Dalways_inline=&quot; and you'll avoid all the functions that are
+</I>&gt;<i> forced to be inlined. That might help you.
+</I>
+Hi Mike,
+
+This completely eliminates the issue, I can run with 8k stacks without any problem. It must be some really weird interaction with inlining and looping? I checked with llvm and it is stack allocating over 500 variables in that from with -O0, with symbol names that look like they come from inlining.
+
+I attached the entry block for -O0 and -O3 if anyone wants to take a look at it.
+
+Luke
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: jemalloc.llvm.tar.bz2
+Type: application/x-bzip2
+Size: 2769 bytes
+Desc: jemalloc.llvm.tar.bz2
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150326/7acd5496/attachment-0001.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150326/7acd5496/attachment-0001.bin</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001082.html">realloc stack use under O0 for x86_64
+</A></li>
+	<LI>Next message: <A HREF="001084.html">jemalloc coring in je_bitmap_set
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1083">[ date ]</a>
+              <a href="thread.html#1083">[ thread ]</a>
+              <a href="subject.html#1083">[ subject ]</a>
+              <a href="author.html#1083">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

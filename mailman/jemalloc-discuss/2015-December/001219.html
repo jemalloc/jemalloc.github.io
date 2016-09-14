@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Failed assertion: &quot;pageind &gt;= map_bias&quot;
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Failed%20assertion%3A%20%22pageind%20%3E%3D%20map_bias%22&In-Reply-To=%3CCAMAQheP7tgG1PQ7_jGb%3DuM1jqZg7nwCXAO6WBpHeKK_7_4CG-g%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001230.html">
+   <LINK REL="Next"  HREF="001220.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Failed assertion: &quot;pageind &gt;= map_bias&quot;</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Failed%20assertion%3A%20%22pageind%20%3E%3D%20map_bias%22&In-Reply-To=%3CCAMAQheP7tgG1PQ7_jGb%3DuM1jqZg7nwCXAO6WBpHeKK_7_4CG-g%40mail.gmail.com%3E"
+       TITLE="Failed assertion: &quot;pageind &gt;= map_bias&quot;">edsiper at gmail.com
+       </A><BR>
+    <I>Wed Dec  9 18:19:47 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001230.html">jemalloc hooks clarifications
+</A></li>
+        <LI>Next message: <A HREF="001220.html">Failed assertion: &quot;pageind &gt;= map_bias&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1219">[ date ]</a>
+              <a href="thread.html#1219">[ thread ]</a>
+              <a href="subject.html#1219">[ subject ]</a>
+              <a href="author.html#1219">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I am facing a segfault when using Jemalloc, it happens with Jemalloc 3.x
+and 4.0.4. If I use the default system memory allocator (Linux) there is no
+issues (valgrind cannot find any corruption).
+
+Would you please advice any step to determinate if the problem it's on my
+code or on jemalloc it self ?
+
+---
+&lt;jemalloc&gt;:
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:575:
+Failed assertion: &quot;pageind &gt;= map_bias&quot;
+
+Program received signal SIGABRT, Aborted.
+[Switching to Thread 0x7ffff51ff700 (LWP 4613)]
+0x00007ffff7622267 in __GI_raise (sig=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">sig at entry</A>=6) at
+../sysdeps/unix/sysv/linux/raise.c:55
+55    ../sysdeps/unix/sysv/linux/raise.c: No such file or directory.
+(gdb) bt
+#0  0x00007ffff7622267 in __GI_raise (sig=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">sig at entry</A>=6) at
+../sysdeps/unix/sysv/linux/raise.c:55
+#1  0x00007ffff7623eca in __GI_abort () at abort.c:89
+#2  0x000000000042826e in je_arena_bitselm_get (chunk=&lt;optimized out&gt;,
+pageind=&lt;optimized out&gt;)
+    at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:576
+#3  0x000000000042e1e0 in je_arena_mapbitsp_get (pageind=0,
+chunk=0x7fffdc000000) at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:642
+#4  je_arena_mapbits_get (pageind=0, chunk=0x7fffdc000000) at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:656
+#5  je_arena_mapbits_allocated_get (pageind=0, chunk=0x7fffdc000000) at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:766
+#6  je_arena_salloc (ptr=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ptr at entry</A>=0x7fffdc000910, demote=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">demote at entry</A>=false)
+at
+/home/edsiper/coding/monkey/deps/jemalloc/include/jemalloc/internal/arena.h:1217
+#7  0x00000000004238fb in je_isalloc (demote=false, ptr=0x7fffdc000910) at
+include/jemalloc/internal/jemalloc_internal.h:880
+#8  ifree (tcache=0x7ffff704c000, ptr=0x7fffdc000910, tsd=0x7ffff51ff650)
+at /home/edsiper/coding/monkey/deps/jemalloc/src/jemalloc.c:1740
+#9  je_free (ptr=0x7fffdc000910) at
+/home/edsiper/coding/monkey/deps/jemalloc/src/jemalloc.c:1839
+#10 0x0000000000419537 in mk_mem_free (ptr=0x7fffdc000910) at
+/home/edsiper/coding/monkey/mk_core/include/mk_core/mk_memory.h:96
+#11 0x000000000041991c in mk_iov_free_marked (mk_io=0x7ffff447f000) at
+/home/edsiper/coding/monkey/mk_core/mk_iov.c:143
+#12 0x00000000004198c7 in mk_iov_free (mk_io=0x7ffff447f000) at
+/home/edsiper/coding/monkey/mk_core/mk_iov.c:126
+#13 0x00007ffff6dfcc1a in fcgi_exit (handler=0x7ffff446a1c0) at
+/home/edsiper/coding/monkey/plugins/fastcgi/fcgi_handler.c:405
+#14 0x00007ffff6dfd09b in cb_fastcgi_on_read (data=0x7ffff446a1c0) at
+/home/edsiper/coding/monkey/plugins/fastcgi/fcgi_handler.c:521
+#15 0x0000000000412598 in mk_server_worker_loop () at
+/home/edsiper/coding/monkey/mk_server/mk_server.c:455
+#16 0x000000000040aa6b in mk_sched_launch_worker_loop
+(thread_conf=0x7ffff701c538) at
+/home/edsiper/coding/monkey/mk_server/mk_scheduler.c:394
+#17 0x00007ffff7bc26aa in start_thread (arg=0x7ffff51ff700) at
+pthread_create.c:333
+#18 0x00007ffff76f3eed in clone () at
+../sysdeps/unix/sysv/linux/x86_64/clone.S:109
+---
+
+thanks
+
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151209/8b1f37f8/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151209/8b1f37f8/attachment.html</A>&gt;
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001230.html">jemalloc hooks clarifications
+</A></li>
+	<LI>Next message: <A HREF="001220.html">Failed assertion: &quot;pageind &gt;= map_bias&quot;
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1219">[ date ]</a>
+              <a href="thread.html#1219">[ thread ]</a>
+              <a href="subject.html#1219">[ subject ]</a>
+              <a href="author.html#1219">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

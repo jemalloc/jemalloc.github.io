@@ -1,0 +1,72 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&gt;&lt;div&gt;Jemalloc&nbsp;version:&nbsp;3.2.0&lt;br&gt;Operating&nbsp;system:&nbsp;Linux&nbsp;2.6.32-220.7.1.el6.x86_64&lt;br&gt;Compile-time&nbsp;jemalloc&nbsp;configuration&nbsp;flags:&lt;br&gt;autogen           &nbsp;:&nbsp;0&lt;br&gt;experimental      &nbsp;:&nbsp;1&lt;br&gt;cc-silence        &nbsp;:&nbsp;0&lt;br&gt;<br>
+<br>
+debug             &nbsp;:&nbsp;0&lt;br&gt;<br>
+stats             &nbsp;:&nbsp;1&lt;br&gt;prof              &nbsp;:&nbsp;0&lt;br&gt;prof-libunwind    &nbsp;:&nbsp;0&lt;br&gt;prof-libgcc       &nbsp;:&nbsp;0&lt;br&gt;prof-gcc          &nbsp;:&nbsp;0&lt;br&gt;tcache            &nbsp;:&nbsp;1&lt;br&gt;fill              &nbsp;:&nbsp;1&lt;br&gt;utrace            &nbsp;:&nbsp;0&lt;br&gt;valgrind          &nbsp;:&nbsp;0&lt;br&gt;<br>
+<br>
+<br>
+xmalloc           &nbsp;:&nbsp;0&lt;br&gt;mremap            &nbsp;:&nbsp;0&lt;br&gt;munmap            &nbsp;:&nbsp;0&lt;br&gt;dss               &nbsp;:&nbsp;0&lt;br&gt;lazy_lock         &nbsp;:&nbsp;0&lt;br&gt;tls               &nbsp;:&nbsp;1&lt;br&gt;&lt;br&gt;Run-time&nbsp;jemalloc&nbsp;configuration&nbsp;flags:&lt;br&gt;MALLOC_CONF=narenas:1,tcache:false,lg_chunk:24&lt;br&gt;<br>
+<br>
+<br>
+&lt;br&gt;Application&nbsp;description:&lt;br&gt;This&nbsp;is&nbsp;a&nbsp;server&nbsp;that&nbsp;caches&nbsp;and&nbsp;serves&nbsp;data&nbsp;from&nbsp;sqlite&nbsp;database.&nbsp;The&nbsp;database&nbsp;size&nbsp;can&nbsp;be&nbsp;multiple&nbsp;of&nbsp;the&nbsp;cache&nbsp;size.&lt;br&gt;The&nbsp;data&nbsp;is&nbsp;paged&nbsp;in&nbsp;and&nbsp;out&nbsp;as&nbsp;necessary&nbsp;to&nbsp;keep&nbsp;the&nbsp;process&nbsp;RSS&nbsp;under&nbsp;control.&nbsp;The&nbsp;server&nbsp;is&nbsp;written&nbsp;in&nbsp;C++.&lt;br&gt;<br>
+<br>
+<br>
+All&nbsp;data&nbsp;and&nbsp;metadata&nbsp;is&nbsp;dynamically&nbsp;allocated,&nbsp;so&nbsp;allocator&nbsp;is&nbsp;used&nbsp;quite&nbsp;extensively.&lt;br&gt;In&nbsp;the&nbsp;test,&nbsp;server&nbsp;starts&nbsp;with&nbsp;a&nbsp;healthy&nbsp;data/RSS&nbsp;ratio&nbsp;(say&nbsp;0.84).&nbsp;This&nbsp;ratio&nbsp;reduces&nbsp;with&nbsp;time&nbsp;as&nbsp;RSS&nbsp;keeps&nbsp;growing&lt;br&gt;whereas&nbsp;server&nbsp;starts&nbsp;to&nbsp;page&nbsp;out&nbsp;data&nbsp;to&nbsp;keep&nbsp;RSS&nbsp;under&nbsp;control.&nbsp;In&nbsp;the&nbsp;test&nbsp;the&nbsp;ratio&nbsp;came&nbsp;down&nbsp;to&nbsp;0.42.&lt;br&gt;<br>
+<br>
+&lt;br&gt;&lt;/div&gt;thanks,&lt;br&gt;&lt;/div&gt;Vandana&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Mon,&nbsp;Apr&nbsp;22,&nbsp;2013&nbsp;at&nbsp;11:49&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;im&quot;&gt;On&nbsp;Apr&nbsp;21,&nbsp;2013,&nbsp;at&nbsp;10:01&nbsp;PM,&nbsp;vandana&nbsp;shah&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;I&nbsp;have&nbsp;been&nbsp;trying&nbsp;to&nbsp;use&nbsp;jemalloc&nbsp;for&nbsp;my&nbsp;application&nbsp;and&nbsp;observed&nbsp;that&nbsp;the&nbsp;rss&nbsp;of&nbsp;the&nbsp;process&nbsp;keeps&nbsp;on&nbsp;increasing.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;I&nbsp;ran&nbsp;the&nbsp;application&nbsp;with&nbsp;valgrind&nbsp;to&nbsp;confirm&nbsp;that&nbsp;there&nbsp;are&nbsp;no&nbsp;memory&nbsp;leaks.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;To&nbsp;investigate&nbsp;more,&nbsp;I&nbsp;collected&nbsp;jemalloc&nbsp;stats&nbsp;after&nbsp;running&nbsp;the&nbsp;test&nbsp;for&nbsp;few&nbsp;days&nbsp;and&nbsp;here&nbsp;is&nbsp;the&nbsp;summary&nbsp;for&nbsp;a&nbsp;run&nbsp;with&nbsp;narenas:1,&nbsp;tcache:false,&nbsp;lg_chunk:24&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp; Arenas:&nbsp;1&lt;br&gt;<br>
+&gt;&nbsp; Pointer&nbsp;size:&nbsp;8&lt;br&gt;<br>
+&gt;&nbsp; Quantum&nbsp;size:&nbsp;16&lt;br&gt;<br>
+&gt;&nbsp; Page&nbsp;size:&nbsp;4096&lt;br&gt;<br>
+&gt;&nbsp; Min&nbsp;active:dirty&nbsp;page&nbsp;ratio&nbsp;per&nbsp;arena:&nbsp;8:1&lt;br&gt;<br>
+&gt;&nbsp; Maximum&nbsp;thread-cached&nbsp;size&nbsp;class:&nbsp;32768&lt;br&gt;<br>
+&gt;&nbsp; Chunk&nbsp;size:&nbsp;16777216&nbsp;(2^24)&lt;br&gt;<br>
+&gt;&nbsp; Allocated:&nbsp;24364176040,&nbsp;active:&nbsp;24578334720,&nbsp;mapped:&nbsp;66739765248&lt;br&gt;<br>
+&gt;&nbsp; Current&nbsp;active&nbsp;ceiling:&nbsp;24578621440&lt;br&gt;<br>
+&gt;&nbsp; chunks:&nbsp;nchunks&nbsp; &nbsp;highchunks&nbsp; &nbsp; curchunks&lt;br&gt;<br>
+&gt;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;3989&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;3978&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;3978&lt;br&gt;<br>
+&gt;&nbsp; huge:&nbsp;nmalloc&nbsp; &nbsp; &nbsp; ndalloc&nbsp; &nbsp; allocated&lt;br&gt;<br>
+&gt;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 3&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 2&nbsp; &nbsp; 117440512&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp; arenas[0]:&lt;br&gt;<br>
+&gt;&nbsp; assigned&nbsp;threads:&nbsp;17&lt;br&gt;<br>
+&gt;&nbsp; dss&nbsp;allocation&nbsp;precedence:&nbsp;disabled&lt;br&gt;<br>
+&gt;&nbsp; dirty&nbsp;pages:&nbsp;5971898:64886&nbsp;active:dirty,&nbsp;354265&nbsp;sweeps,&nbsp;18261119&nbsp;madvises,&nbsp;1180858954&nbsp;purged&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;While&nbsp;in&nbsp;this&nbsp;state,&nbsp;the&nbsp;RSS&nbsp;of&nbsp;the&nbsp;process&nbsp;was&nbsp;at&nbsp;54GB.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Questions:&lt;br&gt;<br>
+&gt;&nbsp;1)&nbsp;The&nbsp;difference&nbsp;between&nbsp;RSS&nbsp;and&nbsp;jemalloc&nbsp;active&nbsp;is&nbsp;huge&nbsp;(more&nbsp;than&nbsp;30GB).&nbsp;In&nbsp;my&nbsp;test,&nbsp;the&nbsp;difference&nbsp;was&nbsp;quite&nbsp;less&nbsp;in&nbsp;the&nbsp;beginning&nbsp;(say&nbsp;4&nbsp;GB)&nbsp;and&nbsp;it&nbsp;went&nbsp;on&nbsp;increasing&nbsp;with&nbsp;time.&nbsp;That&nbsp;seems&nbsp;too&nbsp;high&nbsp;to&nbsp;account&nbsp;for&nbsp;jemalloc&nbsp;data&nbsp;structures,&nbsp;overhead&nbsp;etc.&nbsp;What&nbsp;else&nbsp;gets&nbsp;accounted&nbsp;in&nbsp;process&nbsp;RSS&nbsp;-&nbsp;active?&lt;br&gt;<br>
+<br>
+&lt;br&gt;<br>
+&lt;/div&gt;jemalloc&nbsp;is&nbsp;reporting&nbsp;very&nbsp;low&nbsp;page-level&nbsp;external&nbsp;fragmentation&nbsp;for&nbsp;your&nbsp;app:&nbsp;1.0&nbsp;-&nbsp;allocated/active&nbsp;==&nbsp;1.0&nbsp;-&nbsp;24364176040/24578334720&nbsp;==&nbsp;0.87%.&nbsp; However,&nbsp;virtual&nbsp;memory&nbsp;fragmentation&nbsp;is&nbsp;quite&nbsp;high:&nbsp;1.0&nbsp;-&nbsp;active/mapped&nbsp;==&nbsp;63.2%.&lt;br&gt;<br>
+<br>
+&lt;div&nbsp;class=&quot;im&quot;&gt;&lt;br&gt;<br>
+&gt;&nbsp;2)&nbsp;The&nbsp;allocations&nbsp;are&nbsp;fairly&nbsp;random,&nbsp;sized&nbsp;between&nbsp;8&nbsp;bytes&nbsp;and&nbsp;2MB.&nbsp;Are&nbsp;there&nbsp;any&nbsp;known&nbsp;issues&nbsp;of&nbsp;fragmentation&nbsp;for&nbsp;particular&nbsp;allocation&nbsp;sizes?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;If&nbsp;your&nbsp;application&nbsp;were&nbsp;to&nbsp;commonly&nbsp;allocate&nbsp;slightly&nbsp;more&nbsp;than&nbsp;one&nbsp;chunk,&nbsp;then&nbsp;internal&nbsp;fragmentation&nbsp;would&nbsp;be&nbsp;quite&nbsp;high,&nbsp;but&nbsp;at&nbsp;little&nbsp;actual&nbsp;cost&nbsp;to&nbsp;physical&nbsp;memory.&nbsp; However,&nbsp;you&nbsp;are&nbsp;using&nbsp;16&nbsp;MiB&nbsp;chunks,&nbsp;and&nbsp;the&nbsp;stats&nbsp;say&nbsp;that&nbsp;there&#39;s&nbsp;only&nbsp;a&nbsp;single&nbsp;huge&nbsp;(112-MiB)&nbsp;allocation.&lt;br&gt;<br>
+<br>
+&lt;div&nbsp;class=&quot;im&quot;&gt;&lt;br&gt;<br>
+&gt;&nbsp;3)&nbsp;Is&nbsp;there&nbsp;a&nbsp;way&nbsp;to&nbsp;tune&nbsp;the&nbsp;allocations&nbsp;and&nbsp;reduce&nbsp;the&nbsp;difference?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;I&nbsp;can&#39;t&nbsp;think&nbsp;of&nbsp;a&nbsp;way&nbsp;this&nbsp;could&nbsp;happen&nbsp;short&nbsp;of&nbsp;a&nbsp;bug&nbsp;in&nbsp;jemalloc.&nbsp; Can&nbsp;you&nbsp;send&nbsp;me&nbsp;a&nbsp;complete&nbsp;statistics,&nbsp;and&nbsp;provide&nbsp;the&nbsp;following?&lt;br&gt;<br>
+&lt;br&gt;<br>
+-&nbsp;jemalloc&nbsp;version&lt;br&gt;<br>
+-&nbsp;operating&nbsp;system&lt;br&gt;<br>
+-&nbsp;compile-time&nbsp;jemalloc&nbsp;configuration&nbsp;flags&lt;br&gt;<br>
+-&nbsp;run-time&nbsp;jemalloc&nbsp;option&nbsp;flags&lt;br&gt;<br>
+-&nbsp;brief&nbsp;description&nbsp;of&nbsp;what&nbsp;application&nbsp;does&lt;br&gt;<br>
+&lt;br&gt;<br>
+Hopefully&nbsp;that&nbsp;will&nbsp;narrow&nbsp;down&nbsp;the&nbsp;possible&nbsp;explanations.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thanks,&lt;br&gt;<br>
+Jason&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

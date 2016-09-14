@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Hook jemalloc into glibc's malloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Hook%20jemalloc%20into%20glibc%27s%20malloc&In-Reply-To=%3C1329838740-9490-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000110.html">
+   <LINK REL="Next"  HREF="000112.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Hook jemalloc into glibc's malloc</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Hook%20jemalloc%20into%20glibc%27s%20malloc&In-Reply-To=%3C1329838740-9490-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Hook jemalloc into glibc's malloc">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Feb 21 07:39:00 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000110.html">[PATCH 2/2] Remove unused variables in stats_print
+</A></li>
+        <LI>Next message: <A HREF="000112.html">[PATCH] Hook jemalloc into glibc's malloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#86">[ date ]</a>
+              <a href="thread.html#86">[ thread ]</a>
+              <a href="subject.html#86">[ subject ]</a>
+              <a href="author.html#86">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+When jemalloc is used as a libc malloc replacement (i.e. not prefixed),
+some particular setups may end up inconsistently calling malloc from
+libc and free from jemalloc, or the other way around.
+
+Glibc provides hooks to make its functions use alternative
+implementations. Use them.
+
+Original patch by: Karl Tomlinson &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">karlt+ at karlt.net</A>&gt;
+---
+ configure.ac                        |   10 +++++++-
+ include/jemalloc/jemalloc_defs.h.in |    5 ++++
+ src/jemalloc.c                      |   44 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 58 insertions(+), 1 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index fdbf1ba..5ce16eb 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -714,6 +714,12 @@ AC_CHECK_LIB([pthread], [pthread_create], [LIBS=&quot;$LIBS -lpthread&quot;],
+ 
+ CPPFLAGS=&quot;$CPPFLAGS -D_REENTRANT&quot;
+ 
++AC_CHECK_HEADERS([dlfcn.h], has_dlfcn=yes, has_dlfcn=no)
++
++if test &quot;x${has_dlfcn}&quot; = &quot;xyes&quot; ; then
++  AC_DEFINE([JEMALLOC_DLFCN])
++fi
++
+ dnl Disable lazy locking by default.
+ AC_ARG_ENABLE([lazy_lock],
+   [AS_HELP_STRING([--enable-lazy-lock],
+@@ -727,7 +733,9 @@ fi
+ [enable_lazy_lock=&quot;0&quot;]
+ )
+ if test &quot;x$enable_lazy_lock&quot; = &quot;x1&quot; ; then
+-  AC_CHECK_HEADERS([dlfcn.h], , [AC_MSG_ERROR([dlfcn.h is missing])])
++  if test &quot;x${has_dlfcn}&quot; != &quot;xyes&quot;; then
++    AC_MSG_ERROR([dlfcn.h is missing])
++  fi
+   AC_CHECK_LIB([dl], [dlopen], [LIBS=&quot;$LIBS -ldl&quot;],
+                [AC_MSG_ERROR([libdl is missing])])
+   AC_DEFINE([JEMALLOC_LAZY_LOCK], [ ])
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 66da6f3..d1622fb 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -34,6 +34,11 @@
+ #undef CPU_SPINWAIT
+ 
+ /*
++ * Defined if the dlfcn.h header is available.
++ */
++#undef JEMALLOC_DLFCN
++
++/*
+  * Defined if OSAtomic*() functions are available, as provided by Darwin, and
+  * documented in the atomic(3) manual page.
+  */
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 81829fe..f678358 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -1666,3 +1666,47 @@ jemalloc_postfork(void)
+ }
+ 
+ /******************************************************************************/
++
++#ifndef JEMALLOC_PREFIX
++
++#if defined(__GLIBC__) &amp;&amp; !defined(__UCLIBC__)
++/*
++ * glibc provides the RTLD_DEEPBIND flag for dlopen which can make it possible
++ * to inconsistently reference libc's malloc(3)-compatible functions
++ * (<A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=493541">https://bugzilla.mozilla.org/show_bug.cgi?id=493541</A>)
++ *
++ * These definitions interpose hooks in glibc.  The functions are actually
++ * passed an extra argument for the caller return address, which will be
++ * ignored.
++ */
++JEMALLOC_ATTR(visibility(&quot;default&quot;))
++void (* const __free_hook)(void *ptr) = free;
++
++JEMALLOC_ATTR(visibility(&quot;default&quot;))
++void *(* const __malloc_hook)(size_t size) = malloc;
++
++JEMALLOC_ATTR(visibility(&quot;default&quot;))
++void *(* const __realloc_hook)(void *ptr, size_t size) = realloc;
++
++JEMALLOC_ATTR(visibility(&quot;default&quot;))
++void *(* const __memalign_hook)(size_t alignment, size_t size) = memalign;
++
++#else
++#ifdef JEMALLOC_DLFCN
++#include &lt;dlfcn.h&gt;
++
++#ifdef RTLD_DEEPBIND
++/*
++ * XXX On systems that support RTLD_GROUP or DF_1_GROUP, do their
++ * implementations permit similar inconsistencies?  Should STV_SINGLETON
++ * visibility be used for interposition where available?
++ */
++#  error &quot;Interposing malloc is unsafe on this system without libc malloc hooks.&quot;
++
++#endif
++
++#endif
++
++#endif
++
++#endif
+-- 
+1.7.9
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000110.html">[PATCH 2/2] Remove unused variables in stats_print
+</A></li>
+	<LI>Next message: <A HREF="000112.html">[PATCH] Hook jemalloc into glibc's malloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#86">[ date ]</a>
+              <a href="thread.html#86">[ thread ]</a>
+              <a href="subject.html#86">[ subject ]</a>
+              <a href="author.html#86">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-4.0.0 test suite segfaults on aarch64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20test%20suite%20segfaults%20on%20aarch64&In-Reply-To=%3C12795197.186710.1440083046542.JavaMail.zimbra%40redpill-linpro.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001147.html">
+   <LINK REL="Next"  HREF="001148.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-4.0.0 test suite segfaults on aarch64</H1>
+    <B>Ingvar Hagelund</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20test%20suite%20segfaults%20on%20aarch64&In-Reply-To=%3C12795197.186710.1440083046542.JavaMail.zimbra%40redpill-linpro.com%3E"
+       TITLE="jemalloc-4.0.0 test suite segfaults on aarch64">ingvar at redpill-linpro.com
+       </A><BR>
+    <I>Thu Aug 20 08:04:06 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001147.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+        <LI>Next message: <A HREF="001148.html">jemalloc-4.0.0 on el5 and el6: undefined reference to `clock_gettime'
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1150">[ date ]</a>
+              <a href="thread.html#1150">[ thread ]</a>
+              <a href="subject.html#1150">[ subject ]</a>
+              <a href="author.html#1150">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>----- On Aug 20, 2015, at 8:24 AM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote: 
+
+&gt;<i> On Aug 19, 2015, at 11:15 PM, Ingvar Hagelund &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ingvar at redpill-linpro.com</A>&gt; wrote:
+</I>&gt;<i> &gt; Note that gcc still warns about &quot;right shift count is negative&quot;.
+</I>
+&gt;<i> &gt; <A HREF="http://arm.koji.fedoraproject.org//work/tasks/9259/3129259/build.log">http://arm.koji.fedoraproject.org//work/tasks/9259/3129259/build.log</A>
+</I>
+&gt;<i> Bummer. I tested this with clang, which does enough flow control analysis to
+</I>&gt;<i> realize that the negative shifts are unreachable and omit the warnings, but
+</I>&gt;<i> then forgot to check gcc. I'll revert to #if..#elseif..#else..#endif.
+</I>That's only cosmetics, I guess. 
+
+FYI, I've ran builds including the test suite successfully on the fedora and epel targets, that is ppc, ppc64, ppcel64, armv7, aarch64, i686, and x86_64 
+
+Ingvar 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150820/e4751d6d/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150820/e4751d6d/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001147.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+	<LI>Next message: <A HREF="001148.html">jemalloc-4.0.0 on el5 and el6: undefined reference to `clock_gettime'
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1150">[ date ]</a>
+              <a href="thread.html#1150">[ thread ]</a>
+              <a href="subject.html#1150">[ subject ]</a>
+              <a href="author.html#1150">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

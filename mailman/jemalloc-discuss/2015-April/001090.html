@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Per thread arenas
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Per%20thread%20arenas&In-Reply-To=%3C5540BD73.8040101%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001088.html">
+   <LINK REL="Next"  HREF="001091.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Per thread arenas</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Per%20thread%20arenas&In-Reply-To=%3C5540BD73.8040101%40gmail.com%3E"
+       TITLE="Per thread arenas">danielmicay at gmail.com
+       </A><BR>
+    <I>Wed Apr 29 04:16:03 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001088.html">Per thread arenas
+</A></li>
+        <LI>Next message: <A HREF="001091.html">Per thread arenas
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1090">[ date ]</a>
+              <a href="thread.html#1090">[ thread ]</a>
+              <a href="subject.html#1090">[ subject ]</a>
+              <a href="author.html#1090">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 29/04/15 01:30 AM, SNL wrote:
+&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> I am planning to assign each thread its own arena, as per my
+</I>&gt;<i> understanding this is akin to having a per thread heap since arena
+</I>&gt;<i> management is completely independent of each other.
+</I>&gt;<i> 
+</I>&gt;<i> How this is know to affect performance and memory overheads ? I am sure
+</I>&gt;<i> this would depend a lot on application allocation patterns but are any
+</I>&gt;<i> generic numbers/data from past ?
+</I>&gt;<i> 
+</I>&gt;<i> In cases where allocation done by thread T1 is freed by thread T2, how
+</I>&gt;<i> does jemalloc handles it ? Is there any basic garbage collection or
+</I>&gt;<i> remote-free ( request to free by remote thread which owns the allocation
+</I>&gt;<i> ) implementation ? I see that this could lead to memory build up. 
+</I>&gt;<i> 
+</I>&gt;<i> Any inputs will be appreciated.
+</I>
+It returns memory to the arena it came from, so there will still be a
+very low level of lock contention if lots of data is being sent.
+
+There are thread caches so it will do this work in batches, but it won't
+build up much.
+
+Threads are assigned to arenas via round-robin so the default behaviour
+is static assignment of threads to independent arenas as long as there
+aren't more threads than arenas. There are 4*n_cores arenas by default
+which covers a lot of cases without sharing them.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/aee76336/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150429/aee76336/attachment.sig</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001088.html">Per thread arenas
+</A></li>
+	<LI>Next message: <A HREF="001091.html">Per thread arenas
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1090">[ date ]</a>
+              <a href="thread.html#1090">[ thread ]</a>
+              <a href="subject.html#1090">[ subject ]</a>
+              <a href="author.html#1090">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

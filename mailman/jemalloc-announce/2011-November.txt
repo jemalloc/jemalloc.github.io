@@ -1,0 +1,47 @@
+From jasone at canonware.com  Sat Nov  5 22:00:51 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 05 Nov 2011 22:00:51 -0700
+Subject: jemalloc 2.2.4 released
+Message-ID: <4EB61483.2070303@canonware.com>
+
+jemalloc 2.2.4 is now available.  This version fixes a critical bug 
+related to thread-specific data.
+
+   Bug fixes:
+   - Initialize arenas_tsd before using it.  This bug existed for
+     2.2.[0-3], as well as for --disable-tls builds in earlier releases.
+   - Do not assume a 4 KiB page size in test/rallocm.c.
+
+For the complete ChangeLog, see:
+   http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+   http://www.canonware.com/download/jemalloc/jemalloc-2.2.4.tar.bz2
+
+Starting point for general information:
+   http://www.canonware.com/jemalloc/
+
+From jasone at canonware.com  Mon Nov 14 17:30:29 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 14 Nov 2011 17:30:29 -0800
+Subject: jemalloc 2.2.5 released
+Message-ID: <4EC1C0B5.6040606@canonware.com>
+
+jemalloc 2.2.5 is now available.  This version fixes a serious bug 
+related to reallocation of huge objects (~4 MiB and larger).
+
+   Bug fixes:
+   - Fix huge_ralloc() race when using mremap(2).  This is a serious bug
+     that could cause memory corruption and/or crashes.
+   - Fix huge_ralloc() to maintain chunk statistics.
+   - Fix malloc_stats_print(..., "a") output.
+
+For the complete ChangeLog, see:
+   http://www.canonware.com/jemalloc/ChangeLog.html
+
+Direct download:
+   http://www.canonware.com/download/jemalloc/jemalloc-2.2.5.tar.bz2
+
+Starting point for general information:
+   http://www.canonware.com/jemalloc/
+

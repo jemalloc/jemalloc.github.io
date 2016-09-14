@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Relationship between opt.prof and opt.prof_leak
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Relationship%20between%20opt.prof%20and%20opt.prof_leak&In-Reply-To=%3CCAG4wsO62q%3D5HNLXmcWMdxjEDq7MLwfqiQbZVZtOjrdFRyDOKOg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001209.html">
+   <LINK REL="Next"  HREF="001212.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Relationship between opt.prof and opt.prof_leak</H1>
+    <B>Evan Jones</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Relationship%20between%20opt.prof%20and%20opt.prof_leak&In-Reply-To=%3CCAG4wsO62q%3D5HNLXmcWMdxjEDq7MLwfqiQbZVZtOjrdFRyDOKOg%40mail.gmail.com%3E"
+       TITLE="Relationship between opt.prof and opt.prof_leak">ejones at twitter.com
+       </A><BR>
+    <I>Mon Nov 16 07:21:19 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001209.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+        <LI>Next message: <A HREF="001212.html">How can I use jemalloc in windows application by hooking system alloc?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1211">[ date ]</a>
+              <a href="thread.html#1211">[ thread ]</a>
+              <a href="subject.html#1211">[ subject ]</a>
+              <a href="author.html#1211">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>This explanation makes perfect sense, thanks! I'm also assuming that with
+prof_accum:true, the stats that are logged are *only* the cumulative stats,
+so when you run jeprof that s what you get.
+
+This was extremely helpful, I'm going to try to create a patch for the
+jemalloc man page to make it clearer. This is a super, super useful
+feature, and I'm not sure why I found the configuration options so
+confusing, since I think they are fairly straightforward now that I
+understand them.
+
+
+On Sun, Nov 8, 2015 at 2:35 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+
+&gt;<i> On Nov 6, 2015, at 2:01 PM, Evan Jones &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ejones at twitter.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;<i> On Fri, Nov 6, 2015 at 4:57 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i>
+</I>&gt;&gt;<i> On Nov 6, 2015, at 12:53 PM, Evan Jones &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ejones at twitter.com</A>&gt; wrote:
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> On Fri, Nov 6, 2015 at 3:45 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;&gt;<i> No, dumps are always based on the most recent stats reset (process start
+</I>&gt;&gt;&gt;<i> or &quot;prof.reset&quot; mallctl call).  You can view incremental differences
+</I>&gt;&gt;&gt;<i> between two dumps by using the --base option to jeprof.
+</I>&gt;&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> Is this true if you use opt.lg_prof_interval? Then what is the point of
+</I>&gt;&gt;<i> the opt.prof_accum option?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> opt.lg_prof_interval is merely a dump triggering mechanism.
+</I>&gt;&gt;<i>  opt.prof_accum controls whether cumulative stats are collected at all.
+</I>&gt;&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> There must be something stupid that I don't understand then. You said:
+</I>&gt;<i> &quot;dumps are always based on the most recent stats reset&quot;, which is usually
+</I>&gt;<i> the process start time, unless you do some manual reset. Does this mean
+</I>&gt;<i> that prof_accum is *only* useful if you do manually trigger resets using
+</I>&gt;<i> mallctl(&quot;prof.reset&quot;)? Does this mean that with prof_accum:true, the dumps
+</I>&gt;<i> contain *both* the data since the last reset *and* the data since profiling
+</I>&gt;<i> was enabled?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Take the following function as an example, run with
+</I>&gt;<i> MALLOC_CONF=prof:true,prof_accum:true :
+</I>&gt;<i>
+</I>&gt;<i> void g(void *p);
+</I>&gt;<i>
+</I>&gt;<i> void
+</I>&gt;<i> f(void) {
+</I>&gt;<i> unsigned i;
+</I>&gt;<i>
+</I>&gt;<i> for (i = 0; i &lt; (1U &lt;&lt; 20); i++) {
+</I>&gt;<i> void *p = malloc(1U &lt;&lt; 30);
+</I>&gt;<i> if (i == (1U &lt;&lt; 19)) {
+</I>&gt;<i> mallctl(&quot;prof.dump&quot;, NULL, NULL, NULL, 0); /* A */
+</I>&gt;<i> mallctl(&quot;prof.reset&quot;, NULL, NULL, NULL, 0);
+</I>&gt;<i> mallctl(&quot;prof.dump&quot;, NULL, NULL, NULL, 0); /* B */
+</I>&gt;<i> }
+</I>&gt;<i> if (p != NULL) {
+</I>&gt;<i> g(p);
+</I>&gt;<i> free(p);
+</I>&gt;<i> }
+</I>&gt;<i> }
+</I>&gt;<i> mallctl(&quot;prof.dump&quot;, NULL, NULL, NULL, 0); /* C */
+</I>&gt;<i> }
+</I>&gt;<i>
+</I>&gt;<i> What will the heap profiling stats (as interpreted by jeprof) dumped at A,
+</I>&gt;<i> B, and C say regarding the malloc() site in f()?
+</I>&gt;<i>
+</I>&gt;<i> A:
+</I>&gt;<i>   - Current: ~1 object, ~2^30 bytes
+</I>&gt;<i>   - Cumulative: ~2^19 objects, ~2^49 bytes
+</I>&gt;<i> B:
+</I>&gt;<i>   - Current: 0 objects, 0 bytes
+</I>&gt;<i>   - Cumulative: 0 objects, 0 bytes
+</I>&gt;<i> C:
+</I>&gt;<i>   - Current: 0 objects, 0 bytes
+</I>&gt;<i>   - Cumulative: ~2^19 objects, ~2^49 bytes
+</I>&gt;<i>
+</I>&gt;<i> opt.prof_accum controls whether jemalloc maintains the cumulative stats.
+</I>&gt;<i> With MALLOC_CONF=prof:true,prof_accum:false, you will get no cumulative
+</I>&gt;<i> stats at all, no matter when/whether any resets occurred.
+</I>&gt;<i>
+</I>&gt;<i> Jason
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151116/a8a1ffc0/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151116/a8a1ffc0/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001209.html">Relationship between opt.prof and opt.prof_leak
+</A></li>
+	<LI>Next message: <A HREF="001212.html">How can I use jemalloc in windows application by hooking system alloc?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1211">[ date ]</a>
+              <a href="thread.html#1211">[ thread ]</a>
+              <a href="subject.html#1211">[ subject ]</a>
+              <a href="author.html#1211">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

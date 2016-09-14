@@ -1,0 +1,18 @@
+<tt>
+Hi,&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;I&nbsp;am&nbsp;trying&nbsp;to&nbsp;test&nbsp;a&nbsp;HPC&nbsp;appl&#39;n&nbsp;with&nbsp;jemalloc&nbsp;to&nbsp;see&nbsp;if&nbsp;it&nbsp;can&nbsp;reduce&nbsp;memory&nbsp;fragmentation&nbsp;and&nbsp;slow&nbsp;memory&nbsp;growth&nbsp;of&nbsp;a&nbsp;long&nbsp;running&nbsp;multi-threaded&nbsp;app.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;This&nbsp;application&nbsp;is&nbsp;statically&nbsp;linked&nbsp;as&nbsp;it&#39;s&nbsp;not&nbsp;open&nbsp;source&nbsp;and&nbsp;we&nbsp;need&nbsp;one&nbsp;binary&nbsp;distribution&nbsp;to&nbsp;run&nbsp;on&nbsp;multiple&nbsp;Linux&nbsp;versions.&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;If&nbsp;I&nbsp;configure&nbsp;jemalloc&nbsp;without&nbsp;a&nbsp;jemalloc&nbsp;prefix&nbsp;(je_)&nbsp;and&nbsp;link&nbsp;with&nbsp;-static&nbsp;-ljemalloc&nbsp;I&nbsp;get&nbsp;linker&nbsp;errors&nbsp;for&nbsp;multiply&nbsp;defined&nbsp;symbols&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;g++&nbsp; -m64&nbsp;-Wl,--eh-frame-hdr&nbsp;-o&nbsp;./bin/xxxx&nbsp;./obj/xxxx.o&nbsp; .....&nbsp; &nbsp;-static&nbsp;-pthread&nbsp;-lcrypto&nbsp;-lz&nbsp;-lbz2&nbsp;-ldl&nbsp; -ljemalloc&nbsp;-lunwind&nbsp;-Wl,-Map=gccmaps/xxxx.map&lt;/div&gt;<br>
+<br>
+&lt;div&gt;/usr/lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu/libcrypto.a(dso_dlfcn.o):&nbsp;In&nbsp;function&nbsp;`dlfcn_globallookup&#39;:&lt;/div&gt;&lt;div&gt;/usr/lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu/libc.a(malloc.o):&nbsp;In&nbsp;function&nbsp;`__libc_free&#39;:&lt;/div&gt;<br>
+<br>
+&lt;div&gt;(.text+0x56b0):&nbsp;multiple&nbsp;definition&nbsp;of&nbsp;`free&#39;&lt;/div&gt;&lt;div&gt;jemalloc.o:/wd5/downloads/malloc/jemalloc-3.4.0/src/jemalloc.c:1254:&nbsp;first&nbsp;defined&nbsp;here&lt;/div&gt;&lt;div&gt;/usr/lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu/libc.a(malloc.o):&nbsp;In&nbsp;function&nbsp;`__libc_malloc&#39;:&lt;/div&gt;<br>
+<br>
+&lt;div&gt;(.text+0x50d0):&nbsp;multiple&nbsp;definition&nbsp;of&nbsp;`malloc&#39;&lt;/div&gt;&lt;div&gt;jemalloc.o:/wd5/downloads/malloc/jemalloc-3.4.0/src/jemalloc.c:857:&nbsp;first&nbsp;defined&nbsp;here&lt;/div&gt;&lt;div&gt;/usr/lib/gcc/x86_64-linux-gnu/4.7/../../../x86_64-linux-gnu/libc.a(malloc.o):&nbsp;In&nbsp;function&nbsp;`__libc_realloc&#39;:&lt;/div&gt;<br>
+<br>
+&lt;div&gt;(.text+0x57a0):&nbsp;multiple&nbsp;definition&nbsp;of&nbsp;`realloc&#39;&lt;/div&gt;&lt;div&gt;jemalloc.o:/wd5/downloads/malloc/jemalloc-3.4.0/src/jemalloc.c:1105:&nbsp;first&nbsp;defined&nbsp;here&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;If&nbsp;I&nbsp;build&nbsp;with&nbsp;a&nbsp;prefix&nbsp;of&nbsp;je_&nbsp;then&nbsp;linking&nbsp;is&nbsp;okay&nbsp;but&nbsp;memory&nbsp;allocation&nbsp;is&nbsp;via&nbsp;glibc&nbsp;malloc.&nbsp;The&nbsp;same&nbsp;is&nbsp;true&nbsp;if&nbsp;I&nbsp;dynamically&nbsp;link&nbsp;without&nbsp;a&nbsp;prefix.&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Is&nbsp;there&nbsp;any&nbsp;simple&nbsp;easy&nbsp;way&nbsp;to&nbsp;get&nbsp;je_malloc&nbsp;to&nbsp;hook&nbsp;itself&nbsp;in&nbsp;as&nbsp;a&nbsp;replacement&nbsp;for&nbsp;malloc&nbsp;the&nbsp;way&nbsp;tcmalloc&nbsp;does?&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Any&nbsp;help&nbsp;appreciated.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Thanks,&nbsp;Colin&lt;/div&gt;<br>
+<br>
+&lt;div&gt;PS.&nbsp;I&nbsp;have&nbsp;googled&nbsp;for&nbsp;an&nbsp;answer&nbsp;and&nbsp;I&nbsp;really&nbsp;do&nbsp;need&nbsp;to&nbsp;statically&nbsp;link.&lt;/div&gt;<br>
+
+</tt>

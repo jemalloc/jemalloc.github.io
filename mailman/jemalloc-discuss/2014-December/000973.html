@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question about the spare chunk
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20the%20spare%20chunk&In-Reply-To=%3CCAGXxSxW_FwtzT5KXpQqoEJOGA23Q55ZD5zFq89pKNAgOSsx_Aw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000972.html">
+   <LINK REL="Next"  HREF="000974.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question about the spare chunk</H1>
+    <B>cee1</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20the%20spare%20chunk&In-Reply-To=%3CCAGXxSxW_FwtzT5KXpQqoEJOGA23Q55ZD5zFq89pKNAgOSsx_Aw%40mail.gmail.com%3E"
+       TITLE="Question about the spare chunk">fykcee1 at gmail.com
+       </A><BR>
+    <I>Thu Dec  4 21:17:52 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000972.html">Question about the spare chunk
+</A></li>
+        <LI>Next message: <A HREF="000974.html">Question about the spare chunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#973">[ date ]</a>
+              <a href="thread.html#973">[ thread ]</a>
+              <a href="subject.html#973">[ subject ]</a>
+              <a href="author.html#973">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+Thanks for the reply!
+
+2014-12-04 7:41 GMT+08:00 Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt;:
+&gt;<i> On Dec 3, 2014, at 6:17 AM, cee1 &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">fykcee1 at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i> Here the old spare chunk is replaced by the new one and dealloced.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> The deallocating process is done without the lock protection. In this
+</I>&gt;&gt;<i> lockless period, is it possible another arena_chunk_dealloc running in
+</I>&gt;&gt;<i> another thread replaces and deallocates ** our new spare chunk ** ?
+</I>&gt;&gt;<i> Which is still in the chunks_dirty tree and will be accessed by the
+</I>&gt;&gt;<i> purge process later.
+</I>&gt;<i>
+</I>&gt;<i> The chunk being passed to chunk_dealloc() has been completely dissociated from the arena prior to the malloc_mutex_unlock() call, so there's no way for it to be accessed by the arena again.  If another thread concurrently calls into arena_chunk_dealloc() to deallocate the current spare, then the same logic holds for that chunk deallocation.
+</I>
+Could you describe this more detail?
+
+&quot;&quot;&quot;   &lt;--- code snippet in arena_chunk_dealloc()
+
+assert(arena_mapbits_dirty_get(chunk, map_bias) ==
+arena_mapbits_dirty_get(chunk, chunk_npages-1));
+/*
+ * Remove run from the runs_avail tree, so that the arena does not use
+ * it.
+ */
+arena_avail_remove(arena, chunk, map_bias, chunk_npages-map_bias, false, false);
+
+if (arena-&gt;spare != NULL) {
+    arena_chunk_t *spare = arena-&gt;spare;
+    arena-&gt;spare = chunk;
+
+    malloc_mutex_unlock(&amp;arena-&gt;lock);
+    ...
+&quot;&quot;&quot;
+
+What I understand:
+1. The chunk may be whole dirty, i.e. n_dirty == 1.
+
+2. After calling arena_avail_remove, the chunk may still be in
+arena-&gt;chunks_dirty
+
+3. After calling unlock(and before locking again), some other
+arena_chunk_dealloc may dealloc previous arena-&gt;spare, which is still
+in chunks_dirty.
+
+Am I right?
+
+
+
+BTW, in function arena_run_regind(), I notice a &quot;plus 1&quot; in
+&quot;&quot;&quot;
+define SIZE_INV(s)     (((1U &lt;&lt; SIZE_INV_SHIFT) / (s)) + 1)
+&quot;&quot;&quot;
+
+Why we need this?
+
+
+
+-- 
+Regards,
+
+- cee1
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000972.html">Question about the spare chunk
+</A></li>
+	<LI>Next message: <A HREF="000974.html">Question about the spare chunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#973">[ date ]</a>
+              <a href="thread.html#973">[ thread ]</a>
+              <a href="subject.html#973">[ subject ]</a>
+              <a href="author.html#973">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

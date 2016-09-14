@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150204095153.GA12964%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001020.html">
+   <LINK REL="Next"  HREF="001023.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3C20150204095153.GA12964%40glandium.org%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">mh at glandium.org
+       </A><BR>
+    <I>Wed Feb  4 01:51:53 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001020.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001023.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1021">[ date ]</a>
+              <a href="thread.html#1021">[ thread ]</a>
+              <a href="subject.html#1021">[ subject ]</a>
+              <a href="author.html#1021">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Feb 03, 2015 at 07:38:49PM -0800, Matthew Hall wrote:
+&gt;<i> On Wed, Feb 04, 2015 at 11:54:32AM +0900, Mike Hommey wrote:
+</I>&gt;<i> &gt; *sigh* and sadly, this doesn't fix it all :(
+</I>&gt;<i> 
+</I>&gt;<i> Can you compile all the tests with debug symbols, and use perf top et. al. to 
+</I>&gt;<i> stack-sample the top-executing functions inside the test-case processes? 
+</I>
+I wish it were that easy. We're talking about Android and ARM. This
+means not much control over the kernel used, which may or may not have
+perf counters enabled, and may or may not have everything necessary for
+perf to return something interesting. For instance, I can't get perf to
+save a profile it can read back without segfaulting when attaching it
+to an existing process, for whatever reason. It works fine when perf is
+starting the process, but starting an android process with perf means
+having the zygote wrap the process, which in itself changes the runtime
+conditions. And even trying that didn't work, even after disabling
+selinux because it was preventing perf from reading some /proc files.
+
+This also means at most 1 sample per millisecond, when we're talking
+about 200k+ alloc/dealloc happening in the time frame of 3 seconds,
+where those alloc/dealloc take something between 100ms and 500ms (hard to
+tell precisely, but taken out of context in the separate testcase, they
+do take around 180ms with jemalloc3 and 120ms with mozjemalloc, but
+measuring in context with clock_gettime gives bigger numbers (and using
+clock_gettime adds a huge overhead)).
+
+The problem here is that very low-level things are involved, and taking
+a test-case out of context changes the very conditions of those low-level
+things. As I wrote in the start of this thread, I did see things out of
+context that may or may not matter, and it turns out issue #192 is the
+one thing that made the most difference because of its impact on page
+faults. All the other things I did, like tweaking the config (enabling
+tcache, adjusting lg_dirty_mult, ...), returning to 3.6 instead of dev,
+etc. didn't do much.
+
+With that being said, it /seems/ I'm getting close to mozjemalloc results
+with #192 + 3.6, and it seems I'm getting better results than
+mozjemalloc with #192 + tcache on dev (while tcache alone on dev didn't
+make a big difference). *But* those results are also to be taken with a
+grain of salt because I don't have results for all kinds of devices and
+I've had very different response to changes on different devices (yeah,
+one more benefit of low-level things being involved, depending on cpu,
+memory, etc. results can be completely different; that's also why
+mutexes and page faults are tempting candidates)
+
+Mike
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001020.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001023.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1021">[ date ]</a>
+              <a href="thread.html#1021">[ thread ]</a>
+              <a href="subject.html#1021">[ subject ]</a>
+              <a href="author.html#1021">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,94 @@
+<tt>
+&lt;p&nbsp;dir=&quot;ltr&quot;&gt;Are&nbsp;transparent&nbsp;huge&nbsp;pages&nbsp;enabled?&nbsp;Does&nbsp;disabling&nbsp;them&nbsp;help? &nbsp;(If&nbsp;so,&nbsp;you&nbsp;may&nbsp;be&nbsp;able&nbsp;to&nbsp;thus&nbsp;workaround,&nbsp;and&nbsp;perhaps&nbsp;jemalloc&nbsp;could&nbsp;be&nbsp;improved.)&lt;/p&gt;<br>
+&lt;p&nbsp;dir=&quot;ltr&quot;&gt;Bradley&nbsp;C&nbsp;Kuszmaul&nbsp;-&nbsp;via&nbsp;snartphone&lt;/p&gt;<br>
+&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Apr&nbsp;29,&nbsp;2014&nbsp;3:47&nbsp;AM,&nbsp;&quot;Antony&nbsp;Dovgal&quot;&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:antony.dovgal@gmail.com&quot;&gt;antony.dovgal@gmail.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&nbsp;type=&quot;attribution&quot;&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;<br>
+Here&nbsp;is&nbsp;the&nbsp;output&nbsp;of&nbsp;malloc_stats_print()&nbsp;~20h&nbsp;after&nbsp;the&nbsp;process&nbsp;start.&lt;br&gt;<br>
+The&nbsp;dirty/active&nbsp;pages&nbsp;ratio&nbsp;is&nbsp;0.02%,&nbsp;the&nbsp;stats.allocated&nbsp;is&nbsp;stable&nbsp;at&nbsp;107.42G&nbsp;for&nbsp;about&nbsp;8&nbsp;hours&nbsp;already,&lt;br&gt;<br>
+but&nbsp;both&nbsp;maxrss&nbsp;from&nbsp;getrusage()&nbsp;and&nbsp;`top`&nbsp;report&nbsp;slow,&nbsp;but&nbsp;constant&nbsp;growth&nbsp;and&nbsp;the&nbsp;process&nbsp;is&nbsp;currently&nbsp;at&nbsp;117G.&lt;br&gt;<br>
+&lt;br&gt;<br>
+Can&nbsp;somebody&nbsp;help&nbsp;me&nbsp;to&nbsp;locate&nbsp;the&nbsp;problem?&lt;br&gt;<br>
+Jemalloc&nbsp;is&nbsp;the&nbsp;latest&nbsp;3.6.1,&nbsp;the&nbsp;server&nbsp;is&nbsp;SLES&nbsp;11SP2&nbsp;with&nbsp;3.0.13-0.28.1-default&nbsp;kernel.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+Merged&nbsp;arenas&nbsp;stats:&lt;br&gt;<br>
+assigned&nbsp;threads:&nbsp;1534&lt;br&gt;<br>
+dss&nbsp;allocation&nbsp;precedence:&nbsp;N/A&lt;br&gt;<br>
+dirty&nbsp;pages:&nbsp;30687799:8168&nbsp;active:dirty,&nbsp;33408&nbsp;sweeps,&nbsp;601205&nbsp;madvises,&nbsp;2438751&nbsp;purged&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; allocated&nbsp; &nbsp; &nbsp; nmalloc&nbsp; &nbsp; &nbsp; ndalloc&nbsp; &nbsp; nrequests&lt;br&gt;<br>
+small:&nbsp; &nbsp; 93168540424&nbsp; &nbsp;3004799703&nbsp; &nbsp;1470963737&nbsp; &nbsp;9264491673&lt;br&gt;<br>
+large:&nbsp; &nbsp; 22176190464&nbsp; &nbsp; &nbsp;14660311&nbsp; &nbsp; &nbsp; 9267172&nbsp; &nbsp; &nbsp;63169190&lt;br&gt;<br>
+total:&nbsp; &nbsp;&lt;a&nbsp;href=&quot;tel:115344730888&quot;&nbsp;value=&quot;+15344730888&quot;&nbsp;target=&quot;_blank&quot;&gt;115344730888&lt;/a&gt;&nbsp; &nbsp;&lt;a&nbsp;href=&quot;tel:3019460014&quot;&nbsp;value=&quot;+13019460014&quot;&nbsp;target=&quot;_blank&quot;&gt;3019460014&lt;/a&gt;&nbsp; &nbsp;1480230909&nbsp; &nbsp;9327660863&lt;br&gt;<br>
+active:&nbsp; 125697224704&lt;br&gt;<br>
+mapped:&nbsp; 126835752960&lt;br&gt;<br>
+bins:&nbsp; &nbsp; &nbsp;bin&nbsp; size&nbsp;regs&nbsp;pgs&nbsp; &nbsp; allocated&nbsp; &nbsp; &nbsp; nmalloc&nbsp; &nbsp; &nbsp; ndalloc&nbsp; &nbsp; nrequests&nbsp; &nbsp; &nbsp; &nbsp;nfills&nbsp; &nbsp; &nbsp;nflushes&nbsp; &nbsp; &nbsp; newruns&nbsp; &nbsp; &nbsp; &nbsp;reruns&nbsp; &nbsp; &nbsp; curruns&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp;8&nbsp; 501&nbsp; &nbsp;1&nbsp; &nbsp; &nbsp; &nbsp;187080&nbsp; &nbsp; &nbsp; 2126908&nbsp; &nbsp; &nbsp; 2103523&nbsp; &nbsp;1116416777&nbsp; &nbsp; &nbsp; 1555126&nbsp; &nbsp; &nbsp; &nbsp;581832&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 259&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 446&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 250&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 1&nbsp; &nbsp; 16&nbsp; 252&nbsp; &nbsp;1&nbsp; &nbsp;1009393200&nbsp; &nbsp; &nbsp;73690994&nbsp; &nbsp; &nbsp;10603919&nbsp; &nbsp; 409774890&nbsp; &nbsp; &nbsp; 1195005&nbsp; &nbsp; &nbsp; &nbsp;634185&nbsp; &nbsp; &nbsp; &nbsp;260659&nbsp; &nbsp; &nbsp; 2339496&nbsp; &nbsp; &nbsp; &nbsp;260298&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 2&nbsp; &nbsp; 32&nbsp; 126&nbsp; &nbsp;1&nbsp; 25238593216&nbsp; &nbsp;1023814477&nbsp; &nbsp; 235108439&nbsp; &nbsp;2436114995&nbsp; &nbsp; &nbsp;12326052&nbsp; &nbsp; &nbsp; 2442614&nbsp; &nbsp; &nbsp; 6785629&nbsp; &nbsp; &nbsp;53333719&nbsp; &nbsp; &nbsp; 6749049&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 3&nbsp; &nbsp; 48&nbsp; &nbsp;84&nbsp; &nbsp;1&nbsp; &nbsp;&lt;a&nbsp;href=&quot;tel:3038375616&quot;&nbsp;value=&quot;+13038375616&quot;&nbsp;target=&quot;_blank&quot;&gt;3038375616&lt;/a&gt;&nbsp; &nbsp; 904172945&nbsp; &nbsp; 840873453&nbsp; &nbsp;1949316101&nbsp; &nbsp; &nbsp;11110139&nbsp; &nbsp; &nbsp;10331717&nbsp; &nbsp; &nbsp; &nbsp;835619&nbsp; &nbsp; 279254946&nbsp; &nbsp; &nbsp; &nbsp;764188&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 4&nbsp; &nbsp; 64&nbsp; &nbsp;63&nbsp; &nbsp;1&nbsp; &nbsp; 690966016&nbsp; &nbsp; &nbsp;53752004&nbsp; &nbsp; &nbsp;42955660&nbsp; &nbsp; 639269895&nbsp; &nbsp; &nbsp; 1759730&nbsp; &nbsp; &nbsp; 1333503&nbsp; &nbsp; &nbsp; &nbsp;247975&nbsp; &nbsp; &nbsp;15673477&nbsp; &nbsp; &nbsp; &nbsp;171852&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 5&nbsp; &nbsp; 80&nbsp; &nbsp;50&nbsp; &nbsp;1&nbsp; 40474885680&nbsp; &nbsp; 650494671&nbsp; &nbsp; 144558600&nbsp; &nbsp; 672186803&nbsp; &nbsp; &nbsp;13318752&nbsp; &nbsp; &nbsp; 3230015&nbsp; &nbsp; &nbsp;11177482&nbsp; &nbsp; &nbsp;32259383&nbsp; &nbsp; &nbsp;11175827&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 6&nbsp; &nbsp; 96&nbsp; &nbsp;84&nbsp; &nbsp;2&nbsp; &nbsp;1062968448&nbsp; &nbsp; &nbsp;39626341&nbsp; &nbsp; &nbsp;28553753&nbsp; &nbsp; 465736871&nbsp; &nbsp; &nbsp; 1112411&nbsp; &nbsp; &nbsp; 1067446&nbsp; &nbsp; &nbsp; &nbsp;137727&nbsp; &nbsp; &nbsp;16327920&nbsp; &nbsp; &nbsp; &nbsp;132170&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 7&nbsp; &nbsp;112&nbsp; &nbsp;72&nbsp; &nbsp;2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2240&nbsp; &nbsp; &nbsp; &nbsp; 31813&nbsp; &nbsp; &nbsp; &nbsp; 31793&nbsp; &nbsp; &nbsp; &nbsp; 60475&nbsp; &nbsp; &nbsp; &nbsp; 21899&nbsp; &nbsp; &nbsp; &nbsp; 22328&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 153&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 2&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 8&nbsp; &nbsp;128&nbsp; &nbsp;63&nbsp; &nbsp;2&nbsp; &nbsp;4549588736&nbsp; &nbsp; &nbsp;62704970&nbsp; &nbsp; &nbsp;27161308&nbsp; &nbsp; 442268899&nbsp; &nbsp; &nbsp; 1941056&nbsp; &nbsp; &nbsp; &nbsp;965362&nbsp; &nbsp; &nbsp; &nbsp;588306&nbsp; &nbsp; &nbsp;17299897&nbsp; &nbsp; &nbsp; &nbsp;564516&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 9&nbsp; &nbsp;160&nbsp; &nbsp;51&nbsp; &nbsp;2&nbsp; &nbsp; &nbsp; &nbsp;878880&nbsp; &nbsp; &nbsp; &nbsp;884471&nbsp; &nbsp; &nbsp; &nbsp;878978&nbsp; &nbsp; &nbsp;10989296&nbsp; &nbsp; &nbsp; &nbsp;547747&nbsp; &nbsp; &nbsp; &nbsp; 73180&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;7112&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;9614&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 646&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;10&nbsp; &nbsp;192&nbsp; &nbsp;63&nbsp; &nbsp;3&nbsp; &nbsp;3332299200&nbsp; &nbsp; &nbsp;68192386&nbsp; &nbsp; &nbsp;50836661&nbsp; &nbsp; 350773752&nbsp; &nbsp; &nbsp; 1828422&nbsp; &nbsp; &nbsp; 1430862&nbsp; &nbsp; &nbsp; &nbsp;298788&nbsp; &nbsp; &nbsp;24850226&nbsp; &nbsp; &nbsp; &nbsp;280966&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;11&nbsp; &nbsp;224&nbsp; &nbsp;72&nbsp; &nbsp;4&nbsp; &nbsp; &nbsp; &nbsp; 82880&nbsp; &nbsp; &nbsp; &nbsp;201645&nbsp; &nbsp; &nbsp; &nbsp;201275&nbsp; &nbsp; &nbsp; 1355238&nbsp; &nbsp; &nbsp; &nbsp;120818&nbsp; &nbsp; &nbsp; &nbsp;125326&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1985&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 916&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 126&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;12&nbsp; &nbsp;256&nbsp; &nbsp;63&nbsp; &nbsp;4&nbsp; &nbsp;&lt;a&nbsp;href=&quot;tel:4436903168&quot;&nbsp;value=&quot;+14436903168&quot;&nbsp;target=&quot;_blank&quot;&gt;4436903168&lt;/a&gt;&nbsp; &nbsp; &nbsp;65932357&nbsp; &nbsp; &nbsp;48600704&nbsp; &nbsp; 343566754&nbsp; &nbsp; &nbsp; 1922969&nbsp; &nbsp; &nbsp; 1395158&nbsp; &nbsp; &nbsp; &nbsp;312713&nbsp; &nbsp; &nbsp;23206402&nbsp; &nbsp; &nbsp; &nbsp;298496&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;13&nbsp; &nbsp;320&nbsp; &nbsp;63&nbsp; &nbsp;5&nbsp; &nbsp; &nbsp; &nbsp;820800&nbsp; &nbsp; &nbsp; &nbsp;300581&nbsp; &nbsp; &nbsp; &nbsp;298016&nbsp; &nbsp; &nbsp; 1021102&nbsp; &nbsp; &nbsp; &nbsp;194469&nbsp; &nbsp; &nbsp; &nbsp;198863&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 770&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;3320&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 529&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;14&nbsp; &nbsp;384&nbsp; &nbsp;63&nbsp; &nbsp;6&nbsp; &nbsp;3776567808&nbsp; &nbsp; &nbsp;38617426&nbsp; &nbsp; &nbsp;28782614&nbsp; &nbsp; 186385036&nbsp; &nbsp; &nbsp; 1731152&nbsp; &nbsp; &nbsp; 1105440&nbsp; &nbsp; &nbsp; &nbsp;230725&nbsp; &nbsp; &nbsp; 7560797&nbsp; &nbsp; &nbsp; &nbsp;218083&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;15&nbsp; &nbsp;448&nbsp; &nbsp;63&nbsp; &nbsp;7&nbsp; &nbsp; &nbsp; &nbsp;323904&nbsp; &nbsp; &nbsp; &nbsp;264187&nbsp; &nbsp; &nbsp; &nbsp;263464&nbsp; &nbsp; &nbsp; 2136968&nbsp; &nbsp; &nbsp; &nbsp;163723&nbsp; &nbsp; &nbsp; &nbsp;167838&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;6654&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1232&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 136&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;16&nbsp; &nbsp;512&nbsp; &nbsp;63&nbsp; &nbsp;8&nbsp; &nbsp;5546707456&nbsp; &nbsp; &nbsp;19354481&nbsp; &nbsp; &nbsp; 8521068&nbsp; &nbsp; 221862388&nbsp; &nbsp; &nbsp; 1584431&nbsp; &nbsp; &nbsp; &nbsp;831055&nbsp; &nbsp; &nbsp; &nbsp;175294&nbsp; &nbsp; &nbsp; 2714070&nbsp; &nbsp; &nbsp; &nbsp;172054&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;17&nbsp; &nbsp;640&nbsp; &nbsp;51&nbsp; &nbsp;8&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1280&nbsp; &nbsp; &nbsp; &nbsp; 43868&nbsp; &nbsp; &nbsp; &nbsp; 43866&nbsp; &nbsp; &nbsp; 5529027&nbsp; &nbsp; &nbsp; &nbsp; 19499&nbsp; &nbsp; &nbsp; &nbsp; 20648&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1299&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;61&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 1&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;18&nbsp; &nbsp;768&nbsp; &nbsp;47&nbsp; &nbsp;9&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 768&nbsp; &nbsp; &nbsp; &nbsp; 26068&nbsp; &nbsp; &nbsp; &nbsp; 26067&nbsp; &nbsp; &nbsp; &nbsp; 11346&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;5544&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;6621&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 722&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;52&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 1&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;19&nbsp; &nbsp;896&nbsp; &nbsp;45&nbsp; 10&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; 15578&nbsp; &nbsp; &nbsp; &nbsp; 15578&nbsp; &nbsp; &nbsp; &nbsp; 24313&nbsp; &nbsp; &nbsp; &nbsp; 15494&nbsp; &nbsp; &nbsp; &nbsp; 15498&nbsp; &nbsp; &nbsp; &nbsp; 15494&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;20&nbsp; 1024&nbsp; &nbsp;63&nbsp; 16&nbsp; &nbsp; &nbsp; 1235968&nbsp; &nbsp; &nbsp; &nbsp;200289&nbsp; &nbsp; &nbsp; &nbsp;199082&nbsp; &nbsp; &nbsp; 2304970&nbsp; &nbsp; &nbsp; &nbsp;102401&nbsp; &nbsp; &nbsp; &nbsp;106699&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1035&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2014&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 600&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;21&nbsp; 1280&nbsp; &nbsp;51&nbsp; 16&nbsp; &nbsp; &nbsp; 5251840&nbsp; &nbsp; &nbsp; &nbsp; 20599&nbsp; &nbsp; &nbsp; &nbsp; 16496&nbsp; &nbsp; &nbsp; &nbsp;319262&nbsp; &nbsp; &nbsp; &nbsp; 14088&nbsp; &nbsp; &nbsp; &nbsp; 14157&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 130&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 2&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 130&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;22&nbsp; 1536&nbsp; &nbsp;42&nbsp; 16&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1536&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;85&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;84&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;53&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;39&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;43&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 4&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 1&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&lt;a&nbsp;href=&quot;tel:23%20%201792%20%20%2038%20%2017&quot;&nbsp;value=&quot;+12317923817&quot;&nbsp;target=&quot;_blank&quot;&gt;23&nbsp;&nbsp;1792&nbsp;&nbsp;&nbsp;38&nbsp;&nbsp;17&lt;/a&gt;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;93&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;93&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;67&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;50&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;54&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;50&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&lt;br&gt;<br>
+<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;24&nbsp; 2048&nbsp; &nbsp;65&nbsp; 33&nbsp; &nbsp; &nbsp; 2504704&nbsp; &nbsp; &nbsp; &nbsp;330001&nbsp; &nbsp; &nbsp; &nbsp;328778&nbsp; &nbsp; &nbsp; 7066010&nbsp; &nbsp; &nbsp; &nbsp;172616&nbsp; &nbsp; &nbsp; &nbsp;139016&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1039&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2291&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 604&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&lt;a&nbsp;href=&quot;tel:25%20%202560%20%20%2052%20%2033&quot;&nbsp;value=&quot;+12525605233&quot;&nbsp;target=&quot;_blank&quot;&gt;25&nbsp;&nbsp;2560&nbsp;&nbsp;&nbsp;52&nbsp;&nbsp;33&lt;/a&gt;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 173&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 173&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 152&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 113&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 117&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 113&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&lt;br&gt;<br>
+<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;26&nbsp; 3072&nbsp; &nbsp;43&nbsp; 33&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 199&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 199&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 170&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 144&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 148&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 144&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;27&nbsp; 3584&nbsp; &nbsp;39&nbsp; 35&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;93&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;93&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;63&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;46&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;50&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;46&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 0&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+On&nbsp;04/28/2014&nbsp;03:08&nbsp;PM,&nbsp;Antony&nbsp;Dovgal&nbsp;wrote:&lt;br&gt;<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;<br>
+Hello&nbsp;all,&lt;br&gt;<br>
+&lt;br&gt;<br>
+I&#39;m&nbsp;currently&nbsp;working&nbsp;on&nbsp;a&nbsp;daemon&nbsp;that&nbsp;processes&nbsp;a&nbsp;lot&nbsp;of&nbsp;data&nbsp;and&nbsp;has&nbsp;to&nbsp;store&nbsp;the&nbsp;most&nbsp;recent&nbsp;of&nbsp;it.&lt;br&gt;<br>
+Unfortunately,&nbsp;memory&nbsp;is&nbsp;allocated&nbsp;and&nbsp;freed&nbsp;in&nbsp;small&nbsp;blocks&nbsp;and&nbsp;in&nbsp;totally&nbsp;random&nbsp;(for&nbsp;the&nbsp;allocator)&nbsp;manner.&lt;br&gt;<br>
+I&nbsp;use&nbsp;&quot;stats.allocated&quot;&nbsp;to&nbsp;measure&nbsp;how&nbsp;much&nbsp;memory&nbsp;is&nbsp;currently&nbsp;in&nbsp;use,&nbsp;delete&nbsp;the&nbsp;oldest&nbsp;data&nbsp;when&nbsp;the&nbsp;memory&nbsp;limit&nbsp;is&nbsp;reached&nbsp;and&nbsp;purge&nbsp;thread&nbsp;caches&nbsp;with&nbsp;&quot;arena.N.purge&quot;&nbsp;from&nbsp;time&nbsp;to&nbsp;time.&lt;br&gt;<br>
+&lt;br&gt;<br>
+The&nbsp;problem&nbsp;is&nbsp;that&nbsp;keeping&nbsp;stat.allocated&nbsp;on&nbsp;a&nbsp;certain&nbsp;level&nbsp;doesn&#39;t&nbsp;keep&nbsp;the&nbsp;process&nbsp;from&nbsp;growing&nbsp;until&nbsp;it&#39;s&nbsp;killed&nbsp;by&nbsp;OOM-killer.&lt;br&gt;<br>
+I&nbsp;suspect&nbsp;that&nbsp;this&nbsp;is&nbsp;caused&nbsp;by&nbsp;memory&nbsp;fragmentation&nbsp;issues,&nbsp;though&nbsp;I&#39;ve&nbsp;no&nbsp;idea&nbsp;how&nbsp;to&nbsp;prove&nbsp;it&nbsp;(or&nbsp;at&nbsp;least&nbsp;all&nbsp;my&nbsp;ideas&nbsp;involve&nbsp;complex&nbsp;stats&nbsp;and&nbsp;are&nbsp;quite&nbsp;inefficient).&lt;br&gt;<br>
+&lt;br&gt;<br>
+So&nbsp;my&nbsp;main&nbsp;questions&nbsp;are:&lt;br&gt;<br>
+is&nbsp;there&nbsp;any&nbsp;way&nbsp;to&nbsp;see&nbsp;how&nbsp;much&nbsp;memory&nbsp;is&nbsp;currently&nbsp;being&nbsp;(under)used&nbsp;because&nbsp;of&nbsp;fragmentation&nbsp;in&nbsp;Jemalloc?&lt;br&gt;<br>
+is&nbsp;there&nbsp;a&nbsp;way&nbsp;to&nbsp;prevent&nbsp;it&nbsp;or&nbsp;force&nbsp;some&nbsp;garbage&nbsp;collection?&lt;br&gt;<br>
+&lt;br&gt;<br>
+Thanks&nbsp;in&nbsp;advance.&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/blockquote&gt;<br>
+&lt;br&gt;<br>
+&lt;br&gt;<br>
+--&nbsp;&lt;br&gt;<br>
+Wbr,&lt;br&gt;<br>
+Antony&nbsp;Dovgal&lt;br&gt;<br>
+---&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://pinba.org&quot;&nbsp;target=&quot;_blank&quot;&gt;http://pinba.org&lt;/a&gt;&nbsp;-&nbsp;realtime&nbsp;profiling&nbsp;for&nbsp;PHP&lt;br&gt;<br>
+&lt;br&gt;<br>
+--&nbsp;&lt;br&gt;<br>
+Wbr,&lt;br&gt;<br>
+Antony&nbsp;Dovgal&lt;br&gt;<br>
+---&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://pinba.org&quot;&nbsp;target=&quot;_blank&quot;&gt;http://pinba.org&lt;/a&gt;&nbsp;-&nbsp;realtime&nbsp;profiling&nbsp;for&nbsp;PHP&lt;br&gt;<br>
+______________________________&lt;u&gt;&lt;/u&gt;_________________&lt;br&gt;<br>
+jemalloc-discuss&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:jemalloc-discuss@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jemalloc-discuss@canonware.com&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/&lt;u&gt;&lt;/u&gt;mailman/listinfo/jemalloc-&lt;u&gt;&lt;/u&gt;discuss&lt;/a&gt;&lt;br&gt;<br>
+&lt;/blockquote&gt;&lt;/div&gt;<br>
+
+</tt>

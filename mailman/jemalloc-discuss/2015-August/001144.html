@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc coring in je_bitmap_set
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20coring%20in%20je_bitmap_set&In-Reply-To=%3CCY1PR0501MB1178E0854B2998D50167BED895670%40CY1PR0501MB1178.namprd05.prod.outlook.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001139.html">
+   <LINK REL="Next"  HREF="001140.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc coring in je_bitmap_set</H1>
+    <B>Paul Marquess</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20coring%20in%20je_bitmap_set&In-Reply-To=%3CCY1PR0501MB1178E0854B2998D50167BED895670%40CY1PR0501MB1178.namprd05.prod.outlook.com%3E"
+       TITLE="jemalloc coring in je_bitmap_set">Paul.Marquess at owmobility.com
+       </A><BR>
+    <I>Wed Aug 19 13:38:28 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001139.html">jemalloc coring in je_bitmap_set
+</A></li>
+        <LI>Next message: <A HREF="001140.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1144">[ date ]</a>
+              <a href="thread.html#1144">[ thread ]</a>
+              <a href="subject.html#1144">[ subject ]</a>
+              <a href="author.html#1144">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> From: <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss-bounces at canonware.com</A> [mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss-bounces at canonware.com</A>] On Behalf Of Daniel Micay
+</I>
+&gt;<i> On 18/08/15 05:58 PM, Paul Marquess wrote:
+</I>&gt;<i> &gt;&gt;&gt; Do you have any feeling whether it is safe to have jemalloc and THP at the same time?
+</I>&gt;<i> &gt;&gt;
+</I>&gt;<i> &gt;&gt; I've had pretty poor experience with the mixture even within the past month.  The problem is that at some point (under a day of intermittent benchmarking in all the cases I observed) the kernel gets into a fragmented memory state that it cannot recover from without a reboot, and the only obvious indications are decreased performance and increased page faults.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; Do you think that disabling madvise with opt.lg_dirty_mult:-1 allows jemalloc &amp; THP to co-exist without causing other unwanted side-effects?
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; Paul
+</I>&gt;<i> 
+</I>&gt;<i> Well, you won't lose huge pages if you've disabled purging. It's going to increase memory usage but that may not be a problem for you.
+</I>
+Thanks Daniel, that's what I was expecting. Just checking if anyone has encountered any nasty surprises (like a hit on performance) with the workaround to get jemalloc &amp; THP to play together.
+
+Paul
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001139.html">jemalloc coring in je_bitmap_set
+</A></li>
+	<LI>Next message: <A HREF="001140.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1144">[ date ]</a>
+              <a href="thread.html#1144">[ thread ]</a>
+              <a href="subject.html#1144">[ subject ]</a>
+              <a href="author.html#1144">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> purging and munmap
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20purging%20and%20munmap&In-Reply-To=%3C9C9E8F8B-43D1-4360-B6CF-AF54CFC7B5C4%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001167.html">
+   <LINK REL="Next"  HREF="001171.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>purging and munmap</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20purging%20and%20munmap&In-Reply-To=%3C9C9E8F8B-43D1-4360-B6CF-AF54CFC7B5C4%40canonware.com%3E"
+       TITLE="purging and munmap">jasone at canonware.com
+       </A><BR>
+    <I>Wed Sep 23 12:28:49 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001167.html">purging and munmap
+</A></li>
+        <LI>Next message: <A HREF="001171.html">&#22238;&#22797;: report bug
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1169">[ date ]</a>
+              <a href="thread.html#1169">[ thread ]</a>
+              <a href="subject.html#1169">[ subject ]</a>
+              <a href="author.html#1169">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 22, 2015, at 11:30 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+&gt;<i> I have some custom chunk stuff for network registered memory that can&#8217;t tolerate sub-chunk purging, so I turn purging off (on a per-arena basis). When I do this however, it appears to inhibit de-allocation of chunks and large allocations via munmap (my dalloc handlers are never called).
+</I>
+Chunk deallocation should eventually happen even if purging is disabled, as long as munmap is enabled during configuration.  Keep in mind that there's a cache that can delay deallocation.  If you can put together a test case that is clearly exhibiting incorrect behavior, I'd like to take a look.
+
+&gt;<i> If I enable purging, but use a purge handler that opts out, chunks and large objects *are* munmapped. Is this the correct way to deal with jemalloc in 4.0? Is there overhead to the purging code when I&#8217;m going to refuse to purge anyway?
+</I>
+The overhead of refusing purging is a branch or two, plus the function call into the purge hook, so it's not enough overhead to worry about.
+
+Thanks,
+Jason
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001167.html">purging and munmap
+</A></li>
+	<LI>Next message: <A HREF="001171.html">&#22238;&#22797;: report bug
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1169">[ date ]</a>
+              <a href="thread.html#1169">[ thread ]</a>
+              <a href="subject.html#1169">[ subject ]</a>
+              <a href="author.html#1169">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

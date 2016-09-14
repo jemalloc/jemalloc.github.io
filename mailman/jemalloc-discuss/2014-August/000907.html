@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20&In-Reply-To=%3CCDF35676-B912-48BE-BBC9-8390455B4CB9%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000906.html">
+   <LINK REL="Next"  HREF="000908.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1></H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20&In-Reply-To=%3CCDF35676-B912-48BE-BBC9-8390455B4CB9%40canonware.com%3E"
+       TITLE="">jasone at canonware.com
+       </A><BR>
+    <I>Wed Aug  6 09:12:15 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000906.html">
+</A></li>
+        <LI>Next message: <A HREF="000908.html">
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#907">[ date ]</a>
+              <a href="thread.html#907">[ thread ]</a>
+              <a href="subject.html#907">[ subject ]</a>
+              <a href="author.html#907">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Aug 6, 2014, at 8:55 AM, Guillaume Holley &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">gholley at cebitec.uni-bielefeld.de</A>&gt; wrote:
+&gt;<i> Le 06/08/2014 01:10, Jason Evans a &#233;crit :
+</I>&gt;&gt;<i> On Aug 5, 2014, at 10:35 AM, <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">gholley at CeBiTec.Uni-Bielefeld.DE</A> wrote:
+</I>&gt;&gt;&gt;<i> I&#8217;m currently working on a data structure allowing the storage of a
+</I>&gt;&gt;&gt;<i> dynamic set of short DNA sequences plus annotations.
+</I>&gt;&gt;&gt;<i> Here are few details : the data structure is written in C, tests are
+</I>&gt;&gt;&gt;<i> currently run on Ubuntu 14.04 64 bits, everything is single threaded and
+</I>&gt;&gt;&gt;<i> Valgrind indicates that the program which manipulates the data structure
+</I>&gt;&gt;&gt;<i> has no memory leaks.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> I&#8217;ve started to use Jemalloc in an attempt to reduce the fragmentation of
+</I>&gt;&gt;&gt;<i> the memory (by using one arena, disabling the thread caching system and
+</I>&gt;&gt;&gt;<i> using a high ratio of dirty pages). On small data sets (30 millions
+</I>&gt;&gt;&gt;<i> insertions), results are very good in comparison of Glibc: about 150MB
+</I>&gt;&gt;&gt;<i> less by using tuned Jemalloc.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> Now, I&#8217;ve started tests with much bigger data sets (3 to 10 billions
+</I>&gt;&gt;&gt;<i> insertions) and I realized that Jemalloc is using more memory than Glibc.
+</I>&gt;&gt;&gt;<i> I have generated a data set of 200 millions entries which I tried to
+</I>&gt;&gt;&gt;<i> insert in the data structure and when the memory used reached 1GB, I
+</I>&gt;&gt;&gt;<i> stopped the program and reported the number of entries inserted.
+</I>&gt;&gt;&gt;<i> When using Jemalloc, doesn&#8217;t matter the tuning parameters (1 or 4 arenas,
+</I>&gt;&gt;&gt;<i> tcache activated or not, lg_dirty = 3 or 8 or 16, lg_chunk = 14 or 22 or
+</I>&gt;&gt;&gt;<i> 30), the number of entries inserted varies between 120 millions to 172
+</I>&gt;&gt;&gt;<i> millions. Or by using the standard Glibc, I&#8217;m able to insert 187 millions
+</I>&gt;&gt;&gt;<i> of entries.
+</I>&gt;&gt;&gt;<i> And on billions of entries, Glibc (I don&#8217;t have precise numbers
+</I>&gt;&gt;&gt;<i> unfortunately) uses few Gigabytes less than Jemalloc.
+</I>&gt;&gt;&gt;<i> 
+</I>&gt;&gt;&gt;<i> So I would like to know if there is an explanation for this and if I can
+</I>&gt;&gt;&gt;<i> do something to make Jemalloc at least as efficient as Glibc is on my
+</I>&gt;&gt;&gt;<i> tests ? Maybe I&#8217;m not using Jemalloc correctly ?
+</I>&gt;&gt;<i> There are a few possible issues, mainly related to fragmentation, but I can't make many specific guesses because I don't know what the allocation/deallocation patterns are in your application.  It sounds like your application just does a bunch of allocation, with very little interspersed deallocation, in which case I'm surprised by your results unless you happen to be allocating lots of objects that are barely larger than the nearest size class boundaries (e.g. 17 bytes).  Have you taken a close look at the output of malloc_stats_print()?
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Jason
+</I>&gt;<i> 
+</I>&gt;<i> Hi and thank you for the help.
+</I>&gt;<i> 
+</I>&gt;<i> Well my application is doing like you said a lot of allocations with very little deallocations, but the memory allocated is very often reallocated. However, my application cannot allocate memory for more than 600KB in one allocation, so no allocation of huge objects.
+</I>&gt;<i> I tried to have a look at malloc_stats_print() (which is enclosed at the end of my answer) and I see that for bins of size 64, it seems I make a huge amount of allocations/reallocations for a small amount of memory allocated, and maybe this generates a lot of fragmentation but I don't know in which proportion. Do you think my problem could be linked to this, and if yes, can I do something on Jemalloc to solve it ?
+</I>&gt;<i> 
+</I>&gt;<i> Here are the Jemalloc statistics for 200 millions insertions, Jemalloc tuned with the following parameters : &quot;narenas:1,tcache:false,lg_dirty_mult:8&quot;
+</I>&gt;<i> 
+</I>&gt;<i> ___ Begin jemalloc statistics ___
+</I>&gt;<i> [...]
+</I>&gt;<i> Allocated: 1196728936, active: 1212567552, mapped: 1287651328
+</I>
+The overall external fragmentation is 1-(allocated/active), 1.3%, which is very low.
+
+&gt;<i> Current active ceiling: 16416505856
+</I>&gt;<i> chunks: nchunks   highchunks    curchunks
+</I>&gt;<i>            307          307          307
+</I>&gt;<i> huge: nmalloc      ndalloc    allocated
+</I>&gt;<i>            0            0            0
+</I>&gt;<i> 
+</I>&gt;<i> arenas[0]:
+</I>&gt;<i> assigned threads: 1
+</I>&gt;<i> dss allocation precedence: disabled
+</I>&gt;<i> dirty pages: 296037:66 active:dirty, 25210 sweeps, 90046 madvises, 627169 purged
+</I>&gt;<i>            allocated      nmalloc      ndalloc    nrequests
+</I>&gt;<i> small:     1116037736    372536523    370598419    372536523
+</I>&gt;<i> large:       80691200       223900       220617       223900
+</I>&gt;<i> total:     1196728936    372760423    370819036    372760423
+</I>&gt;<i> active:    1212567552
+</I>&gt;<i> mapped:    1283457024
+</I>&gt;<i> bins:     bin  size regs pgs    allocated      nmalloc ndalloc    nrequests       nfills     nflushes      newruns reruns      curruns
+</I>&gt;<i> [...]
+</I>&gt;<i>           21  1280   51  16    600357120       641800 172771       641800            0            0         9221 184785         9197
+</I>
+The only aspect of jemalloc that might be causing you problems is size class rounding.  IIRC glibc's malloc spaces its small size classes closer together.  If your application allocates lots of 1025-byte objects, that could cost you nearly 20% in terms of memory usage for those allocations (~120 MB in this case).
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000906.html">
+</A></li>
+	<LI>Next message: <A HREF="000908.html">
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#907">[ date ]</a>
+              <a href="thread.html#907">[ thread ]</a>
+              <a href="subject.html#907">[ subject ]</a>
+              <a href="author.html#907">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Workload causes significant internal fragmentation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Workload%20causes%20significant%20internal%20fragmentation&In-Reply-To=%3C186623E9-1C09-41EC-AFBF-EBE0848D29C1%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000586.html">
+   <LINK REL="Next"  HREF="000589.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Workload causes significant internal fragmentation</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Workload%20causes%20significant%20internal%20fragmentation&In-Reply-To=%3C186623E9-1C09-41EC-AFBF-EBE0848D29C1%40canonware.com%3E"
+       TITLE="Workload causes significant internal fragmentation">jasone at canonware.com
+       </A><BR>
+    <I>Tue May  7 14:10:23 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000586.html">Workload causes significant internal fragmentation
+</A></li>
+        <LI>Next message: <A HREF="000589.html">Workload causes significant internal fragmentation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#587">[ date ]</a>
+              <a href="thread.html#587">[ thread ]</a>
+              <a href="subject.html#587">[ subject ]</a>
+              <a href="author.html#587">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 7, 2013, at 1:16 PM, Thomas W Savage wrote:
+&gt;<i> My team is having trouble determining how to address increasing internal fragmentation (sizeable diff b/w Jm allocated and active) for a particular workload. 
+</I>&gt;<i> 
+</I>&gt;<i> We are allocating objects into three small bins (48, 320, 896). We start with an insertion phase in which we continually allocate &quot;entries&quot;, which are made up of four allocations: 2x 48-byte objects, 1x 320 obj, and 1x 896 obj. Once we have inserted entries up to a certain threshold, we begin an eviction phase in which we have some threads continuing insertion and another thread freeing 320's and 896's (not touching the 48's). By the end of this run, we observe significant internal fragmentation as demonstrated in the stats below. Is there anything that can be done to mitigate this internal frag?
+</I>&gt;<i> 
+</I>&gt;<i> Version: 3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784
+</I>&gt;<i> Assertions disabled
+</I>&gt;<i> Run-time option settings:
+</I>&gt;<i>   opt.abort: false
+</I>&gt;<i>   opt.lg_chunk: 21
+</I>&gt;<i>   opt.dss: &quot;secondary&quot;
+</I>&gt;<i>   opt.narenas: 96
+</I>&gt;<i>   opt.lg_dirty_mult: 1
+</I>&gt;<i>   opt.stats_print: false
+</I>&gt;<i>   opt.junk: false
+</I>&gt;<i>   opt.quarantine: 0
+</I>&gt;<i>   opt.redzone: false
+</I>&gt;<i>   opt.zero: false
+</I>&gt;<i> CPUs: 24
+</I>&gt;<i> Arenas: 96
+</I>&gt;<i> Pointer size: 8
+</I>&gt;<i> Quantum size: 16
+</I>&gt;<i> Page size: 4096
+</I>&gt;<i> Min active:dirty page ratio per arena: 2:1
+</I>&gt;<i> Chunk size: 2097152 (2&#710;21)
+</I>&gt;<i> Allocated: 7574200736, active: 8860864512, mapped: 9013559296
+</I>&gt;<i> Current active ceiling: 8963227648
+</I>&gt;<i> chunks: nchunks   highchunks    curchunks
+</I>&gt;<i>            4553         4298         4298
+</I>&gt;<i> huge: nmalloc      ndalloc    allocated
+</I>&gt;<i>            16           15     35651584
+</I>&gt;<i> 
+</I>&gt;<i> Merged arenas stats:
+</I>&gt;<i> assigned threads: 79
+</I>&gt;<i> dss allocation precedence: N/A
+</I>&gt;<i> dirty pages: 2154593:0 active:dirty, 0 sweeps, 0 madvises, 0 purged
+</I>&gt;<i>             allocated      nmalloc      ndalloc    nrequests
+</I>&gt;<i> small:     7515054496     29540988      3552884     29540988
+</I>&gt;<i> large:       23494656         1432            0         1432
+</I>&gt;<i> total:     7538549152     29542420      3552884     29542420
+</I>&gt;<i> active:    8825212928
+</I>&gt;<i> mapped:    8973713408
+</I>&gt;<i> bins:     bin  size regs pgs    allocated      nmalloc      ndalloc      newruns       reruns      curruns
+</I>&gt;<i>             0     8  501   1          176           22            0           11            0           11
+</I>&gt;<i> [1]
+</I>&gt;<i>             2    32  126   1        68448         2187           48           22            0           21
+</I>&gt;<i>             3    48   84   1    	     13880077            0       165272            0       165272
+</I>&gt;<i> [4]
+</I>&gt;<i>             5    80   50   1         1760           22            0           11            0           11
+</I>&gt;<i>             6    96   84   2         2112           22            0           11            0           11
+</I>&gt;<i> [7..12]
+</I>&gt;<i>            13   320   63   5   2221154560      8717502      1776394       125156       701794       125156
+</I>&gt;<i> [14..18]
+</I>&gt;<i>            19   896   45  10   4627583744      6941156      1776442       135776       692084       135774
+</I>&gt;<i> [20..27]
+</I>&gt;<i> large:   size pages      nmalloc      ndalloc    nrequests      curruns
+</I>&gt;<i> [1]
+</I>&gt;<i>          8192     2           22            0           22           22
+</I>&gt;<i> [1]
+</I>&gt;<i>         16384     4         1408            0         1408         1408
+</I>&gt;<i> [13]
+</I>&gt;<i>         73728    18            1            0            1            1
+</I>&gt;<i> [23]
+</I>&gt;<i>        172032    42            1            0            1            1
+</I>&gt;<i> [467]
+</I>&gt;<i> --- End jemalloc statistics --- 
+</I>&gt;<i> 
+</I>The external fragmentation for 320- and 896-byte region runs is 12% and 15%, respectively.  First off, that doesn't strike me as terrible, depending on the details of what's going on in the application.  There are two possible explanations (not mutually exclusive): 1) the application's memory usage is not at the high water mark, and 2) the eviction thread does not evict in a pattern that impacts the allocating threads proportionally to their allocation volumes.  Say that there are two arenas, and 75% of the evictions are objects allocated from arena 0, but arenas 0 and 1 are utilized equally by the allocating threads.  The result will be substantial arena 0 external fragmentation in the equilibrium state.  You can figure out whether (2) is a factor by running with one arena (which will surely impact performance, since you have thread caching disabled).  If fragmentation remains the same with one arena, then (1) is the entire explanation.
+
+One possible solution that should be allocator-agnostic would be to interleave eviction with normal allocation in all threads, such that threads evict their own previous allocations at a rate proportional to their allocation rates.  This changes the global eviction policy to one that is distributed though, so it may not be appropriate, depending on what your application does.
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/5b9b9e3a/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130507/5b9b9e3a/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000586.html">Workload causes significant internal fragmentation
+</A></li>
+	<LI>Next message: <A HREF="000589.html">Workload causes significant internal fragmentation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#587">[ date ]</a>
+              <a href="thread.html#587">[ thread ]</a>
+              <a href="subject.html#587">[ subject ]</a>
+              <a href="author.html#587">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

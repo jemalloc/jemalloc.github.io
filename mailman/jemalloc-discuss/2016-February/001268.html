@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Porting jemalloc to shared memory
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Porting%20jemalloc%20to%20shared%20memory&In-Reply-To=%3CCA%2Bn6%3D1YQZ4F8t-n%3DH6MRS8D7mUTxSuyYptA9GgnRXNJfd7CFfQ%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001271.html">
+   <LINK REL="Next"  HREF="001270.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Porting jemalloc to shared memory</H1>
+    <B>Abi Varghese</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Porting%20jemalloc%20to%20shared%20memory&In-Reply-To=%3CCA%2Bn6%3D1YQZ4F8t-n%3DH6MRS8D7mUTxSuyYptA9GgnRXNJfd7CFfQ%40mail.gmail.com%3E"
+       TITLE="Porting jemalloc to shared memory">abi.varghese at gmail.com
+       </A><BR>
+    <I>Tue Feb 16 21:29:20 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001271.html">Memory Leak in Thread Cleanup (jemalloc 4.0.4)
+</A></li>
+        <LI>Next message: <A HREF="001270.html">jemalloc on iMX6 ARM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1268">[ date ]</a>
+              <a href="thread.html#1268">[ thread ]</a>
+              <a href="subject.html#1268">[ subject ]</a>
+              <a href="author.html#1268">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Experts,
+
+We have a static allocator based on shared memory in use today (with
+predefined memory segment sizes), but there is just too much of internal
+fragmentation and our memory requirement in keep on increasing (we have
+close to 60-70GB in use today - with practically needing 20-30GB). We tried
+several option to live with the current allocator but it is extremely hard
+to have a configuration which can work with varying traffic patterns.
+
+To address the problem, I am considering to use a dynamic allocator based
+on shared memory. The basic idea is to have the allocator work across
+process boundaries and to have the things stored in shared memory to
+survive process crashes or restarts.
+
+After analyzing many allocators, I am thinking to port jemalloc to shared
+memory. I have done a very high level look into jemalloc with a simple
+prototype. In my prototype I am pre-allocating a big shared memory chunk
+using a fixed address (which is aligned to chunk size boundary of 4MB).
+With this I think jemalloc would be able to manage memory across processes.
+
+I have few queries in general,
+
+1. Currently I am using a fixed address aligned to 4MB boundary. Is there a
+way for me to avoid using a fixed address?
+
+2. Is it safe to use a fixed high memory address for my application?
+
+3. Is it possible to make jemalloc work with page alignment for chunks
+instead of chunk alignment? If yes, could you suggest any way for this -
+without huge rework in jemalloc? My primary idea is to get out of fixed
+address (AFAIK, Linux guarantees shared memory segments to be page aligned)
+
+4. I see that tsd cleanup do not work (including arena cleanup) when
+process exits. Is there a way to ensure this? Or do I need to introduce
+some garbage collection mechanism on top?
+
+Thanks and Regards,
+Abi
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160217/62089566/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160217/62089566/attachment.html</A>&gt;
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001271.html">Memory Leak in Thread Cleanup (jemalloc 4.0.4)
+</A></li>
+	<LI>Next message: <A HREF="001270.html">jemalloc on iMX6 ARM
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1268">[ date ]</a>
+              <a href="thread.html#1268">[ thread ]</a>
+              <a href="subject.html#1268">[ subject ]</a>
+              <a href="author.html#1268">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

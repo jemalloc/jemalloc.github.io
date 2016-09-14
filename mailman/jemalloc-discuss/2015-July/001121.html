@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Bug in chunk allocation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bug%20in%20chunk%20allocation&In-Reply-To=%3C0102E9FB-FE28-4163-B079-DDDA5BED2301%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001120.html">
+   <LINK REL="Next"  HREF="001126.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Bug in chunk allocation</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bug%20in%20chunk%20allocation&In-Reply-To=%3C0102E9FB-FE28-4163-B079-DDDA5BED2301%40canonware.com%3E"
+       TITLE="Bug in chunk allocation">jasone at canonware.com
+       </A><BR>
+    <I>Thu Jul  9 21:44:05 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001120.html">arena cache being reused
+</A></li>
+        <LI>Next message: <A HREF="001126.html">How to dump status of jemalloc on Android
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1121">[ date ]</a>
+              <a href="thread.html#1121">[ thread ]</a>
+              <a href="subject.html#1121">[ subject ]</a>
+              <a href="author.html#1121">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On Jun 8, 2015, at 2:15 PM, Christopher Ferris &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cferris at google.com</A> &lt;mailto:<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cferris at google.com</A>&gt;&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> Recently, it appears that there was a bug introduced in chunk allocation. The bug is exposed by this small snippet of code:
+</I>&gt;<i> 
+</I>&gt;<i>   void* mem = malloc(128*1024*1024);
+</I>&gt;<i>   printf(&quot;mem address %p\n&quot;, mem);
+</I>&gt;<i>   free(mem);
+</I>&gt;<i>   void* large_alloc = malloc(0x80000081UL);
+</I>&gt;<i>   printf(&quot;large mem %p\n&quot;, large_alloc);
+</I>&gt;<i>   free(large_alloc);
+</I>&gt;<i> 
+</I>&gt;<i> It looks like the bug is in the chunk_recycle code, in this piece of code:
+</I>&gt;<i> 
+</I>&gt;<i>         if (new_addr != NULL) {
+</I>&gt;<i>                 extent_node_t key;
+</I>&gt;<i>                 extent_node_init(&amp;key, arena, new_addr, alloc_size, false);
+</I>&gt;<i>                 node = extent_tree_ad_search(chunks_ad, &amp;key);
+</I>&gt;<i>         } else {
+</I>&gt;<i>                 node = chunk_first_fit(arena, chunks_szad, chunks_ad,
+</I>&gt;<i>                     alloc_size);
+</I>&gt;<i>         }
+</I>&gt;<i>         if (node == NULL || (new_addr != NULL &amp;&amp; extent_node_size_get(node) &lt;
+</I>&gt;<i>             size)) {
+</I>&gt;<i>                 malloc_mutex_unlock(&amp;arena-&gt;chunks_mtx);
+</I>&gt;<i>                 return (NULL);
+</I>&gt;<i>         }
+</I>&gt;<i> 
+</I>&gt;<i> The problem is that new_addr == NULL, so the size check is not performed. In my testing, removing the new_addr != NULL check fixes the problem, but I don't know if that's the correct change.
+</I>&gt;<i> 
+</I>&gt;<i> The first allocation after the free shows the problem, if you try and use the whole memory allocation it might segfault, or let you scribble all over someone else's memory.
+</I>
+This was caused by integer overflow in size class computation, and is fixed now:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/dde067264db6b801f7ffae9616a35dba5d2d9ad4">https://github.com/jemalloc/jemalloc/commit/dde067264db6b801f7ffae9616a35dba5d2d9ad4</A> &lt;<A HREF="https://github.com/jemalloc/jemalloc/commit/dde067264db6b801f7ffae9616a35dba5d2d9ad4">https://github.com/jemalloc/jemalloc/commit/dde067264db6b801f7ffae9616a35dba5d2d9ad4</A>&gt;
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150710/cefe2713/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150710/cefe2713/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001120.html">arena cache being reused
+</A></li>
+	<LI>Next message: <A HREF="001126.html">How to dump status of jemalloc on Android
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1121">[ date ]</a>
+              <a href="thread.html#1121">[ thread ]</a>
+              <a href="subject.html#1121">[ subject ]</a>
+              <a href="author.html#1121">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

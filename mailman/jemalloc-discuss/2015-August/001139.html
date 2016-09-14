@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc coring in je_bitmap_set
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20coring%20in%20je_bitmap_set&In-Reply-To=%3C55D3E2E5.5040107%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001138.html">
+   <LINK REL="Next"  HREF="001144.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc coring in je_bitmap_set</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20coring%20in%20je_bitmap_set&In-Reply-To=%3C55D3E2E5.5040107%40gmail.com%3E"
+       TITLE="jemalloc coring in je_bitmap_set">danielmicay at gmail.com
+       </A><BR>
+    <I>Tue Aug 18 18:59:01 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001138.html">jemalloc coring in je_bitmap_set
+</A></li>
+        <LI>Next message: <A HREF="001144.html">jemalloc coring in je_bitmap_set
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1139">[ date ]</a>
+              <a href="thread.html#1139">[ thread ]</a>
+              <a href="subject.html#1139">[ subject ]</a>
+              <a href="author.html#1139">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 18/08/15 05:58 PM, Paul Marquess wrote:
+&gt;&gt;&gt;<i> Do you have any feeling whether it is safe to have jemalloc and THP at the same time?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I've had pretty poor experience with the mixture even within the past month.  The problem is that at some point (under a day of intermittent benchmarking in all the cases I observed) the kernel gets into a fragmented memory state that it cannot recover from without a reboot, and the only obvious indications are decreased performance and increased page faults.
+</I>&gt;<i> 
+</I>&gt;<i> Do you think that disabling madvise with opt.lg_dirty_mult:-1 allows jemalloc &amp; THP to co-exist without causing other unwanted side-effects?
+</I>&gt;<i> 
+</I>&gt;<i> Paul
+</I>
+Well, you won't lose huge pages if you've disabled purging. It's going
+to increase memory usage but that may not be a problem for you.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150818/f3f987fe/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150818/f3f987fe/attachment.sig</A>&gt;
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001138.html">jemalloc coring in je_bitmap_set
+</A></li>
+	<LI>Next message: <A HREF="001144.html">jemalloc coring in je_bitmap_set
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1139">[ date ]</a>
+              <a href="thread.html#1139">[ thread ]</a>
+              <a href="subject.html#1139">[ subject ]</a>
+              <a href="author.html#1139">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

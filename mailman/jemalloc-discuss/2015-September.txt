@@ -1,0 +1,429 @@
+From antirez at gmail.com  Wed Sep  2 10:29:29 2015
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Wed, 2 Sep 2015 19:29:29 +0200
+Subject: Memory corruptions near 32 bit limits
+In-Reply-To: <CA+XzkVeRQXWKnGsTTG7W6pLCj29XcqzCceY4=aqX08WZuEo6Dg@mail.gmail.com>
+References: <CA+XzkVei8v-SminztkgPyiKptn6gGTsCq25uvOe4-eO_eSR6GQ@mail.gmail.com>
+	<0C56B5FC-DF8F-42D7-B825-D277485DFF5C@canonware.com>
+	<CA+XzkVeRQXWKnGsTTG7W6pLCj29XcqzCceY4=aqX08WZuEo6Dg@mail.gmail.com>
+Message-ID: <CA+XzkVfHrqpX25CQ-N=2ejFiVP+YHWiPtSM7AYZAB05W4EbGoQ@mail.gmail.com>
+
+Follow up which is only useful for people reading the archives of this
+mailing list searching for "out of memory" "jemalloc" "redis" "crash"
+or alike: apparently in Jemalloc 4.0 a bug that may lead to what we
+observed with Redis was fixed, so it is possible that it was the
+cause.
+
+On Wed, Nov 7, 2012 at 9:40 AM, Salvatore Sanfilippo <antirez at gmail.com> wrote:
+> On Tue, Nov 6, 2012 at 6:19 PM, Jason Evans <jasone at canonware.com> wrote:
+>
+>> This is the first I've heard of such an issue.  If you are able to narrow down the failure mode, please let me know so that we can get this fixed ASAP.
+>
+> Thank you Jason,
+>
+> given that this is a new issue I'll investigate further to understand
+> if it could be an issue with Redis itself (I think every single
+> allocation is wrapped in order to abort Redis on out of memory, but
+> I'll double check this). If it still seems a jemalloc issue I'll see
+> if I can reproduce it, so far the only way to reproduce the issue is
+> loading a large database file on a 32 bit Linux system N times: most
+> of the times it crashes for out-of-memory, a few times it crashes with
+> an unexpected signal 11 or failed assertion.
+>
+> Cheers,
+> Salvatore
+>
+> --
+> Salvatore 'antirez' Sanfilippo
+> open source developer - VMware
+> http://invece.org
+>
+> Beauty is more important in computing than anywhere else in technology
+> because software is so complicated. Beauty is the ultimate defence
+> against complexity.
+>        ? David Gelernter
+
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - Redis Labs https://redislabs.com
+
+"If a system is to have conceptual integrity, someone must control the
+concepts."
+       ? Fred Brooks, "The Mythical Man-Month", 1975.
+
+From jurgis at viesite.edu.lv  Wed Sep  9 07:29:21 2015
+From: jurgis at viesite.edu.lv (=?utf-8?Q?Jur=C4=A3is_Orups?=)
+Date: Wed, 9 Sep 2015 17:29:21 +0300
+Subject: Can't get profile
+Message-ID: <D3A48612-00C1-46DC-AA02-4DD28E9A1585@viesite.edu.lv>
+
+Hi,
+I?m trying to get heap profile but can?t get it.
+I've compiled 4.0.0 version with ?enable-prof, linked (dynamically) to my test program and called with "MALLOC_CONF=?prof:true? ./app? unfortunately no profile and errors.
+Just to test if ?enable-prof has some effect I compiled without ?enable-prof and run same command and got "<jemalloc>: Invalid conf pair: prof:true?.
+Any ideas?
+
+P.S. My app is very simple just 2 allocations and memset
+void * m = malloc(65000);
+memset(m, '\0', 65000);
+void * n = malloc(65000);
+memset(n, '\0', 65000);
+
+Thanks in advance
+Jurgis
+
+
+From jasone at canonware.com  Wed Sep  9 14:08:58 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 9 Sep 2015 14:08:58 -0700
+Subject: Can't get profile
+In-Reply-To: <D3A48612-00C1-46DC-AA02-4DD28E9A1585@viesite.edu.lv>
+References: <D3A48612-00C1-46DC-AA02-4DD28E9A1585@viesite.edu.lv>
+Message-ID: <BA140B0E-BB65-4CBA-B9B7-A2E0A6BC26BA@canonware.com>
+
+On Sep 9, 2015, at 7:29 AM, Jur?is Orups <jurgis at viesite.edu.lv> wrote:
+> I?m trying to get heap profile but can?t get it.
+> I've compiled 4.0.0 version with ?enable-prof, linked (dynamically) to my test program and called with "MALLOC_CONF=?prof:true? ./app? unfortunately no profile and errors.
+> Just to test if ?enable-prof has some effect I compiled without ?enable-prof and run same command and got "<jemalloc>: Invalid conf pair: prof:true?.
+> Any ideas?
+> 
+> P.S. My app is very simple just 2 allocations and memset
+> void * m = malloc(65000);
+> memset(m, '\0', 65000);
+> void * n = malloc(65000);
+> memset(n, '\0', 65000);
+
+You need to set a higher sample rate (lg_prof_sample) to reliably capture samples for such a small allocation volume.  Also, you need to trigger a profile dump using one or more of the several available mechanisms (lg_prof_interval, prof_gdump, prof_final, or manual dump via mallctl("prof.dump", ...)).
+
+Jason
+
+From anshul.kundra at hcl.com  Wed Sep  9 19:00:48 2015
+From: anshul.kundra at hcl.com (Anshul Kundra)
+Date: Thu, 10 Sep 2015 02:00:48 +0000
+Subject: jemalloc-configuration-setup
+Message-ID: <SIXPR04MB06820A3344A11BC96E85FD0EF6510@SIXPR04MB0682.apcprd04.prod.outlook.com>
+
+Hi,
+
+
+I have requirement to setup jemalloc for application, the specification is as follows:
+
+1   Allocations  (small, large ) is in terms of MB (2MB, 4MB, .........)
+
+2.  Allocations are always aligned to 2MB granularity
+3.  System Page size considered as 2MB (Linux Huge PAGE)
+4.  No request comes for allocation size less than 2MB, if such request comes then application will round up the size to 2Mb granularity
+
+Please provide how to do port jemalloc for such configuration, I want to avail jemalloc (small, large) size class  also for above requirement such that
+- small size will range from : 2MB, 4MB, 8MB ....... to 16MB
+- large size class ranges from 32MB, 64MB, 128 MB
+There is no intermediate allocation size i.e (3MB, 5MB etc )
+
+Thanks & Best Regards,
+Anshul Kundra
+
+
+::DISCLAIMER::
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+The contents of this e-mail and any attachment(s) are confidential and intended for the named recipient(s) only.
+E-mail transmission is not guaranteed to be secure or error-free as information could be intercepted, corrupted,
+lost, destroyed, arrive late or incomplete, or may contain viruses in transmission. The e mail and its contents
+(with or without referred errors) shall therefore not attach any liability on the originator or HCL or its affiliates.
+Views or opinions, if any, presented in this email are solely those of the author and may not necessarily reflect the
+views or opinions of HCL or its affiliates. Any form of reproduction, dissemination, copying, disclosure, modification,
+distribution and / or publication of this message without the prior written consent of authorized representative of
+HCL is strictly prohibited. If you have received this email in error please delete it and notify the sender immediately.
+Before opening any email and/or attachments, please check them for viruses and other defects.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150910/d9d5ed03/attachment.html>
+
+From ldalessa at indiana.edu  Thu Sep 10 07:48:34 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Thu, 10 Sep 2015 14:48:34 +0000
+Subject: Explicit huge pages
+Message-ID: <87DA9364-37ED-49E1-B141-7233ADE093BA@indiana.edu>
+
+I have an application that wants to use explicit huge pages during mmap. I have the infrastructure set up to do chunk allocation/deallocation from the hugetlbfs infrastructure, and we use it in custom arenas for network-registered memory allocation.
+
+I?d like to also use these explicit huge pages for the default arenas. It?s fine with me if the vestigial chunks are allocated from 4k pages, so I can replace the chunk_hooks as necessary. My concern is related to jemalloc?s understanding of ?page-size? as reported by arenas.page, dirty page purging, and --with-lg-page-sizes. Basically, I don?t understand enough about what is going on internal to jemalloc here.
+
+If I end up using, e.g., 2GB pages and a 4GB chunk size, is there any point in enabling dirty-page purging? Would it even work? Do I need to tell jemalloc about the 2GB huge page size with the --with flag? The huge page size is a dynamic property?do I have to reconfigure jemalloc each time I want a different one?
+
+Thanks,
+
+Luke
+
+From jasone at canonware.com  Thu Sep 10 09:45:22 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 10 Sep 2015 09:45:22 -0700
+Subject: Explicit huge pages
+In-Reply-To: <87DA9364-37ED-49E1-B141-7233ADE093BA@indiana.edu>
+References: <87DA9364-37ED-49E1-B141-7233ADE093BA@indiana.edu>
+Message-ID: <4D0973B2-D5A9-47CB-9004-986A106C6E6F@canonware.com>
+
+On Sep 10, 2015, at 7:48 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> I have an application that wants to use explicit huge pages during mmap. I have the infrastructure set up to do chunk allocation/deallocation from the hugetlbfs infrastructure, and we use it in custom arenas for network-registered memory allocation.
+> 
+> I?d like to also use these explicit huge pages for the default arenas. It?s fine with me if the vestigial chunks are allocated from 4k pages, so I can replace the chunk_hooks as necessary. My concern is related to jemalloc?s understanding of ?page-size? as reported by arenas.page, dirty page purging, and --with-lg-page-sizes. Basically, I don?t understand enough about what is going on internal to jemalloc here.
+> 
+> If I end up using, e.g., 2GB pages and a 4GB chunk size, is there any point in enabling dirty-page purging? Would it even work? Do I need to tell jemalloc about the 2GB huge page size with the --with flag? The huge page size is a dynamic property?do I have to reconfigure jemalloc each time I want a different one?
+
+I think the most promising approach is to leave jemalloc's notion of page size at 4 KiB, set the chunk size to be at least as large as the huge page size, and disable dirty page purging.  This allows the huge pages to be carved up with 4 KiB granularity for small/large allocations, and assures that chunks comprise distinct sets of huge pages.  Dirty page purging would be at best a waste of time in this set up, probably with no effect.
+
+Jason
+
+From ingvar at redpill-linpro.com  Tue Sep 22 06:02:41 2015
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Tue, 22 Sep 2015 15:02:41 +0200
+Subject: jemalloc 4.0.2 released
+In-Reply-To: <959A6764-11B5-4790-BF68-10B277870377@canonware.com>
+References: <959A6764-11B5-4790-BF68-10B277870377@canonware.com>
+Message-ID: <56015171.90604@redpill-linpro.com>
+
+build check of jemalloc-4.0.2 fails on i686, on RHEL, (el5 and el6
+fails, el7 does not have i386) and fedora up to f22.
+
+=== test/integration/mallocx ===
+test_oom:test/integration/mallocx.c:57: Failed assertion:
+(mallocx(hugemax, 0)) == (NULL) --> 0x17000000 != 0x0: Expected OOM for
+mallocx(size=0xe0000000, 0)
+test_oom: fail
+
+Example build check fail (they all fail on the same check):
+
+https://kojipkgs.fedoraproject.org//work/tasks/7068/11177068/build.log
+
+Note that on f23/i686, the build check completes without the assertion
+error.
+
+Ingvar
+
+
+Den 21. sep. 2015 21:03, skrev Jason Evans:
+> jemalloc 4.0.2 is now available.  This bugfix release addresses a few bugs specific to heap profiling.
+> 
+> Bug fixes:
+> - Fix ixallocx_prof_sample() to never modify nor create sampled small allocations. xallocx() is in general incapable of moving small allocations, so this fix removes buggy code without loss of generality.
+> - Fix irallocx_prof_sample() to always allocate large regions, even when alignment is non-zero.
+> - Fix prof_alloc_rollback() to read tdata from thread-specific data rather than dereferencing a potentially invalid tctx.
+> 
+> For the complete ChangeLog, see:
+> 	https://github.com/jemalloc/jemalloc/raw/4.0.2/ChangeLog
+> 
+> Direct download:
+> 	https://github.com/jemalloc/jemalloc/releases/download/4.0.2/jemalloc-4.0.2.tar.bz2
+> 
+> Starting point for general information:
+> 	http://www.canonware.com/jemalloc/
+> 
+> Browsable revision history:
+> 	https://github.com/jemalloc/jemalloc/tree/4.0.2
+> _______________________________________________
+> jemalloc-announce mailing list
+> jemalloc-announce at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-announce
+> 
+
+
+From ldalessa at indiana.edu  Tue Sep 22 11:30:59 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Tue, 22 Sep 2015 18:30:59 +0000
+Subject: purging and munmap
+Message-ID: <FEF5069B-4A7A-415C-B04C-FED876B3B4C5@indiana.edu>
+
+I have some custom chunk stuff for network registered memory that can?t tolerate sub-chunk purging, so I turn purging off (on a per-arena basis). When I do this however, it appears to inhibit de-allocation of chunks and large allocations via munmap (my dalloc handlers are never called).
+
+If I enable purging, but use a purge handler that opts out, chunks and large objects *are* munmapped. Is this the correct way to deal with jemalloc in 4.0? Is there overhead to the purging code when I?m going to refuse to purge anyway?
+
+Thanks,
+Luke
+
+From jasone at canonware.com  Wed Sep 23 12:23:30 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 Sep 2015 12:23:30 -0700
+Subject: jemalloc 4.0.2 released
+In-Reply-To: <56015171.90604@redpill-linpro.com>
+References: <959A6764-11B5-4790-BF68-10B277870377@canonware.com>
+	<56015171.90604@redpill-linpro.com>
+Message-ID: <7BAE6DF5-7487-49F6-9613-9B3D64AE0337@canonware.com>
+
+The test failure is harmless, but I'll change the test to allocate an additional maximal object if the first one succeeds; two objects each more than half the virtual address space cannot possibly coexist, so the second allocation must OOM.
+
+Thanks,
+Jason
+
+> On Sep 22, 2015, at 6:02 AM, Ingvar Hagelund <ingvar at redpill-linpro.com> wrote:
+> 
+> build check of jemalloc-4.0.2 fails on i686, on RHEL, (el5 and el6
+> fails, el7 does not have i386) and fedora up to f22.
+> 
+> === test/integration/mallocx ===
+> test_oom:test/integration/mallocx.c:57: Failed assertion:
+> (mallocx(hugemax, 0)) == (NULL) --> 0x17000000 != 0x0: Expected OOM for
+> mallocx(size=0xe0000000, 0)
+> test_oom: fail
+> 
+> Example build check fail (they all fail on the same check):
+> 
+> https://kojipkgs.fedoraproject.org//work/tasks/7068/11177068/build.log
+> 
+> Note that on f23/i686, the build check completes without the assertion
+> error.
+> 
+> Ingvar
+> 
+> 
+> Den 21. sep. 2015 21:03, skrev Jason Evans:
+>> jemalloc 4.0.2 is now available.  This bugfix release addresses a few bugs specific to heap profiling.
+>> 
+>> Bug fixes:
+>> - Fix ixallocx_prof_sample() to never modify nor create sampled small allocations. xallocx() is in general incapable of moving small allocations, so this fix removes buggy code without loss of generality.
+>> - Fix irallocx_prof_sample() to always allocate large regions, even when alignment is non-zero.
+>> - Fix prof_alloc_rollback() to read tdata from thread-specific data rather than dereferencing a potentially invalid tctx.
+>> 
+>> For the complete ChangeLog, see:
+>> 	https://github.com/jemalloc/jemalloc/raw/4.0.2/ChangeLog
+>> 
+>> Direct download:
+>> 	https://github.com/jemalloc/jemalloc/releases/download/4.0.2/jemalloc-4.0.2.tar.bz2
+>> 
+>> Starting point for general information:
+>> 	http://www.canonware.com/jemalloc/
+>> 
+>> Browsable revision history:
+>> 	https://github.com/jemalloc/jemalloc/tree/4.0.2
+>> _______________________________________________
+>> jemalloc-announce mailing list
+>> jemalloc-announce at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-announce
+>> 
+> 
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> 
+
+
+From jasone at canonware.com  Wed Sep 23 12:28:49 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 23 Sep 2015 12:28:49 -0700
+Subject: purging and munmap
+In-Reply-To: <FEF5069B-4A7A-415C-B04C-FED876B3B4C5@indiana.edu>
+References: <FEF5069B-4A7A-415C-B04C-FED876B3B4C5@indiana.edu>
+Message-ID: <9C9E8F8B-43D1-4360-B6CF-AF54CFC7B5C4@canonware.com>
+
+On Sep 22, 2015, at 11:30 AM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> I have some custom chunk stuff for network registered memory that can?t tolerate sub-chunk purging, so I turn purging off (on a per-arena basis). When I do this however, it appears to inhibit de-allocation of chunks and large allocations via munmap (my dalloc handlers are never called).
+
+Chunk deallocation should eventually happen even if purging is disabled, as long as munmap is enabled during configuration.  Keep in mind that there's a cache that can delay deallocation.  If you can put together a test case that is clearly exhibiting incorrect behavior, I'd like to take a look.
+
+> If I enable purging, but use a purge handler that opts out, chunks and large objects *are* munmapped. Is this the correct way to deal with jemalloc in 4.0? Is there overhead to the purging code when I?m going to refuse to purge anyway?
+
+The overhead of refusing purging is a branch or two, plus the function call into the purge hook, so it's not enough overhead to worry about.
+
+Thanks,
+Jason
+
+From ingvar at redpill-linpro.com  Thu Sep 24 03:56:32 2015
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Thu, 24 Sep 2015 12:56:32 +0200
+Subject: jemalloc 4.0.2 released
+In-Reply-To: <7BAE6DF5-7487-49F6-9613-9B3D64AE0337@canonware.com>
+References: <959A6764-11B5-4790-BF68-10B277870377@canonware.com>
+	<56015171.90604@redpill-linpro.com>
+	<7BAE6DF5-7487-49F6-9613-9B3D64AE0337@canonware.com>
+Message-ID: <5603D6E0.3000406@redpill-linpro.com>
+
+Den 23. sep. 2015 21:23, skrev Jason Evans:
+> The test failure is harmless, but I'll change the test to allocate an additional maximal object if the first one succeeds; two objects each more than half the virtual address space cannot possibly coexist, so the second allocation must OOM.
+
+Thanks, Jason. I'll patch this out on fedora/i386 for while waiting for
+4.0.3.
+
+jemalloc-4.0.2-1 was pushed to fedora-rawhide today.
+
+Ingvar
+
+
+From guoqizhang at sohu-inc.com  Fri Sep 25 05:46:29 2015
+From: guoqizhang at sohu-inc.com (=?gb2312?B?WmhhbmcgR3VvUWkoytPGtSk=?=)
+Date: Fri, 25 Sep 2015 12:46:29 +0000
+Subject: =?gb2312?B?u9i4tDogcmVwb3J0IGJ1Zw==?=
+References: <E66A512403BE0147A1AB0C2A0F6E5E828570FDA8@EXMB01.sohu-inc.com>
+Message-ID: <E66A512403BE0147A1AB0C2A0F6E5E8285715651@EXMB01.sohu-inc.com>
+
+sorry, it's my bugs.
+
+________________________________
+_______________
+??? Zhang GuoQi
+????-?????-CDN
+????8610?62727901
+????8610?62726924
+????8610?13810197517
+?????????????2??3????????8??100194?
+<http://tv.sohu.com/><http://tv.sohu.com/app/>[cid:_Foxmail.1 at ac781094-7e98-2b41-b67b-2f5a0c7f5b7c][cid:_Foxmail.1 at d6032108-00d8-31e0-a1cf-3f2abee656f6]
+??????????<http://tv.sohu.com/>
+
+???? Zhang GuoQi(??)<mailto:guoqizhang at sohu-inc.com>
+????? 2015-09-22 14:43
+???? jemalloc-discuss<mailto:jemalloc-discuss at canonware.com>
+??? report bug
+i use jemalloc in my project. when upgrade to 4.0.0 or 4.0.1 core down at:
+
+#0  je_tcache_dalloc_small (ptr=0x2aaaabbef0c0) at include/jemalloc/internal/tcache.h:380
+#1  je_arena_dalloc (ptr=0x2aaaabbef0c0) at include/jemalloc/internal/arena.h:1271
+#2  je_idalloctm (ptr=0x2aaaabbef0c0) at include/jemalloc/internal/jemalloc_internal.h:1005
+#3  je_iqalloc (ptr=0x2aaaabbef0c0) at include/jemalloc/internal/jemalloc_internal.h:1029
+#4  ifree (ptr=0x2aaaabbef0c0) at src/jemalloc.c:1745
+#5  free (ptr=0x2aaaabbef0c0) at src/jemalloc.c:1839
+
+________________________________
+_______________
+??? Zhang GuoQi
+????-?????-CDN
+????8610?62727901
+????8610?62726924
+????8610?13810197517
+?????????????2??3????????8??100194?
+<http://tv.sohu.com/><http://tv.sohu.com/app/>[cid:_Foxmail.1 at b6120292-ba7f-d2c2-cdcc-1e3f96a57580][cid:_Foxmail.1 at b23437e6-12a7-0525-472d-8d845f4240c4]
+??????????<http://tv.sohu.com/>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 5937_image002.png
+Type: image/png
+Size: 5937 bytes
+Desc: 5937_image002.png
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0004.png>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 2783_image004.png
+Type: image/png
+Size: 2783 bytes
+Desc: 2783_image004.png
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0005.png>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 5937_image002(09-25-20-46-15).png
+Type: image/png
+Size: 5937 bytes
+Desc: 5937_image002(09-25-20-46-15).png
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0006.png>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 2783_image004(09-25-20-46-15).png
+Type: image/png
+Size: 2783 bytes
+Desc: 2783_image004(09-25-20-46-15).png
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150925/a4d947b7/attachment-0007.png>
+

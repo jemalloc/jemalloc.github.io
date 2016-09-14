@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Don%27t%20use%20pthread_atfork%20to%20register%20prefork/postfork%0A%09handlers%20on%20OSX&In-Reply-To=%3C1332921196-4621-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000196.html">
+   <LINK REL="Next"  HREF="000200.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Don%27t%20use%20pthread_atfork%20to%20register%20prefork/postfork%0A%09handlers%20on%20OSX&In-Reply-To=%3C1332921196-4621-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Mar 28 00:53:16 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000196.html">Heads up on the last (hopefully) OSX issue
+</A></li>
+        <LI>Next message: <A HREF="000200.html">[PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#197">[ date ]</a>
+              <a href="thread.html#197">[ thread ]</a>
+              <a href="subject.html#197">[ subject ]</a>
+              <a href="author.html#197">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+OSX libc calls zone allocators' force_lock/force_unlock already.
+---
+ src/jemalloc.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 38a511d..38ed641 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -575,7 +575,7 @@ malloc_init_hard(void)
+ 
+ 	malloc_conf_init();
+ 
+-#ifndef JEMALLOC_MUTEX_INIT_CB
++#if (!defined(JEMALLOC_MUTEX_INIT_CB) &amp;&amp; !defined(JEMALLOC_ZONE))
+ 	/* Register fork handlers. */
+ 	if (pthread_atfork(jemalloc_prefork, jemalloc_postfork_parent,
+ 	    jemalloc_postfork_child) != 0) {
+-- 
+1.7.9.1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000196.html">Heads up on the last (hopefully) OSX issue
+</A></li>
+	<LI>Next message: <A HREF="000200.html">[PATCH] Don't use pthread_atfork to register prefork/postfork	handlers on OSX
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#197">[ date ]</a>
+              <a href="thread.html#197">[ thread ]</a>
+              <a href="subject.html#197">[ subject ]</a>
+              <a href="author.html#197">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

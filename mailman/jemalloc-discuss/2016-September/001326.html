@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Need help with jemalloc cores
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20help%20with%20jemalloc%20cores&In-Reply-To=%3CCAP3En4PK9mRq6W9t8%3DqsDggOFxVuthzd--QbxeKXX2zDSSKpQA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001325.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Need help with jemalloc cores</H1>
+    <B>Asmita Jagtap</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20help%20with%20jemalloc%20cores&In-Reply-To=%3CCAP3En4PK9mRq6W9t8%3DqsDggOFxVuthzd--QbxeKXX2zDSSKpQA%40mail.gmail.com%3E"
+       TITLE="Need help with jemalloc cores">ajopensrc at gmail.com
+       </A><BR>
+    <I>Tue Sep 13 22:57:14 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001325.html">Need help with jemalloc cores
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1326">[ date ]</a>
+              <a href="thread.html#1326">[ thread ]</a>
+              <a href="subject.html#1326">[ subject ]</a>
+              <a href="author.html#1326">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Forgot to mention the version, it is jemalloc 4.2.1
+
+On Wed, Sep 14, 2016 at 11:11 AM, Asmita Jagtap &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ajopensrc at gmail.com</A>&gt; wrote:
+
+&gt;<i> Hi,
+</I>&gt;<i>
+</I>&gt;<i> We are using jemalloc library (compiled with --enable-fill and
+</I>&gt;<i> --enable-debug options) in a multi-threaded daemon and seeing multiple
+</I>&gt;<i> cores during malloc/realloc with jemalloc library. The core files are
+</I>&gt;<i> approximately 61GB and 79GB in size, so this is typically seen under heavy
+</I>&gt;<i> memory usage situation.
+</I>&gt;<i>
+</I>&gt;<i> Are these issues in jemalloc code or the application code that is using
+</I>&gt;<i> jemalloc?
+</I>&gt;<i>
+</I>&gt;<i> Can someone please clarify what these stacks / aborts mean and how to deal
+</I>&gt;<i> with them?
+</I>&gt;<i>
+</I>&gt;<i> stack for corefile1 -
+</I>&gt;<i>
+</I>&gt;<i> (gdb) bt
+</I>&gt;<i> #0  0x00007fdc399155f7 in raise () from /lib64/libc.so.6
+</I>&gt;<i> #1  0x00007fdc39916ce8 in abort () from /lib64/libc.so.6
+</I>&gt;<i> #2  0x00007fdc3a317fe4 in je_extent_heap_remove (ph=0x7fd44530de90,
+</I>&gt;<i> phn=0x7fd0c022e0c0) at src/extent.c:191
+</I>&gt;<i> #3  0x00007fdc3a3180e3 in extent_heaps_remove
+</I>&gt;<i> (extent_heaps=0x7fd44530dda0, extent=0x7fd0c022e0c0) at src/extent.c:206
+</I>&gt;<i> #4  0x00007fdc3a318c3f in extent_recycle (tsdn=0x7fdc329a6580,
+</I>&gt;<i> arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+</I>&gt;<i> extent_heaps=0x7fd44530dda0,
+</I>&gt;<i>     cache=false, new_addr=0x7fd0bfd0b740, usize=16384, pad=0,
+</I>&gt;<i> alignment=64, zero=0x7fdc329a5447, commit=0x7fdc329a5437, slab=false) at
+</I>&gt;<i> src/extent.c:424
+</I>&gt;<i> #5  0x00007fdc3a3197f3 in extent_alloc_retained (tsdn=0x7fdc329a6580,
+</I>&gt;<i> arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+</I>&gt;<i> new_addr=0x7fd0bfd0b740,
+</I>&gt;<i>     usize=16384, pad=0, alignment=64, zero=0x7fdc329a5447,
+</I>&gt;<i> commit=0x7fdc329a5437, slab=false) at src/extent.c:608
+</I>&gt;<i> #6  0x00007fdc3a319a91 in je_extent_alloc_wrapper (tsdn=0x7fdc329a6580,
+</I>&gt;<i> arena=0x7fd44530b680, r_extent_hooks=0x7fdc329a5438,
+</I>&gt;<i> new_addr=0x7fd0bfd0b740,
+</I>&gt;<i>     usize=16384, pad=0, alignment=64, zero=0x7fdc329a5447,
+</I>&gt;<i> commit=0x7fdc329a5437, slab=false) at src/extent.c:664
+</I>&gt;<i> #7  0x00007fdc3a31d2c2 in large_ralloc_no_move_expand
+</I>&gt;<i> (tsdn=0x7fdc329a6580, extent=0x7fd3412ba6c0, usize=32768, zero=false) at
+</I>&gt;<i> src/large.c:149
+</I>&gt;<i> #8  0x00007fdc3a31d651 in je_large_ralloc_no_move (tsdn=0x7fdc329a6580,
+</I>&gt;<i> extent=0x7fd3412ba6c0, usize_min=32768, usize_max=32768, zero=false)
+</I>&gt;<i>     at src/large.c:205
+</I>&gt;<i> #9  0x00007fdc3a31d92f in je_large_ralloc (tsdn=0x7fdc329a6580, arena=0x0,
+</I>&gt;<i> extent=0x7fd3412ba6c0, usize=32768, alignment=0, zero=false,
+</I>&gt;<i>     tcache=0x7fd538d85780) at src/large.c:264
+</I>&gt;<i> #10 0x00007fdc3a305b10 in je_arena_ralloc (tsdn=0x7fdc329a6580, arena=0x0,
+</I>&gt;<i> extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+</I>&gt;<i>     alignment=0, zero=false, tcache=0x7fd538d85780) at src/arena.c:1567
+</I>&gt;<i> #11 0x00007fdc3a2f9124 in je_iralloct (tsdn=0x7fdc329a6580,
+</I>&gt;<i> extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+</I>&gt;<i> alignment=0,
+</I>&gt;<i>     zero=false, tcache=0x7fd538d85780, arena=0x0) at
+</I>&gt;<i> include/jemalloc/internal/jemalloc_internal.h:1163
+</I>&gt;<i> #12 0x00007fdc3a2f91ad in je_iralloc (tsd=0x7fdc329a6580,
+</I>&gt;<i> extent=0x7fd3412ba6c0, ptr=0x7fd0bfd06740, oldsize=16384, size=32768,
+</I>&gt;<i> alignment=0, zero=false)
+</I>&gt;<i>     at include/jemalloc/internal/jemalloc_internal.h:1172
+</I>&gt;<i> #13 0x00007fdc3a2fd883 in realloc (ptr=0x7fd0bfd06740, size=32768) at
+</I>&gt;<i> src/jemalloc.c:1796
+</I>&gt;<i>
+</I>&gt;<i> stack for corefile2 -
+</I>&gt;<i> #0  0x00007f9170d7f5f7 in raise () from /lib64/libc.so.6
+</I>&gt;<i> #1  0x00007f9170d80ce8 in abort () from /lib64/libc.so.6
+</I>&gt;<i> #2  0x00007f917176b616 in je_arena_extent_cache_maybe_remove
+</I>&gt;<i> (arena=0x7f8a0d652180, extent=0x7f874860e180, dirty=true) at src/arena.c:119
+</I>&gt;<i> #3  0x00007f9171782c5c in extent_recycle (tsdn=0x7f916be14580,
+</I>&gt;<i> arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388,
+</I>&gt;<i>     extent_heaps=0x7f8a0d654268, cache=true, new_addr=0x0, usize=4096,
+</I>&gt;<i> pad=0, alignment=4096, zero=0x7f916be13387, commit=0x7f916be13297,
+</I>&gt;<i>     slab=true) at src/extent.c:425
+</I>&gt;<i> #4  0x00007f91717834df in je_extent_alloc_cache (tsdn=0x7f916be14580,
+</I>&gt;<i> arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388, new_addr=0x0,
+</I>&gt;<i>     usize=4096, pad=0, alignment=4096, zero=0x7f916be13387, slab=true) at
+</I>&gt;<i> src/extent.c:554
+</I>&gt;<i> #5  0x00007f917176b3b6 in arena_extent_cache_alloc_locked
+</I>&gt;<i> (tsdn=0x7f916be14580, arena=0x7f8a0d652180, r_extent_hooks=0x7f916be13388,
+</I>&gt;<i>     new_addr=0x0, usize=4096, pad=0, alignment=4096, zero=0x7f916be13387,
+</I>&gt;<i> slab=true) at src/arena.c:63
+</I>&gt;<i> #6  0x00007f917176dfd3 in arena_slab_alloc (tsdn=0x7f916be14580,
+</I>&gt;<i> arena=0x7f8a0d652180, binind=1,
+</I>&gt;<i>     bin_info=0x7f91717a2e48 &lt;je_arena_bin_info+40&gt;) at src/arena.c:1024
+</I>&gt;<i> #7  0x00007f917176e196 in arena_bin_nonfull_slab_get (tsdn=0x7f916be14580,
+</I>&gt;<i> arena=0x7f8a0d652180, bin=0x7f8a0d6550e0, binind=1)
+</I>&gt;<i>     at src/arena.c:1067
+</I>&gt;<i> #8  0x00007f917176e2be in arena_bin_malloc_hard (tsdn=0x7f916be14580,
+</I>&gt;<i> arena=0x7f8a0d652180, bin=0x7f8a0d6550e0, binind=1)
+</I>&gt;<i>     at src/arena.c:1105
+</I>&gt;<i> #9  0x00007f917176e5a5 in je_arena_tcache_fill_small (tsdn=0x7f916be14580,
+</I>&gt;<i> arena=0x7f8a0d652180, tbin=0x7f8a6e0d5008, binind=1,
+</I>&gt;<i>     prof_accumbytes=0) at src/arena.c:1171
+</I>&gt;<i> #10 0x00007f917179b014 in je_tcache_alloc_small_hard (tsdn=0x7f916be14580,
+</I>&gt;<i> arena=0x7f8a0d652180, tcache=0x7f8a6e0d4fc0,
+</I>&gt;<i>     tbin=0x7f8a6e0d5008, binind=1, tcache_success=0x7f916be13576) at
+</I>&gt;<i> src/tcache.c:79
+</I>&gt;<i> #11 0x00007f917179a425 in je_tcache_alloc_small (tsd=0x7f916be14580,
+</I>&gt;<i> arena=0x7f8a0d652180, tcache=0x7f8a6e0d4fc0, size=16, binind=1,
+</I>&gt;<i>     zero=false, slow_path=true) at include/jemalloc/internal/tcache.h:297
+</I>&gt;<i> #12 0x00007f917176acd0 in je_arena_malloc (tsdn=0x7f916be14580, arena=0x0,
+</I>&gt;<i> size=16, ind=1, zero=false, tcache=0x7f8a6e0d4fc0,
+</I>&gt;<i>     slow_path=true) at include/jemalloc/internal/arena.h:538
+</I>&gt;<i> #13 0x00007f9171762612 in je_iallocztm (tsdn=0x7f916be14580, size=16,
+</I>&gt;<i> ind=1, zero=false, tcache=0x7f8a6e0d4fc0, is_metadata=false,
+</I>&gt;<i>     arena=0x0, slow_path=true) at include/jemalloc/internal/
+</I>&gt;<i> jemalloc_internal.h:1005
+</I>&gt;<i> #14 0x00007f9171762706 in je_ialloc (tsd=0x7f916be14580, size=16, ind=1,
+</I>&gt;<i> zero=false, slow_path=true)
+</I>&gt;<i>     at include/jemalloc/internal/jemalloc_internal.h:1017
+</I>&gt;<i> #15 0x00007f917176655e in ialloc_body (size=16, zero=false,
+</I>&gt;<i> tsdn=0x7f916be13770, usize=0x7f916be13768, slow_path=true)
+</I>&gt;<i>     at src/jemalloc.c:1434
+</I>&gt;<i> ---Type &lt;return&gt; to continue, or q &lt;return&gt; to quit---
+</I>&gt;<i> #16 0x00007f91717667b8 in malloc (size=16) at src/jemalloc.c:1476
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Regards,
+</I>&gt;<i> Asmita
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160914/abc79643/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160914/abc79643/attachment-0001.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001325.html">Need help with jemalloc cores
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1326">[ date ]</a>
+              <a href="thread.html#1326">[ thread ]</a>
+              <a href="subject.html#1326">[ subject ]</a>
+              <a href="author.html#1326">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

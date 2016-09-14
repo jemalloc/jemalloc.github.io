@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> 2MB (hugetlb) page support on Linux
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%202MB%20%28hugetlb%29%20page%20support%20on%20Linux&In-Reply-To=%3C09D7F747-773D-489D-AB26-06D48EFACC16%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000556.html">
+   <LINK REL="Next"  HREF="000559.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>2MB (hugetlb) page support on Linux</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%202MB%20%28hugetlb%29%20page%20support%20on%20Linux&In-Reply-To=%3C09D7F747-773D-489D-AB26-06D48EFACC16%40canonware.com%3E"
+       TITLE="2MB (hugetlb) page support on Linux">jasone at canonware.com
+       </A><BR>
+    <I>Wed Jan 30 15:46:16 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000556.html">2MB (hugetlb) page support on Linux
+</A></li>
+        <LI>Next message: <A HREF="000559.html">2MB (hugetlb) page support on Linux
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#558">[ date ]</a>
+              <a href="thread.html#558">[ thread ]</a>
+              <a href="subject.html#558">[ subject ]</a>
+              <a href="author.html#558">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 29, 2013, at 11:01 AM, Vinay Y S wrote:
+&gt;<i> I'm trying to use jemalloc as the allocator for Membase (a persistent/replicated memcached) on x86_64 Linux. With 4KB page size, the overhead (fragmentation) for allocations greater than 4KB (say 5000 bytes) that fall into 8KB 'large' allocation class is pretty high.
+</I>&gt;<i> 
+</I>&gt;<i> To make the wastage a bit less, we would need more classes in the 'small' size. Given how page purge works, I understand just adding more classes in there or faking a higher page size won't work.
+</I>&gt;<i> 
+</I>&gt;<i> Luckily my target OS - x86_64 linux supports 2MB huge pages. Can jemalloc take advantage of this? Is there a way to enable this?
+</I>
+Huge pages actually make the dirty page purging problems worse with regard to fragmentation, because in order to keep huge pages intact, purging has to be all or nothing.  It is possible with a bit of trickery to get Linux to use huge pages for memory that jemalloc allocates, but it only makes sense to do so if the memory is densely used (lots of malloc()s, few free()s).
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000556.html">2MB (hugetlb) page support on Linux
+</A></li>
+	<LI>Next message: <A HREF="000559.html">2MB (hugetlb) page support on Linux
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#558">[ date ]</a>
+              <a href="thread.html#558">[ thread ]</a>
+              <a href="subject.html#558">[ subject ]</a>
+              <a href="author.html#558">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

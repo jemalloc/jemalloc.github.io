@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Allocation latency during fork
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Allocation%20latency%20during%20fork&In-Reply-To=%3CCA%2BXzkVfZV36k-d6mw9xEBgSQQhmfMKwts79wrwMB%2B3PYydzeCg%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000965.html">
+   <LINK REL="Next"  HREF="000964.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Allocation latency during fork</H1>
+    <B>Salvatore Sanfilippo</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Allocation%20latency%20during%20fork&In-Reply-To=%3CCA%2BXzkVfZV36k-d6mw9xEBgSQQhmfMKwts79wrwMB%2B3PYydzeCg%40mail.gmail.com%3E"
+       TITLE="Allocation latency during fork">antirez at gmail.com
+       </A><BR>
+    <I>Tue Nov  4 00:55:23 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000965.html">Supporting 'bookkeeping' and 'bin_unused' memory reporters in	Gecko
+</A></li>
+        <LI>Next message: <A HREF="000964.html">Allocation latency during fork
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#963">[ date ]</a>
+              <a href="thread.html#963">[ thread ]</a>
+              <a href="subject.html#963">[ subject ]</a>
+              <a href="author.html#963">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello, finally I discovered the cause of the issue, so I want to follow up.
+
+For some reason I did not investigated, libc malloc allocates memory
+in a way does not allow transparent huge pages to work for that
+region.
+Jemalloc allocated memory instead is targeted by transparent huge
+pages, so when the feature is enabled, after fork, we have processes
+sharing the same huge pages.
+
+Once one of the processes starts writing to many pages in a very fast
+way, multiple page faults occur, triggering the copy-on-write of
+almost all the process space (It takes a few thousands writes to COW a
+2GB process, for example). Since huge pages copying is slow, thousands
+of copy operations sum up to hundreds of milliseconds.
+
+Disabling transparent huge pages makes the problem go away.
+
+&gt;<i>From the point of view of jemalloc, would be cool to have some option
+</I>in order to mmap memory so that it is not targeted by THP regardless
+of the kernel global settings.
+
+Thanks,
+Salvatore
+
+On Fri, Jul 4, 2014 at 11:02 AM, Salvatore Sanfilippo &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">antirez at gmail.com</A>&gt; wrote:
+&gt;<i> Hello,
+</I>&gt;<i>
+</I>&gt;<i> while trying to profile my application for sources of latency, I
+</I>&gt;<i> noticed that after the fork() call, if there are an high number of
+</I>&gt;<i> allocations ongoing, one of the next allocations (the first maybe?)
+</I>&gt;<i> after fork()  shows very high latency (~400 milliseconds) in a process
+</I>&gt;<i> using 2GB of memory.
+</I>&gt;<i>
+</I>&gt;<i> The problem exists both in jemalloc 3.2.0 and 3.6.0 so it does not
+</I>&gt;<i> look like a regression.
+</I>&gt;<i> I tried with the glibc standard allocator and I can't reproduce the
+</I>&gt;<i> issue, so looks like allocator-specific.
+</I>&gt;<i>
+</I>&gt;<i> There is some way I can mitigate ore remove this issue?
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Salvatore
+</I>&gt;<i>
+</I>&gt;<i> --
+</I>&gt;<i> Salvatore 'antirez' Sanfilippo
+</I>&gt;<i> open source developer - GoPivotal
+</I>&gt;<i> <A HREF="http://invece.org">http://invece.org</A>
+</I>&gt;<i>
+</I>&gt;<i> &quot;One would never undertake such a thing if one were not driven on by
+</I>&gt;<i> some demon whom one can neither resist nor understand.&quot;
+</I>&gt;<i>        &#8212; George Orwell
+</I>
+
+
+-- 
+Salvatore 'antirez' Sanfilippo
+open source developer - GoPivotal
+<A HREF="http://invece.org">http://invece.org</A>
+
+&quot;Fear makes the wolf bigger than he is.&quot;
+       &#8212; German proverb
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000965.html">Supporting 'bookkeeping' and 'bin_unused' memory reporters in	Gecko
+</A></li>
+	<LI>Next message: <A HREF="000964.html">Allocation latency during fork
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#963">[ date ]</a>
+              <a href="thread.html#963">[ thread ]</a>
+              <a href="subject.html#963">[ subject ]</a>
+              <a href="author.html#963">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

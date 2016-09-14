@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 1/3] Use &quot;hardcoded&quot; dependencies when compiler doesn't	support -MM
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/3%5D%20Use%20%22hardcoded%22%20dependencies%20when%20compiler%20doesn%27t%0A%09support%20-MM&In-Reply-To=%3C1335987053-8734-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000378.html">
+   <LINK REL="Next"  HREF="000381.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 1/3] Use &quot;hardcoded&quot; dependencies when compiler doesn't	support -MM</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%201/3%5D%20Use%20%22hardcoded%22%20dependencies%20when%20compiler%20doesn%27t%0A%09support%20-MM&In-Reply-To=%3C1335987053-8734-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 1/3] Use &quot;hardcoded&quot; dependencies when compiler doesn't	support -MM">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed May  2 12:30:51 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000378.html">Allow je_malloc_message to be overridden when linking statically
+</A></li>
+        <LI>Next message: <A HREF="000381.html">[PATCH 2/3] Use &quot;standard&quot; printf prefixes instead of MSVC ones in	inttypes.h
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#380">[ date ]</a>
+              <a href="thread.html#380">[ thread ]</a>
+              <a href="subject.html#380">[ subject ]</a>
+              <a href="author.html#380">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ Makefile.in  |   17 ++++++++++++++---
+ configure.ac |    3 +++
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 94f4869..0c8e76a 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -54,6 +54,7 @@ PIC_CFLAGS = @PIC_CFLAGS@
+ CTARGET = @CTARGET@
+ LDTARGET = @LDTARGET@
+ MKLIB = @MKLIB@
++CC_MM = @CC_MM@
+ 
+ ifeq (macho, $(ABI))
+ TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=&quot;$(objroot)lib&quot;
+@@ -136,9 +137,11 @@ build_doc: $(DOCS)
+ #
+ # Include generated dependency files.
+ #
++ifdef CC_MM
+ -include $(COBJS:%.$(O)=%.d)
+ -include $(CPICOBJS:%.$(O)=%.d)
+ -include $(CTESTOBJS:%.$(O)=%.d)
++endif
+ 
+ $(COBJS): $(objroot)src/%.$(O): $(srcroot)src/%.c
+ $(CPICOBJS): $(objroot)src/%.pic.$(O): $(srcroot)src/%.c
+@@ -149,10 +152,21 @@ ifneq ($(IMPORTLIB),$(SO))
+ $(COBJS): CPPFLAGS += -DDLLEXPORT
+ endif
+ 
++ifndef CC_MM
++# Dependencies
++HEADER_DIRS = $(srcroot)include/jemalloc/internal \
++	$(objroot)include/jemalloc $(objroot)include/jemalloc/internal
++HEADERS = $(wildcard $(foreach dir,$(HEADER_DIRS),$(dir)/*.h))
++$(COBJS) $(CPICOBJS) $(CTESTOBJS): $(HEADERS)
++$(CTESTOBJS): $(objroot)test/jemalloc_test.h
++endif
++
+ $(COBJS) $(CPICOBJS) $(CTESTOBJS): %.$(O):
+ 	@mkdir -p $(@D)
+ 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(CTARGET) $&lt;
++ifdef CC_MM
+ 	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.$(O)=%.d) $&lt;
++endif
+ 
+ ifneq ($(SOREV),$(SO))
+ %.$(SO) : %.$(SOREV)
+@@ -263,11 +277,8 @@ check: tests
+ clean:
+ 	rm -f $(COBJS)
+ 	rm -f $(CPICOBJS)
+-	rm -f $(COBJS:%.$(O)=%.d)
+-	rm -f $(CPICOBJS:%.$(O)=%.d)
+ 	rm -f $(CTESTOBJS:%.$(O)=%$(EXE))
+ 	rm -f $(CTESTOBJS)
+-	rm -f $(CTESTOBJS:%.$(O)=%.d)
+ 	rm -f $(CTESTOBJS:%.$(O)=%.out)
+ 	rm -f $(DSOS) $(STATIC_LIBS)
+ 
+diff --git a/configure.ac b/configure.ac
+index eeb2a29..3b32b88 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -227,6 +227,7 @@ CTARGET='-o $@'
+ LDTARGET='-o $@'
+ EXTRA_LDFLAGS=
+ MKLIB='ar crus $@'
++CC_MM=1
+ 
+ dnl Platform-specific settings.  abi and RPATH can probably be determined
+ dnl programmatically, but doing so is error-prone, which makes it generally
+@@ -307,6 +308,7 @@ case &quot;${host}&quot; in
+ 	  CTARGET='-Fo$@'
+ 	  LDTARGET='-Fe$@'
+ 	  MKLIB='lib -nologo -out:$@'
++	  CC_MM=
+         else
+ 	  importlib=&quot;${so}&quot;
+ 	  DSO_LDFLAGS=&quot;-shared&quot;
+@@ -337,6 +339,7 @@ AC_SUBST([PIC_CFLAGS])
+ AC_SUBST([CTARGET])
+ AC_SUBST([LDTARGET])
+ AC_SUBST([MKLIB])
++AC_SUBST([CC_MM])
+ 
+ if test &quot;x$abi&quot; != &quot;xpecoff&quot;; then
+   dnl Heap profiling uses the log(3) function.
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000378.html">Allow je_malloc_message to be overridden when linking statically
+</A></li>
+	<LI>Next message: <A HREF="000381.html">[PATCH 2/3] Use &quot;standard&quot; printf prefixes instead of MSVC ones in	inttypes.h
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#380">[ date ]</a>
+              <a href="thread.html#380">[ thread ]</a>
+              <a href="subject.html#380">[ subject ]</a>
+              <a href="author.html#380">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

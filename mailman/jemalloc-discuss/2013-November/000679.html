@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> compatibility with apps using mallopt?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compatibility%20with%20apps%20using%20mallopt%3F&In-Reply-To=%3C20131122003649.GA11768%40dcvr.yhbt.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000678.html">
+   <LINK REL="Next"  HREF="000680.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>compatibility with apps using mallopt?</H1>
+    <B>Eric Wong</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20compatibility%20with%20apps%20using%20mallopt%3F&In-Reply-To=%3C20131122003649.GA11768%40dcvr.yhbt.net%3E"
+       TITLE="compatibility with apps using mallopt?">normalperson at yhbt.net
+       </A><BR>
+    <I>Thu Nov 21 16:36:49 PST 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000678.html">compatibility with apps using mallopt?
+</A></li>
+        <LI>Next message: <A HREF="000680.html">enable profiling for memory leaks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#679">[ date ]</a>
+              <a href="thread.html#679">[ thread ]</a>
+              <a href="subject.html#679">[ subject ]</a>
+              <a href="author.html#679">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On Nov 17, 2013, at 2:47 PM, Eric Wong &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">normalperson at yhbt.net</A>&gt; wrote:
+</I>&gt;<i> &gt; Hi, I'd like to continue providing the option of using jemalloc (and
+</I>&gt;<i> &gt; other alternative malloc implementations) to glibc/Linux users of
+</I>&gt;<i> &gt; cmogstored[1].
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; When I ./configure with LIBS=-ljemalloc, things go bad because the
+</I>&gt;<i> &gt; mallopt call is still detected and going to glibc even though the glibc
+</I>&gt;<i> &gt; malloc implementation is not used/linked.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; So my question is: what's the best way to avoid mallopt() when using
+</I>&gt;<i> &gt; glibc if cmogstored is linked to jemalloc (or any non-glibc malloc)?
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; Or should jemalloc provide a mallopt() function which may
+</I>&gt;<i> &gt; wrap mallctl() in some cases and/or just do nothing at all?
+</I>
+&gt;<i> mallopt() is a non-standard function, as is jemalloc&#8217;s mallctl().  I
+</I>&gt;<i> contemplated what to do about mallopt(), mallinfo(), mallinfo_heap(),
+</I>&gt;<i> etc. while implementing mallctl(), and decided that trying to emulate
+</I>&gt;<i> them would be an exercise in futility.  As for replacing them, I would
+</I>&gt;<i> be uncomfortable having replacements do anything besides call
+</I>&gt;<i> abort(3).  I&#8217;ve never followed through with that though, because I&#8217;m
+</I>&gt;<i> afraid the cure might be worse than the disease.
+</I>
+Thanks for the response.  Is having mallopt() be a no-op acceptable to
+you?  That would be acceptable to me.
+
+&gt;<i> In the case of cmogstored, I suggest you conditionalize the mallopt()
+</I>&gt;<i> calls such that they&#8217;re only used when using glibc&#8217;s allocator.  Since
+</I>&gt;<i> you&#8217;re making an explicit effort to support multiple alternative
+</I>&gt;<i> memory allocators, you may end up adding other allocator-specific
+</I>&gt;<i> tuning in #if..#elif..#else..#endif blocks anyway.
+</I>
+I'm trying to conditionalize the build already, but the problem is that
+mallopt detection succeeds with glibc even if I use LIBS=-ljemalloc (or
+any alternative allocator).  So I'm wondering if there's a way to stop
+mallopt detection if jemalloc is used on a GNU system.
+
+I suppose I could use dlsym to find mallctl and use that as an indicator
+jemalloc is linked into the process at runtime.  But maybe there's a
+better way...
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000678.html">compatibility with apps using mallopt?
+</A></li>
+	<LI>Next message: <A HREF="000680.html">enable profiling for memory leaks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#679">[ date ]</a>
+              <a href="thread.html#679">[ thread ]</a>
+              <a href="subject.html#679">[ subject ]</a>
+              <a href="author.html#679">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

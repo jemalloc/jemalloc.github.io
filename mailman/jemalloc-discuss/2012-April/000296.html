@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Make versioned shared library suffix configurable
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Make%20versioned%20shared%20library%20suffix%20configurable&In-Reply-To=%3C1334645494-7462-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000294.html">
+   <LINK REL="Next"  HREF="000297.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Make versioned shared library suffix configurable</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Make%20versioned%20shared%20library%20suffix%20configurable&In-Reply-To=%3C1334645494-7462-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Make versioned shared library suffix configurable">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 16 23:51:34 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000294.html">[7ca0fdf] Disable munmap() if it causes VM map holes
+</A></li>
+        <LI>Next message: <A HREF="000297.html">[PATCH] Make versioned shared library suffix configurable
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#296">[ date ]</a>
+              <a href="thread.html#296">[ thread ]</a>
+              <a href="subject.html#296">[ subject ]</a>
+              <a href="author.html#296">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+This allows for different patterns for file names:
+- lib.so.version for e.g. Linux
+- lib.version.dylib for OSX (which is much more common than
+lib.dylib.version)
+- lib.dll for Windows (no version at all).
+---
+ Makefile.in  |   21 ++++++++++++++-------
+ configure.ac |    3 +++
+ 2 files changed, 17 insertions(+), 7 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 0dfddea..d426cbd 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -47,6 +47,7 @@ cfgoutputs_out := @cfgoutputs_out@
+ enable_autogen := @enable_autogen@
+ enable_experimental := @enable_experimental@
+ DSO_LDFLAGS = @DSO_LDFLAGS@
++SOREV = @SOREV@
+ 
+ ifeq (macho, $(ABI))
+ TEST_LIBRARY_PATH := DYLD_FALLBACK_LIBRARY_PATH=$(objroot)lib
+@@ -72,9 +73,11 @@ ifeq (macho, $(ABI))
+ CSRCS += $(srcroot)src/zone.c
+ endif
+ STATIC_LIBS := $(objroot)lib/$(LIBJEMALLOC).$(A)
+-DSOS := $(objroot)lib/$(LIBJEMALLOC).$(SO).$(REV) \
+-	$(objroot)lib/$(LIBJEMALLOC).$(SO) \
+-	$(objroot)lib/$(LIBJEMALLOC)_pic.$(A)
++DSOS := $(objroot)lib/$(LIBJEMALLOC)_pic.$(A) \
++	$(objroot)lib/$(LIBJEMALLOC).$(SOREV)
++ifneq ($(SOREV),$(SO))
++DSOS += $(objroot)lib/$(LIBJEMALLOC).$(SO)
++endif
+ MAN3 := $(objroot)doc/jemalloc$(install_suffix).3
+ DOCS_XML := $(objroot)doc/jemalloc$(install_suffix).xml
+ DOCS_HTML := $(DOCS_XML:$(objroot)%.xml=$(srcroot)%.html)
+@@ -127,11 +130,13 @@ $(objroot)src/%.pic.$(O): $(srcroot)src/%.c
+ 	$(CC) $(CFLAGS) -fPIC -DPIC -c $(CPPFLAGS) -o $@ $&lt;
+ 	@$(CC) -MM $(CPPFLAGS) -MT $@ -o $(@:%.$(O)=%.d) $&lt;
+ 
+-%.$(SO) : %.$(SO).$(REV)
++ifneq ($(SOREV),$(SO))
++%.$(SO) : %.$(SOREV)
+ 	@mkdir -p $(@D)
+ 	ln -sf $(&lt;F) $@
++endif
+ 
+-$(objroot)lib/$(LIBJEMALLOC).$(SO).$(REV) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
++$(objroot)lib/$(LIBJEMALLOC).$(SOREV) : $(CSRCS:$(srcroot)%.c=$(objroot)%.pic.$(O))
+ 	@mkdir -p $(@D)
+ 	$(CC) $(DSO_LDFLAGS) $(call RPATH,$(RPATH_EXTRA)) -o $@ $+ $(LDFLAGS) $(LIBS)
+ 
+@@ -175,8 +180,10 @@ done
+ 
+ install_lib_shared: $(DSOS)
+ 	install -d $(LIBDIR)
+-	install -m 755 $(objroot)lib/$(LIBJEMALLOC).$(SO).$(REV) $(LIBDIR)
+-	ln -sf $(LIBJEMALLOC).$(SO).$(REV) $(LIBDIR)/$(LIBJEMALLOC).$(SO)
++	install -m 755 $(objroot)lib/$(LIBJEMALLOC).$(SOREV) $(LIBDIR)
++ifneq ($(SOREV),$(SO))
++	ln -sf $(LIBJEMALLOC).$(SOREV) $(LIBDIR)/$(LIBJEMALLOC).$(SO)
++endif
+ 
+ install_lib_static: $(DSOS) $(STATIC_LIBS)
+ 	install -d $(LIBDIR)
+diff --git a/configure.ac b/configure.ac
+index 8b9ba00..7c4e8ca 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -201,6 +201,7 @@ exe=
+ lib=&quot;lib&quot;
+ DSO_LDFLAGS='-shared -Wl,-soname,$(@F)'
+ RPATH='-Wl,-rpath,$(1)'
++SOREV='$(SO).$(REV)'
+ 
+ dnl Heap profiling uses the log(3) function.
+ LIBS=&quot;$LIBS -lm&quot;
+@@ -222,6 +223,7 @@ case &quot;${host}&quot; in
+ 	so=&quot;dylib&quot;
+ 	force_tls=&quot;0&quot;
+ 	DSO_LDFLAGS='-shared -Wl,-dylib_install_name,$(@F)'
++	SOREV='$(REV).$(SO)'
+ 	;;
+   *-*-freebsd*)
+ 	CFLAGS=&quot;$CFLAGS&quot;
+@@ -282,6 +284,7 @@ AC_SUBST([a])
+ AC_SUBST([exe])
+ AC_SUBST([lib])
+ AC_SUBST([DSO_LDFLAGS])
++AC_SUBST([SOREV])
+ 
+ JE_COMPILABLE([__attribute__ syntax],
+               [static __attribute__((unused)) void foo(void){}],
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000294.html">[7ca0fdf] Disable munmap() if it causes VM map holes
+</A></li>
+	<LI>Next message: <A HREF="000297.html">[PATCH] Make versioned shared library suffix configurable
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#296">[ date ]</a>
+              <a href="thread.html#296">[ thread ]</a>
+              <a href="subject.html#296">[ subject ]</a>
+              <a href="author.html#296">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

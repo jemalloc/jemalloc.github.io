@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Define INFINITY when it's not defined
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Define%20INFINITY%20when%20it%27s%20not%20defined&In-Reply-To=%3C1401250486-15087-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000828.html">
+   <LINK REL="Next"  HREF="000829.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Define INFINITY when it's not defined</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Define%20INFINITY%20when%20it%27s%20not%20defined&In-Reply-To=%3C1401250486-15087-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Define INFINITY when it's not defined">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue May 27 21:14:46 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000828.html">[PATCH] Move platform headers and tricks from	jemalloc_internal.h.in to a new jemalloc_internal_decls.h header
+</A></li>
+        <LI>Next message: <A HREF="000829.html">[PATCH] Define INFINITY when it's not defined
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#825">[ date ]</a>
+              <a href="thread.html#825">[ thread ]</a>
+              <a href="subject.html#825">[ subject ]</a>
+              <a href="author.html#825">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ test/unit/math.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/test/unit/math.c b/test/unit/math.c
+index a1b288e..b1b2377 100644
+--- a/test/unit/math.c
++++ b/test/unit/math.c
+@@ -3,6 +3,12 @@
+ #define	MAX_REL_ERR 1.0e-9
+ #define	MAX_ABS_ERR 1.0e-9
+ 
++#include &lt;float.h&gt;
++
++#ifndef INFINITY
++#define INFINITY (DBL_MAX + DBL_MAX)
++#endif
++
+ static bool
+ double_eq_rel(double a, double b, double max_rel_err, double max_abs_err)
+ {
+-- 
+2.0.0.rc2
+
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000828.html">[PATCH] Move platform headers and tricks from	jemalloc_internal.h.in to a new jemalloc_internal_decls.h header
+</A></li>
+	<LI>Next message: <A HREF="000829.html">[PATCH] Define INFINITY when it's not defined
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#825">[ date ]</a>
+              <a href="thread.html#825">[ thread ]</a>
+              <a href="subject.html#825">[ subject ]</a>
+              <a href="author.html#825">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

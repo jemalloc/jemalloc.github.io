@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> memcpy warnings on 3.5.0
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memcpy%20warnings%20on%203.5.0&In-Reply-To=%3C629B268B-4D2D-498F-9A21-12765019AB51%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000725.html">
+   <LINK REL="Next"  HREF="000727.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>memcpy warnings on 3.5.0</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memcpy%20warnings%20on%203.5.0&In-Reply-To=%3C629B268B-4D2D-498F-9A21-12765019AB51%40canonware.com%3E"
+       TITLE="memcpy warnings on 3.5.0">jasone at canonware.com
+       </A><BR>
+    <I>Tue Jan 28 23:00:09 PST 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000725.html">memcpy warnings on 3.5.0
+</A></li>
+        <LI>Next message: <A HREF="000727.html">memcpy warnings on 3.5.0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#726">[ date ]</a>
+              <a href="thread.html#726">[ thread ]</a>
+              <a href="subject.html#726">[ subject ]</a>
+              <a href="author.html#726">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 28, 2014, at 7:49 PM, Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+&gt;<i> are these warnings relevants ?
+</I>&gt;<i> 
+</I>&gt;<i> In function &#8216;memcpy&#8217;,
+</I>&gt;<i>     inlined from &#8216;je_prof_boot0&#8217; at src/prof.c:1289:8:
+</I>&gt;<i> /usr/include/x86_64-linux-gnu/bits/string3.h:51:3: warning: call to __builtin___memcpy_chk will always overflow destination buffer [enabled by default]
+</I>&gt;<i>    return __builtin___memcpy_chk (__dest, __src, __len, __bos0 (__dest));
+</I>&gt;<i>    ^
+</I>&gt;<i> In file included from /usr/include/string.h:638:0,
+</I>&gt;<i>                  from include/jemalloc/internal/jemalloc_internal.h:41,
+</I>&gt;<i>                  from src/prof.c:2:
+</I>&gt;<i> In function &#8216;memcpy&#8217;,
+</I>&gt;<i>     inlined from &#8216;je_prof_boot0&#8217; at src/prof.c:1289:8:
+</I>&gt;<i> /usr/include/x86_64-linux-gnu/bits/string3.h:51:3: warning: call to __builtin___memcpy_chk will always overflow destination buffer [enabled by default]
+</I>&gt;<i>    return __builtin___memcpy_chk (__dest, __src, __len, __bos0 (__dest));
+</I>
+My guess is that you don&#8217;t have heap profiling enabled (&#8212;enable-prof), and that the compiler is complaining about what is effectively dead code.  An easy solution is to protect the memcpy() with a conditional:
+
+	if (config_prof)
+
+I&#8217;ll make a note to do something like this in order to silence the warnings.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000725.html">memcpy warnings on 3.5.0
+</A></li>
+	<LI>Next message: <A HREF="000727.html">memcpy warnings on 3.5.0
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#726">[ date ]</a>
+              <a href="thread.html#726">[ thread ]</a>
+              <a href="subject.html#726">[ subject ]</a>
+              <a href="author.html#726">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

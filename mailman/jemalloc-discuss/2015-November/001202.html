@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Make install broken?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Make%20install%20broken%3F&In-Reply-To=%3CD2611174.7AFD%25bakermb%40ornl.gov%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001203.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Make install broken?</H1>
+    <B>Baker, Matthew B.</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Make%20install%20broken%3F&In-Reply-To=%3CD2611174.7AFD%25bakermb%40ornl.gov%3E"
+       TITLE="Make install broken?">bakermb at ornl.gov
+       </A><BR>
+    <I>Thu Nov  5 11:00:20 PST 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001203.html">Make install broken?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1202">[ date ]</a>
+              <a href="thread.html#1202">[ thread ]</a>
+              <a href="subject.html#1202">[ subject ]</a>
+              <a href="author.html#1202">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello all,
+
+I was building jemalloc from the 4.0.4 tarball and it looks like the 'make install' is broken.
+I do:
+./configure --prefix=$HOME/jemalloc-bin/
+make
+make install
+
+during make install I get this error:
+
+install -m 644 doc/jemalloc.html /ccs/home/bzf/jemalloc-bin/share/doc/jemalloc
+install: cannot stat `doc/jemalloc.html': No such file or directory
+make: *** [install_doc_html] Error 1
+
+It looks like the normal make won't build documentation, but make install will try and install it anyways.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151105/11b3130f/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151105/11b3130f/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001203.html">Make install broken?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1202">[ date ]</a>
+              <a href="thread.html#1202">[ thread ]</a>
+              <a href="subject.html#1202">[ subject ]</a>
+              <a href="author.html#1202">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

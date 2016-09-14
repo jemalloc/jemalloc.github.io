@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Question about bitmap code
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20bitmap%20code&In-Reply-To=%3CFC5A99A3-3490-4F2C-B8EC-CE7B3C9CDE5C%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000502.html">
+   <LINK REL="Next"  HREF="000512.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Question about bitmap code</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Question%20about%20bitmap%20code&In-Reply-To=%3CFC5A99A3-3490-4F2C-B8EC-CE7B3C9CDE5C%40canonware.com%3E"
+       TITLE="Question about bitmap code">jasone at canonware.com
+       </A><BR>
+    <I>Mon Nov  5 10:05:35 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000502.html">Question about bitmap code
+</A></li>
+        <LI>Next message: <A HREF="000512.html">Question about bitmap code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#503">[ date ]</a>
+              <a href="thread.html#503">[ thread ]</a>
+              <a href="subject.html#503">[ subject ]</a>
+              <a href="author.html#503">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 5, 2012, at 3:53 AM, Mitchell Blank Jr wrote:
+&gt;<i> I've been looking through some of the jemalloc code and had a question about bitmap.h.
+</I>&gt;<i> 
+</I>&gt;<i> Testing on a 64-bit machine, the arena bin with the most elements is size=8 with 501 items.  Since a cacheline is commonly 64 bytes = 512 bits, a simpler single-level bitmap would seem to win just on memory effects.
+</I>&gt;<i> 
+</I>&gt;<i> It's not clear to me if its advantageous on a branching basis, at least on 64-bit.  On average you'd need to look at 4 words to find an unused 8-byte entry, and fewer for other size bins.  I guess on a 32-bit platform, it might be a different story.  Still, I wonder if it is worth touching another cache line to avoid the comparisons.
+</I>&gt;<i> 
+</I>&gt;<i> Are there cases where the bitmap code is used for more than 512 items in it?
+</I>
+
+Older versions of jemalloc (2009 and earlier) used a single-level bitmap and also kept track of the lowest/highest indexes at which free regions might be found.  In practice this worked okay, but there are pathological access patterns that can cause n^2 overhead for a series of allocations, so there was always pressure to keep the bitmaps small that was in conflict with other constraints.  You're probably right that for 8-entry bitmaps, the multi-level bitmap code is overkill.  However, there are combinations of heap profiling settings that can cause the bitmap to contain thousands of items.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000502.html">Question about bitmap code
+</A></li>
+	<LI>Next message: <A HREF="000512.html">Question about bitmap code
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#503">[ date ]</a>
+              <a href="thread.html#503">[ thread ]</a>
+              <a href="subject.html#503">[ subject ]</a>
+              <a href="author.html#503">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc for small applications
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20for%20small%20applications&In-Reply-To=%3C20140527071548.GA24330%40dcvr.yhbt.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000819.html">
+   <LINK REL="Next"  HREF="000805.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc for small applications</H1>
+    <B>Eric Wong</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20for%20small%20applications&In-Reply-To=%3C20140527071548.GA24330%40dcvr.yhbt.net%3E"
+       TITLE="jemalloc for small applications">normalperson at yhbt.net
+       </A><BR>
+    <I>Tue May 27 00:15:48 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000819.html">[PATCH] Use a configure test to detect the form of	malloc_usable_size in malloc.h
+</A></li>
+        <LI>Next message: <A HREF="000805.html">jemalloc for small applications
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#804">[ date ]</a>
+              <a href="thread.html#804">[ thread ]</a>
+              <a href="subject.html#804">[ subject ]</a>
+              <a href="author.html#804">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello, I've been using jemalloc 3.6 more on my 64-bit Debian stable
+workstations and notice it uses more memory than eglibc malloc for my
+smaller Ruby daemons.
+
+For example, dtas-player[1] uses 4-5M more memory with jemalloc when
+running on recent ruby-trunk (r46150).  (./configure LIBS=-ljemalloc)
+
+Everything is mostly single-threaded and contention is not an issue, so
+I use MALLOC_CONF=narenas:1 for jemalloc and MALLOC_ARENA_TEST=1
+MALLOC_ARENA_MAX=1 for eglibc.
+
+Is higher memory usage for small apps is inherent in the design and a
+concious tradeoff for bigger apps?
+
+Are there tuning or (preferably) out-of-the-box changes which can be
+made to reduce memory usage for smaller apps?
+
+But probably most development is driven by users of large server
+applications and not crazy music shells like dtas :)
+
+Anyways, my fat Ruby web server is happier on jemalloc :)
+60-80M on eglibc, ~40M on jemalloc (32-bit on a VM, even))
+
+Thanks for jemalloc and for reading!
+
+[1] <A HREF="http://dtas.80x24.org/README">http://dtas.80x24.org/README</A>
+</PRE>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000819.html">[PATCH] Use a configure test to detect the form of	malloc_usable_size in malloc.h
+</A></li>
+	<LI>Next message: <A HREF="000805.html">jemalloc for small applications
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#804">[ date ]</a>
+              <a href="thread.html#804">[ thread ]</a>
+              <a href="subject.html#804">[ subject ]</a>
+              <a href="author.html#804">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

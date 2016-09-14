@@ -1,0 +1,14 @@
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index 268cd14..4cb5bc2 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -270,6 +270,9 @@ static const bool config_ivsalloc =
+ #  ifdef __arm__
+ #    define LG_QUANTUM		3
+ #  endif
++#  ifdef __hppa__
++#    define LG_QUANTUM		4
++#  endif
+ #  ifdef __mips__
+ #    define LG_QUANTUM		3
+ #  endif

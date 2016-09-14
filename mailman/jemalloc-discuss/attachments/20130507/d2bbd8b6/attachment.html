@@ -1,0 +1,73 @@
+<tt>
+&lt;html&gt;&lt;body&gt;<br>
+&lt;p&gt;&lt;font&nbsp;size=&quot;2&quot;&nbsp;face=&quot;sans-serif&quot;&gt;Hey&nbsp;all,&lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;2&quot;&nbsp;face=&quot;sans-serif&quot;&gt;My&nbsp;team&nbsp;is&nbsp;having&nbsp;trouble&nbsp;determining&nbsp;how&nbsp;to&nbsp;address&nbsp;increasing&nbsp;internal&nbsp;fragmentation&nbsp;(sizeable&nbsp;diff&nbsp;b/w&nbsp;Jm&nbsp;allocated&nbsp;and&nbsp;active)&nbsp;for&nbsp;a&nbsp;particular&nbsp;workload.&nbsp;&lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;font&nbsp;size=&quot;2&quot;&nbsp;face=&quot;sans-serif&quot;&gt;We&nbsp;are&nbsp;allocating&nbsp;objects&nbsp;into&nbsp;three&nbsp;small&nbsp;bins&nbsp;(48,&nbsp;320,&nbsp;896).&nbsp;We&nbsp;start&nbsp;with&nbsp;an&nbsp;insertion&nbsp;phase&nbsp;in&nbsp;which&nbsp;we&nbsp;continually&nbsp;allocate&nbsp;&quot;entries&quot;,&nbsp;which&nbsp;are&nbsp;made&nbsp;up&nbsp;of&nbsp;four&nbsp;allocations:&nbsp;2x&nbsp;48-byte&nbsp;objects,&nbsp;1x&nbsp;320&nbsp;obj,&nbsp;and&nbsp;1x&nbsp;896&nbsp;obj.&nbsp;Once&nbsp;we&nbsp;have&nbsp;inserted&nbsp;entries&nbsp;up&nbsp;to&nbsp;a&nbsp;certain&nbsp;threshold,&nbsp;we&nbsp;begin&nbsp;an&nbsp;eviction&nbsp;phase&nbsp;in&nbsp;which&nbsp;we&nbsp;have&nbsp;some&nbsp;threads&nbsp;continuing&nbsp;insertion&nbsp;and&nbsp;another&nbsp;thread&nbsp;freeing&nbsp;320's&nbsp;and&nbsp;896's&nbsp;(not&nbsp;touching&nbsp;the&nbsp;48's).&nbsp;By&nbsp;the&nbsp;end&nbsp;of&nbsp;this&nbsp;run,&nbsp;we&nbsp;observe&nbsp;significant&nbsp;internal&nbsp;fragmentation&nbsp;as&nbsp;demonstrated&nbsp;in&nbsp;the&nbsp;stats&nbsp;below.&nbsp;Is&nbsp;there&nbsp;anything&nbsp;that&nbsp;can&nbsp;be&nbsp;done&nbsp;to&nbsp;mitigate&nbsp;this&nbsp;internal&nbsp;frag?&lt;/font&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;tt&gt;&lt;font&nbsp;size=&quot;1&quot;&gt;Version:&nbsp;3.3.1-0-g9ef9d9e8c271cdf14f664b871a8f98c827714784&lt;br&gt;<br>
+Assertions&nbsp;disabled&lt;br&gt;<br>
+Run-time&nbsp;option&nbsp;settings:&lt;br&gt;<br>
+ &nbsp;opt.abort:&nbsp;false&lt;br&gt;<br>
+ &nbsp;opt.lg_chunk:&nbsp;21&lt;br&gt;<br>
+ &nbsp;opt.dss:&nbsp;&quot;secondary&quot;&lt;br&gt;<br>
+ &nbsp;opt.narenas:&nbsp;96&lt;br&gt;<br>
+ &nbsp;opt.lg_dirty_mult:&nbsp;1&lt;br&gt;<br>
+ &nbsp;opt.stats_print:&nbsp;false&lt;br&gt;<br>
+ &nbsp;opt.junk:&nbsp;false&lt;br&gt;<br>
+ &nbsp;opt.quarantine:&nbsp;0&lt;br&gt;<br>
+ &nbsp;opt.redzone:&nbsp;false&lt;br&gt;<br>
+ &nbsp;opt.zero:&nbsp;false&lt;br&gt;<br>
+CPUs:&nbsp;24&lt;br&gt;<br>
+Arenas:&nbsp;96&lt;br&gt;<br>
+Pointer&nbsp;size:&nbsp;8&lt;br&gt;<br>
+Quantum&nbsp;size:&nbsp;16&lt;br&gt;<br>
+Page&nbsp;size:&nbsp;4096&lt;br&gt;<br>
+Min&nbsp;active:dirty&nbsp;page&nbsp;ratio&nbsp;per&nbsp;arena:&nbsp;2:1&lt;br&gt;<br>
+Chunk&nbsp;size:&nbsp;2097152&nbsp;(2ˆ21)&lt;br&gt;<br>
+Allocated:&nbsp;7574200736,&nbsp;active:&nbsp;8860864512,&nbsp;mapped:&nbsp;9013559296&lt;br&gt;<br>
+Current&nbsp;active&nbsp;ceiling:&nbsp;8963227648&lt;br&gt;<br>
+chunks:&nbsp;nchunks  &nbsp;highchunks   &nbsp;curchunks&lt;br&gt;<br>
+          &nbsp;4553        &nbsp;4298        &nbsp;4298&lt;br&gt;<br>
+huge:&nbsp;nmalloc     &nbsp;ndalloc   &nbsp;allocated&lt;br&gt;<br>
+          &nbsp;16          &nbsp;15    &nbsp;35651584&lt;br&gt;<br>
+&lt;br&gt;<br>
+Merged&nbsp;arenas&nbsp;stats:&lt;br&gt;<br>
+assigned&nbsp;threads:&nbsp;79&lt;br&gt;<br>
+dss&nbsp;allocation&nbsp;precedence:&nbsp;N/A&lt;br&gt;<br>
+dirty&nbsp;pages:&nbsp;2154593:0&nbsp;active:dirty,&nbsp;0&nbsp;sweeps,&nbsp;0&nbsp;madvises,&nbsp;0&nbsp;purged&lt;br&gt;<br>
+           &nbsp;allocated     &nbsp;nmalloc     &nbsp;ndalloc   &nbsp;nrequests&lt;br&gt;<br>
+small:    &nbsp;7515054496    &nbsp;29540988     &nbsp;3552884    &nbsp;29540988&lt;br&gt;<br>
+large:      &nbsp;23494656        &nbsp;1432           &nbsp;0        &nbsp;1432&lt;br&gt;<br>
+total:    &nbsp;7538549152    &nbsp;29542420     &nbsp;3552884    &nbsp;29542420&lt;br&gt;<br>
+active:   &nbsp;8825212928&lt;br&gt;<br>
+mapped:   &nbsp;8973713408&lt;br&gt;<br>
+bins:    &nbsp;bin &nbsp;size&nbsp;regs&nbsp;pgs   &nbsp;allocated     &nbsp;nmalloc     &nbsp;ndalloc     &nbsp;newruns      &nbsp;reruns     &nbsp;curruns&lt;br&gt;<br>
+           &nbsp;0    &nbsp;8 &nbsp;501  &nbsp;1         &nbsp;176          &nbsp;22           &nbsp;0          &nbsp;11           &nbsp;0          &nbsp;11&lt;br&gt;<br>
+[1]&lt;br&gt;<br>
+           &nbsp;2   &nbsp;32 &nbsp;126  &nbsp;1       &nbsp;68448        &nbsp;2187          &nbsp;48          &nbsp;22           &nbsp;0          &nbsp;21&lt;br&gt;<br>
+           &nbsp;3   &nbsp;48  &nbsp;84  &nbsp;1   &nbsp;666243696    &nbsp;13880077           &nbsp;0      &nbsp;165272           &nbsp;0      &nbsp;165272&lt;br&gt;<br>
+[4]&lt;br&gt;<br>
+           &nbsp;5   &nbsp;80  &nbsp;50  &nbsp;1        &nbsp;1760          &nbsp;22           &nbsp;0          &nbsp;11           &nbsp;0          &nbsp;11&lt;br&gt;<br>
+           &nbsp;6   &nbsp;96  &nbsp;84  &nbsp;2        &nbsp;2112          &nbsp;22           &nbsp;0          &nbsp;11           &nbsp;0          &nbsp;11&lt;br&gt;<br>
+[7..12]&lt;br&gt;<br>
+          &nbsp;13  &nbsp;320  &nbsp;63  &nbsp;5  &nbsp;2221154560     &nbsp;8717502     &nbsp;1776394      &nbsp;125156      &nbsp;701794      &nbsp;125156&lt;br&gt;<br>
+[14..18]&lt;br&gt;<br>
+          &nbsp;19  &nbsp;896  &nbsp;45 &nbsp;10  &nbsp;4627583744     &nbsp;6941156     &nbsp;1776442      &nbsp;135776      &nbsp;692084      &nbsp;135774&lt;br&gt;<br>
+[20..27]&lt;br&gt;<br>
+large:  &nbsp;size&nbsp;pages     &nbsp;nmalloc     &nbsp;ndalloc   &nbsp;nrequests     &nbsp;curruns&lt;br&gt;<br>
+[1]&lt;br&gt;<br>
+        &nbsp;8192    &nbsp;2          &nbsp;22           &nbsp;0          &nbsp;22          &nbsp;22&lt;br&gt;<br>
+[1]&lt;br&gt;<br>
+       &nbsp;16384    &nbsp;4        &nbsp;1408           &nbsp;0        &nbsp;1408        &nbsp;1408&lt;br&gt;<br>
+[13]&lt;br&gt;<br>
+       &nbsp;73728   &nbsp;18           &nbsp;1           &nbsp;0           &nbsp;1           &nbsp;1&lt;br&gt;<br>
+[23]&lt;br&gt;<br>
+      &nbsp;172032   &nbsp;42           &nbsp;1           &nbsp;0           &nbsp;1           &nbsp;1&lt;br&gt;<br>
+[467]&lt;br&gt;<br>
+---&nbsp;End&nbsp;jemalloc&nbsp;statistics&nbsp;---&nbsp;&lt;/font&gt;&lt;/tt&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;tt&gt;&lt;font&nbsp;size=&quot;1&quot;&gt;Thanks,&lt;/font&gt;&lt;/tt&gt;&lt;br&gt;<br>
+&lt;tt&gt;&lt;font&nbsp;size=&quot;1&quot;&gt;Thom&lt;/font&gt;&lt;/tt&gt;&lt;/body&gt;&lt;/html&gt;
+</tt>

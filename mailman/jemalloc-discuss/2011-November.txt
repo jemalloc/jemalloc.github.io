@@ -1,0 +1,625 @@
+From ezolt at netapp.com  Tue Nov  1 10:45:42 2011
+From: ezolt at netapp.com (Phillip Ezolt)
+Date: Tue, 1 Nov 2011 13:45:42 -0400
+Subject: ANNOUNCE: GDB 7.2+ pretty printers for jemalloc (FreeBSD version)
+Message-ID: <C337F1B9-EE0D-450C-9D60-8AF29A23FEBB@netapp.com>
+
+Hi All, 
+  At Netapp, we use a modified version of FreeBSD for our user-space environment. 
+
+We've hit a bunch OOM problems where we ONLY have a core... Solving them USED to be
+like wandering around in the dark... so I wrote some GDB pythons pretty printers to walk the heap and give breakdowns of how memory is used + 
+do some basic analysis of each piece of memory. 
+
+Those macros are attached and work on both cores & live processes on both FreeBSD and 'jemlloc_linux' version of jemalloc under linux. (32-bit/64-bit both work.)
+
+Comments:
+1) These macros are released under the same license as jemalloc. 
+
+2) They (currently) only support the jemalloc datastrutures of the FreeBSD  version of jemalloc included in 7.X and 8.X FreeBSD
+   ===>   (I haven't updated this to the latest jemalloc-2.X yet.)  <====
+
+3) I have unit-tests to verify that program allocations and gdb reported allocations match. 
+
+   (If you're interested, we should figure how to integrate this with the jemalloc distribution.) 
+
+4) Fwiw.. These can be extended. 
+
+  The internal functions can retrieve pointers to EVERY in-use piece of memory allocated through jemalloc. 
+   RIght now, I use that to create the summary chart.  Also, I can do some rudimentary analysis. (Is it a string?)    
+   But.. motivated people could search for OTHER important data-structures.. 
+
+To Try on linux: 
+1) Build linux-jemalloc.
+2) load gdb-enabled python with 'env LD_PRELOAD=../libjemalloc.so.0  gdb7.2 -q -x heap.py <YOUR APP>' (*)
+3) run
+4) br and type 'heap'  
+
+Help: 
+(ugdb-amd64-7.2-02)help heap
+Show heap utilization for user-space cores and processes (BETA)
+
+       The code walks jemalloc heap datastructures to determine heap usage.
+
+       It splits the memory usage into buckets by size.
+
+       BETA: It is very memory intensive and can cause gdb to core.
+
+       Example:
+       (ugdb-amd64-7.2-02) heap
+
+       FreeBSD Heap Analysis
+       ---------------------
+       Searching process virtual address space for 'chunks' of the heap... DONE.
+
+       Calculating memory usage for 'chunks' in 5 heap arenas:
+         Walking Arena  0 (0x898f78) with   2 'chunks'...  DONE.
+         Walking Arena  1 (0x89a6f8) with   0 'chunks'...  DONE.
+         Walking Arena  2 (0x89b278) with   0 'chunks'...  DONE.
+         Walking Arena  3 (0x899b78) with  19 'chunks'...  DONE.
+         Walking Arena  4 (0x89bdf8) with   0 'chunks'...  DONE.
+
+         Heap allocation distribution (by size)
+         =================================================
+           2 bytes *         96 allocs ( 0%) =           192 bytes ( 0%)
+           4 bytes *         84 allocs ( 0%) =           336 bytes ( 0%)
+           8 bytes *       2544 allocs ( 1%) =         20352 bytes ( 0%)
+          16 bytes *       9569 allocs ( 4%) =        153104 bytes ( 0%)
+          32 bytes *      47567 allocs (20%) =       1522144 bytes ( 9%)
+          ...
+           ^                    ^        ^               ^            ^
+           |                    |        |               |            |
+          Bin Size       Num allocs    % all allocs  Total Bytes   % of total bytes
+
+       Paper describing jemalloc: http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf
+       More jemalloc details: http://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919
+
+       'heap    stats [size]' => (default) Dump information about how the heap is used.
+       'heap     dump [size]' => Write all of the memory to appropriately sized files.
+       'heap  analyze [size]' => Try to the determine (and print) the objects located at the allocated memory.
+       'heap  examine [size]' => Examine region as if it was a bunch of pointers. (ie. 'x /2a 0xdeadbeef')
+
+...
+
+Hope you enjoy! 
+
+(FWIW.  Here's an example running a gnome app, FWIW: 'env LD_PRELOAD=../libjemalloc.so.0 gdb7.2 -q -x /u/ezolt,spin/heap.py gedit') 
+
+
+[ezolt at cyclptc11 test]$ env LD_PRELOAD=../libjemalloc.so.0 gdb7.2 -q -x /u/ezolt,spin/heap.py gedit
+Reading symbols from /usr/bin/gedit...(no debugging symbols found)...done.
+(gdb) run
+Starting program: /usr/bin/gedit 
+[Thread debugging using libthread_db enabled]
+
+Program received signal SIGTSTP, Stopped (user).
+0x00000038104cae0f in poll () from /lib64/libc.so.6
+(gdb) heap
+
+Jemalloc Heap Analysis
+----------------------
+Searching process virtual address space for 'chunks' of the heap... DONE.
+
+Calculating memory usage details for each 'chunks' in 1 heap arenas: 
+  Walking Arena  0 (0x2aaaaacb9040) with  11 'chunks'...  DONE.
+  Walking global 'Huge' allocations...  DONE.
+
+Heap allocation distribution (by size)
+=================================================
+       2 bytes *        276 allocs ( 0%) =           552 bytes ( 0%) 
+       4 bytes *        513 allocs ( 1%) =         2,052 bytes ( 0%) 
+       8 bytes *      1,458 allocs ( 4%) =        11,664 bytes ( 0%) 
+      16 bytes *      5,493 allocs (15%) =        87,888 bytes ( 0%) 
+      32 bytes *     12,237 allocs (34%) =       391,584 bytes ( 4%) 
+      48 bytes *      4,061 allocs (11%) =       194,928 bytes ( 2%) 
+      64 bytes *      4,076 allocs (11%) =       260,864 bytes ( 2%) 
+      80 bytes *      1,282 allocs ( 3%) =       102,560 bytes ( 1%) 
+      96 bytes *        596 allocs ( 1%) =        57,216 bytes ( 0%) 
+     112 bytes *        185 allocs ( 0%) =        20,720 bytes ( 0%) 
+     128 bytes *        119 allocs ( 0%) =        15,232 bytes ( 0%) 
+     192 bytes *        433 allocs ( 1%) =        83,136 bytes ( 0%) 
+     256 bytes *        283 allocs ( 0%) =        72,448 bytes ( 0%) 
+     320 bytes *      1,217 allocs ( 3%) =       389,440 bytes ( 4%) 
+     384 bytes *         73 allocs ( 0%) =        28,032 bytes ( 0%) 
+     448 bytes *         47 allocs ( 0%) =        21,056 bytes ( 0%) 
+     512 bytes *      1,210 allocs ( 3%) =       619,520 bytes ( 6%) 
+     768 bytes *        670 allocs ( 1%) =       514,560 bytes ( 5%) 
+    1024 bytes *        655 allocs ( 1%) =       670,720 bytes ( 6%) 
+    1280 bytes *         42 allocs ( 0%) =        53,760 bytes ( 0%) 
+    1536 bytes *         19 allocs ( 0%) =        29,184 bytes ( 0%) 
+    1792 bytes *         23 allocs ( 0%) =        41,216 bytes ( 0%) 
+    2048 bytes *         80 allocs ( 0%) =       163,840 bytes ( 1%) 
+    2304 bytes *         10 allocs ( 0%) =        23,040 bytes ( 0%) 
+    2560 bytes *         14 allocs ( 0%) =        35,840 bytes ( 0%) 
+    2816 bytes *          4 allocs ( 0%) =        11,264 bytes ( 0%) 
+    3072 bytes *        128 allocs ( 0%) =       393,216 bytes ( 4%) 
+    3328 bytes *          1 allocs ( 0%) =         3,328 bytes ( 0%) 
+    3584 bytes *          6 allocs ( 0%) =        21,504 bytes ( 0%) 
+    3840 bytes *          1 allocs ( 0%) =         3,840 bytes ( 0%) 
+    4096 bytes *         42 allocs ( 0%) =       172,032 bytes ( 1%) 
+---Type <return> to continue, or q <return> to quit---
+    8192 bytes *         34 allocs ( 0%) =       278,528 bytes ( 2%) 
+   12288 bytes *         50 allocs ( 0%) =       614,400 bytes ( 6%) 
+   16384 bytes *         16 allocs ( 0%) =       262,144 bytes ( 2%) 
+   20480 bytes *          1 allocs ( 0%) =        20,480 bytes ( 0%) 
+   24576 bytes *          1 allocs ( 0%) =        24,576 bytes ( 0%) 
+   28672 bytes *          1 allocs ( 0%) =        28,672 bytes ( 0%) 
+   45056 bytes *          2 allocs ( 0%) =        90,112 bytes ( 0%) 
+   49152 bytes *          3 allocs ( 0%) =       147,456 bytes ( 1%) 
+   65536 bytes *         10 allocs ( 0%) =       655,360 bytes ( 6%) 
+   98304 bytes *          1 allocs ( 0%) =        98,304 bytes ( 1%) 
+  262144 bytes *          8 allocs ( 0%) =     2,097,152 bytes (21%) 
+  786432 bytes *          1 allocs ( 0%) =       786,432 bytes ( 8%) 
+
+Heap: 35,382 allocs (9,599,852 bytes) 
+Total VM allocated by heap: 11,534,336 bytes (In-use by application: 9,599,852)
+(gdb) quit
+A debugging session is active.
+
+	Inferior 1 [process 7804] will be killed.
+
+Quit anyway? (y or n) y   
+
+Cheers,
+--Phil
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: heap.py
+Type: text/x-python-script
+Size: 52478 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment.bin>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111101/c5136ad0/attachment-0001.html>
+
+From jasone at canonware.com  Tue Nov  1 22:31:03 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 01 Nov 2011 22:31:03 -0700
+Subject: jemalloc shell wrapper
+In-Reply-To: <4EA53724.2010305@daylessday.org>
+References: <4E96797C.7090707@daylessday.org>
+	<A6B929DD-8E07-45B2-B3ED-E6DC96204684@canonware.com>
+	<4EA53724.2010305@daylessday.org>
+Message-ID: <4EB0D597.1040708@canonware.com>
+
+On 10/24/2011 03:00 AM, Antony Dovgal wrote:
+> On 10/20/2011 03:00 AM, Jason Evans wrote:
+>> On Oct 12, 2011, at 10:39 PM, Antony Dovgal wrote:
+>>> Hello all.
+>>>
+>>> I'd like to propose a small patch that adds an autogenerated shell
+>>> script wrapper for jemalloc.
+>>> The resulting script is installed into bin/ and uses LD_PRELOAD to
+>>> load jemalloc lib.
+>>> See the patch attached.
+>>
+>> This seems like a reasonable addition, though it needs to do something
+>> different on OS X (DYLD_INSERT_LIBRARIES?).
+>> If you have the time and hardware to test a solution for OS X as well,
+>> that would be much appreciated.
+>> Otherwise I'll add this to my todo list for the next minor release.
+>
+> Ok, here is the improved and tested version of the patch.
+
+Applied (with some minor tweaks).  Thanks!
+
+Jason
+
+
+From jasone at canonware.com  Thu Nov  3 19:37:58 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 03 Nov 2011 19:37:58 -0700
+Subject: Question about pthread_getspecific with jemalloc
+In-Reply-To: <BANLkTi=mrik+ypCcqbbBork+nptn3NEj6w@mail.gmail.com>
+References: <BANLkTi=OA+OYO=ji2XkKFh8HmSfzCo_tpg@mail.gmail.com>
+	<BANLkTi=mrik+ypCcqbbBork+nptn3NEj6w@mail.gmail.com>
+Message-ID: <4EB35006.6030102@canonware.com>
+
+On 06/14/2011 02:13 PM, Ethan Burns wrote:
+> On Tue, Jun 14, 2011 at 1:48 PM, Ethan Burns<burns.ethan at gmail.com>  wrote:
+>> I am experiencing strange behavior with pthread_getspecific when I
+>> link with jemalloc.  What happens is, after calling malloc(), the
+>> value of one of my keys seems to change out from under me.  Here is a
+>> small example that demonstrates this:
+>> http://itsapad.appspot.com/fancy/6.  I am using jemalloc-2.2.1 on
+>> Linux.  If I compile the example with gcc (ver 4.4.3) using the
+>> following command: 'gcc -lpthread main.c' then both calls to
+>> pthread_getspecific return a NULL pointer as expected.  When I link
+>> with jemalloc, however, ('gcc -ljemalloc -lpthread main.c') then the
+>> second call to pthread_getspecific returns some non-NULL value.  Is
+>> this a known bug or am I doing something wrong?
+>
+> I have done a bit of digging.  It looks like the call to the macro
+> ARENA_SET on src/jemalloc.c:794 calls pthread_setspecific on the
+> arenas_tsd key before the key is actually created on
+> src/jemalloc.c:800.  The attached patch seems to fix the problem.  I
+> am not familiar with the code so I am not really sure that this patch
+> doesn't introduce a new bug but if so, I didn't hit it.
+>
+> Ethan
+
+Thanks for the report (from you and others).  Apologies for letting this 
+sit for so long.  This is fixed in the dev branch now, and I plan to 
+release 2.2.4 this week.
+
+Jason
+
+
+From dcreager at dcreager.net  Fri Nov  4 08:56:52 2011
+From: dcreager at dcreager.net (Douglas Creager)
+Date: Fri, 4 Nov 2011 11:56:52 -0400
+Subject: Mac OS X Lion support
+Message-ID: <F5004AC2-5984-4D31-862A-B558DF26CACE@dcreager.net>
+
+Hello all,
+
+The current dev branch of standalone jemalloc crashes on Mac OS X Lion.  I noticed that it looks like Mozilla's copy of jemalloc supports Lion:
+
+https://bugzilla.mozilla.org/show_bug.cgi?id=694896
+
+I've extracted out (what I think are) the relevant changes and applied them to the standalone jemalloc (patch attached).  Using the jemalloc.sh script, it "seems to work" for me with a handful of command-line apps on my Lion box.  I've noticed a couple of the Mozilla developers on this list; I'd appreciate a look through the patch to make sure I didn't leave out anything important.
+
+https://github.com/dcreager/jemalloc/commit/ca8c2659785bc06b572d05f9cf688ba8e991d7e2
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-Update-jemalloc-to-work-on-Mac-OS-X-Lion.patch
+Type: application/octet-stream
+Size: 12281 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111104/af5ae3cf/attachment.obj>
+-------------- next part --------------
+
+
+cheers
+?doug
+
+From justin.lebar at gmail.com  Fri Nov  4 09:08:08 2011
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Fri, 4 Nov 2011 12:08:08 -0400
+Subject: Mac OS X Lion support
+In-Reply-To: <F5004AC2-5984-4D31-862A-B558DF26CACE@dcreager.net>
+References: <F5004AC2-5984-4D31-862A-B558DF26CACE@dcreager.net>
+Message-ID: <CAFWcpZ4SAfWOHKHejHg9eL23UXSZkhyX5Kj78kZdxhX5qmeqCw@mail.gmail.com>
+
+It looks like you're setting JEMALLOC_ZONE_VERSION as a compile-time
+constant?  Unless you never intend to run the program on a system
+other than the one it was compiled on, I don't think this will work.
+
+On Fri, Nov 4, 2011 at 11:56 AM, Douglas Creager <dcreager at dcreager.net> wrote:
+> Hello all,
+>
+> The current dev branch of standalone jemalloc crashes on Mac OS X Lion. ?I noticed that it looks like Mozilla's copy of jemalloc supports Lion:
+>
+> https://bugzilla.mozilla.org/show_bug.cgi?id=694896
+>
+> I've extracted out (what I think are) the relevant changes and applied them to the standalone jemalloc (patch attached). ?Using the jemalloc.sh script, it "seems to work" for me with a handful of command-line apps on my Lion box. ?I've noticed a couple of the Mozilla developers on this list; I'd appreciate a look through the patch to make sure I didn't leave out anything important.
+>
+> https://github.com/dcreager/jemalloc/commit/ca8c2659785bc06b572d05f9cf688ba8e991d7e2
+>
+>
+>
+>
+> cheers
+> ?doug
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+
+
+From paul.biggar at gmail.com  Fri Nov  4 10:32:44 2011
+From: paul.biggar at gmail.com (Paul Biggar)
+Date: Fri, 4 Nov 2011 10:32:44 -0700
+Subject: Mac OS X Lion support
+In-Reply-To: <F5004AC2-5984-4D31-862A-B558DF26CACE@dcreager.net>
+References: <F5004AC2-5984-4D31-862A-B558DF26CACE@dcreager.net>
+Message-ID: <CACEyc8L3CSFDbo4fFsNRWSdx9Fu0OGy13MJoJ+S0tSBstFzrrA@mail.gmail.com>
+
+On Fri, Nov 4, 2011 at 08:56, Douglas Creager <dcreager at dcreager.net> wrote:
+> https://bugzilla.mozilla.org/show_bug.cgi?id=694896
+
+The fix from bug 694896 relies on a few others. I'm not sure if you've
+taken them into account, but
+I don't think so from looking at the commit. In particular, as Justin
+syas, it seems that you're not dynamically choosing the correct
+implementation for the version of OSX your program runs on.
+
+You should check out recent commits to the mozilla codebase, going
+back to revision 2b2f584dc5fd. See
+http://hg.mozilla.org/mozilla-central/log/e6893e6c883f/memory/jemalloc/jemalloc.c.
+
+Paul
+
+-- 
+Paul Biggar
+paulbiggar.com
+@paulbiggar
+
+
+From dcreager at dcreager.net  Fri Nov  4 12:05:53 2011
+From: dcreager at dcreager.net (Douglas Creager)
+Date: Fri, 4 Nov 2011 15:05:53 -0400
+Subject: Mac OS X Lion support
+In-Reply-To: <CAFWcpZ4SAfWOHKHejHg9eL23UXSZkhyX5Kj78kZdxhX5qmeqCw@mail.gmail.com>
+References: <F5004AC2-5984-4D31-862A-B558DF26CACE@dcreager.net>
+	<CAFWcpZ4SAfWOHKHejHg9eL23UXSZkhyX5Kj78kZdxhX5qmeqCw@mail.gmail.com>
+Message-ID: <6DFC2BD5-7352-4DE9-BC62-B84269C9F094@dcreager.net>
+
+> It looks like you're setting JEMALLOC_ZONE_VERSION as a compile-time
+> constant?  Unless you never intend to run the program on a system
+> other than the one it was compiled on, I don't think this will work.
+
+Yep, but that's what the standalone jemalloc was already doing previously.  The current dev branch (and the 2.2.3 release) do the configure-time check, and build a libjemalloc.dylib that only works on the current system.  I assumed that it's a configure-time check for a reason, so I kept it that way.
+
+?doug
+
+From dcreager at dcreager.net  Fri Nov  4 12:06:37 2011
+From: dcreager at dcreager.net (Douglas Creager)
+Date: Fri, 4 Nov 2011 15:06:37 -0400
+Subject: Mac OS X Lion support
+In-Reply-To: <CACEyc8L3CSFDbo4fFsNRWSdx9Fu0OGy13MJoJ+S0tSBstFzrrA@mail.gmail.com>
+References: <F5004AC2-5984-4D31-862A-B558DF26CACE@dcreager.net>
+	<CACEyc8L3CSFDbo4fFsNRWSdx9Fu0OGy13MJoJ+S0tSBstFzrrA@mail.gmail.com>
+Message-ID: <8CB94057-4E20-4431-8175-4E09D9A7CFAD@dcreager.net>
+
+> The fix from bug 694896 relies on a few others. I'm not sure if you've
+> taken them into account, but
+> I don't think so from looking at the commit. In particular, as Justin
+> syas, it seems that you're not dynamically choosing the correct
+> implementation for the version of OSX your program runs on.
+> 
+> You should check out recent commits to the mozilla codebase, going
+> back to revision 2b2f584dc5fd. See
+> http://hg.mozilla.org/mozilla-central/log/e6893e6c883f/memory/jemalloc/jemalloc.c.
+
+Okay, I'll take a look at those.
+
+?doug
+
+From paul.biggar at gmail.com  Fri Nov  4 12:21:04 2011
+From: paul.biggar at gmail.com (Paul Biggar)
+Date: Fri, 4 Nov 2011 12:21:04 -0700
+Subject: Mac OS X Lion support
+In-Reply-To: <6DFC2BD5-7352-4DE9-BC62-B84269C9F094@dcreager.net>
+References: <F5004AC2-5984-4D31-862A-B558DF26CACE@dcreager.net>
+	<CAFWcpZ4SAfWOHKHejHg9eL23UXSZkhyX5Kj78kZdxhX5qmeqCw@mail.gmail.com>
+	<6DFC2BD5-7352-4DE9-BC62-B84269C9F094@dcreager.net>
+Message-ID: <CACEyc8KTaX3-FjDkWj6Ydn1rAgvXs6zjLu==r5B=wwvDcBwcQQ@mail.gmail.com>
+
+On Fri, Nov 4, 2011 at 12:05, Douglas Creager <dcreager at dcreager.net> wrote:
+>> It looks like you're setting JEMALLOC_ZONE_VERSION as a compile-time
+>> constant? ?Unless you never intend to run the program on a system
+>> other than the one it was compiled on, I don't think this will work.
+>
+> Yep, but that's what the standalone jemalloc was already doing previously. ?The current dev branch (and the 2.2.3 release) do the configure-time check, and build a libjemalloc.dylib that only works on the current system. ?I assumed that it's a configure-time check for a reason, so I kept it that way.
+
+The configure time check is older than the dynamic check. It causes
+crashes when the version compiled for is not the version used at
+run-time (eg compile with Snow Leopard SDK, run on Lion).
+
+Paul
+
+
+-- 
+Paul Biggar
+paulbiggar.com
+@paulbiggar
+
+
+From jasone at canonware.com  Sat Nov  5 18:41:26 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 05 Nov 2011 18:41:26 -0700
+Subject: Iterating over DSS
+In-Reply-To: <4EA92142.4070702@yandex.ru>
+References: <4EA92142.4070702@yandex.ru>
+Message-ID: <4EB5E5C6.9080503@canonware.com>
+
+On 10/27/2011 02:15 AM, Dmitry Antipov wrote:
+> is there a method to iterate over DSS heap and find all used/free regions?
+> (I'm trying to see how much my DSS heap is fragmented). I.e. I would
+> like to
+> do something like:
+>
+> void *ptr;
+> size_t size;
+>
+> malloc_mutex_lock(&dss_mtx);
+> ptr = dss_base;
+> fprintf(stderr, "DSS start: %p\n", ptr);
+>
+> while (ptr < dss_prev) {
+> if (ptr_is_a_pointer_to_allocated_block) { /* How to check this ? */
+> size = ivsalloc(ptr);
+> fprintf(stderr, "used: %p..%p\n", ptr, ptr + size);
+> } else
+> ptr = (char *)ptr + sizeof (void *);
+> }
+>
+> fprintf(stderr, "DSS end: %p\n", dss_prev);
+> malloc_mutex_unlock(&dss_mtx);
+
+jemalloc doesn't currently maintain the data structures necessary to 
+iterate over all allocated objects.  If all runs within a chunk are 
+completely full, then there is no way to find the chunk header, other 
+than to start with a pointer to one of the allocated objects within the 
+chunk.  Consider that jemalloc needs to be able to find unused space, 
+but it never needs to introspect used space unless it already has some 
+context to work in (freeing an existing object, expanding one, 
+allocating an available region, etc.).  Several years ago jemalloc had 
+the ability to iterate over allocated objects, but in practice it's 
+rarely useful, and supporting it entails extra overhead, so I ripped the 
+code out.
+
+If you want to modify jemalloc to make iteration possible, I suggest 
+enabling the rtree (radix tree) code and adding iterator functionality, 
+so that you can find all the extant chunks.  Then you will need to write 
+code that iterates over each chunk.  arena_chunk_purge() may give you 
+some idea of how to iterate over chunks, though you will have to write 
+custom code to iterate over small runs.
+
+There are alternatives to consider.  The easiest is to use the 
+statistics that jemalloc maintains if --enable-stats is specified at 
+configuration time.  Somewhat more difficult is to create your own 
+malloc wrapper and either log all allocation activity, or build up 
+metadata that allow you to iterate over allocated objects.  I've done 
+both of these things at various times (and even had log-based graphing 
+tools based on jemalloc), but these approaches tend not to scale well 
+for large or long-lived applications, so I stopped maintaining these 
+tools once I had a good feel for the fragmentation characteristics of 
+jemalloc's layout policies.
+
+Jason
+
+
+From prohaska at tokutek.com  Mon Nov  7 10:20:29 2011
+From: prohaska at tokutek.com (Rich Prohaska)
+Date: Mon, 7 Nov 2011 13:20:29 -0500
+Subject: huge realloc problem with multiple threads
+Message-ID: <CAL5sXW4hYss-6su7pdhHKnuyDhmep=nGGDrBZ=pzHcgQzbK1qA@mail.gmail.com>
+
+there is a race in the jemalloc implementation of huge realloc's. the code
+mremap's without holding a lock, and then removes the old address from the
+extent tree. the mremap makes the old address available for mmap, thus
+allowing another thread to get its hands on the old address before the
+first thread is done with it.
+
+the attached test program will hit an assert in the red black tree after a
+while when jemalloc is configured with debug enabled.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111107/7f2c392c/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: realloctest.c
+Type: text/x-csrc
+Size: 636 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111107/7f2c392c/attachment.c>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: Makefile
+Type: application/octet-stream
+Size: 266 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111107/7f2c392c/attachment.obj>
+
+From prohaska at tokutek.com  Wed Nov  9 05:05:04 2011
+From: prohaska at tokutek.com (Rich Prohaska)
+Date: Wed, 9 Nov 2011 08:05:04 -0500
+Subject: huge realloc problem with multiple threads
+Message-ID: <CAL5sXW7s4KR=feKBj9M17TGn9HsMsfvgjq2REdz__F3kSdZYTg@mail.gmail.com>
+
+the huge realloc protocol is:
+
+   1. allocate address space with mmap.
+   2. add the new space to the huge extent tree.
+   3. remap the old pages to the new address space with mremap.  this avoid
+   a copy.
+   4. remove the old address space from the huge extent tree.
+
+the problem occurs when the old address space becomes free during step 3.
+ another thread executing this protocol can get this address during the
+mmap in step 1.  then we have a race between the first thread removing the
+space in step 4 and the second thread adding the space in step 2.
+
+i switched the order of steps 3 and 4 to solve the problem in the
+huge_ralloc function.  i moved the huge_dalloc call to before the mremap
+call.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20111109/7fbfc124/attachment.html>
+
+From jasone at canonware.com  Wed Nov  9 12:03:25 2011
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 09 Nov 2011 12:03:25 -0800
+Subject: huge realloc problem with multiple threads
+In-Reply-To: <CAL5sXW7s4KR=feKBj9M17TGn9HsMsfvgjq2REdz__F3kSdZYTg@mail.gmail.com>
+References: <CAL5sXW7s4KR=feKBj9M17TGn9HsMsfvgjq2REdz__F3kSdZYTg@mail.gmail.com>
+Message-ID: <4EBADC8D.6010409@canonware.com>
+
+On 11/09/2011 05:05 AM, Rich Prohaska wrote:
+> the huge realloc protocol is:
+>
+>    1. allocate address space with mmap.
+>    2. add the new space to the huge extent tree.
+>    3. remap the old pages to the new address space with mremap.  this
+>       avoid a copy.
+>    4. remove the old address space from the huge extent tree.
+>
+> the problem occurs when the old address space becomes free during step
+> 3.  another thread executing this protocol can get this address during
+> the mmap in step 1.  then we have a race between the first thread
+> removing the space in step 4 and the second thread adding the space in
+> step 2.
+>
+> i switched the order of steps 3 and 4 to solve the problem in the
+> huge_ralloc function.  i moved the huge_dalloc call to before the mremap
+> call.
+
+I just committed a fix that is as you describe.  Thanks for the detailed 
+report, test, and suggested fix!  In a strange coincidence, a coworker 
+started seeing this same failure yesterday, so you saved me some serious 
+head scratching.
+
+Jason
+
+
+From ingvar at redpill-linpro.com  Mon Nov 21 04:01:40 2011
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Mon, 21 Nov 2011 13:01:40 +0100 (CET)
+Subject: jemalloc 2.2.5 released
+In-Reply-To: <4EC1C0B5.6040606@canonware.com>
+Message-ID: <f45bac3d-7d01-4d24-a59a-629fe7172a21@claudius.linpro.no>
+
+I recently submitted jemalloc-2.2.5 for fedora and epel6.
+
+Because of som ppc specific lacking functionality, jemalloc is still
+not updated for for epel5. epel5 supports ppc/ppc64 and needs those
+fixed to get a working update. For details, see Jason's answer at
+http://www.canonware.com/pipermail/jemalloc-discuss/2011-April/000015.html
+As stated before, I have access to 32 and 64 bit ppc hardware, and
+would be happy to test that if the code appears.
+
+Because of this, I have compiled x86_64 and i386 packages of
+jemalloc-2.2.5 for rhel5 and clones. The packages are available here:
+
+http://users.linpro.no/ingvar/jemalloc/2.2.5/el5/
+
+Updated packages for epel6 and fedora 14-16 and rawhide are built in
+fedora koji. They are submitted to bodhi, and will trickle down to
+their respective test (and later stable) repos in a few days.
+
+Ingvar
+
+
+From ingvar at redpill-linpro.com  Mon Nov 21 04:21:06 2011
+From: ingvar at redpill-linpro.com (Ingvar Hagelund)
+Date: Mon, 21 Nov 2011 13:21:06 +0100 (CET)
+Subject: jemalloc on ppc32: Missing implementation for 32-bit
+	atomic	operations
+In-Reply-To: <1570525933.217370.1303238703026.JavaMail.root@claudius.linpro.no>
+Message-ID: <53f53ee2-7a1b-4fac-bbb8-c8c22c0ff52e@claudius.linpro.no>
+
+* Jason wrote, some time back in April that
+> > gcc added intrinsics for atomic operations sometime in the 4.x
+> > series (4.4.x certainly has them), which jemalloc tries to use
+> > (...)
+> > so chances are that you are using a newer compiler on the ppc64
+> > system than on the 32-bit system.
+
+As announced elsewhere, I did a build of jemalloc-2.2.5 for rhel5
+(epel5) today. This is still a problem on rhel5/ppc.
+
+Default gcc for rhel5 is 4.1.2 (with som redhat specific patches, of course)
+
+Ingvar
+
+

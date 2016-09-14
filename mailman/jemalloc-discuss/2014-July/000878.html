@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> crash on je_arena_dalloc_bin_locked
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20crash%20on%20je_arena_dalloc_bin_locked&In-Reply-To=%3CCAMAQheN%2B0RtWJh0OPJDNjWC39%3D2gCYz7M5JBLLbrzpFXugJSiA%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000876.html">
+   <LINK REL="Next"  HREF="000879.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>crash on je_arena_dalloc_bin_locked</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20crash%20on%20je_arena_dalloc_bin_locked&In-Reply-To=%3CCAMAQheN%2B0RtWJh0OPJDNjWC39%3D2gCYz7M5JBLLbrzpFXugJSiA%40mail.gmail.com%3E"
+       TITLE="crash on je_arena_dalloc_bin_locked">edsiper at gmail.com
+       </A><BR>
+    <I>Wed Jul  9 09:19:33 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000876.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+        <LI>Next message: <A HREF="000879.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#878">[ date ]</a>
+              <a href="thread.html#878">[ thread ]</a>
+              <a href="subject.html#878">[ subject ]</a>
+              <a href="author.html#878">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Wed, Jul 9, 2014 at 8:44 AM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+&gt;<i> On Jul 8, 2014, at 1:28 PM, Eduardo Silva &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">edsiper at gmail.com</A>&gt; wrote:
+</I>&gt;&gt;<i> i am using jemalloc as part of our web services framework stack and
+</I>&gt;&gt;<i> running on high loads (after every 6 hours of work) i find common
+</I>&gt;&gt;<i> segfaults like the one described here.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> It was triggered on je_arena_dalloc_bin_locked(..). Do you have some
+</I>&gt;&gt;<i> idea that what can be causing the problem ?
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> (gdb) bt
+</I>&gt;&gt;<i> #0  0x00007f50eab23425 in __GI_raise (sig=&lt;optimized out&gt;) at
+</I>&gt;&gt;<i> ../nptl/sysdeps/unix/sysv/linux/raise.c:64
+</I>&gt;&gt;<i> #1  0x00007f50eab26b8b in __GI_abort () at abort.c:91
+</I>&gt;&gt;<i> #2  0x000000000040d232 in mk_signal_handler (signo=11,
+</I>&gt;&gt;<i> si=0x7f50de7f96f0, context=0x7f50de7f95c0) at mk_signals.c:108
+</I>&gt;&gt;<i> #3  &lt;signal handler called&gt;
+</I>&gt;&gt;<i> #4  je_arena_dalloc_bin_locked (arena=0x7f50ea409240,
+</I>&gt;&gt;<i> chunk=0x7f50e4c00000, ptr=&lt;optimized out&gt;, mapelm=&lt;optimized out&gt;) at
+</I>&gt;&gt;<i> src/arena.c:1897
+</I>&gt;<i>
+</I>&gt;<i> This looks like a crash due to a double-freed region being flushed from the thread cache.  You may be able to find the actual source of the problem if you use a debug build of jemalloc and disable thread caching (MALLOC_CONF=tcache:false).
+</I>
+thanks, working on that.
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000876.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+	<LI>Next message: <A HREF="000879.html">crash on je_arena_dalloc_bin_locked
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#878">[ date ]</a>
+              <a href="thread.html#878">[ thread ]</a>
+              <a href="subject.html#878">[ subject ]</a>
+              <a href="author.html#878">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

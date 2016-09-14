@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Bug in chunk allocation
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bug%20in%20chunk%20allocation&In-Reply-To=%3CCANtHk4%3D1qyB%3DMNh0oOeKjD2Gqtzw2%3DV1xH4eQ4Cv45PMfqn13Q%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001114.html">
+   <LINK REL="Next"  HREF="001116.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Bug in chunk allocation</H1>
+    <B>Christopher Ferris</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Bug%20in%20chunk%20allocation&In-Reply-To=%3CCANtHk4%3D1qyB%3DMNh0oOeKjD2Gqtzw2%3DV1xH4eQ4Cv45PMfqn13Q%40mail.gmail.com%3E"
+       TITLE="Bug in chunk allocation">cferris at google.com
+       </A><BR>
+    <I>Mon Jun  8 14:15:53 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001114.html">interpretation of malloc_stats_print() output
+</A></li>
+        <LI>Next message: <A HREF="001116.html">Bug in chunk allocation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1115">[ date ]</a>
+              <a href="thread.html#1115">[ thread ]</a>
+              <a href="subject.html#1115">[ subject ]</a>
+              <a href="author.html#1115">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Recently, it appears that there was a bug introduced in chunk allocation.
+The bug is exposed by this small snippet of code:
+
+  void* mem = malloc(128*1024*1024);
+  printf(&quot;mem address %p\n&quot;, mem);
+  free(mem);
+  void* large_alloc = malloc(0x80000081UL);
+  printf(&quot;large mem %p\n&quot;, large_alloc);
+  free(large_alloc);
+
+It looks like the bug is in the chunk_recycle code, in this piece of code:
+
+        if (new_addr != NULL) {
+                extent_node_t key;
+                extent_node_init(&amp;key, arena, new_addr, alloc_size, false);
+                node = extent_tree_ad_search(chunks_ad, &amp;key);
+        } else {
+                node = chunk_first_fit(arena, chunks_szad, chunks_ad,
+                    alloc_size);
+        }
+        if (node == NULL || (new_addr != NULL &amp;&amp; extent_node_size_get(node)
+&lt;
+            size)) {
+                malloc_mutex_unlock(&amp;arena-&gt;chunks_mtx);
+                return (NULL);
+        }
+
+The problem is that new_addr == NULL, so the size check is not performed.
+In my testing, removing the new_addr != NULL check fixes the problem, but I
+don't know if that's the correct change.
+
+The first allocation after the free shows the problem, if you try and use
+the whole memory allocation it might segfault, or let you scribble all over
+someone else's memory.
+
+Christopher Ferris
+(<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">cferris at google.com</A>)
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150608/e2c735f1/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150608/e2c735f1/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001114.html">interpretation of malloc_stats_print() output
+</A></li>
+	<LI>Next message: <A HREF="001116.html">Bug in chunk allocation
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1115">[ date ]</a>
+              <a href="thread.html#1115">[ thread ]</a>
+              <a href="subject.html#1115">[ subject ]</a>
+              <a href="author.html#1115">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

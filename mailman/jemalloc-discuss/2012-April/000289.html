@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [7ca0fdf] Disable munmap() if it causes VM map holes
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5B7ca0fdf%5D%20Disable%20munmap%28%29%20if%20it%20causes%20VM%20map%20holes&In-Reply-To=%3C20120416205704.GA22638%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000287.html">
+   <LINK REL="Next"  HREF="000290.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[7ca0fdf] Disable munmap() if it causes VM map holes</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5B7ca0fdf%5D%20Disable%20munmap%28%29%20if%20it%20causes%20VM%20map%20holes&In-Reply-To=%3C20120416205704.GA22638%40glandium.org%3E"
+       TITLE="[7ca0fdf] Disable munmap() if it causes VM map holes">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 16 13:57:04 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000287.html">[7ca0fdf] Disable munmap() if it causes VM map holes
+</A></li>
+        <LI>Next message: <A HREF="000290.html">[7ca0fdf] Disable munmap() if it causes VM map holes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#289">[ date ]</a>
+              <a href="thread.html#289">[ thread ]</a>
+              <a href="subject.html#289">[ subject ]</a>
+              <a href="author.html#289">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mon, Apr 16, 2012 at 10:19:13PM +0200, Mike Hommey wrote:
+&gt;<i> On Mon, Apr 16, 2012 at 12:07:58PM -0700, Jason Evans wrote:
+</I>&gt;<i> &gt; On Apr 16, 2012, at 8:08 AM, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt; I noticed something &quot;interesting&quot; with the test for VM map holes: If
+</I>&gt;<i> &gt; &gt; I compile it manually, it fails:
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt;  Hoped for 0x7f835133d000, got 0x7f8350b3d000
+</I>&gt;<i> &gt; &gt;  0x7f835173d000..0x7f835133d000..0x7f8350f3d000..0x7f835073d000..0x7f8350b3d000
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; Apparently, this happens when *not* linking libm to the testcase. It
+</I>&gt;<i> &gt; &gt; also does happen when linking libm and some other library (tried
+</I>&gt;<i> &gt; &gt; pthread and stdc++).
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; What OS is this on?  The test should fail on Linux, but not OS X or
+</I>&gt;<i> &gt; FreeBSD.  Linux has a VM map management quirk (on at least x86) that
+</I>&gt;<i> &gt; causes accumulation of VM map holes under normal operation.
+</I>&gt;<i> 
+</I>&gt;<i> Linux x64. Kernel 3.2.
+</I>&gt;<i> 
+</I>&gt;<i> So, you are saying that this error is the &quot;expected&quot; behaviour, except I
+</I>&gt;<i> actually don't get it under &quot;normal&quot; conditions (those of configure.ac)
+</I>
+Since the test actually fails to find what it's supposed to find, why
+not just &quot;hardcode&quot; that linux gets no munmap and others do?
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000287.html">[7ca0fdf] Disable munmap() if it causes VM map holes
+</A></li>
+	<LI>Next message: <A HREF="000290.html">[7ca0fdf] Disable munmap() if it causes VM map holes
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#289">[ date ]</a>
+              <a href="thread.html#289">[ thread ]</a>
+              <a href="subject.html#289">[ subject ]</a>
+              <a href="author.html#289">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

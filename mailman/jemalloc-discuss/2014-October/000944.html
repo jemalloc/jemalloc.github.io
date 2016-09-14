@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Help with a segfault
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Help%20with%20a%20segfault&In-Reply-To=%3CCAGKz%3Du%2BswHQfog8AEfNP5mV6%2BzrCE7NNMRKx%3DM%3DuyUSG7C87qw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000943.html">
+   <LINK REL="Next"  HREF="000945.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Help with a segfault</H1>
+    <B>Jeff Hammond</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Help%20with%20a%20segfault&In-Reply-To=%3CCAGKz%3Du%2BswHQfog8AEfNP5mV6%2BzrCE7NNMRKx%3DM%3DuyUSG7C87qw%40mail.gmail.com%3E"
+       TITLE="Help with a segfault">jeff.science at gmail.com
+       </A><BR>
+    <I>Tue Oct  7 10:36:50 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000943.html">Help with a segfault
+</A></li>
+        <LI>Next message: <A HREF="000945.html">Help with a segfault
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#944">[ date ]</a>
+              <a href="thread.html#944">[ thread ]</a>
+              <a href="subject.html#944">[ subject ]</a>
+              <a href="author.html#944">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>You might ask NERSC about this directly, assuming you are using NERSC
+Cray systems.
+
+I know that other memory allocators in software I use on Cray need to
+be explicitly aware of the hugepages feature otherwise they segfault.
+
+Jeff
+
+On Mon, Oct 6, 2014 at 10:59 PM, Marcin Zalewski
+&lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">marcin.zalewski at gmail.com</A>&gt; wrote:
+&gt;<i> I am using the jemalloc from 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 on a
+</I>&gt;<i> Cray system. We use jemalloc for all allocations, and I get a strange issue
+</I>&gt;<i> with Crays hugepages implementation. When I do not use the Cray hugepages
+</I>&gt;<i> module, my code runs fine. However, when I load hugepages64M, I get the
+</I>&gt;<i> following segmentation fault:
+</I>&gt;<i>
+</I>&gt;<i> Program received signal SIGSEGV, Segmentation fault.
+</I>&gt;<i> je_chunk_alloc_default (size=2048, alignment=0, zero=0x7fffffffa96f,
+</I>&gt;<i>     arena_ind=0) at chunk.c:254
+</I>&gt;<i> 254             return (chunk_alloc_core(size, alignment, false, zero,
+</I>&gt;<i> (gdb) bt
+</I>&gt;<i> #0  je_chunk_alloc_default (size=2048, alignment=0, zero=0x7fffffffa96f,
+</I>&gt;<i>     arena_ind=0) at chunk.c:254
+</I>&gt;<i> #1  0x000000002001586f in je_huge_palloc (tsd=0x2aaab02092d0,
+</I>&gt;<i>     arena=&lt;optimized out&gt;, size=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">size at entry</A>=2048, alignment=0,
+</I>&gt;<i>     zero=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">zero at entry</A>=true) at huge.c:50
+</I>&gt;<i> #2  0x0000000020015908 in je_huge_malloc (tsd=&lt;optimized out&gt;,
+</I>&gt;<i>     arena=&lt;optimized out&gt;, size=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">size at entry</A>=2048, zero=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">zero at entry</A>=true)
+</I>&gt;<i>     at huge.c:19
+</I>&gt;<i> #3  0x0000000020018c90 in je_icalloct (arena=&lt;optimized out&gt;,
+</I>&gt;<i>     try_tcache=&lt;optimized out&gt;, size=2048, tsd=&lt;optimized out&gt;)
+</I>&gt;<i>     at
+</I>&gt;<i> ../../../contrib/jemalloc/include/jemalloc/internal/jemalloc_internal.h:662
+</I>&gt;<i> #4  imallocx_flags (arena=&lt;optimized out&gt;, try_tcache=&lt;optimized out&gt;,
+</I>&gt;<i>     zero=true, alignment=0, usize=2048, tsd=&lt;optimized out&gt;) at
+</I>&gt;<i> jemalloc.c:1450
+</I>&gt;<i> #5  imallocx_no_prof (usize=&lt;synthetic pointer&gt;, flags=&lt;optimized out&gt;,
+</I>&gt;<i>     size=&lt;optimized out&gt;, tsd=&lt;optimized out&gt;) at jemalloc.c:1531
+</I>&gt;<i> #6  libxxx_mallocx (size=&lt;optimized out&gt;, flags=&lt;optimized out&gt;)
+</I>&gt;<i>     at jemalloc.c:1550
+</I>&gt;<i> #7  0x00002aaaaf6b9445 in register_printf_type () from /lib64/libc.so.6
+</I>&gt;<i> #8  0x00002aaaabf019c0 in register_printf_flt128 ()
+</I>&gt;<i>     at ../../../cray-gcc-4.9.0/libquadmath/printf/quadmath-printf.c:390
+</I>&gt;<i> #9  0x00002aaaabf09de6 in __do_global_ctors_aux ()
+</I>&gt;<i>    from /opt/gcc/4.9.0/snos/lib64/libquadmath.so.0
+</I>&gt;<i> #10 0x00002aaaabee51fb in _init ()
+</I>&gt;<i>    from /opt/gcc/4.9.0/snos/lib64/libquadmath.so.0
+</I>&gt;<i> #11 0x00007fffffffaaf8 in ?? ()
+</I>&gt;<i> #12 0x00002aaaaaab91b8 in call_init () from /lib64/ld-linux-x86-64.so.2
+</I>&gt;<i> #13 0x00002aaaaaab92e7 in _dl_init_internal () from
+</I>&gt;<i> /lib64/ld-linux-x86-64.so.2
+</I>&gt;<i> #14 0x00002aaaaaaabb3a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+</I>&gt;<i> #15 0x0000000000000001 in ?? ()
+</I>&gt;<i> #16 0x00007fffffffb209 in ?? ()
+</I>&gt;<i> #17 0x0000000000000000 in ?? ()
+</I>&gt;<i>
+</I>&gt;<i> I know that this is not very much info to go on, but I wonder if it rings a
+</I>&gt;<i> bell for someone immediately. As far as I can understand, the Cray hugepages
+</I>&gt;<i> module silently changes all the pages to hugepages of a chosen size:
+</I>&gt;<i>
+</I>&gt;<i> <A HREF="http://www.nersc.gov/users/computational-systems/hopper/programming/tuning-options/">http://www.nersc.gov/users/computational-systems/hopper/programming/tuning-options/</A>
+</I>&gt;<i>
+</I>&gt;<i> What could be an obvious reason to cause the segmentation fault on that
+</I>&gt;<i> line? The line in question is this:
+</I>&gt;<i>
+</I>&gt;<i>         return (chunk_alloc_core(size, alignment, false, zero,
+</I>&gt;<i>             arenas[arena_ind]-&gt;dss_prec));
+</I>&gt;<i>
+</I>&gt;<i> It seems that &quot;arenas&quot; is not properly initialized, but only with hugepages.
+</I>&gt;<i>
+</I>&gt;<i> Thank you for any help.
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+Jeff Hammond
+<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jeff.science at gmail.com</A>
+<A HREF="http://jeffhammond.github.io/">http://jeffhammond.github.io/</A>
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000943.html">Help with a segfault
+</A></li>
+	<LI>Next message: <A HREF="000945.html">Help with a segfault
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#944">[ date ]</a>
+              <a href="thread.html#944">[ thread ]</a>
+              <a href="subject.html#944">[ subject ]</a>
+              <a href="author.html#944">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

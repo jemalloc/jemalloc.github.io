@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc initialization in a shared library
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20initialization%20in%20a%20shared%20library&In-Reply-To=%3C1472593406.8549.120.camel%40mad-scientist.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001317.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc initialization in a shared library</H1>
+    <B>Paul Smith</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20initialization%20in%20a%20shared%20library&In-Reply-To=%3C1472593406.8549.120.camel%40mad-scientist.net%3E"
+       TITLE="jemalloc initialization in a shared library">paul at mad-scientist.net
+       </A><BR>
+    <I>Tue Aug 30 14:43:26 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001317.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1318">[ date ]</a>
+              <a href="thread.html#1318">[ thread ]</a>
+              <a href="subject.html#1318">[ subject ]</a>
+              <a href="author.html#1318">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all. &#160;I wonder if anyone has any thoughts for me about a situation I
+have.
+
+I'm working on GNU/Linux.
+
+I'm compiling jemalloc as a static library (with -fPIC) then I link it
+into my own shared library (.so). &#160;I use -fvisibility=hidden so that
+the jemalloc symbols are not visible outside the shared library (e.g.,
+when I use &quot;nm&quot; on my .so, all the jemalloc symbols are marked &quot;t&quot; not
+&quot;T&quot;).
+
+It works all the time for my testing and most of the time for my users.
+However, in some situations I've had users report that their process is
+hanging and when I get a stacktrace, the hang is happening inside
+pthread_mutex_unlock called from within jemalloc tls stuff. &#160;Note that
+my library is not being linked directly, it's being dlopen()'d, so the
+process is running for a bit before my library is loaded. &#160;To be
+precise, it's being loaded inside an openjdk 1.8 JVM and invoked from
+Java using JNI.
+
+Here's a sample stacktrace:
+
+#0&#160;&#160;0x0000003793a0a8a9 in pthread_mutex_unlock () from ./lib64/libpthread.so.0
+#1&#160;&#160;0x00000037932110d2 in tls_get_addr_tail () from ./lib64/ld-linux-x86-64.so.2
+#2&#160;&#160;0x0000003793211500 in __tls_get_addr () from ./lib64/ld-linux-x86-64.so.2
+#3&#160;&#160;0x00007f0181a7ab7f in tcache_enabled_get () at jemalloc/include/jemalloc/internal/tcache.h:172
+#4&#160;&#160;tcache_get (create=true) at jemalloc/include/jemalloc/internal/tcache.h:238
+#5&#160;&#160;arena_malloc (arena=0x0, zero=false, try_tcache=true, size=96) at jemalloc/include/jemalloc/internal/arena.h:873
+#6&#160;&#160;imallocx (try_tcache=true, arena=0x0, size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:767
+#7&#160;&#160;imalloc (size=96) at jemalloc/include/jemalloc/internal/jemalloc_internal.h:776
+#8&#160;&#160;prof_tdata_init () at jemalloc/src/prof.c:1244
+#9&#160;&#160;0x00007f0181a5f7dd in prof_tdata_get () at jemalloc/include/jemalloc/internal/prof.h:317
+#10 malloc (size=&lt;optimized out&gt;) at jemalloc/src/jemalloc.c:850
+#11 0x00007f018185fbb1 in operator new [] (size=19) at core/Allocator.h:86
+#12 String::allocate (this=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">this at entry</A>=0x7f0189c93e40, length=<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">length at entry</A>=6) at core/StringClass.cpp:158
+&#160; ...
+
+(I should come clean and mention this is an older version of jemalloc:
+3.1 I believe--if that's likely to be the issue I can look into
+updating).
+
+The hang seems to happen very close to when this library starts, and
+it's clearly in a fundamental area.
+
+What I was wondering was whether it might be possible that some static
+memory inside jemalloc was not getting initialized in the right order
+when the shared library is loaded. &#160;Perhaps there's some other static
+variable with a constructor which allocates memory, and if they are
+invoked in the wrong order then jemalloc's structures are not set up
+properly or something.
+
+Does this seem like it might be plausible? &#160;If so is there anything
+that can be done (other than sweeping all my code to remove any
+allocation done during a static constructor)? &#160;It's OK if this is a
+GCC-only solution, such as using __attribute__((init_priority())) or
+something...
+
+It would be much simpler if I could reproduce the problem myself, then
+I could just experiment, but so far no luck.
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001317.html">Jemalloc library is hitting Segmentation fault on CentOS-7
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1318">[ date ]</a>
+              <a href="thread.html#1318">[ thread ]</a>
+              <a href="subject.html#1318">[ subject ]</a>
+              <a href="author.html#1318">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

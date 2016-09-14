@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Reason opt.lg_dirty_mult is not writable?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Reason%20opt.lg_dirty_mult%20is%20not%20writable%3F&In-Reply-To=%3C635AA5DE-A1ED-4E6C-A9C2-ED43C12CDBB6%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001001.html">
+   <LINK REL="Next"  HREF="001003.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Reason opt.lg_dirty_mult is not writable?</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Reason%20opt.lg_dirty_mult%20is%20not%20writable%3F&In-Reply-To=%3C635AA5DE-A1ED-4E6C-A9C2-ED43C12CDBB6%40indiana.edu%3E"
+       TITLE="Reason opt.lg_dirty_mult is not writable?">ldalessa at indiana.edu
+       </A><BR>
+    <I>Wed Jan 21 13:25:01 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001001.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+        <LI>Next message: <A HREF="001003.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1002">[ date ]</a>
+              <a href="thread.html#1002">[ thread ]</a>
+              <a href="subject.html#1002">[ subject ]</a>
+              <a href="author.html#1002">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On Jan 21, 2015, at 4:10 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> On Jan 21, 2015, at 11:17 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;<i> I have an application where we use jemalloc to manage network-registered memory, and we have to make sure that it doesn&#8217;t madvise() chunks to the OS or we end up with rDMA failures.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> I can disable madvise() globally with the opt.lg_dirty_mult option using the environment, but that isn&#8217;t ideal since there&#8217;s no reason that the normal allocator (a separate instance of jemalloc in our case). I have been declaring an extern version of the jemalloc opt variable (prefix_je_opt_lg_dirty_mult in our case), but this means I have to link to the .a directly, rather than linking to the dynamic library or the static library through -ljemalloc_suffix.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> At the same time, this appears to actually work fine.
+</I>&gt;<i> 
+</I>&gt;<i> Can you instead set malloc_conf (with appropriate mangling) to &quot;lg_dirty_mult:-1&#8221;?  
+</I>
+Ah, maybe? I didn&#8217;t realize that we could mangle those up front, the opt code can be pretty opaque :-) That would be good enough for my purposes. So if my configuration normally generates the symbol as &#8220;prefix_je_opt_lg_dirty_mult&#8221;, then can I use that fully mangled name?
+
+
+&gt;<i> That's the intended mechanism for setting these options at compile time, though linker subtleties have been known to keep it from working.  Also, if you have two versions of jemalloc linked into your application, doesn't name mangling help you avoid setting lg_dirty_mult for the other copy?
+</I>
+Yes. I didn&#8217;t realize that the environment could contain the mangled name.
+
+&gt;<i> 
+</I>&gt;&gt;<i> Until per-chunk-allocator control comes online for this, would it be reasonable to make this option R/W in jemalloc? Is there some corner case that I&#8217;m missing that would make this not work?
+</I>&gt;<i> 
+</I>&gt;<i> The historical reason that lg_dirty_mult is read-only is that gracefully transitioning between any two legal values adds complexity, and the primary use cases don't require this functionality.  I just added a note to <A HREF="https://github.com/jemalloc/jemalloc/issues/93">https://github.com/jemalloc/jemalloc/issues/93</A> to make this more flexible though, since the internals will have to support the functionality anyway.
+</I>
+Ah, okay. I&#8217;ll see if the mangled version works.
+
+As a side note, we run into some symbols that aren&#8217;t properly mangled to link against two jemalloc instances. At some point (soon) we&#8217;ll submit an upstream patch to mangle them.
+
+Luke
+
+&gt;<i> Thanks,
+</I>&gt;<i> Jason
+</I>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001001.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+	<LI>Next message: <A HREF="001003.html">Reason opt.lg_dirty_mult is not writable?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1002">[ date ]</a>
+              <a href="thread.html#1002">[ thread ]</a>
+              <a href="subject.html#1002">[ subject ]</a>
+              <a href="author.html#1002">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

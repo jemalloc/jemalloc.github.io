@@ -1,0 +1,36 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Awesome,&nbsp;thanks&nbsp;for&nbsp;getting&nbsp;back&nbsp;to&nbsp;me&nbsp;so&nbsp;quickly.&nbsp;I&nbsp;wasn&#39;t&nbsp;understanding&nbsp;quite&nbsp;how&nbsp;the&nbsp;lg_prof_interval&nbsp;option&nbsp;was&nbsp;working.&nbsp;That&nbsp;should&nbsp;definitely&nbsp;handle&nbsp;what&nbsp;I&nbsp;need!&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Brock&lt;/div&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Fri,&nbsp;Feb&nbsp;6,&nbsp;2015&nbsp;at&nbsp;10:47&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;div&nbsp;class=&quot;h5&quot;&gt;On&nbsp;Feb&nbsp;6,&nbsp;2015,&nbsp;at&nbsp;6:40&nbsp;PM,&nbsp;Brock&nbsp;Pytlik&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:brock.pytlik@gmail.com&quot;&gt;brock.pytlik@gmail.com&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+&gt;&nbsp;I&#39;m&nbsp;trying&nbsp;to&nbsp;track&nbsp;down&nbsp;a&nbsp;possible&nbsp;memory&nbsp;leak&nbsp;in&nbsp;ardb,&nbsp;which&nbsp;uses&nbsp;jemalloc,&nbsp;when&nbsp;running&nbsp;on&nbsp;an&nbsp;arm&nbsp;processor.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;The&nbsp;problem&nbsp;I&nbsp;have&nbsp;is&nbsp;that&nbsp;when&nbsp;I&nbsp;set&nbsp;&#39;MALLOC_CONF=prof_leak:true&#39;&nbsp;and&nbsp;start&nbsp;ardb,&nbsp;the&nbsp;program&nbsp;hangs.&lt;br&gt;<br>
+&gt;&nbsp;When&nbsp;I&nbsp;strace&nbsp;it,&nbsp;this&nbsp;is&nbsp;the&nbsp;system&nbsp;call&nbsp;it&nbsp;does:&lt;br&gt;<br>
+&gt;&nbsp;futex(0xb6db3c0c,&nbsp;FUTEX_WAIT_PRIVATE,&nbsp;2,&nbsp;NULL&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;Here&#39;s&nbsp;the&nbsp;stack&nbsp;trace&nbsp;gdb&nbsp;reports:&lt;br&gt;<br>
+&gt;&nbsp;(gdb)&nbsp;bt&lt;br&gt;<br>
+&gt;&nbsp;#0 &nbsp;0xb6e1af4c&nbsp;in&nbsp;__lll_lock_wait_private&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;<br>
+&gt;&nbsp;#1 &nbsp;0xb6d79de4&nbsp;in&nbsp;__new_exitfn&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;<br>
+&gt;&nbsp;#2 &nbsp;0xb6d79e34&nbsp;in&nbsp;__internal_atexit&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;<br>
+&gt;&nbsp;#3 &nbsp;0x0016d75c&nbsp;in&nbsp;je_prof_boot2&nbsp;()&nbsp;at&nbsp;src/prof.c:1349&lt;br&gt;<br>
+&gt;&nbsp;#4 &nbsp;0x00143418&nbsp;in&nbsp;malloc_init_hard&nbsp;()&nbsp;at&nbsp;src/jemalloc.c:767&lt;br&gt;<br>
+&gt;&nbsp;#5 &nbsp;0x0014db70&nbsp;in&nbsp;malloc_init&nbsp;()&nbsp;at&nbsp;src/jemalloc.c:292&lt;br&gt;<br>
+&gt;&nbsp;#6 &nbsp;calloc&nbsp;(num=1,&nbsp;size=520)&nbsp;at&nbsp;src/jemalloc.c:1123&lt;br&gt;<br>
+&gt;&nbsp;#7 &nbsp;0xb6d79da4&nbsp;in&nbsp;__new_exitfn&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;<br>
+&gt;&nbsp;#8 &nbsp;0xb6d79e34&nbsp;in&nbsp;__internal_atexit&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;<br>
+&gt;&nbsp;#9 &nbsp;0x00013410&nbsp;in&nbsp;__static_initialization_and_destruction_0&nbsp;(&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; __initialize_p=&lt;optimized&nbsp;out&gt;,&nbsp;__priority=&lt;optimized&nbsp;out&gt;)&lt;br&gt;<br>
+&gt; &nbsp; &nbsp; at&nbsp;&lt;&gt;/include/c++/4.7.3/iostream:75&lt;br&gt;<br>
+&gt;&nbsp;#10&nbsp;_GLOBAL__sub_I_channel.cpp(void)&nbsp;()&nbsp;at&nbsp;common/channel/channel.cpp:738&lt;br&gt;<br>
+&gt;&nbsp;#11&nbsp;0x001786f8&nbsp;in&nbsp;__libc_csu_init&nbsp;()&lt;br&gt;<br>
+&gt;&nbsp;#12&nbsp;0xb6d61834&nbsp;in&nbsp;__libc_start_main&nbsp;()&nbsp;from&nbsp;/lib/libc.so.6&lt;br&gt;<br>
+&gt;&nbsp;#13&nbsp;0x0001424c&nbsp;in&nbsp;_start&nbsp;()&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;I&#39;ll&nbsp;admit&nbsp;at&nbsp;this&nbsp;point&nbsp;I&#39;m&nbsp;kind&nbsp;of&nbsp;stumped&nbsp;as&nbsp;to&nbsp;how&nbsp;to&nbsp;proceed.&nbsp;I&nbsp;thought&nbsp;I&#39;d&nbsp;start&nbsp;by&nbsp;asking&nbsp;here&nbsp;in&nbsp;case&nbsp;anyone&nbsp;had&nbsp;seen&nbsp;similar&nbsp;behavior&nbsp;or&nbsp;knew&nbsp;what&nbsp;the&nbsp;problem&nbsp;was.&nbsp;I&nbsp;checked&nbsp;the&nbsp;issues&nbsp;at&nbsp;the&nbsp;github&nbsp;page&nbsp;and&nbsp;couldn&#39;t&nbsp;find&nbsp;anything&nbsp;similar.&nbsp;This&nbsp;is&nbsp;using&nbsp;version&nbsp;3.6.0&nbsp;of&nbsp;jemalloc.&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;When&nbsp;I&nbsp;looked&nbsp;at&nbsp;the&nbsp;jemalloc.xml&nbsp;user&nbsp;manual&nbsp;in&nbsp;the&nbsp;gate&nbsp;tip&nbsp;(not&nbsp;the&nbsp;3.6.0&nbsp;branch&nbsp;I&#39;m&nbsp;using)&nbsp;I&nbsp;saw&nbsp;some&nbsp;discussion&nbsp;of&nbsp;atexit&nbsp;being&nbsp;problematic&nbsp;in&nbsp;the&nbsp;context&nbsp;of&nbsp;prof_final.&nbsp;If&nbsp;that&#39;s&nbsp;the&nbsp;problem,&nbsp;is&nbsp;there&nbsp;a&nbsp;way&nbsp;to&nbsp;generate&nbsp;profiling&nbsp;information&nbsp;either&nbsp;while&nbsp;the&nbsp;program&nbsp;is&nbsp;running,&nbsp;avoiding&nbsp;the&nbsp;atexit&nbsp;issue?&nbsp;I&nbsp;didn&#39;t&nbsp;quite&nbsp;follow&nbsp;the&nbsp;comment&nbsp;in&nbsp;the&nbsp;user&nbsp;manual&nbsp;that&nbsp;says&nbsp;that&nbsp;an&nbsp;application&nbsp;can&nbsp;register&nbsp;its&nbsp;own&nbsp;atexit&nbsp;parameter&nbsp;with&nbsp;equivalent&nbsp;functionality.&nbsp;Is&nbsp;there&nbsp;an&nbsp;example&nbsp;someplace&nbsp;I&nbsp;could&nbsp;crib&nbsp;from&nbsp;or&nbsp;could&nbsp;someone&nbsp;help&nbsp;me&nbsp;understand&nbsp;that&nbsp;a&nbsp;bit?&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;&lt;/div&gt;Yes,&nbsp;it&nbsp;looks&nbsp;like&nbsp;you&#39;re&nbsp;hitting&nbsp;the&nbsp;same&nbsp;atexit()&nbsp;issue&nbsp;that&nbsp;caused&nbsp;me&nbsp;to&nbsp;disable&nbsp;prof_final&nbsp;by&nbsp;default&nbsp;in&nbsp;the&nbsp;dev&nbsp;branch&nbsp;of&nbsp;jemalloc. &nbsp;If&nbsp;you&nbsp;instead&nbsp;use&nbsp;MALLOC_CONF=prof_final:false,lg_prof_interval=20&nbsp;(see&nbsp;&lt;a&nbsp;href=&quot;http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval&lt;/a&gt;&nbsp;and&nbsp;choose&nbsp;an&nbsp;appropriate&nbsp;dump&nbsp;interval),&nbsp;you&nbsp;should&nbsp;be&nbsp;able&nbsp;to&nbsp;get&nbsp;useful&nbsp;heap&nbsp;profiles&nbsp;without&nbsp;modifying&nbsp;the&nbsp;ardb&nbsp;source&nbsp;code. &nbsp;The&nbsp;prof_gdump&nbsp;option&nbsp;provides&nbsp;an&nbsp;alternative&nbsp;mechanism&nbsp;for&nbsp;triggering&nbsp;heap&nbsp;dumps. &nbsp;If&nbsp;you&nbsp;want&nbsp;to&nbsp;go&nbsp;as&nbsp;far&nbsp;as&nbsp;modifying&nbsp;ardb&nbsp;source&nbsp;code,&nbsp;you&nbsp;can&nbsp;call&nbsp;the&nbsp;prof.dump&nbsp;mallctl&nbsp;to&nbsp;trigger&nbsp;a&nbsp;dump. &nbsp;None&nbsp;of&nbsp;these&nbsp;options&nbsp;will&nbsp;cause&nbsp;jemalloc&nbsp;to&nbsp;print&nbsp;a&nbsp;leak&nbsp;report&nbsp;during&nbsp;exit,&nbsp;but&nbsp;the&nbsp;resulting&nbsp;heap&nbsp;profiles&nbsp;are&nbsp;what&nbsp;you&nbsp;really&nbsp;need&nbsp;anyway.&lt;br&gt;<br>
+&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+Jason&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;<br>
+
+</tt>

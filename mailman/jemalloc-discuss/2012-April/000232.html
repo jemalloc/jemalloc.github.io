@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Ignore whitespaces when comparing test results with expected	output
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Ignore%20whitespaces%20when%20comparing%20test%20results%20with%20expected%0A%09output&In-Reply-To=%3C1334064558-5804-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000241.html">
+   <LINK REL="Next"  HREF="000237.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Ignore whitespaces when comparing test results with expected	output</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Ignore%20whitespaces%20when%20comparing%20test%20results%20with%20expected%0A%09output&In-Reply-To=%3C1334064558-5804-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Ignore whitespaces when comparing test results with expected	output">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr 10 06:29:18 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000241.html">[PATCH] Avoid using &quot;common&quot; macro names as goto labels
+</A></li>
+        <LI>Next message: <A HREF="000237.html">[PATCH] Ignore whitespaces when comparing test results with	expected output
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#232">[ date ]</a>
+              <a href="thread.html#232">[ thread ]</a>
+              <a href="subject.html#232">[ subject ]</a>
+              <a href="author.html#232">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+In mingw, the test result may contain CRLF while the .exp files don't, or
+the other way around.
+---
+ Makefile.in |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 821c063..7df4fc6 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -205,7 +205,7 @@ check: tests
+ 			$(TEST_LIBRARY_PATH) $${t} @abs_srcroot@ @abs_objroot@ \
+ 			  &gt; @objroot@$${t}.out 2&gt;&amp;1; \
+ 			if test -e &quot;@srcroot@$${t}.exp&quot;; then \
+-				diff -u @srcroot@$${t}.exp \
++				diff -w -u @srcroot@$${t}.exp \
+ 				  @objroot@$${t}.out &gt;/dev/null 2&gt;&amp;1; \
+ 				fail=$$?; \
+ 				if test &quot;$${fail}&quot; -eq &quot;1&quot; ; then \
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000241.html">[PATCH] Avoid using &quot;common&quot; macro names as goto labels
+</A></li>
+	<LI>Next message: <A HREF="000237.html">[PATCH] Ignore whitespaces when comparing test results with	expected output
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#232">[ date ]</a>
+              <a href="thread.html#232">[ thread ]</a>
+              <a href="subject.html#232">[ subject ]</a>
+              <a href="author.html#232">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Crash in arenas_cleanup on linux x86-64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20in%20arenas_cleanup%20on%20linux%20x86-64&In-Reply-To=%3CA7E96D1E-E020-4976-90E7-28E0BBE59E7C%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000198.html">
+   <LINK REL="Next"  HREF="000202.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Crash in arenas_cleanup on linux x86-64</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Crash%20in%20arenas_cleanup%20on%20linux%20x86-64&In-Reply-To=%3CA7E96D1E-E020-4976-90E7-28E0BBE59E7C%40canonware.com%3E"
+       TITLE="Crash in arenas_cleanup on linux x86-64">jasone at canonware.com
+       </A><BR>
+    <I>Wed Mar 28 16:30:37 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000198.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+        <LI>Next message: <A HREF="000202.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#201">[ date ]</a>
+              <a href="thread.html#201">[ thread ]</a>
+              <a href="subject.html#201">[ subject ]</a>
+              <a href="author.html#201">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 28, 2012, at 12:42 PM, Mike Hommey wrote:
+&gt;<i> I'm getting crashes in Firefox in some cases (only one test suite,
+</I>&gt;<i> actually), and on Linux x86-64 only (not Linux x86, not Android ARM, and
+</I>&gt;<i> not OSX x86 or x86-64).
+</I>&gt;<i> They are a NULL deref in arenas_cleanup, in which the arena variable
+</I>&gt;<i> seems to be NULL.
+</I>&gt;<i> This happens with current dev branch. I had a hunch that I tested, and
+</I>&gt;<i> it turns out commit cd9a134 is broken too and 154829d is not, which
+</I>&gt;<i> makes cd9a134 the culprit.
+</I>&gt;<i> I haven't looked why, though.
+</I>
+It looks to me like the tsd cleanup handler can be called even if the thread never initialized the tsd for that thread.  I think the crash you are seeing would happen if a thread never allocated a small or large object.  I'll work on a fix tonight.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000198.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+	<LI>Next message: <A HREF="000202.html">Crash in arenas_cleanup on linux x86-64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#201">[ date ]</a>
+              <a href="thread.html#201">[ thread ]</a>
+              <a href="subject.html#201">[ subject ]</a>
+              <a href="author.html#201">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

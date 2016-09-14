@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage: jemalloc v/s libc allocator
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%3A%20jemalloc%20v/s%20libc%20allocator&In-Reply-To=%3CCAMAQheNtYG_EQDvfbv%2BF361KcN-yRBJD0HCDvKcT4jF-%2B%3D8OMw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001063.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage: jemalloc v/s libc allocator</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%3A%20jemalloc%20v/s%20libc%20allocator&In-Reply-To=%3CCAMAQheNtYG_EQDvfbv%2BF361KcN-yRBJD0HCDvKcT4jF-%2B%3D8OMw%40mail.gmail.com%3E"
+       TITLE="Memory usage: jemalloc v/s libc allocator">edsiper at gmail.com
+       </A><BR>
+    <I>Tue Mar  3 06:38:27 PST 2015</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001063.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1062">[ date ]</a>
+              <a href="thread.html#1062">[ thread ]</a>
+              <a href="subject.html#1062">[ subject ]</a>
+              <a href="author.html#1062">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I got some reports about high memory usage by our open source project
+when jemalloc is enabled, to put you in context: Monkey HTTP Server[0]
+by default uses jemalloc in static linking mode, but optionally at
+build time can use the common system allocator.
+
+When starting the server with jemalloc, the server uses an average of
+8MB, when is disabled (common system allocator) it goes down to 174KB.
+This is a major concern when used on Embedded environments so I would
+like to know how can we reduce the space used by jemalloc initially.
+
+If required I can provide steps to reproduce the scenario.
+
+[0] <A HREF="http://monkey-project.com">http://monkey-project.com</A>
+
+thanks for your time,
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001063.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1062">[ date ]</a>
+              <a href="thread.html#1062">[ thread ]</a>
+              <a href="subject.html#1062">[ subject ]</a>
+              <a href="author.html#1062">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

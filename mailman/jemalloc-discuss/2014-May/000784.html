@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [RFC] Hang on free-during-fork with LinuxThreads
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BRFC%5D%20Hang%20on%20free-during-fork%20with%20LinuxThreads&In-Reply-To=%3C1400017313203.65678%40ixiacom.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000783.html">
+   <LINK REL="Next"  HREF="000787.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[RFC] Hang on free-during-fork with LinuxThreads</H1>
+    <B>Leonard Crestez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BRFC%5D%20Hang%20on%20free-during-fork%20with%20LinuxThreads&In-Reply-To=%3C1400017313203.65678%40ixiacom.com%3E"
+       TITLE="[RFC] Hang on free-during-fork with LinuxThreads">lcrestez at ixiacom.com
+       </A><BR>
+    <I>Tue May 13 14:41:53 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000783.html">purge and transparent huge pages
+</A></li>
+        <LI>Next message: <A HREF="000787.html">[RFC] Hang on free-during-fork with LinuxThreads
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#784">[ date ]</a>
+              <a href="thread.html#784">[ thread ]</a>
+              <a href="subject.html#784">[ subject ]</a>
+              <a href="author.html#784">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+
+Some time ago I ported jemalloc to work on old systems still using LinuxThreads. See this thread: <A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2013-October/000646.html">http://www.canonware.com/pipermail/jemalloc-discuss/2013-October/000646.html</A>
+
+
+It seems that with LinuxThreads the fork() implementation will call free during fork, between jemalloc_prefork and jemalloc_postfork_child. This can sometimes (very rarely) hang in a call to system() with a stack like the following:
+
+
+#0  0x0fdd660c in __pthread_sigsuspend () from /lib/libpthread.so.0
+#1  0x0fdd6344 in __pthread_wait_for_restart_signal () from /lib/libpthread.so.0
+#2  0x0fdd805c in __pthread_alt_lock () from /lib/libpthread.so.0
+#3  0x0fdd4c74 in pthread_mutex_lock () from /lib/libpthread.so.0
+#4  0x0ff2a480 in pthread_mutex_lock () from /lib/libc.so.6
+#5  0x0ffc5bf0 in malloc_mutex_lock (tbin=0x3082c020, binind=0, rem=0, tcache=0x3082c000) at ../../src/jemalloc-3.0.0/include/jemalloc/internal/mutex.h:77
+#6  tcache_bin_flush_small (tbin=0x3082c020, binind=0, rem=0, tcache=0x3082c000) at ../../src/jemalloc-3.0.0/src/tcache.c:106
+#7  0x0ffc64c0 in tcache_event_hard (tcache=0x3082c000) at ../../src/jemalloc-3.0.0/src/tcache.c:39
+#8  0x0ffa545c in tcache_event (ptr=0x3081e000) at ../../src/jemalloc-3.0.0/include/jemalloc/internal/tcache.h:271
+#9  tcache_dalloc_large (ptr=0x3081e000) at ../../src/jemalloc-3.0.0/include/jemalloc/internal/tcache.h:435
+#10 arena_dalloc (ptr=0x3081e000) at ../../src/jemalloc-3.0.0/include/jemalloc/internal/arena.h:966
+#11 idalloc (ptr=0x3081e000) at include/jemalloc/internal/jemalloc_internal.h:840
+#12 iqalloc (ptr=0x3081e000) at include/jemalloc/internal/jemalloc_internal.h:852
+#13 free (ptr=0x3081e000) at ../../src/jemalloc-3.0.0/src/jemalloc.c:1219
+#14 0x0fdd6174 in __pthread_reset_main_thread () from /lib/libpthread.so.0
+#15 0x0fdd5288 in __pthread_fork () from /lib/libpthread.so.0
+#16 0x0feeadc4 in fork () from /lib/libc.so.6
+#17 0x0fe82eb0 in do_system () from /lib/libc.so.6
+#18 0x0fe830c8 in system () from /lib/libc.so.6
+
+I am not familiar with how jemalloc works internally but it seems that sometimes tcache_event will trigger some sort of GC. Sometimes (very rarely) this attempts to take a lock which is already taken inside jemalloc_prefork. This hangs because locks are not recursive by default.
+
+I was able to reproduce this in a standalone program. The issue seems to go away if I avoid the GC as in the attached patch. It seems like a horrible evil hack.
+
+  *   Am I missing anything? Are there any other platforms with this issue?
+  *   ?Can you see something else going wrong because of free-during-fork? I could patch jemalloc to leak that memory. I only really care about system(), not other uses of fork().
+  *   Can you think of a cleaner solution?
+
+The patch is on top of 3.0.0 so it won't apply cleanly. I tried to apply commits 20f1fc95adb35ea63dc61f47f2b0ffbd37d39f32&lt;<A HREF="https://github.com/jemalloc/jemalloc/commit/20f1fc95adb35ea63dc61f47f2b0ffbd37d39f32">https://github.com/jemalloc/jemalloc/commit/20f1fc95adb35ea63dc61f47f2b0ffbd37d39f32</A>&gt; and b5225928fe106a7d809bd34e849abcd6941e93c7&lt;<A HREF="https://github.com/jemalloc/jemalloc/commit/b5225928fe106a7d809bd34e849abcd6941e93c7">https://github.com/jemalloc/jemalloc/commit/b5225928fe106a7d809bd34e849abcd6941e93c7</A>&gt; but they did not help me.
+
+Regards,
+Leonard
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.html</A>&gt;
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: track-jemalloc-forking.diff
+Type: text/x-patch
+Size: 2859 bytes
+Desc: track-jemalloc-forking.diff
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.bin</A>&gt;
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000783.html">purge and transparent huge pages
+</A></li>
+	<LI>Next message: <A HREF="000787.html">[RFC] Hang on free-during-fork with LinuxThreads
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#784">[ date ]</a>
+              <a href="thread.html#784">[ thread ]</a>
+              <a href="subject.html#784">[ subject ]</a>
+              <a href="author.html#784">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

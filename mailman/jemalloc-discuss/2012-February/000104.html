@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Is it safe to mix jemalloc with glibc malloc?
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Is%20it%20safe%20to%20mix%20jemalloc%20with%20glibc%20malloc%3F&In-Reply-To=%3C4F4C9185.7010903%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000102.html">
+   <LINK REL="Next"  HREF="000105.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Is it safe to mix jemalloc with glibc malloc?</H1>
+    <B>Jokea</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Is%20it%20safe%20to%20mix%20jemalloc%20with%20glibc%20malloc%3F&In-Reply-To=%3C4F4C9185.7010903%40gmail.com%3E"
+       TITLE="Is it safe to mix jemalloc with glibc malloc?">tfengjun at gmail.com
+       </A><BR>
+    <I>Tue Feb 28 00:34:13 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000102.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+        <LI>Next message: <A HREF="000105.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#104">[ date ]</a>
+              <a href="thread.html#104">[ thread ]</a>
+              <a href="subject.html#104">[ subject ]</a>
+              <a href="author.html#104">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi,
+
+I want to configure jemalloc to use mmap with disk backed file, and use 
+malloc
+for system memory.
+
+1. compile jemalloc with &quot;je_&quot; prefix and with &quot;--enable-swap&quot;,
+2. in my application:
+...
+void *big = je_malloc(10000);
+void *small = malloc(10);
+...
+je_free(big);
+free(small);
+...
+
+There are plenty of small objects which will be freed soon, so I want to 
+use the real
+memory for these temp objects to improve performance. Is it safe to mix 
+je_malloc and malloc?
+
+
+Thanks,
+Jokea
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000102.html">[PATCH] Add build options to disable either static or shared	library by default
+</A></li>
+	<LI>Next message: <A HREF="000105.html">Is it safe to mix jemalloc with glibc malloc?
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#104">[ date ]</a>
+              <a href="thread.html#104">[ thread ]</a>
+              <a href="subject.html#104">[ subject ]</a>
+              <a href="author.html#104">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

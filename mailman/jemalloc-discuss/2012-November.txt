@@ -1,0 +1,1133 @@
+From jasone at canonware.com  Thu Nov  1 12:23:27 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 1 Nov 2012 12:23:27 -0700
+Subject: Memory usage regression
+In-Reply-To: <20121031070011.GA6923@glandium.org>
+References: <20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+	<BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+	<387B3CEF-78CF-4E9D-A3B1-BC6390C0F314@canonware.com>
+	<20121031070011.GA6923@glandium.org>
+Message-ID: <6411284A-42F7-4B61-9522-BD682AF84A5B@canonware.com>
+
+On Oct 31, 2012, at 12:00 AM, Mike Hommey wrote:
+> On Tue, Oct 30, 2012 at 04:35:53PM -0700, Jason Evans wrote:
+>> 
+>> Here's a very lightly tested patch.  Apologies if it's buggy, but I'm
+>> out of time for today.
+> 
+> It's unfortunately only slightly better.
+> http://i.imgur.com/hN1Cj.png
+
+Thanks for testing it.  Too bad it didn't help.
+
+I spent some time yesterday thinking about the clean vs. dirty run fragmentation problem yesterday and came to realize that up to now all of the dirty page purging strategies jemalloc has employed have been about limiting RSS, with only indirect regard for VM size.  I developed a patch that actually tracks the amount of clean/dirty run fragmentation, but I'm still working out how to act on the information.
+
+Jason
+
+From jasone at canonware.com  Sat Nov  3 23:07:35 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sat, 3 Nov 2012 23:07:35 -0700
+Subject: mallctl("arenas.purge") dead-locks
+In-Reply-To: <20121031083818.GA11679@glandium.org>
+References: <20121031083818.GA11679@glandium.org>
+Message-ID: <0667E891-1FFB-4E92-92B8-F3DA48D23CF2@canonware.com>
+
+On Oct 31, 2012, at 1:38 AM, Mike Hommey wrote:
+> When i tried using arenas.purge, it appeared that it is dead-locking.
+> This is due to both arenas_purge_ctl and arena_purge getting the
+> ctl_mtx mutex.
+> I know arena.i.purge replaces arenas.purge, but arenas.purge is still
+> more convenient, since it doesn't require to retrieve narenas.
+
+This is fixed now on the dev branch:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commit;h=34457f51448e81f32a1bff16bbf600b79dd9ec5a
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Nov  4 21:17:32 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 4 Nov 2012 21:17:32 -0800
+Subject: Memory usage regression
+In-Reply-To: <6411284A-42F7-4B61-9522-BD682AF84A5B@canonware.com>
+References: <20121025064211.GA16176@glandium.org>
+	<20121026094532.GA21738@glandium.org>
+	<20121026150335.GA7121@glandium.org>
+	<20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+	<BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+	<387B3CEF-78CF-4E9D-A3B1-BC6390C0F314@canonware.com>
+	<20121031070011.GA6923@glandium.org>
+	<6411284A-42F7-4B61-9522-BD682AF84A5B@canonware.com>
+Message-ID: <92A6D34E-A4F1-417D-B927-2FB981740C45@canonware.com>
+
+On Nov 1, 2012, at 12:23 PM, Jason Evans wrote:
+> On Oct 31, 2012, at 12:00 AM, Mike Hommey wrote:
+>> 
+>> It's unfortunately only slightly better.
+>> http://i.imgur.com/hN1Cj.png
+> 
+> Thanks for testing it.  Too bad it didn't help.
+> 
+> I spent some time yesterday thinking about the clean vs. dirty run fragmentation problem yesterday and came to realize that up to now all of the dirty page purging strategies jemalloc has employed have been about limiting RSS, with only indirect regard for VM size.  I developed a patch that actually tracks the amount of clean/dirty run fragmentation, but I'm still working out how to act on the information.
+
+I finally managed to experiment a bit with the aforementioned patch, and it looks reasonably good (chunk fragmentation is *way* down).  I'm seeing a higher soft page fault rate with this patch in place, but the patch and the control appear to be converging as the experiments run, so the fragmentation reduction may have some positive performance effects that mitigate the cost of extra purging.
+
+Jason
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: defrag.patch
+Type: application/octet-stream
+Size: 24837 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121104/116ba20e/attachment.obj>
+
+From mh+jemalloc at glandium.org  Sun Nov  4 23:17:51 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 5 Nov 2012 08:17:51 +0100
+Subject: Memory usage regression
+In-Reply-To: <92A6D34E-A4F1-417D-B927-2FB981740C45@canonware.com>
+References: <20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+	<BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+	<387B3CEF-78CF-4E9D-A3B1-BC6390C0F314@canonware.com>
+	<20121031070011.GA6923@glandium.org>
+	<6411284A-42F7-4B61-9522-BD682AF84A5B@canonware.com>
+	<92A6D34E-A4F1-417D-B927-2FB981740C45@canonware.com>
+Message-ID: <20121105071751.GA31443@glandium.org>
+
+On Sun, Nov 04, 2012 at 09:17:32PM -0800, Jason Evans wrote:
+> On Nov 1, 2012, at 12:23 PM, Jason Evans wrote:
+> > On Oct 31, 2012, at 12:00 AM, Mike Hommey wrote:
+> >> 
+> >> It's unfortunately only slightly better.
+> >> http://i.imgur.com/hN1Cj.png
+> > 
+> > Thanks for testing it.  Too bad it didn't help.
+> > 
+> > I spent some time yesterday thinking about the clean vs. dirty run
+> > fragmentation problem yesterday and came to realize that up to now
+> > all of the dirty page purging strategies jemalloc has employed have
+> > been about limiting RSS, with only indirect regard for VM size.  I
+> > developed a patch that actually tracks the amount of clean/dirty run
+> > fragmentation, but I'm still working out how to act on the
+> > information.
+> 
+> I finally managed to experiment a bit with the aforementioned patch,
+> and it looks reasonably good (chunk fragmentation is *way* down).  I'm
+> seeing a higher soft page fault rate with this patch in place, but the
+> patch and the control appear to be converging as the experiments run,
+> so the fragmentation reduction may have some positive performance
+> effects that mitigate the cost of extra purging.
+
+This patch works quite well. The result is still above mozjemalloc, but
+the leak is plugged. Thanks.
+http://i.imgur.com/Z24MQ.png
+
+BTW, an interesting fact, if I didn't botch my stats: at the end of
+the 5 iterations, while 17MB are allocated, sucking 68MB of RSS, only
+40MB worth of pages have allocated data in them. The number is similar
+to what I get with mozjemalloc (mozjemalloc is actually about 100K
+higher than jemalloc3 on that metric, while RSS is 6MB higher with
+jemalloc3) Which means (if my stats are not broken) that there is still
+room for improving RSS.
+
+Mike
+
+
+From mitch-jemalloc-discuss at bodyfour.com  Mon Nov  5 03:53:13 2012
+From: mitch-jemalloc-discuss at bodyfour.com (Mitchell Blank Jr)
+Date: Mon, 5 Nov 2012 03:53:13 -0800
+Subject: Question about bitmap code
+Message-ID: <CAJXinN_JRjaZF0M5PLFA+0AK+pPHs9fmMtxz8m4fv46ATfT0bA@mail.gmail.com>
+
+I've been looking through some of the jemalloc code and had a question
+about bitmap.h.
+
+Testing on a 64-bit machine, the arena bin with the most elements is size=8
+with 501 items.  Since a cacheline is commonly 64 bytes = 512 bits, a
+simpler single-level bitmap would seem to win just on memory effects.
+
+It's not clear to me if its advantageous on a branching basis, at least on
+64-bit.  On average you'd need to look at 4 words to find an unused 8-byte
+entry, and fewer for other size bins.  I guess on a 32-bit platform, it
+might be a different story.  Still, I wonder if it is worth touching
+another cache line to avoid the comparisons.
+
+Are there cases where the bitmap code is used for more than 512 items in it?
+
+-Mitch
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121105/cc807b87/attachment.html>
+
+From jasone at canonware.com  Mon Nov  5 10:05:35 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 5 Nov 2012 10:05:35 -0800
+Subject: Question about bitmap code
+In-Reply-To: <CAJXinN_JRjaZF0M5PLFA+0AK+pPHs9fmMtxz8m4fv46ATfT0bA@mail.gmail.com>
+References: <CAJXinN_JRjaZF0M5PLFA+0AK+pPHs9fmMtxz8m4fv46ATfT0bA@mail.gmail.com>
+Message-ID: <FC5A99A3-3490-4F2C-B8EC-CE7B3C9CDE5C@canonware.com>
+
+On Nov 5, 2012, at 3:53 AM, Mitchell Blank Jr wrote:
+> I've been looking through some of the jemalloc code and had a question about bitmap.h.
+> 
+> Testing on a 64-bit machine, the arena bin with the most elements is size=8 with 501 items.  Since a cacheline is commonly 64 bytes = 512 bits, a simpler single-level bitmap would seem to win just on memory effects.
+> 
+> It's not clear to me if its advantageous on a branching basis, at least on 64-bit.  On average you'd need to look at 4 words to find an unused 8-byte entry, and fewer for other size bins.  I guess on a 32-bit platform, it might be a different story.  Still, I wonder if it is worth touching another cache line to avoid the comparisons.
+> 
+> Are there cases where the bitmap code is used for more than 512 items in it?
+
+
+Older versions of jemalloc (2009 and earlier) used a single-level bitmap and also kept track of the lowest/highest indexes at which free regions might be found.  In practice this worked okay, but there are pathological access patterns that can cause n^2 overhead for a series of allocations, so there was always pressure to keep the bitmaps small that was in conflict with other constraints.  You're probably right that for 8-entry bitmaps, the multi-level bitmap code is overkill.  However, there are combinations of heap profiling settings that can cause the bitmap to contain thousands of items.
+
+Jason
+
+From jasone at canonware.com  Tue Nov  6 01:16:10 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 6 Nov 2012 01:16:10 -0800
+Subject: Memory usage regression
+In-Reply-To: <20121105071751.GA31443@glandium.org>
+References: <20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+	<BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+	<387B3CEF-78CF-4E9D-A3B1-BC6390C0F314@canonware.com>
+	<20121031070011.GA6923@glandium.org>
+	<6411284A-42F7-4B61-9522-BD682AF84A5B@canonware.com>
+	<92A6D34E-A4F1-417D-B927-2FB981740C45@canonware.com>
+	<20121105071751.GA31443@glandium.org>
+Message-ID: <214C56C6-B82F-4CBF-9901-7CF71259126C@canonware.com>
+
+On Nov 4, 2012, at 11:17 PM, Mike Hommey wrote:
+> This patch works quite well. The result is still above mozjemalloc, but
+> the leak is plugged. Thanks.
+> http://i.imgur.com/Z24MQ.png
+
+I made a few more refinements, and pushed the change on the dev branch.  Hopefully the effect will be similar for Firefox.
+
+> BTW, an interesting fact, if I didn't botch my stats: at the end of
+> the 5 iterations, while 17MB are allocated, sucking 68MB of RSS, only
+> 40MB worth of pages have allocated data in them. The number is similar
+> to what I get with mozjemalloc (mozjemalloc is actually about 100K
+> higher than jemalloc3 on that metric, while RSS is 6MB higher with
+> jemalloc3) Which means (if my stats are not broken) that there is still
+> room for improving RSS.
+
+I've been puzzling over this for a while, and still don't completely understand.  Is one of the numbers missing a digit, perhaps?
+
+Thanks,
+Jason
+
+From antirez at gmail.com  Tue Nov  6 03:01:31 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Tue, 6 Nov 2012 12:01:31 +0100
+Subject: Memory corruptions near 32 bit limits
+Message-ID: <CA+XzkVei8v-SminztkgPyiKptn6gGTsCq25uvOe4-eO_eSR6GQ@mail.gmail.com>
+
+Hello,
+
+in the Redis community it was observed multiple times that when a 32
+bit instance using Jemalloc (<= 3.0) is very near to be out of memory
+because the whole available address space was used, it can happen that
+the server crashes because memory gets corrupted instead of malloc
+returning NULL.
+
+Is this a known issues?
+
+Redis 2.6 automatically sets a 3GB memory limit in 32 bit instances
+now so we are likely to see this less frequently in the future, but it
+is interesting for us to understand this issue as sometimes this
+triggered investigations about non existing bugs.
+
+Cheers,
+Salvatore
+
+--
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       ? David Gelernter
+
+
+From prohaska7 at gmail.com  Tue Nov  6 07:26:27 2012
+From: prohaska7 at gmail.com (Rich Prohaska)
+Date: Tue, 6 Nov 2012 10:26:27 -0500
+Subject: Memory usage regression
+In-Reply-To: <20121105071751.GA31443@glandium.org>
+References: <20121026150824.GA7292@glandium.org>
+	<20121026161013.GA12265@glandium.org>
+	<20121030153502.GA16321@glandium.org>
+	<20121030153658.GB16321@glandium.org>
+	<20121030160338.GA22169@glandium.org>
+	<BA57C9F5-F7D9-42B7-9F64-5A1C61ACC205@canonware.com>
+	<387B3CEF-78CF-4E9D-A3B1-BC6390C0F314@canonware.com>
+	<20121031070011.GA6923@glandium.org>
+	<6411284A-42F7-4B61-9522-BD682AF84A5B@canonware.com>
+	<92A6D34E-A4F1-417D-B927-2FB981740C45@canonware.com>
+	<20121105071751.GA31443@glandium.org>
+Message-ID: <CAL5sXW7MPXaqXc8E8be-Giv0cUVLb2iV58+R1RFpgLXAPQQraA@mail.gmail.com>
+
+I assume that the green (patched vm rss) and purple (mozjemalloc vm
+rss) lines overlay each other.  The graph is hard to read.
+
+On Mon, Nov 5, 2012 at 2:17 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> On Sun, Nov 04, 2012 at 09:17:32PM -0800, Jason Evans wrote:
+>> On Nov 1, 2012, at 12:23 PM, Jason Evans wrote:
+>> > On Oct 31, 2012, at 12:00 AM, Mike Hommey wrote:
+>> >>
+>> >> It's unfortunately only slightly better.
+>> >> http://i.imgur.com/hN1Cj.png
+>> >
+>> > Thanks for testing it.  Too bad it didn't help.
+>> >
+>> > I spent some time yesterday thinking about the clean vs. dirty run
+>> > fragmentation problem yesterday and came to realize that up to now
+>> > all of the dirty page purging strategies jemalloc has employed have
+>> > been about limiting RSS, with only indirect regard for VM size.  I
+>> > developed a patch that actually tracks the amount of clean/dirty run
+>> > fragmentation, but I'm still working out how to act on the
+>> > information.
+>>
+>> I finally managed to experiment a bit with the aforementioned patch,
+>> and it looks reasonably good (chunk fragmentation is *way* down).  I'm
+>> seeing a higher soft page fault rate with this patch in place, but the
+>> patch and the control appear to be converging as the experiments run,
+>> so the fragmentation reduction may have some positive performance
+>> effects that mitigate the cost of extra purging.
+>
+> This patch works quite well. The result is still above mozjemalloc, but
+> the leak is plugged. Thanks.
+> http://i.imgur.com/Z24MQ.png
+>
+> BTW, an interesting fact, if I didn't botch my stats: at the end of
+> the 5 iterations, while 17MB are allocated, sucking 68MB of RSS, only
+> 40MB worth of pages have allocated data in them. The number is similar
+> to what I get with mozjemalloc (mozjemalloc is actually about 100K
+> higher than jemalloc3 on that metric, while RSS is 6MB higher with
+> jemalloc3) Which means (if my stats are not broken) that there is still
+> room for improving RSS.
+>
+> Mike
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From jasone at canonware.com  Tue Nov  6 09:19:53 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 6 Nov 2012 09:19:53 -0800
+Subject: Memory corruptions near 32 bit limits
+In-Reply-To: <CA+XzkVei8v-SminztkgPyiKptn6gGTsCq25uvOe4-eO_eSR6GQ@mail.gmail.com>
+References: <CA+XzkVei8v-SminztkgPyiKptn6gGTsCq25uvOe4-eO_eSR6GQ@mail.gmail.com>
+Message-ID: <0C56B5FC-DF8F-42D7-B825-D277485DFF5C@canonware.com>
+
+On Nov 6, 2012, at 3:01 AM, Salvatore Sanfilippo wrote:
+> in the Redis community it was observed multiple times that when a 32
+> bit instance using Jemalloc (<= 3.0) is very near to be out of memory
+> because the whole available address space was used, it can happen that
+> the server crashes because memory gets corrupted instead of malloc
+> returning NULL.
+> 
+> Is this a known issues?
+
+This is the first I've heard of such an issue.  If you are able to narrow down the failure mode, please let me know so that we can get this fixed ASAP.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Tue Nov  6 16:08:17 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 6 Nov 2012 16:08:17 -0800
+Subject: [PATCH] Don't register jemalloc's zone allocator if something
+	else already replaced the system default zone
+In-Reply-To: <1350974568-20081-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1350974568-20081-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <EB345EEA-2499-4093-8AC7-413CEAD9F4DD@canonware.com>
+
+On Oct 22, 2012, at 11:42 PM, Mike Hommey wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> ---
+> src/zone.c |   12 +++++++++++-
+> 1 file changed, 11 insertions(+), 1 deletion(-)
+
+Applied.
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Tue Nov  6 16:33:22 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 6 Nov 2012 16:33:22 -0800
+Subject: document what stats.active does not track
+In-Reply-To: <1TOZuV-000Azw-5L@internal.tormail.org>
+References: <1TOZuV-000Azw-5L@internal.tormail.org>
+Message-ID: <966F3DB7-6DBA-4213-A4A2-E3529AED8F15@canonware.com>
+
+On Oct 17, 2012, at 1:06 PM, Jan Beich wrote:
+> Based on http://www.canonware.com/pipermail/jemalloc-discuss/2012-March/000164.html
+> ---
+> doc/jemalloc.xml.in | 6 ++++--
+> 1 file changed, 4 insertions(+), 2 deletions(-)
+
+Applied.
+
+Thanks,
+Jason
+
+From antirez at gmail.com  Wed Nov  7 00:40:51 2012
+From: antirez at gmail.com (Salvatore Sanfilippo)
+Date: Wed, 7 Nov 2012 09:40:51 +0100
+Subject: Memory corruptions near 32 bit limits
+In-Reply-To: <0C56B5FC-DF8F-42D7-B825-D277485DFF5C@canonware.com>
+References: <CA+XzkVei8v-SminztkgPyiKptn6gGTsCq25uvOe4-eO_eSR6GQ@mail.gmail.com>
+	<0C56B5FC-DF8F-42D7-B825-D277485DFF5C@canonware.com>
+Message-ID: <CA+XzkVeRQXWKnGsTTG7W6pLCj29XcqzCceY4=aqX08WZuEo6Dg@mail.gmail.com>
+
+On Tue, Nov 6, 2012 at 6:19 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> This is the first I've heard of such an issue.  If you are able to narrow down the failure mode, please let me know so that we can get this fixed ASAP.
+
+Thank you Jason,
+
+given that this is a new issue I'll investigate further to understand
+if it could be an issue with Redis itself (I think every single
+allocation is wrapped in order to abort Redis on out of memory, but
+I'll double check this). If it still seems a jemalloc issue I'll see
+if I can reproduce it, so far the only way to reproduce the issue is
+loading a large database file on a 32 bit Linux system N times: most
+of the times it crashes for out-of-memory, a few times it crashes with
+an unexpected signal 11 or failed assertion.
+
+Cheers,
+Salvatore
+
+--
+Salvatore 'antirez' Sanfilippo
+open source developer - VMware
+http://invece.org
+
+Beauty is more important in computing than anywhere else in technology
+because software is so complicated. Beauty is the ultimate defence
+against complexity.
+       ? David Gelernter
+
+
+From mh+jemalloc at glandium.org  Wed Nov  7 22:40:11 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu,  8 Nov 2012 07:40:11 +0100
+Subject: [PATCH] Allow to build without exporting symbols
+Message-ID: <1352356811-18978-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+When statically linking jemalloc, it may be beneficial not to export its
+symbols if it makes sense, which allows the compiler and the linker to do
+some further optimizations.
+---
+ configure.ac |    7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/configure.ac b/configure.ac
+index 1c52439..8558961 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -471,6 +471,13 @@ for stem in ${public_syms}; do
+   AC_DEFINE_UNQUOTED([${n}], [${m}])
+ done
+ 
++AC_ARG_WITH([export],
++  [AS_HELP_STRING([--without-export], [disable exporting jemalloc public APIs])],
++  [if test "x$with_export" = "xno"; then
++  AC_DEFINE([JEMALLOC_EXPORT],[])]
++fi]
++)
++
+ dnl Do not mangle library-private APIs by default.
+ AC_ARG_WITH([private_namespace],
+   [AS_HELP_STRING([--with-private-namespace=<prefix>], [Prefix to prepend to all library-private APIs])],
+-- 
+1.7.10.4
+
+
+
+From mitch-jemalloc-discuss at bodyfour.com  Thu Nov  8 02:17:26 2012
+From: mitch-jemalloc-discuss at bodyfour.com (Mitchell Blank Jr)
+Date: Thu, 8 Nov 2012 02:17:26 -0800
+Subject: Question about bitmap code
+In-Reply-To: <FC5A99A3-3490-4F2C-B8EC-CE7B3C9CDE5C@canonware.com>
+References: <CAJXinN_JRjaZF0M5PLFA+0AK+pPHs9fmMtxz8m4fv46ATfT0bA@mail.gmail.com>
+	<FC5A99A3-3490-4F2C-B8EC-CE7B3C9CDE5C@canonware.com>
+Message-ID: <CAJXinN8hDv8LrXAxcr9t-GFrPDRg00VOaTSFcjqwHvCfF5j2hw@mail.gmail.com>
+
+On Mon, Nov 5, 2012 at 10:05 AM, Jason Evans <jasone at canonware.com> wrote:
+
+> You're probably right that for 8-entry bitmaps, the multi-level bitmap
+> code is overkill.  However, there are combinations of heap profiling
+> settings that can cause the bitmap to contain thousands of items.
+>
+
+
+OK... I haven't looked at the heap profiling code in depth yet.  I assume
+you mean that it causes bin_info->nregs to be substantially higher?
+
+The reason I'm interested in simplifying the bitmap code is that I think it
+would be beneficial to squeeze more of the per-bin data into a cacheline.
+On the malloc side this might not matter as much since if you're doing a
+lot of allocations the arena-run you're hitting most will be cache hot.
+However, the harder case is the cascading-free: some complicated object
+hierarchy gets released and thousands of free()'s happen, all of objects
+that have been alive for millions of cycles.  There, the bin-data access is
+going to be a L2 miss, probably dominating other costs.  So keeping the
+bitmap small so as much of it as possible lives in the same cache line as
+arena_run_t is beneficial.
+
+The other cacheline concern I have is aliasing.  Again, think about the
+cascading free(): thousands of frees coming from dozens of different
+arena_run's but in essentially random order.  The problem is that the
+arena_run_t is always on a page boundary, so they will heavily alias each
+other at all cache levels.  (is this true of arena_chunk_t as well?  I'm
+still working my way around that code)
+
+It might be worth moving the header to a different place in the page, i.e.
+instead of having it at appear at
+   ptr &~PAGE_MASK,
+use something like:
+   (ptr &~ PAGE_MASK) | ((ptr >> (LG_PAGE-6)) & (PAGE_MASK &~ 63))
+
+Of course this makes computing the address of each element in the page a
+little more complicated (since now some appear before the header and some
+after it) but I think it could be worth it.
+
+Or does none of this matter because the tcache insulates this from these
+effects enough?  That's another area of the code I've barely poked at.
+
+Anyway, sorry for all of the rambling -- I don't have a patch or anything,
+this is just me thinking aloud while trying to understand the jemaloc3 code
+better.  Hopefully I'm not sounding too idiotic.
+
+-Mitch
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20121108/02280a13/attachment.html>
+
+From jasone at canonware.com  Thu Nov  8 12:29:37 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 8 Nov 2012 12:29:37 -0800
+Subject: [PATCH] Allow to build without exporting symbols
+In-Reply-To: <1352356811-18978-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1352356811-18978-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <880520FD-3CF4-4667-8947-35313911C295@canonware.com>
+
+On Nov 7, 2012, at 10:40 PM, Mike Hommey wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> When statically linking jemalloc, it may be beneficial not to export its
+> symbols if it makes sense, which allows the compiler and the linker to do
+> some further optimizations.
+> ---
+> configure.ac |    7 +++++++
+> 1 file changed, 7 insertions(+)
+> 
+> diff --git a/configure.ac b/configure.ac
+> index 1c52439..8558961 100644
+> --- a/configure.ac
+> +++ b/configure.ac
+> @@ -471,6 +471,13 @@ for stem in ${public_syms}; do
+>   AC_DEFINE_UNQUOTED([${n}], [${m}])
+> done
+> 
+> +AC_ARG_WITH([export],
+> +  [AS_HELP_STRING([--without-export], [disable exporting jemalloc public APIs])],
+> +  [if test "x$with_export" = "xno"; then
+> +  AC_DEFINE([JEMALLOC_EXPORT],[])]
+> +fi]
+> +)
+> +
+> dnl Do not mangle library-private APIs by default.
+> AC_ARG_WITH([private_namespace],
+>   [AS_HELP_STRING([--with-private-namespace=<prefix>], [Prefix to prepend to all library-private APIs])],
+> -- 
+> 1.7.10.4
+
+This looks to me like it will cause redefined symbol warnings.  Does it?  Also, --without-export needs to be documented in INSTALL.
+
+Thanks,
+Jason
+
+From mh+jemalloc at glandium.org  Thu Nov  8 13:29:58 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 8 Nov 2012 22:29:58 +0100
+Subject: [PATCH] Allow to build without exporting symbols
+In-Reply-To: <880520FD-3CF4-4667-8947-35313911C295@canonware.com>
+References: <1352356811-18978-1-git-send-email-mh+jemalloc@glandium.org>
+	<880520FD-3CF4-4667-8947-35313911C295@canonware.com>
+Message-ID: <20121108212958.GA19191@glandium.org>
+
+On Thu, Nov 08, 2012 at 12:29:37PM -0800, Jason Evans wrote:
+> On Nov 7, 2012, at 10:40 PM, Mike Hommey wrote:
+> > From: Mike Hommey <mh at glandium.org>
+> > 
+> > When statically linking jemalloc, it may be beneficial not to export its
+> > symbols if it makes sense, which allows the compiler and the linker to do
+> > some further optimizations.
+> > ---
+> > configure.ac |    7 +++++++
+> > 1 file changed, 7 insertions(+)
+> > 
+> > diff --git a/configure.ac b/configure.ac
+> > index 1c52439..8558961 100644
+> > --- a/configure.ac
+> > +++ b/configure.ac
+> > @@ -471,6 +471,13 @@ for stem in ${public_syms}; do
+> >   AC_DEFINE_UNQUOTED([${n}], [${m}])
+> > done
+> > 
+> > +AC_ARG_WITH([export],
+> > +  [AS_HELP_STRING([--without-export], [disable exporting jemalloc public APIs])],
+> > +  [if test "x$with_export" = "xno"; then
+> > +  AC_DEFINE([JEMALLOC_EXPORT],[])]
+> > +fi]
+> > +)
+> > +
+> > dnl Do not mangle library-private APIs by default.
+> > AC_ARG_WITH([private_namespace],
+> >   [AS_HELP_STRING([--with-private-namespace=<prefix>], [Prefix to prepend to all library-private APIs])],
+> > -- 
+> > 1.7.10.4
+> 
+> This looks to me like it will cause redefined symbol warnings.  Does it?
+
+Why would it?
+
+Mike
+
+
+From humdumdedum at me.com  Fri Nov 16 03:52:59 2012
+From: humdumdedum at me.com (Stefan)
+Date: Fri, 16 Nov 2012 12:52:59 +0100
+Subject: pprof
+Message-ID: <80747E8F-BC68-47F9-987C-5E5641321BD0@me.com>
+
+Hi,
+
+Would it be possible to add option to not install pprof?
+
+pprof already comes with gperftools and is causing make install to fail if you already have gperftools installed.
+
+Kind regards
+Stefan
+
+
+
+
+
+From mh+jemalloc at glandium.org  Mon Nov 19 01:54:25 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 19 Nov 2012 10:54:25 +0100
+Subject: [PATCH] Allow to build without exporting symbols
+In-Reply-To: <20121108212958.GA19191@glandium.org>
+References: <1352356811-18978-1-git-send-email-mh+jemalloc@glandium.org>
+	<880520FD-3CF4-4667-8947-35313911C295@canonware.com>
+	<20121108212958.GA19191@glandium.org>
+Message-ID: <20121119095425.GA28647@glandium.org>
+
+On Thu, Nov 08, 2012 at 10:29:58PM +0100, Mike Hommey wrote:
+> On Thu, Nov 08, 2012 at 12:29:37PM -0800, Jason Evans wrote:
+> > On Nov 7, 2012, at 10:40 PM, Mike Hommey wrote:
+> > > From: Mike Hommey <mh at glandium.org>
+> > > 
+> > > When statically linking jemalloc, it may be beneficial not to export its
+> > > symbols if it makes sense, which allows the compiler and the linker to do
+> > > some further optimizations.
+> > > ---
+> > > configure.ac |    7 +++++++
+> > > 1 file changed, 7 insertions(+)
+> > > 
+> > > diff --git a/configure.ac b/configure.ac
+> > > index 1c52439..8558961 100644
+> > > --- a/configure.ac
+> > > +++ b/configure.ac
+> > > @@ -471,6 +471,13 @@ for stem in ${public_syms}; do
+> > >   AC_DEFINE_UNQUOTED([${n}], [${m}])
+> > > done
+> > > 
+> > > +AC_ARG_WITH([export],
+> > > +  [AS_HELP_STRING([--without-export], [disable exporting jemalloc public APIs])],
+> > > +  [if test "x$with_export" = "xno"; then
+> > > +  AC_DEFINE([JEMALLOC_EXPORT],[])]
+> > > +fi]
+> > > +)
+> > > +
+> > > dnl Do not mangle library-private APIs by default.
+> > > AC_ARG_WITH([private_namespace],
+> > >   [AS_HELP_STRING([--with-private-namespace=<prefix>], [Prefix to prepend to all library-private APIs])],
+> > > -- 
+> > > 1.7.10.4
+> > 
+> > This looks to me like it will cause redefined symbol warnings.  Does it?
+> 
+> Why would it?
+
+If you're thinking about redefined macros, that won't happen, because 
+autoconf also replaces #define MACRO foo when it handles
+AC_DEFINE(MACRO). Which is why it works without adding a #undef
+JEMALLOC_EXPORT in the first place.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Mon Nov 19 01:55:26 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 19 Nov 2012 10:55:26 +0100
+Subject: [PATCH] Allow to build without exporting symbols
+Message-ID: <1353318926-24242-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+When statically linking jemalloc, it may be beneficial not to export its
+symbols if it makes sense, which allows the compiler and the linker to do
+some further optimizations.
+---
+ INSTALL      |    5 +++++
+ configure.ac |    7 +++++++
+ 2 files changed, 12 insertions(+)
+
+diff --git a/INSTALL b/INSTALL
+index e40a7ed..7c2ed68 100644
+--- a/INSTALL
++++ b/INSTALL
+@@ -55,6 +55,11 @@ any of the following arguments (not a definitive list) to 'configure':
+     jemalloc overlays the default malloc zone, but makes no attempt to actually
+     replace the "malloc", "calloc", etc. symbols.
+ 
++--without-export
++    Don't export public APIs. This can be useful when building jemalloc as a
++    static library, or to avoid exporting public APIs when using the zone
++    allocator on OSX.
++
+ --with-private-namespace=<prefix>
+     Prefix all library-private APIs with <prefix>.  For shared libraries,
+     symbol visibility mechanisms prevent these symbols from being exported, but
+diff --git a/configure.ac b/configure.ac
+index 1c52439..8558961 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -471,6 +471,13 @@ for stem in ${public_syms}; do
+   AC_DEFINE_UNQUOTED([${n}], [${m}])
+ done
+ 
++AC_ARG_WITH([export],
++  [AS_HELP_STRING([--without-export], [disable exporting jemalloc public APIs])],
++  [if test "x$with_export" = "xno"; then
++  AC_DEFINE([JEMALLOC_EXPORT],[])]
++fi]
++)
++
+ dnl Do not mangle library-private APIs by default.
+ AC_ARG_WITH([private_namespace],
+   [AS_HELP_STRING([--with-private-namespace=<prefix>], [Prefix to prepend to all library-private APIs])],
+-- 
+1.7.10.4
+
+
+
+From donotspammemail at me.com  Sun Nov 25 09:45:22 2012
+From: donotspammemail at me.com (Stefan)
+Date: Sun, 25 Nov 2012 18:45:22 +0100
+Subject: pprof
+Message-ID: <4A87752C-2A26-4E29-ABAC-894D2E0CDF4B@me.com>
+
+Is there a reason why you are repackaging pprof, isn't it supposed to come with gperftools ?
+
+Kind regards
+Stefan
+
+
+
+
+
+From jasone at canonware.com  Sun Nov 25 10:15:14 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 25 Nov 2012 10:15:14 -0800
+Subject: pprof
+In-Reply-To: <4A87752C-2A26-4E29-ABAC-894D2E0CDF4B@me.com>
+References: <4A87752C-2A26-4E29-ABAC-894D2E0CDF4B@me.com>
+Message-ID: <0A405525-9036-4976-A3A2-CD303BE8E1BD@canonware.com>
+
+On Nov 25, 2012, at 9:45 AM, Stefan <donotspammemail at me.com> wrote:
+> Is there a reason why you are repackaging pprof, isn't it supposed to come with gperftools ?
+
+The heap profiling functionality in jemalloc isn't very useful without pprof.  Also, when I first added heap profiling to jemalloc, there was a critical bug in pprof that remained unfixed for quite some time (IIRC, more than six months, across two releases).  At the time, I had little choice but to package a patched pprof, and even when patches aren't necessary, I think it's a good idea to provide pprof with jemalloc.  However, I'm open to naming it something else to avoid packaging conflicts.  Any suggestions?  pprof-jemalloc is cumbersome, jeprof strikes me as presumptuous (though it matches the default prefix for the files jemalloc outputs), and that's about the extent of my naming creativity.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Nov 25 10:32:19 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 25 Nov 2012 10:32:19 -0800
+Subject: [PATCH] Allow to build without exporting symbols
+In-Reply-To: <20121119095425.GA28647@glandium.org>
+References: <1352356811-18978-1-git-send-email-mh+jemalloc@glandium.org>
+	<880520FD-3CF4-4667-8947-35313911C295@canonware.com>
+	<20121108212958.GA19191@glandium.org>
+	<20121119095425.GA28647@glandium.org>
+Message-ID: <0A4D3C62-318A-435D-8903-E2D88E957317@canonware.com>
+
+On Nov 19, 2012, at 1:54 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> On Thu, Nov 08, 2012 at 10:29:58PM +0100, Mike Hommey wrote:
+>> On Thu, Nov 08, 2012 at 12:29:37PM -0800, Jason Evans wrote:
+>>> On Nov 7, 2012, at 10:40 PM, Mike Hommey wrote:
+>>>> From: Mike Hommey <mh at glandium.org>
+>>>> 
+>>>> When statically linking jemalloc, it may be beneficial not to export its
+>>>> symbols if it makes sense, which allows the compiler and the linker to do
+>>>> some further optimizations.
+>>>> ---
+>>>> [?]
+>>> 
+>>> This looks to me like it will cause redefined symbol warnings.  Does it?
+>> 
+>> Why would it?
+> 
+> If you're thinking about redefined macros, that won't happen, because 
+> autoconf also replaces #define MACRO foo when it handles
+> AC_DEFINE(MACRO). Which is why it works without adding a #undef
+> JEMALLOC_EXPORT in the first place.
+
+That was indeed my thought.  I prefer to only use autoconf to replace #undef definitions, but in this case the idiom would be needlessly messy.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Sun Nov 25 10:35:26 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 25 Nov 2012 10:35:26 -0800
+Subject: [PATCH] Allow to build without exporting symbols
+In-Reply-To: <1353318926-24242-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1353318926-24242-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <36B3584E-8248-445B-AD11-A8DEDEC5492C@canonware.com>
+
+On Nov 19, 2012, at 1:55 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> When statically linking jemalloc, it may be beneficial not to export its
+> symbols if it makes sense, which allows the compiler and the linker to do
+> some further optimizations.
+> ---
+> INSTALL      |    5 +++++
+> configure.ac |    7 +++++++
+> 2 files changed, 12 insertions(+)
+> 
+> [?]
+
+Applied; thanks.
+
+Jason
+
+From jasone at canonware.com  Sun Nov 25 11:08:29 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Sun, 25 Nov 2012 11:08:29 -0800
+Subject: Question about bitmap code
+In-Reply-To: <CAJXinN8hDv8LrXAxcr9t-GFrPDRg00VOaTSFcjqwHvCfF5j2hw@mail.gmail.com>
+References: <CAJXinN_JRjaZF0M5PLFA+0AK+pPHs9fmMtxz8m4fv46ATfT0bA@mail.gmail.com>
+	<FC5A99A3-3490-4F2C-B8EC-CE7B3C9CDE5C@canonware.com>
+	<CAJXinN8hDv8LrXAxcr9t-GFrPDRg00VOaTSFcjqwHvCfF5j2hw@mail.gmail.com>
+Message-ID: <D16121A5-7951-45B6-B18E-469C41C8EEB5@canonware.com>
+
+On Nov 8, 2012, at 2:17 AM, Mitchell Blank Jr <mitch-jemalloc-discuss at bodyfour.com> wrote:
+> The other cacheline concern I have is aliasing.  Again, think about the cascading free(): thousands of frees coming from dozens of different arena_run's but in essentially random order.  The problem is that the arena_run_t is always on a page boundary, so they will heavily alias each other at all cache levels.  (is this true of arena_chunk_t as well?  I'm still working my way around that code)
+> 
+> It might be worth moving the header to a different place in the page, i.e. instead of having it at appear at
+>    ptr &~PAGE_MASK,
+> use something like:
+>    (ptr &~ PAGE_MASK) | ((ptr >> (LG_PAGE-6)) & (PAGE_MASK &~ 63)) 
+> 
+> Of course this makes computing the address of each element in the page a little more complicated (since now some appear before the header and some after it) but I think it could be worth it.
+
+Interesting, that seems like an approach worth experimenting with, though with a modification that preserves the alignment guarantees alignment constraints for aligned memory allocation.  Yehuda Afek, Dave Dice, and Adam Morrison published a paper at ISSM'11 about this issue, called "Cache index-aware memory allocation".  It proposes a different solution to the problem that has the unfortunate side effect of breaking how jemalloc implements aligned memory allocation, IIRC without an obvious workaround.
+
+Jason
+
+From mh+jemalloc at glandium.org  Sun Nov 25 23:34:59 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 26 Nov 2012 08:34:59 +0100
+Subject: dev branch
+Message-ID: <20121126073459.GA14644@glandium.org>
+
+Hi,
+
+I'm reiterating the request to merge releases to the dev branch so that
+git describe gives a correct version number when filling VERSION, when
+building off the dev branch.
+
+Cheers,
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Mon Nov 26 03:09:01 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 26 Nov 2012 12:09:01 +0100
+Subject: Serious bug in arenas_extend_ctl
+Message-ID: <20121126110901.GA25656@glandium.org>
+
+Hi,
+
+Version 3.2 fails to build on windows, which thankfully made me spot
+this horrible bug in ctl.c:
+
+1502         READ(ctl_stats.narenas - 1, unsigned);
+
+This expands to:
+(...) memcpy(oldp, (void *)&ctl_stats.narenas - 1, copylen); (...)
+
+Which obviously doesn't do the right thing on other platforms.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Mon Nov 26 03:15:44 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 26 Nov 2012 12:15:44 +0100
+Subject: Serious bug in arenas_extend_ctl
+In-Reply-To: <20121126110901.GA25656@glandium.org>
+References: <20121126110901.GA25656@glandium.org>
+Message-ID: <20121126111544.GA25901@glandium.org>
+
+On Mon, Nov 26, 2012 at 12:09:01PM +0100, Mike Hommey wrote:
+> Hi,
+> 
+> Version 3.2 fails to build on windows, which thankfully made me spot
+> this horrible bug in ctl.c:
+> 
+> 1502         READ(ctl_stats.narenas - 1, unsigned);
+> 
+> This expands to:
+> (...) memcpy(oldp, (void *)&ctl_stats.narenas - 1, copylen); (...)
+> 
+> Which obviously doesn't do the right thing on other platforms.
+
+This small patch would avoid such mistakes to go unnoticed:
+--- a/src/ctl.c
++++ b/src/ctl.c
+@@ -960,7 +960,7 @@ ctl_postfork_child(void)
+                if (*oldlenp != sizeof(t)) {                            \
+                        size_t  copylen = (sizeof(t) <= *oldlenp)       \
+                            ? sizeof(t) : *oldlenp;                     \
+-                       memcpy(oldp, (void *)&v, copylen);              \
++                       memcpy(oldp, (void *)&(v), copylen);            \
+                        ret = EINVAL;                                   \
+                        goto label_return;                              \
+                } else                                                  \
+
+
+And this should fix the issue itself:
+
+--- a/src/ctl.c
++++ b/src/ctl.c
+@@ -1499,7 +1499,8 @@ arenas_extend_ctl(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
+                ret = EAGAIN;
+                goto label_return;
+        }
+-       READ(ctl_stats.narenas - 1, unsigned);
++       unsigned n = ctl_stats.narenas - 1;
++       READ(n, unsigned);
+ 
+        ret = 0;
+ label_return:
+
+
+From mh+jemalloc at glandium.org  Mon Nov 26 05:19:36 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 26 Nov 2012 14:19:36 +0100
+Subject: Serious bug in arenas_extend_ctl
+In-Reply-To: <20121126111544.GA25901@glandium.org>
+References: <20121126110901.GA25656@glandium.org>
+	<20121126111544.GA25901@glandium.org>
+Message-ID: <20121126131936.GA29799@glandium.org>
+
+On Mon, Nov 26, 2012 at 12:15:44PM +0100, Mike Hommey wrote:
+> On Mon, Nov 26, 2012 at 12:09:01PM +0100, Mike Hommey wrote:
+> > Hi,
+> > 
+> > Version 3.2 fails to build on windows, which thankfully made me spot
+> > this horrible bug in ctl.c:
+> > 
+> > 1502         READ(ctl_stats.narenas - 1, unsigned);
+> > 
+> > This expands to:
+> > (...) memcpy(oldp, (void *)&ctl_stats.narenas - 1, copylen); (...)
+> > 
+> > Which obviously doesn't do the right thing on other platforms.
+> 
+> This small patch would avoid such mistakes to go unnoticed:
+> --- a/src/ctl.c
+> +++ b/src/ctl.c
+> @@ -960,7 +960,7 @@ ctl_postfork_child(void)
+>                 if (*oldlenp != sizeof(t)) {                            \
+>                         size_t  copylen = (sizeof(t) <= *oldlenp)       \
+>                             ? sizeof(t) : *oldlenp;                     \
+> -                       memcpy(oldp, (void *)&v, copylen);              \
+> +                       memcpy(oldp, (void *)&(v), copylen);            \
+>                         ret = EINVAL;                                   \
+>                         goto label_return;                              \
+>                 } else                                                  \
+> 
+> 
+> And this should fix the issue itself:
+> 
+> --- a/src/ctl.c
+> +++ b/src/ctl.c
+> @@ -1499,7 +1499,8 @@ arenas_extend_ctl(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
+>                 ret = EAGAIN;
+>                 goto label_return;
+>         }
+> -       READ(ctl_stats.narenas - 1, unsigned);
+> +       unsigned n = ctl_stats.narenas - 1;
+
+Note the variable declaration needs to go at the beginning of the
+function.
+
+
+From mh+jemalloc at glandium.org  Mon Nov 26 09:52:41 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Mon, 26 Nov 2012 18:52:41 +0100
+Subject: [PATCH] Allow to disable the zone allocator on Darwin
+Message-ID: <1353952361-9363-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ INSTALL      |    4 ++++
+ Makefile.in  |    3 ++-
+ configure.ac |   21 ++++++++++++++++++++-
+ 3 files changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/INSTALL b/INSTALL
+index 7c2ed68..9bd1dac 100644
+--- a/INSTALL
++++ b/INSTALL
+@@ -141,6 +141,10 @@ any of the following arguments (not a definitive list) to 'configure':
+ --disable-experimental
+     Disable support for the experimental API (*allocm()).
+ 
++--disable-zone-allocator
++    Disable zone allocator for Darwin. This means jemalloc won't be hooked as
++    the default allocator on OSX/iOS.
++
+ --enable-utrace
+     Enable utrace(2)-based allocation tracing.  This feature is not broadly
+     portable (FreeBSD has it, but Linux and OS X do not).
+diff --git a/Makefile.in b/Makefile.in
+index 3644818..0062747 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -48,6 +48,7 @@ cfgoutputs_in := @cfgoutputs_in@
+ cfgoutputs_out := @cfgoutputs_out@
+ enable_autogen := @enable_autogen@
+ enable_experimental := @enable_experimental@
++enable_zone_allocator := @enable_zone_allocator@
+ DSO_LDFLAGS = @DSO_LDFLAGS@
+ SOREV = @SOREV@
+ PIC_CFLAGS = @PIC_CFLAGS@
+@@ -80,7 +81,7 @@ CSRCS := $(srcroot)src/jemalloc.c $(srcroot)src/arena.c $(srcroot)src/atomic.c \
+ 	$(srcroot)src/mutex.c $(srcroot)src/prof.c $(srcroot)src/quarantine.c \
+ 	$(srcroot)src/rtree.c $(srcroot)src/stats.c $(srcroot)src/tcache.c \
+ 	$(srcroot)src/util.c $(srcroot)src/tsd.c
+-ifeq (macho, $(ABI))
++ifeq ($(enable_zone_allocator), 1)
+ CSRCS += $(srcroot)src/zone.c
+ endif
+ ifeq ($(IMPORTLIB),$(SO))
+diff --git a/configure.ac b/configure.ac
+index 8558961..249a66c 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1185,7 +1185,26 @@ fi
+ dnl ============================================================================
+ dnl Darwin-related configuration.
+ 
+-if test "x${abi}" = "xmacho" ; then
++AC_ARG_ENABLE([zone-allocator],
++  [AS_HELP_STRING([--disable-zone-allocator],
++                  [Disable zone allocator for Darwin])],
++[if test "x$enable_zone_allocator" = "xno" ; then
++  enable_zone_allocator="0"
++else
++  enable_zone_allocator="1"
++fi
++],
++[if test "x${abi}" = "xmacho"; then
++  enable_zone_allocator="1"
++fi
++]
++)
++AC_SUBST([enable_zone_allocator])
++
++if test "x${enable_zone_allocator}" = "x1" ; then
++  if test "x${abi}" != "xmacho"; then
++    AC_MSG_ERROR([--enable-zone-allocator is only supported on Darwin])
++  fi
+   AC_DEFINE([JEMALLOC_IVSALLOC], [ ])
+   AC_DEFINE([JEMALLOC_ZONE], [ ])
+ 
+-- 
+1.7.10.4
+
+
+
+From jasone at canonware.com  Thu Nov 29 22:15:54 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 29 Nov 2012 22:15:54 -0800
+Subject: Serious bug in arenas_extend_ctl
+In-Reply-To: <20121126111544.GA25901@glandium.org>
+References: <20121126110901.GA25656@glandium.org>
+	<20121126111544.GA25901@glandium.org>
+Message-ID: <BAC31B87-8D1A-4D37-B1C7-7DBA06DDE313@canonware.com>
+
+On Nov 26, 2012, at 3:15 AM, Mike Hommey <mh+jemalloc at glandium.org> wrote:
+> On Mon, Nov 26, 2012 at 12:09:01PM +0100, Mike Hommey wrote:
+>> Hi,
+>> 
+>> Version 3.2 fails to build on windows, which thankfully made me spot
+>> this horrible bug in ctl.c:
+>> 
+>> 1502         READ(ctl_stats.narenas - 1, unsigned);
+>> 
+>> This expands to:
+>> (...) memcpy(oldp, (void *)&ctl_stats.narenas - 1, copylen); (...)
+>> 
+>> Which obviously doesn't do the right thing on other platforms.
+> 
+> This small patch would avoid such mistakes to go unnoticed:
+> [?]
+
+Fixed; thanks for the bug report.
+
+Jason
+

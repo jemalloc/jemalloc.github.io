@@ -1,0 +1,33 @@
+<tt>
+&lt;p&nbsp;dir=&quot;ltr&quot;&gt;I&#39;m&nbsp;not&nbsp;sure&nbsp;that&nbsp;Windows&nbsp;GetExitCodeThread&nbsp;usage&nbsp;is&nbsp;right.&nbsp;DWORD&nbsp;is&nbsp;32&nbsp;bits&nbsp;even&nbsp;on&nbsp;64&nbsp;bit&nbsp;Windows,&nbsp;so&nbsp;on&nbsp;Win64&nbsp;when&nbsp;you&nbsp;cast&nbsp;void**&nbsp;ret&nbsp;to&nbsp;DWORD*&nbsp;you&nbsp;have&nbsp;a&nbsp;size&nbsp;mismatch.&nbsp;&lt;/p&gt;<br>
+&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;May&nbsp;27,&nbsp;2014&nbsp;10:06&nbsp;PM,&nbsp;&quot;Mike&nbsp;Hommey&quot;&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:mh%2Bjemalloc@glandium.org&quot;&gt;mh+jemalloc@glandium.org&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&nbsp;type=&quot;attribution&quot;&gt;&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;<br>
+From:&nbsp;Mike&nbsp;Hommey&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:mh@glandium.org&quot;&gt;mh@glandium.org&lt;/a&gt;&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+---&lt;br&gt;<br>
+ test/src/thd.c&nbsp;|&nbsp;3&nbsp;++-&lt;br&gt;<br>
+ 1&nbsp;file&nbsp;changed,&nbsp;2&nbsp;insertions(+),&nbsp;1&nbsp;deletion(-)&lt;br&gt;<br>
+&lt;br&gt;<br>
+diff&nbsp;--git&nbsp;a/test/src/thd.c&nbsp;b/test/src/thd.c&lt;br&gt;<br>
+index&nbsp;233242a..7e53625&nbsp;100644&lt;br&gt;<br>
+---&nbsp;a/test/src/thd.c&lt;br&gt;<br>
++++&nbsp;b/test/src/thd.c&lt;br&gt;<br>
+@@&nbsp;-14,7&nbsp;+14,8&nbsp;@@&nbsp;void&lt;br&gt;<br>
+ thd_join(thd_t&nbsp;thd,&nbsp;void&nbsp;**ret)&lt;br&gt;<br>
+ {&lt;br&gt;<br>
+&lt;br&gt;<br>
+-&nbsp; &nbsp; &nbsp; &nbsp;WaitForSingleObject(thd,&nbsp;INFINITE);&lt;br&gt;<br>
++&nbsp; &nbsp; &nbsp; &nbsp;if&nbsp;(WaitForSingleObject(thd,&nbsp;INFINITE)&nbsp;==&nbsp;WAIT_OBJECT_0&nbsp;&amp;&amp;&nbsp;ret)&lt;br&gt;<br>
++&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;GetExitCodeThread(thd,&nbsp;(LPDWORD)&nbsp;ret);&lt;br&gt;<br>
+ }&lt;br&gt;<br>
+&lt;br&gt;<br>
+ #else&lt;br&gt;<br>
+--&lt;br&gt;<br>
+2.0.0.rc2&lt;br&gt;<br>
+&lt;br&gt;<br>
+_______________________________________________&lt;br&gt;<br>
+jemalloc-discuss&nbsp;mailing&nbsp;list&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;mailto:jemalloc-discuss@canonware.com&quot;&gt;jemalloc-discuss@canonware.com&lt;/a&gt;&lt;br&gt;<br>
+&lt;a&nbsp;href=&quot;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&quot;&nbsp;target=&quot;_blank&quot;&gt;http://www.canonware.com/mailman/listinfo/jemalloc-discuss&lt;/a&gt;&lt;br&gt;<br>
+&lt;/blockquote&gt;&lt;/div&gt;<br>
+
+</tt>

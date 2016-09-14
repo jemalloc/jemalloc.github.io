@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Implicit malloc/free replacement on windows/MSVC
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Implicit%20malloc/free%20replacement%20on%20windows/MSVC&In-Reply-To=%3C54235059.6060300%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000928.html">
+   <LINK REL="Next"  HREF="000930.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Implicit malloc/free replacement on windows/MSVC</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Implicit%20malloc/free%20replacement%20on%20windows/MSVC&In-Reply-To=%3C54235059.6060300%40gmail.com%3E"
+       TITLE="Implicit malloc/free replacement on windows/MSVC">danielmicay at gmail.com
+       </A><BR>
+    <I>Wed Sep 24 16:14:33 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000928.html">Implicit malloc/free replacement on windows/MSVC
+</A></li>
+        <LI>Next message: <A HREF="000930.html">Implicit malloc/free replacement on windows/MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#929">[ date ]</a>
+              <a href="thread.html#929">[ thread ]</a>
+              <a href="subject.html#929">[ subject ]</a>
+              <a href="author.html#929">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 24/09/14 05:04 AM, David Rigby wrote:
+&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> I&#8217;m investigating replacing our application's existing memory allocator (tcmalloc) with jemalloc, mainly due to jemalloc&#8217;s &#8220;lowest possible address&#8221; policy which facilities some application-level reallocation of long-lived objects to reduce heap fragmentation.
+</I>&gt;<i> 
+</I>&gt;<i> The integration on Linux and OS X is working nicely, however I&#8217;ve come to Windows and I&#8217;ve hit a bit of an impasse in dealing with indirect uses of malloc (e.g. strdup()), and I wonder if anyone has any ideas.
+</I>&gt;<i> 
+</I>&gt;<i> First - what does work:
+</I>&gt;<i> 
+</I>&gt;<i> 1) I can build jemalloc as a DLL and using a deffile (inspired by mozilla [1]) I can create malloc/calloc/realloc/free symbols pointing at their je_ prefix&#8217;d equivalents (inside jemalloc.dll) which my application will use when explicitly calling those functions - so far so good. 
+</I>&gt;<i> However, if the allocation indirectly calls malloc (for example via strdup()) then strdup uses the malloc symbol inside the CRT, and as soon as free() is called I get a segfault (not withstanding I also have two heaps in use now).
+</I>&gt;<i> 
+</I>&gt;<i> 2) Going down the statically-linked route [2], I can create a jemalloc_s.lib which has a null JE_PREFIX, and hence the application itself will again call jemalloc&#8217;s malloc/free functions. But again the strdup problem remains.
+</I>&gt;<i> 
+</I>&gt;<i> The only solutions I can find to this are either:
+</I>&gt;<i> 
+</I>&gt;<i> (A) runtime-patching the various CRT functions to jump to the custom allocators versions - as implemented by tcmalloc [3].
+</I>&gt;<i> (B) building a custom version of the CRT with the memory allocation functions removed, and statically linking this into the application - as implemented by mozilla [4].
+</I>&gt;<i> 
+</I>&gt;<i> Does anyone know of a &#8220;third way&#8221; to solve this? 
+</I>&gt;<i> 
+</I>&gt;<i> If not, I think the tcmalloc runtime-patching is fractionally the lesser of the two evils - would the list (Jason?) consider accepting a patch which ported that functionality to jemalloc? It&#8217;s written in C++ which may be undesirable, but it&#8217;s Windows only at least&#8230;
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Thanks,
+</I>&gt;<i> 
+</I>&gt;<i> DaveR
+</I>
+AFAIK it will work if you statically link jemalloc, then the CRT, and
+don't have any dynamic libraries using the CRT. It would be fantastic if
+there was a general solution implemented in jemalloc.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140924/8bb93aac/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140924/8bb93aac/attachment.sig</A>&gt;
+</PRE>
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000928.html">Implicit malloc/free replacement on windows/MSVC
+</A></li>
+	<LI>Next message: <A HREF="000930.html">Implicit malloc/free replacement on windows/MSVC
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#929">[ date ]</a>
+              <a href="thread.html#929">[ thread ]</a>
+              <a href="subject.html#929">[ subject ]</a>
+              <a href="author.html#929">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

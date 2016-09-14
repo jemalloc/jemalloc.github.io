@@ -1,0 +1,15 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;span&nbsp;style=&quot;font-family:arial,sans-serif;font-size:13px&quot;&gt;Sorry,&nbsp;should&nbsp;have&nbsp;mentioned&nbsp;that.&nbsp;CentOS&nbsp;5.6.&lt;/span&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&nbsp;style=&quot;font-family:arial,sans-serif;font-size:13px&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&nbsp;style=&quot;font-family:arial,sans-serif;font-size:13px&quot;&gt;<br>
+--&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&nbsp;style=&quot;font-family:arial,sans-serif;font-size:13px&quot;&gt;Adam&nbsp;Fried-Gintis&lt;/div&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Wed,&nbsp;Mar&nbsp;20,&nbsp;2013&nbsp;at&nbsp;12:11&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0&nbsp;0&nbsp;0&nbsp;.8ex;border-left:1px&nbsp;#ccc&nbsp;solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;class=&quot;im&quot;&gt;On&nbsp;Mar&nbsp;20,&nbsp;2013,&nbsp;at&nbsp;9:49&nbsp;AM,&nbsp;Adam&nbsp;Fried-Gintis&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:jemalloc@icosm.net&quot;&gt;jemalloc@icosm.net&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+&gt;&nbsp;I&#39;ve&nbsp;noticed&nbsp;that&nbsp;when&nbsp;linking&nbsp;with&nbsp;the&nbsp;static&nbsp;libjemalloc(_pic).a,&nbsp;initialization&nbsp;does&nbsp;not&nbsp;occur&nbsp;unless&nbsp;you&nbsp;make&nbsp;a&nbsp;jemalloc&nbsp;call&nbsp;within&nbsp;your&nbsp;code.&nbsp;In&nbsp;other&nbsp;words,&nbsp;I&nbsp;have&nbsp;to&nbsp;call&nbsp;something&nbsp;like&nbsp;malloc_stats_print()&nbsp;or&nbsp;malloc_usable_size()&nbsp;to&nbsp;get&nbsp;jemalloc&nbsp;initialized.&nbsp;If&nbsp;I&nbsp;don&#39;t&nbsp;do&nbsp;this,&nbsp;the&nbsp;normal&nbsp;malloc&nbsp;continues&nbsp;to&nbsp;be&nbsp;used.&nbsp;This&nbsp;is&nbsp;different&nbsp;from&nbsp;the&nbsp;behavior&nbsp;of&nbsp;the&nbsp;shared&nbsp;library.&nbsp;Is&nbsp;this&nbsp;a&nbsp;limitation&nbsp;somewhere,&nbsp;or&nbsp;a&nbsp;bug,&nbsp;or&nbsp;even&nbsp;a&nbsp;autogen/configure&nbsp;setting&nbsp;that&nbsp;I&nbsp;missed?&nbsp;If&nbsp;it&nbsp;can&#39;t&nbsp;be&nbsp;changed/fixed,&nbsp;it&nbsp;would&nbsp;be&nbsp;great&nbsp;to&nbsp;see&nbsp;this&nbsp;documented&nbsp;-&nbsp;it&#39;s&nbsp;certainly&nbsp;not&nbsp;obvious.&lt;br&gt;<br>
+<br>
+&lt;br&gt;<br>
+&lt;/div&gt;This&nbsp;sounds&nbsp;like&nbsp;a&nbsp;weird&nbsp;side&nbsp;effect&nbsp;of&nbsp;lazy&nbsp;run-time&nbsp;symbol&nbsp;resolution&nbsp;in&nbsp;the&nbsp;operating&nbsp;system&#39;s&nbsp;dynamic&nbsp;loader.&nbsp; What&nbsp;platform&nbsp;is&nbsp;this&nbsp;happening&nbsp;on?&lt;br&gt;<br>
+&lt;span&nbsp;class=&quot;HOEnZb&quot;&gt;&lt;font&nbsp;color=&quot;#888888&quot;&gt;&lt;br&gt;<br>
+Jason&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/font&gt;&lt;/span&gt;&lt;/blockquote&gt;&lt;/div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

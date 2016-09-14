@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121030180121.GA921%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000487.html">
+   <LINK REL="Next"  HREF="000489.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121030180121.GA921%40glandium.org%3E"
+       TITLE="Memory usage regression">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Oct 30 11:01:21 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000487.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000489.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#488">[ date ]</a>
+              <a href="thread.html#488">[ thread ]</a>
+              <a href="subject.html#488">[ subject ]</a>
+              <a href="author.html#488">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Oct 30, 2012 at 05:03:38PM +0100, Mike Hommey wrote:
+&gt;<i> So, what seems to be happening is that because of that fragmentation, when
+</I>&gt;<i> requesting big allocations, jemalloc has to allocate and use new chunks.
+</I>&gt;<i> When these big allocations are freed, the new chunk tends to be used
+</I>&gt;<i> more often than the other free chunks, adding to the fragmentation, thus
+</I>&gt;<i> requiring more new chunks for big allocations.
+</I>&gt;<i> 
+</I>&gt;<i> The following dumb patch essentially plugs the leak for the Firefox usecase:
+</I>&gt;<i> 
+</I>&gt;<i> diff --git a/src/arena.c b/src/arena.c
+</I>&gt;<i> index 1e6964a..38079d7 100644
+</I>&gt;<i> --- a/src/arena.c
+</I>&gt;<i> +++ b/src/arena.c
+</I>&gt;<i> @@ -471,7 +471,7 @@ arena_run_alloc_helper(arena_t *arena, size_t size, bool large, size_t binind,
+</I>&gt;<i>         arena_chunk_map_t *mapelm, key;
+</I>&gt;<i>  
+</I>&gt;<i>         key.bits = size | CHUNK_MAP_KEY;
+</I>&gt;<i> -       mapelm = arena_avail_tree_nsearch(&amp;arena-&gt;runs_avail_dirty, &amp;key);
+</I>&gt;<i> +       mapelm = arena_avail_tree_nsearch(&amp;arena-&gt;runs_avail_clean, &amp;key);
+</I>&gt;<i>         if (mapelm != NULL) {
+</I>&gt;<i>                 arena_chunk_t *run_chunk = CHUNK_ADDR2BASE(mapelm);
+</I>&gt;<i>                 size_t pageind = (((uintptr_t)mapelm -
+</I>&gt;<i> @@ -483,7 +483,7 @@ arena_run_alloc_helper(arena_t *arena, size_t size, bool large, size_t binind,
+</I>&gt;<i>                 arena_run_split(arena, run, size, large, binind, zero);
+</I>&gt;<i>                 return (run);
+</I>&gt;<i>         }
+</I>&gt;<i> -       mapelm = arena_avail_tree_nsearch(&amp;arena-&gt;runs_avail_clean, &amp;key);
+</I>&gt;<i> +       mapelm = arena_avail_tree_nsearch(&amp;arena-&gt;runs_avail_dirty, &amp;key);
+</I>&gt;<i>         if (mapelm != NULL) {
+</I>&gt;<i>                 arena_chunk_t *run_chunk = CHUNK_ADDR2BASE(mapelm);
+</I>&gt;<i>                 size_t pageind = (((uintptr_t)mapelm -
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> My test program changed in the meanwhile, so i can't do accurate
+</I>&gt;<i> comparisons with mozjemalloc without re-running more tests. I'll post
+</I>&gt;<i> again when I have more data.
+</I>
+Here's some comparison between jemalloc3 (tcache=false, narenas=1,
+lg_chunk=20) with the patch above and mozjemalloc.
+The graph shows (mozjemalloc - jemalloc3) / jemalloc3 for each value.
+
+mozjemalloc has a lower rss after closing tabs, but jemalloc3 has a
+lower rss when all tabs are opened. VmData difference is in an
+acceptable range.
+&quot;Usable&quot; is the total of malloc_usable_size() for all allocations, which
+means jemalloc allocates more &quot;unrequested&quot; memory than mozjemalloc.
+That could certainly contribute to some additional fragmentation and
+to the RSS difference, by extension.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000487.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000489.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#488">[ date ]</a>
+              <a href="thread.html#488">[ thread ]</a>
+              <a href="subject.html#488">[ subject ]</a>
+              <a href="author.html#488">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

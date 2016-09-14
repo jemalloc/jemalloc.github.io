@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%204/7%5D%20Use%20%22hardcoded%22%20dependencies%20instead%20of%20having%20the%0A%09compiler%20generate%20them&In-Reply-To=%3C6CDFD803-1938-47C4-BC62-64AEC272FF3F%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000359.html">
+   <LINK REL="Next"  HREF="000370.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%204/7%5D%20Use%20%22hardcoded%22%20dependencies%20instead%20of%20having%20the%0A%09compiler%20generate%20them&In-Reply-To=%3C6CDFD803-1938-47C4-BC62-64AEC272FF3F%40canonware.com%3E"
+       TITLE="[PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them">jasone at canonware.com
+       </A><BR>
+    <I>Mon Apr 30 18:17:32 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000359.html">[PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them
+</A></li>
+        <LI>Next message: <A HREF="000370.html">[PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#369">[ date ]</a>
+              <a href="thread.html#369">[ thread ]</a>
+              <a href="subject.html#369">[ subject ]</a>
+              <a href="author.html#369">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 30, 2012, at 3:38 AM, Mike Hommey wrote:
+&gt;<i> From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> 
+</I>&gt;<i> The main reason is that MSVC doesn't have flags to generate these
+</I>&gt;<i> dependencies. It is possible to generate them with the output from the
+</I>&gt;<i> showincludes flag, but it also requires to wrap the compiler, and filter
+</I>&gt;<i> its output on a message that changes depending on the system locale.
+</I>&gt;<i> 
+</I>&gt;<i> Considering all c files include jemalloc_internal.h, and that this file
+</I>&gt;<i> includes all others headers, it's just simpler to set dependencies in
+</I>&gt;<i> stone. The generated dependencies were all the same anyways.
+</I>
+I don't want to throw away the automatic dependency generation because it's, well, automatic.  Can't the hard-coding be limited to MSVC somehow?
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000359.html">[PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them
+</A></li>
+	<LI>Next message: <A HREF="000370.html">[PATCH 4/7] Use &quot;hardcoded&quot; dependencies instead of having the	compiler generate them
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#369">[ date ]</a>
+              <a href="thread.html#369">[ thread ]</a>
+              <a href="subject.html#369">[ subject ]</a>
+              <a href="author.html#369">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

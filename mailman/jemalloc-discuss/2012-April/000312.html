@@ -1,0 +1,248 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 06/11] Add a test for the TSD system
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2006/11%5D%20Add%20a%20test%20for%20the%20TSD%20system&In-Reply-To=%3C1334766590-7296-6-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000311.html">
+   <LINK REL="Next"  HREF="000318.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 06/11] Add a test for the TSD system</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%2006/11%5D%20Add%20a%20test%20for%20the%20TSD%20system&In-Reply-To=%3C1334766590-7296-6-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 06/11] Add a test for the TSD system">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Apr 18 09:29:45 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000311.html">[PATCH 05/11] Fix malloc_vsnprintf handling of %o, %u and %x
+</A></li>
+        <LI>Next message: <A HREF="000318.html">[PATCH 07/11] Disallow *_tsd_get() = value assignments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#312">[ date ]</a>
+              <a href="thread.html#312">[ thread ]</a>
+              <a href="subject.html#312">[ subject ]</a>
+              <a href="author.html#312">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ Makefile.in  |    3 +-
+ test/tsd.c   |  139 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ test/tsd.exp |    2 +
+ 3 files changed, 143 insertions(+), 1 deletion(-)
+ create mode 100644 test/tsd.c
+ create mode 100644 test/tsd.exp
+
+diff --git a/Makefile.in b/Makefile.in
+index 8a34928..7f5dcf9 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -89,7 +89,7 @@ DOCS := $(DOCS_HTML) $(DOCS_MAN3)
+ CTESTS := $(srcroot)test/aligned_alloc.c $(srcroot)test/allocated.c \
+ 	$(srcroot)test/bitmap.c $(srcroot)test/mremap.c \
+ 	$(srcroot)test/posix_memalign.c $(srcroot)test/thread_arena.c \
+-	$(srcroot)test/thread_tcache_enabled.c
++	$(srcroot)test/thread_tcache_enabled.c $(srcroot)test/tsd.c
+ ifeq ($(enable_experimental), 1)
+ CTESTS += $(srcroot)test/allocm.c $(srcroot)test/rallocm.c
+ endif
+@@ -156,6 +156,7 @@ $(STATIC_LIBS):
+ 	ar crus $@ $+
+ 
+ $(objroot)test/bitmap$(EXE): $(objroot)src/bitmap.$(O)
++#$(objroot)test/tsd$(EXE): $(objroot)src/tsd.$(O)
+ 
+ $(objroot)test/%$(EXE): $(objroot)test/%.$(O) $(objroot)src/util.$(O) $(DSOS)
+ 	@mkdir -p $(@D)
+diff --git a/test/tsd.c b/test/tsd.c
+new file mode 100644
+index 0000000..a3fc913
+--- /dev/null
++++ b/test/tsd.c
+@@ -0,0 +1,139 @@
++#define	JEMALLOC_MANGLE
++#include &quot;jemalloc_test.h&quot;
++
++typedef unsigned int data_t;
++
++void data_cleanup(void *arg);
++malloc_tsd_protos(, data, data_t)
++malloc_tsd_externs(data, data_t)
++#define DATA_INIT 0
++malloc_tsd_data(, data, data_t, DATA_INIT)
++malloc_tsd_funcs(, data, data_t, DATA_INIT, data_cleanup)
++
++static data_t next_cleanup = 0;
++static int ran_cleanups = 0;
++
++static void
++_check_equal(data_t a, data_t b, const char *file, int line)
++{
++	if (a != b)
++		malloc_printf(&quot;Got %x. Expected %x. %s:%d\n&quot;,
++			a, b, file, line);
++}
++#define check_equal(a, b) \
++	_check_equal(a, b, __FILE__, __LINE__)
++
++void
++data_cleanup(void *arg)
++{
++	data_t *data = (data_t *)arg;
++
++	check_equal(*data, next_cleanup);
++
++	if (ran_cleanups++)
++		return;
++
++	check_equal(*data_tsd_get(), DATA_INIT);
++	*data = 0x3b384d0f;
++	check_equal(*data_tsd_get(), DATA_INIT);
++
++	data_tsd_set(data);
++	next_cleanup = *data;
++	check_equal(*data_tsd_get(), *data);
++}
++
++void *
++thread_start(void *arg)
++{
++	data_t d = (data_t)(uintptr_t) arg;
++
++	if (d == 0)
++		return NULL;
++
++	check_equal(*data_tsd_get(), DATA_INIT);
++
++	if (d == 1)
++		return NULL;
++
++	data_tsd_set(&amp;d);
++	next_cleanup = d;
++	check_equal(*data_tsd_get(), d);
++
++	d = 0;
++	check_equal(*data_tsd_get(), (data_t)(uintptr_t) arg);
++
++	return NULL;
++}
++
++int
++main(void)
++{
++	je_thread_t thread;
++	data_t d = 0xa5f3e329;
++
++	malloc_printf(&quot;Test begin\n&quot;);
++
++	data_tsd_boot();
++	thread_start((void *)(uintptr_t) d);
++
++	je_thread_create(&amp;thread, thread_start, (void *) 0x72b65c10);
++	je_thread_join(thread, NULL);
++
++	check_equal(*data_tsd_get(), d);
++
++	je_thread_create(&amp;thread, thread_start, NULL);
++	je_thread_join(thread, NULL);
++
++	je_thread_create(&amp;thread, thread_start, (void *) 1);
++	je_thread_join(thread, NULL);
++
++	check_equal(ran_cleanups, 2);
++	malloc_printf(&quot;Test end\n&quot;);
++	return (0);
++}
++
++/* Stubs to avoid pulling the entire jemalloc internals */
++bool    opt_abort = false;
++
++arena_t *_arenas[1] = { NULL };
++arena_t **arenas = _arenas;
++
++#ifndef JEMALLOC_ENABLE_INLINE
++void *
++arena_malloc(arena_t *arena, size_t size, bool zero, bool try_tcache)
++{
++	return NULL;
++}
++
++void
++idalloc(void *ptr)
++{
++}
++#endif
++
++void *
++malloc_tsd_malloc(size_t size)
++{
++#if 0
++	return NULL;
++#else
++	static unsigned char buf[4096];
++	static unsigned char *next_ptr = buf;
++	unsigned char *ret = next_ptr;
++
++	next_ptr += size;
++	memset(ret, 42, size);
++	return ret;
++#endif
++}
++
++void
++malloc_tsd_dalloc(void *ptr)
++{
++}
++
++#undef malloc_tsd_dalloc
++#define malloc_tsd_dalloc malloc_tsd_dalloc_
++#undef malloc_tsd_malloc
++#define malloc_tsd_malloc malloc_tsd_malloc_
++#include &quot;../src/tsd.c&quot;
+diff --git a/test/tsd.exp b/test/tsd.exp
+new file mode 100644
+index 0000000..369a88d
+--- /dev/null
++++ b/test/tsd.exp
+@@ -0,0 +1,2 @@
++Test begin
++Test end
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000311.html">[PATCH 05/11] Fix malloc_vsnprintf handling of %o, %u and %x
+</A></li>
+	<LI>Next message: <A HREF="000318.html">[PATCH 07/11] Disallow *_tsd_get() = value assignments
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#312">[ date ]</a>
+              <a href="thread.html#312">[ thread ]</a>
+              <a href="subject.html#312">[ subject ]</a>
+              <a href="author.html#312">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

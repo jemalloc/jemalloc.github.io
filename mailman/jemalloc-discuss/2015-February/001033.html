@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc 3 performance vs. mozjemalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3CCAKSyJXcGt44JSRzEo52-U2%3DxCcxNgHoq6_G7LohuR_XQwBY_1g%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001032.html">
+   <LINK REL="Next"  HREF="001034.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc 3 performance vs. mozjemalloc</H1>
+    <B>Bradley C. Kuszmaul</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%203%20performance%20vs.%20mozjemalloc&In-Reply-To=%3CCAKSyJXcGt44JSRzEo52-U2%3DxCcxNgHoq6_G7LohuR_XQwBY_1g%40mail.gmail.com%3E"
+       TITLE="jemalloc 3 performance vs. mozjemalloc">bradley at mit.edu
+       </A><BR>
+    <I>Mon Feb  9 21:53:57 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001032.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+        <LI>Next message: <A HREF="001034.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1033">[ date ]</a>
+              <a href="thread.html#1033">[ thread ]</a>
+              <a href="subject.html#1033">[ subject ]</a>
+              <a href="author.html#1033">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Lock instructions on modern x86 processors aren't really that expensive.
+What is expensive is lock contention.  When I've measured something code
+that does this in a bunch of concurrent threads:
+  1. acquire_lock()
+  2. do_something_really_small_on_thread_local_data()
+  3. release_lock()
+
+It costs about 1ns to do step 2 with no locks.
+It costs about 5ns to acquire the lock if the lock is thread-local, and
+thus not actually contended.
+It costs about 100ns-200ns if the lock is actually contended.
+
+I've found that these measurements have changed the way I write lock-based
+code.  For example, I like per-core data structures that need a lock,
+because the per-core lock is almost always uncontended.  (The difference
+between per-core and per-thread shows up only when a thread is preempted.)
+
+-Badley
+
+On Tue, Feb 10, 2015 at 12:16 AM, Daniel Micay &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">danielmicay at gmail.com</A>&gt;
+wrote:
+
+&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> &gt; FWIW, I also tried to remove all the bin mutexes, and make them all use
+</I>&gt;<i> &gt; the arena mutex, and, counter-intuitively, it made things faster. Not by
+</I>&gt;<i> &gt; a very significant margin, though, but it's interesting to note that the
+</I>&gt;<i> &gt; synchronization overheads of n locks can make things slower than 1
+</I>&gt;<i> &gt; lock with more contention.
+</I>&gt;<i>
+</I>&gt;<i> It's not really surprising. A LOCK prefix on x86 is extremely expensive
+</I>&gt;<i> so locks without contention still have an enormous cost, as do many of
+</I>&gt;<i> the atomic operations. An atomic_load() with acquire semantics or an
+</I>&gt;<i> atomic_store() with release semantics are fast since no LOCK is needed.
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>&gt;<i>
+</I>-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/0cc6caf7/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/0cc6caf7/attachment.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001032.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+	<LI>Next message: <A HREF="001034.html">jemalloc 3 performance vs. mozjemalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1033">[ date ]</a>
+              <a href="thread.html#1033">[ thread ]</a>
+              <a href="subject.html#1033">[ subject ]</a>
+              <a href="author.html#1033">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

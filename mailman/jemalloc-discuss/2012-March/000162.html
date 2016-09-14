@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] atomic operations for ppc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20atomic%20operations%20for%20ppc&In-Reply-To=%3C3D0CE4B6-1502-4B14-A30E-5E1038CD8DD3%40creagertino.net%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000150.html">
+   <LINK REL="Next"  HREF="000139.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] atomic operations for ppc</H1>
+    <B>Douglas Creager</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20atomic%20operations%20for%20ppc&In-Reply-To=%3C3D0CE4B6-1502-4B14-A30E-5E1038CD8DD3%40creagertino.net%3E"
+       TITLE="[PATCH] atomic operations for ppc">douglas at creagertino.net
+       </A><BR>
+    <I>Tue Mar 20 06:52:23 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000150.html">[PATCH] atomic operations for ppc
+</A></li>
+        <LI>Next message: <A HREF="000139.html">Android issues
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#162">[ date ]</a>
+              <a href="thread.html#162">[ thread ]</a>
+              <a href="subject.html#162">[ subject ]</a>
+              <a href="author.html#162">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>&gt;<i> I've contacted both apr and boost respective developers and they have
+</I>&gt;<i> confirmed the code comes from apr.
+</I>&gt;<i> Now, considering that there are a limited number of ways to implement
+</I>&gt;<i> an atomic operation in assembler, the size of the code and the amount
+</I>&gt;<i> of almost identical implementations around (i.e [1], [2] or [3]) it'd
+</I>&gt;<i> be very difficult (if not impossible) to copyright the code.
+</I>&gt;<i> If you truly want to be on the safe side removing the comments and
+</I>&gt;<i> changing the variable names would be enough.
+</I>&gt;<i> Regards,
+</I>
+You could also draw the PPC atomics from the MIT-licensed OpenPA project [1].  It's structured differently (platform-specific LL and SC in separate static inline functions, with atomic-add implemented generically in terms of them), so any copyright on the APR code wouldn't apply.
+
+[1] <A HREF="http://trac.mcs.anl.gov/projects/openpa/">http://trac.mcs.anl.gov/projects/openpa/</A>
+
+&#8211;doug
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000150.html">[PATCH] atomic operations for ppc
+</A></li>
+	<LI>Next message: <A HREF="000139.html">Android issues
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#162">[ date ]</a>
+              <a href="thread.html#162">[ thread ]</a>
+              <a href="subject.html#162">[ subject ]</a>
+              <a href="author.html#162">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

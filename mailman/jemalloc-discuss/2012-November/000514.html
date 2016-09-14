@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to build without exporting symbols
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20build%20without%20exporting%20symbols&In-Reply-To=%3C20121108212958.GA19191%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000513.html">
+   <LINK REL="Next"  HREF="000516.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to build without exporting symbols</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20build%20without%20exporting%20symbols&In-Reply-To=%3C20121108212958.GA19191%40glandium.org%3E"
+       TITLE="[PATCH] Allow to build without exporting symbols">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Nov  8 13:29:58 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000513.html">[PATCH] Allow to build without exporting symbols
+</A></li>
+        <LI>Next message: <A HREF="000516.html">[PATCH] Allow to build without exporting symbols
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#514">[ date ]</a>
+              <a href="thread.html#514">[ thread ]</a>
+              <a href="subject.html#514">[ subject ]</a>
+              <a href="author.html#514">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Thu, Nov 08, 2012 at 12:29:37PM -0800, Jason Evans wrote:
+&gt;<i> On Nov 7, 2012, at 10:40 PM, Mike Hommey wrote:
+</I>&gt;<i> &gt; From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; When statically linking jemalloc, it may be beneficial not to export its
+</I>&gt;<i> &gt; symbols if it makes sense, which allows the compiler and the linker to do
+</I>&gt;<i> &gt; some further optimizations.
+</I>&gt;<i> &gt; ---
+</I>&gt;<i> &gt; configure.ac |    7 +++++++
+</I>&gt;<i> &gt; 1 file changed, 7 insertions(+)
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; diff --git a/configure.ac b/configure.ac
+</I>&gt;<i> &gt; index 1c52439..8558961 100644
+</I>&gt;<i> &gt; --- a/configure.ac
+</I>&gt;<i> &gt; +++ b/configure.ac
+</I>&gt;<i> &gt; @@ -471,6 +471,13 @@ for stem in ${public_syms}; do
+</I>&gt;<i> &gt;   AC_DEFINE_UNQUOTED([${n}], [${m}])
+</I>&gt;<i> &gt; done
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; +AC_ARG_WITH([export],
+</I>&gt;<i> &gt; +  [AS_HELP_STRING([--without-export], [disable exporting jemalloc public APIs])],
+</I>&gt;<i> &gt; +  [if test &quot;x$with_export&quot; = &quot;xno&quot;; then
+</I>&gt;<i> &gt; +  AC_DEFINE([JEMALLOC_EXPORT],[])]
+</I>&gt;<i> &gt; +fi]
+</I>&gt;<i> &gt; +)
+</I>&gt;<i> &gt; +
+</I>&gt;<i> &gt; dnl Do not mangle library-private APIs by default.
+</I>&gt;<i> &gt; AC_ARG_WITH([private_namespace],
+</I>&gt;<i> &gt;   [AS_HELP_STRING([--with-private-namespace=&lt;prefix&gt;], [Prefix to prepend to all library-private APIs])],
+</I>&gt;<i> &gt; -- 
+</I>&gt;<i> &gt; 1.7.10.4
+</I>&gt;<i> 
+</I>&gt;<i> This looks to me like it will cause redefined symbol warnings.  Does it?
+</I>
+Why would it?
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000513.html">[PATCH] Allow to build without exporting symbols
+</A></li>
+	<LI>Next message: <A HREF="000516.html">[PATCH] Allow to build without exporting symbols
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#514">[ date ]</a>
+              <a href="thread.html#514">[ thread ]</a>
+              <a href="subject.html#514">[ subject ]</a>
+              <a href="author.html#514">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

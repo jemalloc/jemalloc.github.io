@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Default *make install* failing with the absence of	doc/jemalloc.html
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Default%20%2Amake%20install%2A%20failing%20with%20the%20absence%20of%0A%09doc/jemalloc.html&In-Reply-To=%3C232DF6AD-2E54-4D03-AFE6-F20D30E2D497%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000591.html">
+   <LINK REL="Next"  HREF="000593.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Default *make install* failing with the absence of	doc/jemalloc.html</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Default%20%2Amake%20install%2A%20failing%20with%20the%20absence%20of%0A%09doc/jemalloc.html&In-Reply-To=%3C232DF6AD-2E54-4D03-AFE6-F20D30E2D497%40canonware.com%3E"
+       TITLE="Default *make install* failing with the absence of	doc/jemalloc.html">jasone at canonware.com
+       </A><BR>
+    <I>Mon May 27 10:17:16 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000591.html">Default *make install* failing with the absence of doc/jemalloc.html
+</A></li>
+        <LI>Next message: <A HREF="000593.html">Default *make install* failing with the absence of	doc/jemalloc.html
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#592">[ date ]</a>
+              <a href="thread.html#592">[ thread ]</a>
+              <a href="subject.html#592">[ subject ]</a>
+              <a href="author.html#592">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On May 27, 2013, at 8:24 AM, Karthik KN &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">karthikkn.ceg at gmail.com</A>&gt; wrote:
+&gt;<i> I tried compiling the jemalloc from source and after configure and make , make install fails with the following error.
+</I>&gt;<i> 
+</I>&gt;<i> install -m 644 doc/jemalloc.html /usr/local/share/doc/jemalloc
+</I>&gt;<i> install: cannot stat `doc/jemalloc.html': No such file or directory
+</I>&gt;<i> make: *** [install_doc_html] Error 1
+</I>&gt;<i> 
+</I>&gt;<i> The following are my machine details.
+</I>&gt;<i> 
+</I>&gt;<i> Linux karthik-pc 3.2.0-23-generic-pae #36-Ubuntu SMP Tue Apr 10 22:19:09 UTC 2012 i686 i686 i386 GNU/Linux
+</I>&gt;<i> 
+</I>&gt;<i> I am not sure why the html file is NOT generated in the expected location. Am I missing something here?
+</I>
+The build system is set up such that release tarballs do not depend on the documentation build tools.  If you want to build/install directly from a git checkout, do 'make dist' or 'make build_doc' before 'make install'.  Alternately, do 'make install_bin install_include install_lib' to install everything except docs.
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000591.html">Default *make install* failing with the absence of doc/jemalloc.html
+</A></li>
+	<LI>Next message: <A HREF="000593.html">Default *make install* failing with the absence of	doc/jemalloc.html
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#592">[ date ]</a>
+              <a href="thread.html#592">[ thread ]</a>
+              <a href="subject.html#592">[ subject ]</a>
+              <a href="author.html#592">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage: jemalloc v/s libc allocator
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%3A%20jemalloc%20v/s%20libc%20allocator&In-Reply-To=%3CCAMAQheN4COb2QZxrpP%3De6NNfN8KfzN%2Bh6pKV2RfYrjQrm08cqw%40mail.gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001063.html">
+   <LINK REL="Next"  HREF="001065.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage: jemalloc v/s libc allocator</H1>
+    <B>Eduardo Silva</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%3A%20jemalloc%20v/s%20libc%20allocator&In-Reply-To=%3CCAMAQheN4COb2QZxrpP%3De6NNfN8KfzN%2Bh6pKV2RfYrjQrm08cqw%40mail.gmail.com%3E"
+       TITLE="Memory usage: jemalloc v/s libc allocator">edsiper at gmail.com
+       </A><BR>
+    <I>Tue Mar  3 09:21:46 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001063.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+        <LI>Next message: <A HREF="001065.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1064">[ date ]</a>
+              <a href="thread.html#1064">[ thread ]</a>
+              <a href="subject.html#1064">[ subject ]</a>
+              <a href="author.html#1064">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Initially I used gnome-system-monitor, then I did it with ps_mem.py
+script which can be found here:
+
+         <A HREF="https://raw.githubusercontent.com/pixelb/ps_mem/master/ps_mem.py">https://raw.githubusercontent.com/pixelb/ps_mem/master/ps_mem.py</A>
+
+the results are:
+
+1) System malloc:
+
+$ python ps_mem.py -p 22545
+   Private  +   Shared  =  RAM used    Program
+
+   2.5 MiB +  41.0 KiB =   2.5 MiB    monkey
+   ---------------------------------
+                                  2.5 MiB
+
+2) with Jemalloc:
+
+$ python ps_mem.py -p 26105
+   Private  +   Shared  =  RAM used    Program
+
+   14.6 MiB +  42.5 KiB =  14.6 MiB    monkey
+   ---------------------------------
+                                14.6 MiB
+
+note: the server is not receiving any request.
+
+thanks
+
+
+On Tue, Mar 3, 2015 at 10:49 AM, Daniel Micay &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">danielmicay at gmail.com</A>&gt; wrote:
+&gt;<i> On 03/03/15 09:38 AM, Eduardo Silva wrote:
+</I>&gt;&gt;<i> Hi,
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> I got some reports about high memory usage by our open source project
+</I>&gt;&gt;<i> when jemalloc is enabled, to put you in context: Monkey HTTP Server[0]
+</I>&gt;&gt;<i> by default uses jemalloc in static linking mode, but optionally at
+</I>&gt;&gt;<i> build time can use the common system allocator.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> When starting the server with jemalloc, the server uses an average of
+</I>&gt;&gt;<i> 8MB, when is disabled (common system allocator) it goes down to 174KB.
+</I>&gt;&gt;<i> This is a major concern when used on Embedded environments so I would
+</I>&gt;&gt;<i> like to know how can we reduce the space used by jemalloc initially.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> If required I can provide steps to reproduce the scenario.
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> [0] <A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</I>&gt;&gt;<i>
+</I>&gt;&gt;<i> thanks for your time,
+</I>&gt;<i>
+</I>&gt;<i> How are you measuring memory usage?
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>&gt;<i>
+</I>
+
+
+-- 
+Eduardo Silva
+<A HREF="http://edsiper.linuxchile.cl">http://edsiper.linuxchile.cl</A>
+<A HREF="http://monkey-project.com">http://monkey-project.com</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001063.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+	<LI>Next message: <A HREF="001065.html">Memory usage: jemalloc v/s libc allocator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1064">[ date ]</a>
+              <a href="thread.html#1064">[ thread ]</a>
+              <a href="subject.html#1064">[ subject ]</a>
+              <a href="author.html#1064">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

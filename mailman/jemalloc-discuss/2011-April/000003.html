@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Cross-compiling and configure.ac macros
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3C4DA7E183.8000900%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000002.html">
+   <LINK REL="Next"  HREF="000004.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Cross-compiling and configure.ac macros</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Cross-compiling%20and%20configure.ac%20macros&In-Reply-To=%3C4DA7E183.8000900%40canonware.com%3E"
+       TITLE="Cross-compiling and configure.ac macros">jasone at canonware.com
+       </A><BR>
+    <I>Thu Apr 14 23:11:15 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000002.html">Cross-compiling and configure.ac macros
+</A></li>
+        <LI>Next message: <A HREF="000004.html">Cross-compiling and configure.ac macros
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3">[ date ]</a>
+              <a href="thread.html#3">[ thread ]</a>
+              <a href="subject.html#3">[ subject ]</a>
+              <a href="author.html#3">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 04/14/2011 05:16 AM, Andreas Vinsander wrote:
+&gt;<i> I am trying to cross-compile jemalloc for evaluation on an embedded
+</I>&gt;<i> device running a Linux home brew distro.
+</I>&gt;<i>
+</I>&gt;<i> I have some problems with the way jemalloc tests for various support
+</I>&gt;<i> of the host (target) system.
+</I>
+For a first pass, can you run configure without the cross compiler 
+specified, then hack up Makefile and include/jemalloc/jemalloc_defs.h to 
+do the right thing for your platform?
+
+&gt;<i> So far I have modified jemalloc-2.2.1 configure.ac as seen in the
+</I>&gt;<i> attached patch, but there still exists a call to AC_RUN_IFELSE.
+</I>
+The one remaining AC_RUN_IFELSE is for page size detection, right?  I 
+think it's reasonable to just specify a default of 12 (and maybe even 
+allow an environment variable to override that default) if the test fails.
+
+&gt;<i> What is the best way to handle it? To use autoconf cache and supply a
+</I>&gt;<i> default value when cross-compiling?
+</I>
+How would the autoconf cache help here?  Isn't it still necessary for 
+the test to have successfully run at some point for the cache to have a 
+valid result?
+
+Thanks,
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000002.html">Cross-compiling and configure.ac macros
+</A></li>
+	<LI>Next message: <A HREF="000004.html">Cross-compiling and configure.ac macros
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#3">[ date ]</a>
+              <a href="thread.html#3">[ thread ]</a>
+              <a href="subject.html#3">[ subject ]</a>
+              <a href="author.html#3">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

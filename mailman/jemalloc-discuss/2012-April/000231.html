@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Avoid using &quot;common&quot; macro names as goto labels
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Avoid%20using%20%22common%22%20macro%20names%20as%20goto%20labels&In-Reply-To=%3C1334063512-5342-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000229.html">
+   <LINK REL="Next"  HREF="000236.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Avoid using &quot;common&quot; macro names as goto labels</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Avoid%20using%20%22common%22%20macro%20names%20as%20goto%20labels&In-Reply-To=%3C1334063512-5342-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Avoid using &quot;common&quot; macro names as goto labels">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr 10 06:11:52 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000229.html">JEMALLOC_THREADED_INIT
+</A></li>
+        <LI>Next message: <A HREF="000236.html">[PATCH] Avoid using &quot;common&quot; macro names as goto labels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#231">[ date ]</a>
+              <a href="thread.html#231">[ thread ]</a>
+              <a href="subject.html#231">[ subject ]</a>
+              <a href="author.html#231">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+OUT and ERROR are defined under mingw.
+---
+ src/prof.c |   14 +++++++-------
+ src/util.c |    4 ++--
+ 2 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/src/prof.c b/src/prof.c
+index d2532ec..2807057 100644
+--- a/src/prof.c
++++ b/src/prof.c
+@@ -854,7 +854,7 @@ prof_dump(bool propagate_err, const char *filename, bool leakcheck)
+ 			if (opt_abort)
+ 				abort();
+ 		}
+-		goto ERROR;
++		goto ERR;
+ 	}
+ 
+ 	/* Merge per thread profile stats, and sum them in cnt_all. */
+@@ -870,7 +870,7 @@ prof_dump(bool propagate_err, const char *filename, bool leakcheck)
+ 		    &quot; [%&quot;PRIu64&quot;: %&quot;PRIu64&quot;] @ heapprofile\n&quot;,
+ 		    cnt_all.curobjs, cnt_all.curbytes,
+ 		    cnt_all.accumobjs, cnt_all.accumbytes))
+-			goto ERROR;
++			goto ERR;
+ 	} else {
+ 		if (prof_printf(propagate_err,
+ 		    &quot;heap profile: %&quot;PRId64&quot;: %&quot;PRId64
+@@ -878,22 +878,22 @@ prof_dump(bool propagate_err, const char *filename, bool leakcheck)
+ 		    cnt_all.curobjs, cnt_all.curbytes,
+ 		    cnt_all.accumobjs, cnt_all.accumbytes,
+ 		    ((uint64_t)1U &lt;&lt; opt_lg_prof_sample)))
+-			goto ERROR;
++			goto ERR;
+ 	}
+ 
+ 	/* Dump  per ctx profile stats. */
+ 	for (tabind = 0; ckh_iter(&amp;bt2ctx, &amp;tabind, &amp;bt.v, &amp;ctx.v)
+ 	    == false;) {
+ 		if (prof_dump_ctx(propagate_err, ctx.p, bt.p))
+-			goto ERROR;
++			goto ERR;
+ 	}
+ 
+ 	/* Dump /proc/&lt;pid&gt;/maps if possible. */
+ 	if (prof_dump_maps(propagate_err))
+-		goto ERROR;
++		goto ERR;
+ 
+ 	if (prof_flush(propagate_err))
+-		goto ERROR;
++		goto ERR;
+ 	close(prof_dump_fd);
+ 	prof_leave();
+ 
+@@ -909,7 +909,7 @@ prof_dump(bool propagate_err, const char *filename, bool leakcheck)
+ 	}
+ 
+ 	return (false);
+-ERROR:
++ERR:
+ 	prof_leave();
+ 	return (true);
+ }
+diff --git a/src/util.c b/src/util.c
+index 107bdcf..8a62738 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -349,7 +349,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 	f = format;
+ 	while (true) {
+ 		switch (*f) {
+-		case '\0': goto OUT;
++		case '\0': goto END;
+ 		case '%': {
+ 			bool alt_form = false;
+ 			bool zero_pad = false;
+@@ -542,7 +542,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+ 			break;
+ 		}}
+ 	}
+-	OUT:
++	END:
+ 	if (i &lt; size)
+ 		str[i] = '\0';
+ 	else
+-- 
+1.7.9.5
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000229.html">JEMALLOC_THREADED_INIT
+</A></li>
+	<LI>Next message: <A HREF="000236.html">[PATCH] Avoid using &quot;common&quot; macro names as goto labels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#231">[ date ]</a>
+              <a href="thread.html#231">[ thread ]</a>
+              <a href="subject.html#231">[ subject ]</a>
+              <a href="author.html#231">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

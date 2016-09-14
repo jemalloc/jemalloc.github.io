@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory allocation/release hooks
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3C041BA83D-CC88-4D21-92B6-A38C2BCF52DE%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001179.html">
+   <LINK REL="Next"  HREF="001181.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory allocation/release hooks</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20allocation/release%20hooks&In-Reply-To=%3C041BA83D-CC88-4D21-92B6-A38C2BCF52DE%40indiana.edu%3E"
+       TITLE="Memory allocation/release hooks">ldalessa at indiana.edu
+       </A><BR>
+    <I>Thu Oct 15 09:03:43 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001179.html">Memory allocation/release hooks
+</A></li>
+        <LI>Next message: <A HREF="001181.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1180">[ date ]</a>
+              <a href="thread.html#1180">[ thread ]</a>
+              <a href="subject.html#1180">[ subject ]</a>
+              <a href="author.html#1180">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On Oct 15, 2015, at 11:45 AM, Shamis, Pavel &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">shamisp at ornl.gov</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> Dear Jemalloc Community,
+</I>&gt;<i> 
+</I>&gt;<i> We are developer of UCX project [1] and as part of the effort
+</I>&gt;<i> we are looking for a malloc library that supports hooks for alloc/dealloc chunks and can be used for the following:
+</I>&gt;<i> 
+</I>&gt;<i> (a) Allocation of memory that can be shared transparently between processes on the same node. For this purpose we would like to mmap memory with MAP_SHARED. This is very useful for implementation for Remote Memory Access (RMA) operations in MPI-3 one-sided [2] and OpenSHMEM [3] communication libraries. This allow a remote process to map user allocated memory and provide RMA operations through memcpy().
+</I>
+I&#8217;m not sure about this, but I expect that you just need to install a set of custom chunk hooks to manage this. You can read about the chunk_hooks_t [here](<A HREF="http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html">http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html</A>).
+
+&gt;<i> (b) Implementation of memory de-allocation hooks for RDMA hardware (Infiniband, ROCE, iWarp etc.). For optimization purpose we implement a lazy memory de-registration (memory unpinning) policy and we use the hook for the  notification of communication library about memory release event. On the event, we cleanup our registration cache and de-register (unpin) the memory on hardware.
+</I>
+We have been using jemalloc for some time to manage, among other things, registered memory regions in HPX-5 (<A HREF="https://hpx.crest.iu.edu/">https://hpx.crest.iu.edu/</A>) for Verbs and uGNI. If you already have a mechanism which manages keys, then you can simply install a set of chunk hooks that can perform the registration/deregistration as necessary. We have found this to work quite well for our purposes.
+
+[Here are our hooks](<A HREF="https://gitlab.crest.iu.edu/extreme/hpx/blob/v1.3.0/libhpx/network/pwc/jemalloc_registered.c">https://gitlab.crest.iu.edu/extreme/hpx/blob/v1.3.0/libhpx/network/pwc/jemalloc_registered.c</A>). There is a bit of abstraction in there, but it&#8217;s basically straightforward. We only deal with chunk allocation and deallocation since we can&#8217;t really do anything interesting on commit/decommit due to the network registration (and we&#8217;re normally using hugetlbfs anyway).
+
+In order to actually use the arenas that manage registered memory each pthread will call [this](<A HREF="https://gitlab.crest.iu.edu/extreme/hpx/blob/v1.3.0/libhpx/memory/jemalloc.c#L41">https://gitlab.crest.iu.edu/extreme/hpx/blob/v1.3.0/libhpx/memory/jemalloc.c#L41</A>) at startup, and registered allocation explicitly uses the caches created there. You need to be careful to ensure that jemalloc correctly keeps memory spaces disjoint by explicitly managing caches.
+
+We also have a global heap that is implemented in a similar fashion, except that we&#8217;re implementing mmap() there to get chunk sized bits of a much larger segment of memory that we registered.
+
+Obviously this won&#8217;t be exactly what you need, but it should serve as an example of chunk hook replacement for RDMA memory and can almost certainly be used as a basis for what you want to do. You may be able to simply decorate jemalloc&#8217;s existing chunk allocator with the registration calls that you need, rather than replacing its implementation entirely like we do (we customize mmap() to get huge pages from hugetlbfs when available, which adds to the complexity here).
+
+Hope it helps.
+
+Luke
+
+&gt;<i> 
+</I>&gt;<i> Based on this requirements we would like to understand what is the best approach for integration this functionality within jemalloc.
+</I>&gt;<i> 
+</I>&gt;<i> Regards,
+</I>&gt;<i> Pasha &amp; Yossi
+</I>&gt;<i> 
+</I>&gt;<i> [1] OpenUCX: <A HREF="https://github.com/openucx/ucx">https://github.com/openucx/ucx</A> or www.openucx.org
+</I>&gt;<i> [2] MPI SPEC: <A HREF="http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf">http://www.mpi-forum.org/docs/mpi-3.0/mpi30-report.pdf</A>
+</I>&gt;<i> [3] OpenSHMEM SPEC: <A HREF="http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf">http://bongo.cs.uh.edu/site/sites/default/site_files/openshmem-specification-1.2.pdf</A>
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> _______________________________________________
+</I>&gt;<i> jemalloc-discuss mailing list
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc-discuss at canonware.com</A>
+</I>&gt;<i> <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">http://www.canonware.com/mailman/listinfo/jemalloc-discuss</A>
+</I>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001179.html">Memory allocation/release hooks
+</A></li>
+	<LI>Next message: <A HREF="001181.html">Memory allocation/release hooks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1180">[ date ]</a>
+              <a href="thread.html#1180">[ thread ]</a>
+              <a href="subject.html#1180">[ subject ]</a>
+              <a href="author.html#1180">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

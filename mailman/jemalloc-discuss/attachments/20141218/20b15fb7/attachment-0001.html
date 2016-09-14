@@ -1,0 +1,33 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;I&#39;d&nbsp;like&nbsp;to&nbsp;alert&nbsp;you&nbsp;to&nbsp;a&nbsp;problem&nbsp;that&nbsp;I&nbsp;found&nbsp;in&nbsp;linux&nbsp;libc. &nbsp;This&nbsp;bug&nbsp;may&nbsp;affect&nbsp;users&nbsp;of&nbsp;jemalloc.&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;I&#39;ve&nbsp;submitted&nbsp;a&nbsp;bug&nbsp;on&nbsp;libc&nbsp;as&lt;br&gt;&lt;div&gt; &lt;a&nbsp;href=&quot;https://sourceware.org/bugzilla/show_bug.cgi?id=17730&quot;&gt;https://sourceware.org/bugzilla/show_bug.cgi?id=17730&lt;/a&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;The&nbsp;problem&nbsp;is&nbsp;that&nbsp;under&nbsp;some&nbsp;conditions,&nbsp;libc&nbsp;allocates&nbsp;memory&nbsp;using&nbsp;__libc_memalign&nbsp;or&nbsp;__libc_malloc&nbsp;and&nbsp;later&nbsp;frees&nbsp;it&nbsp;using&nbsp;free(),&nbsp;rather&nbsp;than&nbsp;__libc_free(). &nbsp;This&nbsp;behavior&nbsp;is&nbsp;incorrect:&nbsp;for&nbsp;example,&nbsp;there&nbsp;is&nbsp;no&nbsp;reason&nbsp;to&nbsp;believe&nbsp;that&nbsp;jemalloc&nbsp;will&nbsp;know&nbsp;what&nbsp;to&nbsp;do&nbsp;with&nbsp;free(__libc_malloc(N)).&nbsp; &nbsp;It&nbsp;seems&nbsp;quite&nbsp;possible&nbsp;that&nbsp;the&nbsp;jemalloc&nbsp;data&nbsp;structures&nbsp;could&nbsp;become&nbsp;corrupted,&nbsp;but&nbsp;I&nbsp;haven&#39;t&nbsp;investigated&nbsp;exactly&nbsp;what&nbsp;happens.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;One&nbsp;possible&nbsp;workaround&nbsp;for&nbsp;the&nbsp;problem&nbsp;is&nbsp;to&nbsp;arrange&nbsp;that&nbsp;if&nbsp;jemalloc&nbsp;sees&nbsp;a&nbsp;pointer&nbsp;that&nbsp;it&nbsp;didn&#39;t&nbsp;create,&nbsp;then&nbsp;pass&nbsp;the&nbsp;pointer&nbsp;to&nbsp;the&nbsp;system&#39;s&nbsp;free&nbsp;as&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt; &nbsp; &nbsp;if&nbsp;(pointer_doesnt_belong_to_jemalloc(p))&nbsp;{&lt;/div&gt;&lt;div&gt; &nbsp; &nbsp; &nbsp; void&nbsp;(*free_p)(void*)&nbsp;=&nbsp;(void(*)(void*))&nbsp;(dlsym(RTLD_NEXT,&nbsp;&quot;free&quot;));&lt;/div&gt;&lt;div&gt; &nbsp; &nbsp; &nbsp; free_p(p);&lt;/div&gt;&lt;div&gt; &nbsp; &nbsp;}&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;this&nbsp;workaround&nbsp;*might*&nbsp;fix&nbsp;the&nbsp;problem&nbsp;for&nbsp;some&nbsp;users. &nbsp;I&nbsp;haven&#39;t&nbsp;got&nbsp;a&nbsp;better&nbsp;idea&nbsp;except&nbsp;to&nbsp;fix&nbsp;libc.&lt;/div&gt;&lt;div&gt; &nbsp;  &lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;The&nbsp;conditions&nbsp;are&nbsp;as&nbsp;follows:&lt;/div&gt;&lt;div&gt;&lt;pre&nbsp;class=&quot;&quot;&nbsp;id=&quot;comment_text_0&quot;&nbsp;style=&quot;white-space:pre-wrap;width:50em;color:rgb(0,0,0)&quot;&gt;&lt;font&nbsp;face=&quot;arial,&nbsp;helvetica,&nbsp;sans-serif&quot;&gt;Here&nbsp;are&nbsp;the&nbsp;conditions&nbsp;under&nbsp;which&nbsp;I&nbsp;can&nbsp;reproduce&nbsp;this&nbsp;problem:<br>
+&nbsp;*&nbsp;The&nbsp;main&nbsp;user&nbsp;code&nbsp;defines&nbsp;its&nbsp;own&nbsp;malloc/free<br>
+&nbsp;*&nbsp;The&nbsp;main&nbsp;user&nbsp;code&nbsp;dynamically&nbsp;loads&nbsp;a&nbsp;library&nbsp;using&nbsp;dlopen()/dlsym().<br>
+&nbsp;*&nbsp;The&nbsp;library&nbsp;contains&nbsp;thread-local&nbsp;storage.<br>
+&nbsp;*&nbsp;A&nbsp;thread&nbsp;runs,&nbsp;and&nbsp;then&nbsp;proceeds&nbsp;to&nbsp;touch&nbsp;the&nbsp;thread-local&nbsp;storage,&nbsp;eventually&nbsp;invoking&nbsp;tls_get_addr_tail()&nbsp;(in&nbsp;/elf/dl-tls.c)&nbsp;and&nbsp;then&nbsp;allocate_and_init()&nbsp;and&nbsp;then&nbsp;__libc_memalign().<br>
+&nbsp;*&nbsp;Eventually,&nbsp;this&nbsp;storage&nbsp;is&nbsp;deallocated&nbsp;using&nbsp;free()&nbsp;instead&nbsp;__libc_free().&lt;/font&gt;&lt;/pre&gt;&lt;pre&nbsp;class=&quot;&quot;&nbsp;id=&quot;comment_text_0&quot;&nbsp;style=&quot;white-space:pre-wrap;width:50em;color:rgb(0,0,0)&quot;&gt;&lt;font&nbsp;face=&quot;arial,&nbsp;helvetica,&nbsp;sans-serif&quot;&gt;I&nbsp;ran&nbsp;this&nbsp;on&nbsp;Fedora&nbsp;20,&nbsp;but&nbsp;it&nbsp;looks&nbsp;like&nbsp;the&nbsp;problem&nbsp;is&nbsp;still&nbsp;there&nbsp;in&nbsp;libc-main.&nbsp; &lt;/font&gt;&lt;/pre&gt;&lt;pre&nbsp;class=&quot;&quot;&nbsp;id=&quot;comment_text_0&quot;&nbsp;style=&quot;white-space:pre-wrap;width:50em;color:rgb(0,0,0)&quot;&gt;&lt;span&nbsp;style=&quot;font-family:arial,helvetica,sans-serif&quot;&gt;A&nbsp;test&nbsp;case&nbsp;is&nbsp;attached.&nbsp;&nbsp;This&nbsp;test&nbsp;case&nbsp;implements&nbsp;its&nbsp;own&nbsp;very&nbsp;simple&nbsp;malloc/free&nbsp;library&nbsp;and&nbsp;complains&nbsp;if&nbsp;you&nbsp;pass&nbsp;free()&nbsp;an&nbsp;improper&nbsp;pointer.&nbsp;You&nbsp;can&nbsp;run&nbsp;it&nbsp;as&nbsp;show&nbsp;below.&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;pre&nbsp;class=&quot;&quot;&nbsp;id=&quot;comment_text_0&quot;&nbsp;style=&quot;white-space:pre-wrap;width:50em;color:rgb(0,0,0)&quot;&gt;-Bradley&lt;/pre&gt;&lt;pre&nbsp;class=&quot;&quot;&nbsp;id=&quot;comment_text_0&quot;&nbsp;style=&quot;white-space:pre-wrap;width:50em;color:rgb(0,0,0)&quot;&gt;&lt;pre&nbsp;class=&quot;&quot;&nbsp;id=&quot;comment_text_0&quot;&nbsp;style=&quot;font-size:medium;white-space:pre-wrap;width:50em&quot;&gt;[bradley@30-87-232&nbsp;test]$&nbsp;tar&nbsp;xfz&nbsp;libc-bug.tar.gz&nbsp;<br>
+[bradley@30-87-232&nbsp;test]$&nbsp;cd&nbsp;libc-bug/<br>
+[bradley@30-87-232&nbsp;libc-bug]$&nbsp;make&nbsp;check<br>
+gcc&nbsp;-g&nbsp;-W&nbsp;-Wall&nbsp;-Werror&nbsp;-pthread&nbsp;-fPIC&nbsp;--shared&nbsp;libtls.c&nbsp;-o&nbsp;libtls.so<br>
+cc&nbsp;-g&nbsp;-W&nbsp;-Wall&nbsp;-Werror&nbsp;-pthread&nbsp;-fPIC&nbsp;&nbsp;&nbsp;&nbsp;tls.c&nbsp;&nbsp;-ldl&nbsp;-o&nbsp;tls<br>
+./tls<br>
+malloc(32)=0x6020c0<br>
+malloc(46)=0x6020e0<br>
+malloc(1214)=0x60210e<br>
+malloc(46)=0x6025cc<br>
+malloc(56)=0x6025fa<br>
+malloc(96)=0x602632<br>
+malloc(288)=0x602692<br>
+malloc(288)=0x6027b2<br>
+malloc(288)=0x6028d2<br>
+malloc(288)=0x6029f2<br>
+1048576<br>
+1048576<br>
+1048576<br>
+malloc(288)=0x602b12<br>
+1048576<br>
+1048576<br>
+free&nbsp;passed&nbsp;0xea1010&nbsp;not&nbsp;in&nbsp;range<br>
+make:&nbsp;***&nbsp;[check]&nbsp;Aborted&nbsp;(core&nbsp;dumped)<br>
+[bradley@30-87-232&nbsp;libc-bug]$&lt;/pre&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Allow to enable ivsalloc independently
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20enable%20ivsalloc%20independently&In-Reply-To=%3C1354828586-26241-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000541.html">
+   <LINK REL="Next"  HREF="000551.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Allow to enable ivsalloc independently</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Allow%20to%20enable%20ivsalloc%20independently&In-Reply-To=%3C1354828586-26241-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Allow to enable ivsalloc independently">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Thu Dec  6 13:16:26 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000541.html">Memory profiling on SH4
+</A></li>
+        <LI>Next message: <A HREF="000551.html">[PATCH] Allow to enable ivsalloc independently
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#534">[ date ]</a>
+              <a href="thread.html#534">[ thread ]</a>
+              <a href="subject.html#534">[ subject ]</a>
+              <a href="author.html#534">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ INSTALL      |    6 ++++++
+ configure.ac |   19 +++++++++++++++++--
+ 2 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/INSTALL b/INSTALL
+index 9bd1dac..6e371ce 100644
+--- a/INSTALL
++++ b/INSTALL
+@@ -79,6 +79,12 @@ any of the following arguments (not a definitive list) to 'configure':
+ --enable-debug
+     Enable assertions and validation code.  This incurs a substantial
+     performance hit, but is very useful during application development.
++    Implies --enable-ivsalloc.
++
++--enable-ivsalloc
++    Enable validation code, which verifies that pointers reside within
++    jemalloc-owned chunks before dereferencing them. This incurs a substantial
++    performance hit.
+ 
+ --disable-stats
+     Disable statistics gathering functionality.  See the &quot;opt.stats_print&quot;
+diff --git a/configure.ac b/configure.ac
+index 249a66c..9d062a9 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -551,7 +551,7 @@ fi
+ 
+ dnl Do not compile with debugging by default.
+ AC_ARG_ENABLE([debug],
+-  [AS_HELP_STRING([--enable-debug], [Build debugging code])],
++  [AS_HELP_STRING([--enable-debug], [Build debugging code (implies --enable-ivsalloc)])],
+ [if test &quot;x$enable_debug&quot; = &quot;xno&quot; ; then
+   enable_debug=&quot;0&quot;
+ else
+@@ -562,10 +562,25 @@ fi
+ )
+ if test &quot;x$enable_debug&quot; = &quot;x1&quot; ; then
+   AC_DEFINE([JEMALLOC_DEBUG], [ ])
+-  AC_DEFINE([JEMALLOC_IVSALLOC], [ ])
++  enable_ivsalloc=&quot;1&quot;
+ fi
+ AC_SUBST([enable_debug])
+ 
++dnl Do not validate pointers by default.
++AC_ARG_ENABLE([ivsalloc],
++  [AS_HELP_STRING([--enable-ivsalloc], [Validate pointers passed through the public API])],
++[if test &quot;x$enable_ivsalloc&quot; = &quot;xno&quot; ; then
++  enable_ivsalloc=&quot;0&quot;
++else
++  enable_ivsalloc=&quot;1&quot;
++fi
++],
++[enable_ivsalloc=&quot;0&quot;]
++)
++if test &quot;x$enable_ivsalloc&quot; = &quot;x1&quot; ; then
++  AC_DEFINE([JEMALLOC_IVSALLOC], [ ])
++fi
++
+ dnl Only optimize if not debugging.
+ if test &quot;x$enable_debug&quot; = &quot;x0&quot; -a &quot;x$no_CFLAGS&quot; = &quot;xyes&quot; ; then
+   dnl Make sure that an optimization flag was not specified in EXTRA_CFLAGS.
+-- 
+1.7.10.4
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000541.html">Memory profiling on SH4
+</A></li>
+	<LI>Next message: <A HREF="000551.html">[PATCH] Allow to enable ivsalloc independently
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#534">[ date ]</a>
+              <a href="thread.html#534">[ thread ]</a>
+              <a href="subject.html#534">[ subject ]</a>
+              <a href="author.html#534">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

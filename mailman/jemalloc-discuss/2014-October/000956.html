@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> network registered memory and pages_purge()
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20network%20registered%20memory%20and%20pages_purge%28%29&In-Reply-To=%3C16551403-8C60-40AB-AEC4-62489FCDE608%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000960.html">
+   <LINK REL="Next"  HREF="000958.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>network registered memory and pages_purge()</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20network%20registered%20memory%20and%20pages_purge%28%29&In-Reply-To=%3C16551403-8C60-40AB-AEC4-62489FCDE608%40canonware.com%3E"
+       TITLE="network registered memory and pages_purge()">jasone at canonware.com
+       </A><BR>
+    <I>Tue Oct 14 15:15:55 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000960.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+        <LI>Next message: <A HREF="000958.html">network registered memory and pages_purge()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#956">[ date ]</a>
+              <a href="thread.html#956">[ thread ]</a>
+              <a href="subject.html#956">[ subject ]</a>
+              <a href="author.html#956">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jul 17, 2014, at 1:27 PM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+&gt;<i> On Jul 17, 2014, at 3:52 PM, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;&gt;<i> On Jul 17, 2014, at 11:13 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+</I>&gt;&gt;&gt;<i> It would be nice to have allocx() dallocx() take a &#8220;cache&#8221; reference instead of an arena reference, with the cache configured with arenas to handle cache misses or something to deal with multithreaded-accesses. Other than that we really like using the library and as long as our network memory doesn&#8217;t move between cores frequently, this works well.
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Are you suggesting a system in which each cache is uniquely identified, or one in which every thread potentially has indexable caches [0, 1, 2, ...]?  I've given some thought to something similar to the latter: each thread invisibly has a cache layered on top of any arena which is explicitly used for allocation.  I'm still in the idea phase on this, so I'm really interested to hear any insights you have.
+</I>&gt;<i> 
+</I>&gt;<i> I haven&#8217;t thought it through very hard. :-)
+</I>&gt;<i> 
+</I>&gt;<i> The problem I&#8217;m trying to deal with is that we have arenas associated with different memories&#8212;call them address spaces for now. I want to be able to allocate and free from address spaces independently (with the extended interface), and have caching work. There may be more than one arena per address space, in fact, I&#8217;d guess that each thread would have at least one arena for each address space. Having to bypass the cache right now is bad for us because we start to thrash the allocator with allocx/dallocx from different places, so I&#8217;d like to be able to cache based on address space.
+</I>&gt;<i> 
+</I>&gt;<i> I think that corresponds to your indexable cache?
+</I>
+It has taken some time, but I think I understand the pain points and use cases surrounding thread caches well enough now to have a solid plan of action.  Tracking issue:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/issues/145">https://github.com/jemalloc/jemalloc/issues/145</A>
+
+Thanks,
+Jason
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000960.html">RFC: TCMalloc-style new/delete hooks
+</A></li>
+	<LI>Next message: <A HREF="000958.html">network registered memory and pages_purge()
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#956">[ date ]</a>
+              <a href="thread.html#956">[ thread ]</a>
+              <a href="subject.html#956">[ subject ]</a>
+              <a href="author.html#956">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

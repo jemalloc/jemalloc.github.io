@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc-4.0.0 test suite segfaults on aarch64
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20test%20suite%20segfaults%20on%20aarch64&In-Reply-To=%3C507CCBE8-AA79-4A94-9BE0-404C90B3ADFD%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001141.html">
+   <LINK REL="Next"  HREF="001143.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc-4.0.0 test suite segfaults on aarch64</H1>
+    <B>David Abdurachmanov</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc-4.0.0%20test%20suite%20segfaults%20on%20aarch64&In-Reply-To=%3C507CCBE8-AA79-4A94-9BE0-404C90B3ADFD%40gmail.com%3E"
+       TITLE="jemalloc-4.0.0 test suite segfaults on aarch64">david.abdurachmanov at gmail.com
+       </A><BR>
+    <I>Wed Aug 19 11:53:48 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001141.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+        <LI>Next message: <A HREF="001143.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1142">[ date ]</a>
+              <a href="thread.html#1142">[ thread ]</a>
+              <a href="subject.html#1142">[ subject ]</a>
+              <a href="author.html#1142">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>
+&gt;<i> On 19 Aug 2015, at 20:44, Jason Evans &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A>&gt; wrote:
+</I>&gt;<i> 
+</I>&gt;<i> On Aug 19, 2015, at 3:02 AM, Ingvar Hagelund &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ingvar at redpill-linpro.com</A>&gt; wrote:
+</I>&gt;&gt;<i> I've started wrapping jemalloc-4.0.0 for fedora. aarch64 is now a target
+</I>&gt;&gt;<i> arch for fedora. When sent to the arm builders, the unit/bitmap test
+</I>&gt;&gt;<i> segfaults. Full log here:
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> <A HREF="http://arm.koji.fedoraproject.org//work/tasks/6832/3126832/build.log">http://arm.koji.fedoraproject.org//work/tasks/6832/3126832/build.log</A>
+</I>&gt;&gt;<i> 
+</I>&gt;&gt;<i> Also note the vast amounts of &quot;warning: left shift count is negative&quot;.
+</I>&gt;<i> 
+</I>&gt;<i> This happens with page sizes larger than 8 KiB.  I can test a patch locally by specifying --with-lg-page=16 during configuration.  The segfault is hopefully a side effect of the bit shifting issue (I certainly get test crashes when specifying --with-lg-page=16).
+</I>
+Fedora for aarch64 (and ppc64le, I guess) has page size set to 64K. I think,
+Ubuntu has 4K pages on aarch64 (at least for now).
+
+I have access to aarch64 machines, thus I could run test suite on demand for
+validation/patch testing purposes.
+
+david
+</PRE>
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001141.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+	<LI>Next message: <A HREF="001143.html">jemalloc-4.0.0 test suite segfaults on aarch64
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1142">[ date ]</a>
+              <a href="thread.html#1142">[ thread ]</a>
+              <a href="subject.html#1142">[ subject ]</a>
+              <a href="author.html#1142">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

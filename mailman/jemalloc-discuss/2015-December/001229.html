@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Configuration Script for Windows
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Configuration%20Script%20for%20Windows&In-Reply-To=%3CA2BCB1C5-7C60-47C0-ABCD-5F047F6DC7C1%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001226.html">
+   <LINK REL="Next"  HREF="001233.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Configuration Script for Windows</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Configuration%20Script%20for%20Windows&In-Reply-To=%3CA2BCB1C5-7C60-47C0-ABCD-5F047F6DC7C1%40canonware.com%3E"
+       TITLE="Configuration Script for Windows">jasone at canonware.com
+       </A><BR>
+    <I>Wed Dec 23 09:05:35 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001226.html">malloc profile from a core dump
+</A></li>
+        <LI>Next message: <A HREF="001233.html">Configuration Script for Windows
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1229">[ date ]</a>
+              <a href="thread.html#1229">[ thread ]</a>
+              <a href="subject.html#1229">[ subject ]</a>
+              <a href="author.html#1229">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 19, 2015, at 2:08 AM, Jos Vernon &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jv at websupergoo.com</A>&gt; wrote:
+&gt;<i> I've been using the GitHub shines77/jemalloc-win32 for a while -  that uses jemalloc 3.6.0.
+</I>&gt;<i> 
+</I>&gt;<i> However recently I've hit problems relating to leaks in highly threaded environments. I know these are jemalloc related because if I swap out jemalloc for a different memory manager then they go away.
+</I>&gt;<i> 
+</I>&gt;<i> So it would seem to me that the first thing to do is to upgrade to 4.0.4 to see if the issue is resolved. However I am having some problem getting this to work under MSVC.
+</I>&gt;<i> 
+</I>&gt;<i> I can see that this is supposed to work because I can see MSVC bits in the config code. However there are lots of questions about this and a notable dearth of people who have been successful in this area. That includes me after my first day. :-(
+</I>&gt;<i> 
+</I>&gt;<i> The MSVC bit is easy. It's getting the config to generate the right bits that is difficult. 
+</I>&gt;<i> 
+</I>&gt;<i> I'm using cygwin. I've put the Visual Studio 2012 environment variables into my shell so I can use MSVC CL and then I've done an ./autogen.sl CC=CL. 
+</I>&gt;<i> 
+</I>&gt;<i> This seems to work more or less ok. The results look feasible,.But then I'm missing important bits like sensible values in size_classes.h.
+</I>&gt;<i> 
+</I>&gt;<i> I would love any pointers here. I'm pretty hot on VC++ so once I get the config going it will be fine. I am sure that will also be useful for other people who want to do similar things.
+</I>
+Personally, the only thing I use Windows for is to fire up a 64-bit MinGW environment and build/test jemalloc.  I spent several days leading up to the 4.0.0 release making the test suite run and pass, but my lack of familiarity with modern Windows makes pretty much every experience with it intensely frustrating, and I keep hoping that others more familiar with Windows will round off the rough edges and document build procedures.  I've heard of people working around configuration issues to successfully build using Cygwin, and I'm pretty sure Mozilla uses MSVC with jemalloc.
+
+Jason
+</PRE>
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001226.html">malloc profile from a core dump
+</A></li>
+	<LI>Next message: <A HREF="001233.html">Configuration Script for Windows
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1229">[ date ]</a>
+              <a href="thread.html#1229">[ thread ]</a>
+              <a href="subject.html#1229">[ subject ]</a>
+              <a href="author.html#1229">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Avoid%20pointer%20arithmetic%20on%20void%2A%20in%0A%09test/integration/rallocx.c&In-Reply-To=%3C20140528023723.GA13199%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000813.html">
+   <LINK REL="Next"  HREF="000827.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Avoid%20pointer%20arithmetic%20on%20void%2A%20in%0A%09test/integration/rallocx.c&In-Reply-To=%3C20140528023723.GA13199%40glandium.org%3E"
+       TITLE="[PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue May 27 19:37:23 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000813.html">[PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c
+</A></li>
+        <LI>Next message: <A HREF="000827.html">[PATCH] Fixup after 3a730df
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#822">[ date ]</a>
+              <a href="thread.html#822">[ thread ]</a>
+              <a href="subject.html#822">[ subject ]</a>
+              <a href="author.html#822">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, May 27, 2014 at 03:28:09PM -0700, Jason Evans wrote:
+&gt;<i> On May 21, 2014, at 2:13 AM, Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh+jemalloc at glandium.org</A>&gt; wrote:
+</I>&gt;<i> &gt; ---
+</I>&gt;<i> &gt; test/integration/rallocx.c | 6 +++---
+</I>&gt;<i> &gt; 1 file changed, 3 insertions(+), 3 deletions(-)
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; diff --git a/test/integration/rallocx.c b/test/integration/rallocx.c
+</I>&gt;<i> &gt; index ee21aed..7acb211 100644
+</I>&gt;<i> &gt; --- a/test/integration/rallocx.c
+</I>&gt;<i> &gt; +++ b/test/integration/rallocx.c
+</I>&gt;<i> &gt; @@ -95,7 +95,7 @@ TEST_BEGIN(test_zero)
+</I>&gt;<i> &gt; 				    &quot;Expected zeroed memory&quot;);
+</I>&gt;<i> &gt; 			}
+</I>&gt;<i> &gt; 			if (psz != qsz) {
+</I>&gt;<i> &gt; -				memset(q+psz, FILL_BYTE, qsz-psz);
+</I>&gt;<i> &gt; +				memset((char *)q+psz, FILL_BYTE, qsz-psz);
+</I>&gt;<i> &gt; 				psz = qsz;
+</I>&gt;<i> &gt; 			}
+</I>&gt;<i> &gt; 			p = q;
+</I>&gt;<i> &gt; @@ -159,8 +159,8 @@ TEST_BEGIN(test_lg_align_and_zero)
+</I>&gt;<i> &gt; 		} else {
+</I>&gt;<i> &gt; 			assert_false(validate_fill(q, 0, 0, MAX_VALIDATE),
+</I>&gt;<i> &gt; 			    &quot;Expected zeroed memory&quot;);
+</I>&gt;<i> &gt; -			assert_false(validate_fill(q+sz-MAX_VALIDATE, 0, 0,
+</I>&gt;<i> &gt; -			    MAX_VALIDATE), &quot;Expected zeroed memory&quot;);
+</I>&gt;<i> &gt; +			assert_false(validate_fill((char *)q+sz-MAX_VALIDATE,
+</I>&gt;<i> &gt; +                            0, 0, MAX_VALIDATE), &quot;Expected zeroed memory&quot;);
+</I>&gt;<i> &gt; 		}
+</I>&gt;<i> &gt; 		p = q;
+</I>&gt;<i> &gt; 	}
+</I>&gt;<i> 
+</I>&gt;<i> Integrated, with minor modification:
+</I>&gt;<i> 
+</I>&gt;<i> 	<A HREF="https://github.com/jemalloc/jemalloc/commit/3a730dfd5062ecd6fc46b68f28342e14b461f560">https://github.com/jemalloc/jemalloc/commit/3a730dfd5062ecd6fc46b68f28342e14b461f560</A>
+</I>
+Fails to build with C2036: 'void *' : unknown size
+
+The problem is the (void *) cast doesn't apply to the result of the
+addition.
+
+Mike
+</PRE>
+
+
+
+
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000813.html">[PATCH] Avoid pointer arithmetic on void* in	test/integration/rallocx.c
+</A></li>
+	<LI>Next message: <A HREF="000827.html">[PATCH] Fixup after 3a730df
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#822">[ date ]</a>
+              <a href="thread.html#822">[ thread ]</a>
+              <a href="subject.html#822">[ subject ]</a>
+              <a href="author.html#822">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

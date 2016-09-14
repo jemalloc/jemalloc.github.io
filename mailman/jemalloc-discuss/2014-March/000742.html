@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> mallctl() returns zeroes with jemalloc-prefix
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mallctl%28%29%20returns%20zeroes%20with%20jemalloc-prefix&In-Reply-To=%3CD6A9909F-B9F3-401C-B45D-AB31BA7554BF%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000741.html">
+   <LINK REL="Next"  HREF="000743.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>mallctl() returns zeroes with jemalloc-prefix</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20mallctl%28%29%20returns%20zeroes%20with%20jemalloc-prefix&In-Reply-To=%3CD6A9909F-B9F3-401C-B45D-AB31BA7554BF%40canonware.com%3E"
+       TITLE="mallctl() returns zeroes with jemalloc-prefix">jasone at canonware.com
+       </A><BR>
+    <I>Tue Mar 11 08:35:13 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000741.html">mallctl() returns zeroes with jemalloc-prefix
+</A></li>
+        <LI>Next message: <A HREF="000743.html">mallctl() returns zeroes with jemalloc-prefix
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#742">[ date ]</a>
+              <a href="thread.html#742">[ thread ]</a>
+              <a href="subject.html#742">[ subject ]</a>
+              <a href="author.html#742">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Mar 11, 2014, at 4:03 AM, Antony Dovgal &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">antony.dovgal at gmail.com</A>&gt; wrote:
+&gt;<i> I'm trying to investigate the following issue:
+</I>&gt;<i> jemalloc's mallctl() stops working when the lib is compiled with --with-jemalloc-prefix=&lt;anything&gt;
+</I>&gt;<i> Does anyone have any idea how to fix this?
+</I>&gt;<i> 
+</I>&gt;<i> Here's a quick demonstration of the problem:
+</I>&gt;<i> 
+</I>&gt;<i> ./configure --prefix=/local --with-jemalloc-prefix=test_ &amp;&amp; make install
+</I>&gt;<i> 
+</I>&gt;<i> Modify the canonical example accordingly:
+</I>&gt;<i> ------------
+</I>&gt;<i> #include &lt;stdio.h&gt;
+</I>&gt;<i> #include &lt;stdlib.h&gt;
+</I>&gt;<i> #include &lt;stdint.h&gt;
+</I>&gt;<i> #include &lt;jemalloc/jemalloc.h&gt;
+</I>&gt;<i> 
+</I>&gt;<i> void
+</I>&gt;<i> do_something(size_t i)
+</I>&gt;<i> {
+</I>&gt;<i> 
+</I>&gt;<i>        // Leak some memory.
+</I>&gt;<i>        malloc(i * 100);
+</I>
+Call test_malloc() instead of malloc() here, and I think your program will work as intended.  Alternatively, you can #define JEMALLOC_MANGLE prior to #include &lt;jemalloc/jemalloc.h&gt;, and all calls to jemalloc APIs will be mangled for you.  The JEMALLOC_MANGLE alternative is more fragile in practice though, so use it with care if at all.
+
+&gt;<i> [...]
+</I>&gt;<i> ------------
+</I>&gt;<i> 
+</I>&gt;<i> And the output of this code looks like this:
+</I>&gt;<i> ...
+</I>&gt;<i> Current allocated/active/mapped: 0/0/4194304
+</I>&gt;<i> Current allocated/active/mapped: 0/0/4194304
+</I>&gt;<i> Current allocated/active/mapped: 0/0/4194304
+</I>&gt;<i> Current allocated/active/mapped: 0/0/4194304
+</I>&gt;<i> ...
+</I>&gt;<i> 
+</I>&gt;<i> The ctl tree looks ok and the entries are indeed found, but for some reason they are empty (well, except for stats.mapped).
+</I>&gt;<i> And yes, everything works fine as long as I don't use any prefix.
+</I>
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000741.html">mallctl() returns zeroes with jemalloc-prefix
+</A></li>
+	<LI>Next message: <A HREF="000743.html">mallctl() returns zeroes with jemalloc-prefix
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#742">[ date ]</a>
+              <a href="thread.html#742">[ thread ]</a>
+              <a href="subject.html#742">[ subject ]</a>
+              <a href="author.html#742">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

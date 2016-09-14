@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121026161013.GA12265%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000482.html">
+   <LINK REL="Next"  HREF="000485.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121026161013.GA12265%40glandium.org%3E"
+       TITLE="Memory usage regression">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Fri Oct 26 09:10:13 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000482.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000485.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#483">[ date ]</a>
+              <a href="thread.html#483">[ thread ]</a>
+              <a href="subject.html#483">[ subject ]</a>
+              <a href="author.html#483">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Fri, Oct 26, 2012 at 05:08:24PM +0200, Mike Hommey wrote:
+&gt;<i> On Fri, Oct 26, 2012 at 05:03:35PM +0200, Mike Hommey wrote:
+</I>&gt;<i> &gt; On Fri, Oct 26, 2012 at 11:45:32AM +0200, Mike Hommey wrote:
+</I>&gt;<i> &gt; &gt; Some more data:
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; <A HREF="http://i.imgur.com/3Q2js.png">http://i.imgur.com/3Q2js.png</A>
+</I>&gt;<i> &gt; &gt; This is zooming on the big bump at the beginning of iteration 2. Looking
+</I>&gt;<i> &gt; &gt; at the corresponding allocation log, this corresponds to &gt; 1MB
+</I>&gt;<i> &gt; &gt; allocations with memalign, but turning them into mallocs doesn't change
+</I>&gt;<i> &gt; &gt; the result, so it's not a memalign problem.
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; Looking more globally at the data, there is /some/ correlation with &gt;
+</I>&gt;<i> &gt; &gt; 1MB allocations, but occasionally, 128KB allocations do trigger the same
+</I>&gt;<i> &gt; &gt; behaviour, as well as 64KB. One interesting fact is that it's only a
+</I>&gt;<i> &gt; &gt; limited subset of these big allocations that trigger this. The vast
+</I>&gt;<i> &gt; &gt; majority of them don't.
+</I>&gt;<i> &gt; &gt; 
+</I>&gt;<i> &gt; &gt; For reference, the unzoomed graph looks like this:
+</I>&gt;<i> &gt; &gt; <A HREF="http://i.imgur.com/PViYm.png">http://i.imgur.com/PViYm.png</A>
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I rediscovered --enable-munmap, and tried again with that, thinking it
+</I>&gt;<i> &gt; could be related, and it did change something, but it's still growing:
+</I>&gt;<i> &gt; <A HREF="http://i.imgur.com/lWzhG.png">http://i.imgur.com/lWzhG.png</A>
+</I>&gt;<i> 
+</I>&gt;<i> Needless to say, the increases I was observing closely on the the zoomed
+</I>&gt;<i> graph without a matching decrease was entirely due to munmap. Now I need
+</I>&gt;<i> to find the remainder...
+</I>
+I tested size class independently, and none would cause the VM leak
+alone. Combining small and large classes do, but large + huge or small +
+huge don't.
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000482.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000485.html">Memory usage regression
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#483">[ date ]</a>
+              <a href="thread.html#483">[ thread ]</a>
+              <a href="subject.html#483">[ subject ]</a>
+              <a href="author.html#483">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

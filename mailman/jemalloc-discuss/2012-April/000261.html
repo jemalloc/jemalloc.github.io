@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> standalone jemalloc is slower than glibc's malloc (ptmalloc)
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20standalone%20jemalloc%20is%20slower%20than%20glibc%27s%20malloc%20%28ptmalloc%29&In-Reply-To=%3C20120412100402.2dafe875%40darkbook.lan.box%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000260.html">
+   <LINK REL="Next"  HREF="000245.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>standalone jemalloc is slower than glibc's malloc (ptmalloc)</H1>
+    <B>Ricardo Nabinger Sanchez</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20standalone%20jemalloc%20is%20slower%20than%20glibc%27s%20malloc%20%28ptmalloc%29&In-Reply-To=%3C20120412100402.2dafe875%40darkbook.lan.box%3E"
+       TITLE="standalone jemalloc is slower than glibc's malloc (ptmalloc)">rnsanchez at wait4.org
+       </A><BR>
+    <I>Thu Apr 12 06:04:02 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000260.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+        <LI>Next message: <A HREF="000245.html">[PATCH] Replace %z in format strings with configure-time determined	printf length modifier
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#261">[ date ]</a>
+              <a href="thread.html#261">[ thread ]</a>
+              <a href="subject.html#261">[ subject ]</a>
+              <a href="author.html#261">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello Amol,
+
+On Wed, 11 Apr 2012 17:01:40 +0530
+amol pise &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">amolpise15 at gmail.com</A>&gt; wrote:
+
+&gt;<i> I have check the performance of the jemalloc vs glibc's malloc
+</I>&gt;<i> (ptmalloc) using complex test in libxml2 package
+</I>&gt;<i> i.e. &quot;runtest&quot;. This program allocate many memory of different size
+</I>&gt;<i> and supported multi-thread.
+</I>&gt;<i> 
+</I>&gt;<i> ...
+</I>&gt;<i> 
+</I>&gt;<i> Is it mean jemalloc() is slower than glibc's malloc ?
+</I>&gt;<i> Is there any way to improve the speed performance of jemalloc in this regard?
+</I>
+A few questions:
+
+1- Is jemalloc hot?  Glibc should be.  First iteration for jemalloc
+   will be cold, hitting startup latencies.  If that is the case, the
+   measurement was not fair.
+
+2- Do the results hold?  Ie, repeat 10 ~ 30 times each of them,
+   check min/avg/max and stdev, while ensuring fair testing conditions.
+
+3- Do those tests (as performed in libxml2) match whatever scenario you
+   expect to hit when using jemalloc?  If they don't match or are too
+   far apart, libxml2 will tell you nothing.
+
+Cheers
+
+
+-- 
+Ricardo Nabinger Sanchez           <A HREF="http://rnsanchez.wait4.org/">http://rnsanchez.wait4.org/</A>
+  &quot;Left to themselves, things tend to go from bad to worse.&quot;
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000260.html">standalone jemalloc is slower than glibc's malloc (ptmalloc)
+</A></li>
+	<LI>Next message: <A HREF="000245.html">[PATCH] Replace %z in format strings with configure-time determined	printf length modifier
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#261">[ date ]</a>
+              <a href="thread.html#261">[ thread ]</a>
+              <a href="subject.html#261">[ subject ]</a>
+              <a href="author.html#261">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

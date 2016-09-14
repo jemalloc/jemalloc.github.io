@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> How to check available VMSize with the process using jeMalloc
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20check%20available%20VMSize%20with%20the%20process%20using%20jeMalloc&In-Reply-To=%3C56214FD8.2030301%40gmail.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001190.html">
+   <LINK REL="Next"  HREF="001192.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>How to check available VMSize with the process using jeMalloc</H1>
+    <B>Daniel Micay</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20How%20to%20check%20available%20VMSize%20with%20the%20process%20using%20jeMalloc&In-Reply-To=%3C56214FD8.2030301%40gmail.com%3E"
+       TITLE="How to check available VMSize with the process using jeMalloc">danielmicay at gmail.com
+       </A><BR>
+    <I>Fri Oct 16 12:28:24 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001190.html">How to check available VMSize with the process using jeMalloc
+</A></li>
+        <LI>Next message: <A HREF="001192.html">How to check available VMSize with the process using jeMalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1191">[ date ]</a>
+              <a href="thread.html#1191">[ thread ]</a>
+              <a href="subject.html#1191">[ subject ]</a>
+              <a href="author.html#1191">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Since jemalloc is hungry for virtual memory, it would be best to use a
+real memory limit via a memory control group instead of obtaining that
+very indirectly via a virtual memory limit (assuming you're on Linux).
+
+&gt;<i> 1. Get maximum size of process's virtual memory (Getting this maxlimit
+</I>&gt;<i> as 15 GB)
+</I>&gt;<i> 2. For getting process's fixed part (Text + stack) : (This calculation
+</I>&gt;<i> will be done only once)
+</I>&gt;<i>      CodeSize = VMSize (Read of /proc/pid/status) - stats.mapped
+</I>&gt;<i>    - I assume above equation will give us fixed part of process.
+</I>
+It's probably not going to be fixed because jemalloc isn't the only
+dynamic caller of mmap. Secondary stacks are one example.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151016/9cd63c6b/attachment.sig">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20151016/9cd63c6b/attachment.sig</A>&gt;
+</PRE>
+
+
+
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001190.html">How to check available VMSize with the process using jeMalloc
+</A></li>
+	<LI>Next message: <A HREF="001192.html">How to check available VMSize with the process using jeMalloc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1191">[ date ]</a>
+              <a href="thread.html#1191">[ thread ]</a>
+              <a href="subject.html#1191">[ subject ]</a>
+              <a href="author.html#1191">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

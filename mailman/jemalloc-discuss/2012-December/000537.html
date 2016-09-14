@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> valgrind 3.8.1 warning in jemalloc 3.2
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C50C8AEFD.9000703%40buscape-inc.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000536.html">
+   <LINK REL="Next"  HREF="000540.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>valgrind 3.8.1 warning in jemalloc 3.2</H1>
+    <B>Daniel Mezzatto Rodrigues</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C50C8AEFD.9000703%40buscape-inc.com%3E"
+       TITLE="valgrind 3.8.1 warning in jemalloc 3.2">danielm at buscape-inc.com
+       </A><BR>
+    <I>Wed Dec 12 08:21:17 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000536.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+        <LI>Next message: <A HREF="000540.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#537">[ date ]</a>
+              <a href="thread.html#537">[ thread ]</a>
+              <a href="subject.html#537">[ subject ]</a>
+              <a href="author.html#537">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>I think jemalloc is configuring itself to support valgrind. Running 
+configure shows me this:
+
+./configure --with-jemalloc-prefix=je_ | grep -i valgrind
+checking whether valgrind is compilable... yes
+valgrind           : 1
+
+Looks like the header files you mentioned are in the right place:
+
+/usr/local/include/valgrind/ | grep -E &quot;(valgrind|memcheck)&quot;
+memcheck.h
+valgrind.h
+
+Is it OK for me to just ignore these error messages? If it's just a 
+missconfiguration of jemalloc's valgrind support, I'm fine with that.
+
+best regards,
+
+Daniel Mezzatto
+
+On 12/12/2012 02:02 PM, Jason Evans wrote:
+&gt;<i> Is jemalloc configuring itself to support valgrind?  In order for valgrind configuration to succeed, it needs to be able to find the valgrind headers (valgrind/valgrind.h and valgrind/memcheck.h).  It's conceivable that jemalloc's valgrind support might have some holes (it's pretty tricky to get totally right), but the valgrind errors you pasted look like ones that would occur if jemalloc were completely missing valgrind support.
+</I>&gt;<i>
+</I>&gt;<i> Thanks,
+</I>&gt;<i> Jason
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000536.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+	<LI>Next message: <A HREF="000540.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#537">[ date ]</a>
+              <a href="thread.html#537">[ thread ]</a>
+              <a href="subject.html#537">[ subject ]</a>
+              <a href="author.html#537">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,35 @@
+<tt>
+&lt;div&nbsp;dir=&quot;ltr&quot;&gt;Hi,&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;br&gt;&lt;br&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Wed,&nbsp;Jan&nbsp;29,&nbsp;2014&nbsp;at&nbsp;9:24&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0px&nbsp;0px&nbsp;0px&nbsp;0.8ex;border-left-width:1px;border-left-color:rgb(204,204,204);border-left-style:solid;padding-left:1ex&quot;&gt;&lt;div&nbsp;style=&quot;word-wrap:break-word&quot;&gt;&lt;div&nbsp;class=&quot;im&quot;&gt;On&nbsp;Jan&nbsp;29,&nbsp;2014,&nbsp;at&nbsp;11:17&nbsp;AM,&nbsp;İsmail&nbsp;Dönmez&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:ismail@donmez.ws&quot;&nbsp;target=&quot;_blank&quot;&gt;ismail@donmez.ws&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+&lt;/div&gt;&lt;div&gt;&lt;div&nbsp;class=&quot;im&quot;&gt;&lt;blockquote&nbsp;type=&quot;cite&quot;&gt;&lt;div&nbsp;dir=&quot;ltr&quot;&gt;&lt;div&nbsp;class=&quot;gmail_extra&quot;&gt;&lt;div&nbsp;class=&quot;gmail_quote&quot;&gt;On&nbsp;Wed,&nbsp;Jan&nbsp;29,&nbsp;2014&nbsp;at&nbsp;9:09&nbsp;PM,&nbsp;Jason&nbsp;Evans&nbsp;&lt;span&nbsp;dir=&quot;ltr&quot;&gt;&lt;&lt;a&nbsp;href=&quot;mailto:jasone@canonware.com&quot;&nbsp;target=&quot;_blank&quot;&gt;jasone@canonware.com&lt;/a&gt;&gt;&lt;/span&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+<br>
+<br>
+&lt;blockquote&nbsp;class=&quot;gmail_quote&quot;&nbsp;style=&quot;margin:0px&nbsp;0px&nbsp;0px&nbsp;0.8ex;border-left-width:1px;border-left-color:rgb(204,204,204);border-left-style:solid;padding-left:1ex&quot;&gt;&lt;div&gt;On&nbsp;Jan&nbsp;29,&nbsp;2014,&nbsp;at&nbsp;4:28&nbsp;AM,&nbsp;İsmail&nbsp;Dönmez&nbsp;&lt;&lt;a&nbsp;href=&quot;mailto:ismail@donmez.ws&quot;&nbsp;target=&quot;_blank&quot;&gt;ismail@donmez.ws&lt;/a&gt;&gt;&nbsp;wrote:&lt;br&gt;<br>
+<br>
+<br>
+<br>
+<br>
+&gt;&nbsp;I&nbsp;have&nbsp;2&nbsp;new&nbsp;failures:&lt;br&gt;<br>
+&gt;&lt;br&gt;<br>
+&gt;&nbsp;thd_start:test/unit/prof_accum.c:83:&nbsp;Failed&nbsp;assertion:&nbsp;(bt_count_prev+(i-i_prev))&nbsp;&lt;=&nbsp;(bt_count)&nbsp;--&gt;&nbsp;6&nbsp;&gt;&nbsp;1:&nbsp;thd_start&lt;br&gt;<br>
+&lt;br&gt;<br>
+&lt;/div&gt;I&#39;m&nbsp;guessing&nbsp;that&nbsp;this&nbsp;is&nbsp;due&nbsp;to&nbsp;the&nbsp;compiler&nbsp;being&nbsp;especially&nbsp;intelligent&nbsp;regarding&nbsp;mutual&nbsp;recursion&nbsp;for&nbsp;alloc_[01](),&nbsp;and&nbsp;I&nbsp;just&nbsp;added&nbsp;noinline&nbsp;attributes&nbsp;for&nbsp;those&nbsp;functions:&lt;br&gt;<br>
+&lt;br&gt;<br>
+ &nbsp; &nbsp; &nbsp; &nbsp;&lt;a&nbsp;href=&quot;https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62&quot;&nbsp;target=&quot;_blank&quot;&gt;https://github.com/jemalloc/jemalloc/commit/526e4a59a2fe39e4f8bdf1ec0c0d2a5a557c3f62&lt;/a&gt;&lt;br&gt;<br>
+&lt;br&gt;<br>
+However,&nbsp;if&nbsp;the&nbsp;compiler&nbsp;is&nbsp;being&nbsp;that&nbsp;smart,&nbsp;it&nbsp;may&nbsp;also&nbsp;be&nbsp;smart&nbsp;enough&nbsp;to&nbsp;do&nbsp;tail&nbsp;call&nbsp;optimization&nbsp;despite&nbsp;an&nbsp;attempt&nbsp;in&nbsp;the&nbsp;code&nbsp;to&nbsp;thwart&nbsp;optimization.&nbsp; It&nbsp;appears&nbsp;that&nbsp;the&nbsp;gcc&nbsp;flag&nbsp;to&nbsp;disable&nbsp;this&nbsp;is&nbsp;-fno-optimize-sibling-calls,&nbsp;but&nbsp;I&#39;m&nbsp;reluctant&nbsp;to&nbsp;resort&nbsp;to&nbsp;that&nbsp;unless&nbsp;the&nbsp;noinline&nbsp;attribute&nbsp;fails&nbsp;to&nbsp;do&nbsp;the&nbsp;job.&lt;br&gt;<br>
+<br>
+<br>
+<br>
+&lt;/blockquote&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;This&nbsp;one&nbsp;is&nbsp;still&nbsp;failing,&nbsp;also&nbsp;adding &lt;span&nbsp;style=&quot;font-family:arial,sans-serif;font-size:12.800000190734863px&quot;&gt;-fno-optimize-sibling-calls&nbsp;to&nbsp;CFLAGS&nbsp;didn&#39;t&nbsp;fix&nbsp;it.&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;<br>
+<br>
+&lt;/div&gt;&lt;/div&gt;&lt;/blockquote&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;Did &lt;span&nbsp;style=&quot;font-family:arial,sans-serif;font-size:12.800000190734863px&quot;&gt;-fno-optimize-sibling-calls&nbsp;make&nbsp;it&nbsp;through&nbsp;to&nbsp;the&nbsp;compilation&nbsp;commands?&nbsp; If&nbsp;not,&nbsp;try&nbsp;using&nbsp;EXTRA_CFLAGS&nbsp;instead.&nbsp; Assuming &lt;/span&gt;&lt;span&nbsp;style=&quot;font-family:arial,sans-serif;font-size:13px&quot;&gt;-fno-optimize-sibling-calls&nbsp;is&nbsp;actually&nbsp;getting&nbsp;used,&nbsp;I&#39;m&nbsp;out&nbsp;of&nbsp;ideas&nbsp;as&nbsp;to&nbsp;how&nbsp;this&nbsp;is&nbsp;failing,&nbsp;and&nbsp;I&nbsp;may&nbsp;need&nbsp;to&nbsp;set&nbsp;up&nbsp;an&nbsp;equivalent&nbsp;environment&nbsp;to&nbsp;dig&nbsp;in&nbsp;further.&lt;/span&gt;&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;span&nbsp;style=&quot;font-family:arial,sans-serif;font-size:13px&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/blockquote&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Its&nbsp;there:&nbsp;CFLAGS&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:&nbsp;-O2&nbsp;-fno-optimize-sibling-calls&nbsp;-std=gnu99&nbsp;-fvisibility=hidden&nbsp;,&nbsp;just&nbsp;removing&nbsp;the&nbsp;-O2&nbsp;fixes&nbsp;the&nbsp;problem.&nbsp;So&nbsp;its&nbsp;indeed&nbsp;an&nbsp;optimization&nbsp;problem,&nbsp;so&nbsp;how&nbsp;about&nbsp;compiling&nbsp;the&nbsp;tests&nbsp;with&nbsp;-O0&nbsp;instead?&lt;/div&gt;<br>
+<br>
+&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Regards.&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;<br>
+
+</tt>

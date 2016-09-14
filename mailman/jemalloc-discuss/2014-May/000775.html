@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Managing pinned memory
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Managing%20pinned%20memory&In-Reply-To=%3CD32CFAE3-937A-46A9-918F-21FDDEF0FA4C%40indiana.edu%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000776.html">
+   <LINK REL="Next"  HREF="000777.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Managing pinned memory</H1>
+    <B>D'Alessandro, Luke K</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Managing%20pinned%20memory&In-Reply-To=%3CD32CFAE3-937A-46A9-918F-21FDDEF0FA4C%40indiana.edu%3E"
+       TITLE="Managing pinned memory">ldalessa at indiana.edu
+       </A><BR>
+    <I>Thu May  8 09:00:31 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000776.html">Crash during malloc(), with profiling enabled
+</A></li>
+        <LI>Next message: <A HREF="000777.html">Managing pinned memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#775">[ date ]</a>
+              <a href="thread.html#775">[ thread ]</a>
+              <a href="subject.html#775">[ subject ]</a>
+              <a href="author.html#775">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hi all,
+
+I&#8217;m in the market for a good concurrent allocator to manage a memory region corresponding to pinned network memory for a multithreaded and distributed HPC application. Basically, I&#8217;m going to want to do RDMA to objects that are often malloced and freed. The pinning operation is expensive so it is important to amortize it over lots of uses. I&#8217;ve written a simple thread-local caching allocator that allows me to pin contiguous blocks when they&#8217;re first allocated, and then just use TLS free listing to reuse space, however I don&#8217;t really have the resources needed to implement this in a robust way.
+
+Is there any natural way to do this in jemalloc at this time? My gut feeling is that there isn&#8217;t, explicitly specifying an arena breaks its caching and there&#8217;s not an obvious way to register a callback to run on internal block allocation and freeing (where I could pin/unpin the underlying memory).
+
+If jemalloc doesn&#8217;t really support this use case, does anyone know of an efficient, scalable, robust allocator that does?
+
+Thanks,
+Luke
+</PRE>
+
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000776.html">Crash during malloc(), with profiling enabled
+</A></li>
+	<LI>Next message: <A HREF="000777.html">Managing pinned memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#775">[ date ]</a>
+              <a href="thread.html#775">[ thread ]</a>
+              <a href="subject.html#775">[ subject ]</a>
+              <a href="author.html#775">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

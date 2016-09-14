@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Using jemalloc with static link
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Using%20jemalloc%20with%20static%20link&In-Reply-To=%3C610E2128-D44C-44A7-9FFB-73FC683B7EB4%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000617.html">
+   <LINK REL="Next"  HREF="000619.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Using jemalloc with static link</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Using%20jemalloc%20with%20static%20link&In-Reply-To=%3C610E2128-D44C-44A7-9FFB-73FC683B7EB4%40canonware.com%3E"
+       TITLE="Using jemalloc with static link">jasone at canonware.com
+       </A><BR>
+    <I>Fri Jul 19 11:27:11 PDT 2013</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000617.html">Using jemalloc with static link
+</A></li>
+        <LI>Next message: <A HREF="000619.html">Using jemalloc with static link
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#618">[ date ]</a>
+              <a href="thread.html#618">[ thread ]</a>
+              <a href="subject.html#618">[ subject ]</a>
+              <a href="author.html#618">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jul 19, 2013, at 12:41 AM, Colin Hercus &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">colin at novocraft.com</A>&gt; wrote:
+&gt;<i> I am trying to test a HPC appl'n with jemalloc to see if it can reduce memory fragmentation and slow memory growth of a long running multi-threaded app.
+</I>&gt;<i> 
+</I>&gt;<i> This application is statically linked as it's not open source and we need one binary distribution to run on multiple Linux versions.
+</I>&gt;<i> 
+</I>&gt;<i> If I configure jemalloc without a jemalloc prefix (je_) and link with -static -ljemalloc I get linker errors for multiply defined symbols
+</I>&gt;<i> 
+</I>&gt;<i> g++  -m64 -Wl,--eh-frame-hdr -o ./bin/xxxx ./obj/xxxx.o  .....   -static -pthread -lcrypto -lz -lbz2 -ldl  -ljemalloc -lunwind -Wl,-Map=gccmaps/xxxx.map
+</I>
+There's a good chance that you can make the errors go away by putting -ljemalloc earlier in the link line.  It looks to me like libcrypto is pulling in the glibc malloc symbols, and by the time the libjemalloc portion of linking occurs, it's too late for jemalloc to provide the symbols.  That said, pure static linking is pretty perilous, and I recommend dynamically linking against the system libraries, and linking to static libraries by specifying e.g. libjemalloc_pic.a along with the .o object files (and/or .a archives) in your project.  glibc in particular does an excellent job of maintaining symbol compatibility across many years of releases, so you can ship around a binary that is dynamically linked against glibc with fewer issues than you will run into with a statically linked-in glibc.  glibc protects you from a rather unstable Linux kernel interface, and if you try to run your static binary on top of a substantially different kernel, hilarity will ensue.
+
+&gt;<i> If I build with a prefix of je_ then linking is okay but memory allocation is via glibc malloc. The same is true if I dynamically link without a prefix.
+</I>&gt;<i> 
+</I>&gt;<i> Is there any simple easy way to get je_malloc to hook itself in as a replacement for malloc the way tcmalloc does?
+</I>
+jemalloc *does* hook itself in as a replacement for glibc malloc, but only if no prefix is specified. =)  You can make a one line change to src/jemalloc.c to unconditionally enable hooking.  Replace:
+
+#if ((is_malloc(je_malloc) == 1) &amp;&amp; defined(__GLIBC__) &amp;&amp; !defined(__UCLIBC__))
+
+with:
+
+#if 1
+
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000617.html">Using jemalloc with static link
+</A></li>
+	<LI>Next message: <A HREF="000619.html">Using jemalloc with static link
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#618">[ date ]</a>
+              <a href="thread.html#618">[ thread ]</a>
+              <a href="subject.html#618">[ subject ]</a>
+              <a href="author.html#618">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

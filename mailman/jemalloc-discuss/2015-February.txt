@@ -1,0 +1,2753 @@
+From snl20465 at gmail.com  Mon Feb  2 06:24:12 2015
+From: snl20465 at gmail.com (SNL)
+Date: Mon, 2 Feb 2015 19:54:12 +0530
+Subject: Jemalloc debug mode
+In-Reply-To: <CAGvmEXhtcLhCkpc-cDtCvvKjTfymPB7dyM7zuk=dcTt6kvT3jA@mail.gmail.com>
+References: <CAGvmEXhtcLhCkpc-cDtCvvKjTfymPB7dyM7zuk=dcTt6kvT3jA@mail.gmail.com>
+Message-ID: <CAGvmEXi090r22ReKnNop8Eaih7+5=5uzNJJP8LdPcSXdhKfewg@mail.gmail.com>
+
+Any inputs will be really helpful.
+
+On Fri, Jan 30, 2015 at 8:48 PM, SNL <snl20465 at gmail.com> wrote:
+
+>
+>
+> Two questions:
+>
+>
+> 1. I am using jemalloc-dev version and configured it as follows
+>
+> ./configure --enable-debug --enable-fill --enable-ivsalloc --disable-tcache
+>
+>
+> I am running following simple test case but double free is not detected,
+> what am I missing ?
+>
+>
+> int main()
+> {
+>     char * ptr = malloc(1024);
+>     free(ptr);
+>     free(ptr);
+>     return 0;
+> }
+>
+>
+> 2.  Is quarantine basically a per thread free list ? How does it interact
+> with tcache ?
+>
+>
+> Cheers.
+>
+
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150202/0de4f872/attachment.html>
+
+From rogier at fastly.com  Mon Feb  2 09:21:42 2015
+From: rogier at fastly.com (Rogier 'DocWilco' Mulhuijzen)
+Date: Mon, 2 Feb 2015 09:21:42 -0800
+Subject: Jemalloc debug mode
+In-Reply-To: <CAGvmEXi090r22ReKnNop8Eaih7+5=5uzNJJP8LdPcSXdhKfewg@mail.gmail.com>
+References: <CAGvmEXhtcLhCkpc-cDtCvvKjTfymPB7dyM7zuk=dcTt6kvT3jA@mail.gmail.com>
+	<CAGvmEXi090r22ReKnNop8Eaih7+5=5uzNJJP8LdPcSXdhKfewg@mail.gmail.com>
+Message-ID: <CAF05Cc-4QGmHYpdvxvMa3ZmY4dcTkA2k8Z0bKOg67mpvv3=ZiQ@mail.gmail.com>
+
+Are you sure you have linked to jemalloc? That's something I've messed up
+in the past.
+On 2 Feb 2015 06:24, "SNL" <snl20465 at gmail.com> wrote:
+
+> Any inputs will be really helpful.
+>
+> On Fri, Jan 30, 2015 at 8:48 PM, SNL <snl20465 at gmail.com> wrote:
+>
+>>
+>>
+>> Two questions:
+>>
+>>
+>> 1. I am using jemalloc-dev version and configured it as follows
+>>
+>> ./configure --enable-debug --enable-fill --enable-ivsalloc
+>> --disable-tcache
+>>
+>>
+>> I am running following simple test case but double free is not detected,
+>> what am I missing ?
+>>
+>>
+>> int main()
+>> {
+>>     char * ptr = malloc(1024);
+>>     free(ptr);
+>>     free(ptr);
+>>     return 0;
+>> }
+>>
+>>
+>> 2.  Is quarantine basically a per thread free list ? How does it interact
+>> with tcache ?
+>>
+>>
+>> Cheers.
+>>
+>
+>
+>
+> --
+>
+> Cheers,
+> Sunny.
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150202/4b6d2e39/attachment.html>
+
+From wangnan at cnnic.cn  Mon Feb  2 17:35:51 2015
+From: wangnan at cnnic.cn (Nan WANG)
+Date: Tue, 03 Feb 2015 09:35:51 +0800
+Subject: Jemalloc debug mode
+In-Reply-To: <CAF05Cc-4QGmHYpdvxvMa3ZmY4dcTkA2k8Z0bKOg67mpvv3=ZiQ@mail.gmail.com>
+References: <CAGvmEXhtcLhCkpc-cDtCvvKjTfymPB7dyM7zuk=dcTt6kvT3jA@mail.gmail.com>	<CAGvmEXi090r22ReKnNop8Eaih7+5=5uzNJJP8LdPcSXdhKfewg@mail.gmail.com>
+	<CAF05Cc-4QGmHYpdvxvMa3ZmY4dcTkA2k8Z0bKOg67mpvv3=ZiQ@mail.gmail.com>
+Message-ID: <54D025F7.8020300@cnnic.cn>
+
+I encounted the same problem, double free was not detected while linking 
+with jemalloc.
+? 2015-2-3 1:21, Rogier 'DocWilco' Mulhuijzen ??:
+>
+> Are you sure you have linked to jemalloc? That's something I've messed 
+> up in the past.
+>
+> On 2 Feb 2015 06:24, "SNL" <snl20465 at gmail.com 
+> <mailto:snl20465 at gmail.com>> wrote:
+>
+>     Any inputs will be really helpful.
+>
+>     On Fri, Jan 30, 2015 at 8:48 PM, SNL <snl20465 at gmail.com
+>     <mailto:snl20465 at gmail.com>> wrote:
+>
+>
+>
+>         Two questions:
+>
+>
+>         1. I am using jemalloc-dev version and configured it as follows
+>
+>         ./configure --enable-debug --enable-fill --enable-ivsalloc
+>         --disable-tcache
+>
+>
+>         I am running following simple test case but double free is not
+>         detected, what am I missing ?
+>
+>
+>         int main()
+>         {
+>             char * ptr = malloc(1024);
+>             free(ptr);
+>             free(ptr);
+>             return 0;
+>         }
+>
+>
+>         2.  Is quarantine basically a per thread free list ? How does
+>         it interact with tcache ?
+>
+>
+>         Cheers.
+>
+>
+>
+>
+>     -- 
+>
+>     Cheers,
+>     Sunny.
+>
+>     _______________________________________________
+>     jemalloc-discuss mailing list
+>     jemalloc-discuss at canonware.com <mailto:jemalloc-discuss at canonware.com>
+>     http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+-- 
+??    ??????
+---------------------------------
+==????????==
+?????????? CNNIC
+? ?: www.cnnic.cn
+??????????.??
+? ?: ??????????4?4?
+??349??6???100080?
+---------------------------------
+Nan WANG
+Research&Development Center
+= =Profession ? Responsibility ? Service= =
+China Internet Network Information Center ?CNNIC?
+Website: www.cnnic.cn
+          ??????????.??
+Add: 4th Zhongguancun Nansijie, Haidian District, Beijing 100190, China
+POB: Beijing 349, Branch 6
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/826795aa/attachment.html>
+
+From snl20465 at gmail.com  Mon Feb  2 19:46:38 2015
+From: snl20465 at gmail.com (SNL)
+Date: Tue, 3 Feb 2015 09:16:38 +0530
+Subject: Jemalloc debug mode
+In-Reply-To: <CAF05Cc-4QGmHYpdvxvMa3ZmY4dcTkA2k8Z0bKOg67mpvv3=ZiQ@mail.gmail.com>
+References: <CAGvmEXhtcLhCkpc-cDtCvvKjTfymPB7dyM7zuk=dcTt6kvT3jA@mail.gmail.com>
+	<CAGvmEXi090r22ReKnNop8Eaih7+5=5uzNJJP8LdPcSXdhKfewg@mail.gmail.com>
+	<CAF05Cc-4QGmHYpdvxvMa3ZmY4dcTkA2k8Z0bKOg67mpvv3=ZiQ@mail.gmail.com>
+Message-ID: <CAGvmEXgBtBRg5mjMA4gHfc8bSP-asODChkUPF-ZvVfRn88qbYA@mail.gmail.com>
+
+I am LD_PRELOADing jemalloc library. I can see that redzone violation works
+well but not double free detection.
+
+On Mon, Feb 2, 2015 at 10:51 PM, Rogier 'DocWilco' Mulhuijzen <
+rogier at fastly.com> wrote:
+
+> Are you sure you have linked to jemalloc? That's something I've messed up
+> in the past.
+> On 2 Feb 2015 06:24, "SNL" <snl20465 at gmail.com> wrote:
+>
+>> Any inputs will be really helpful.
+>>
+>> On Fri, Jan 30, 2015 at 8:48 PM, SNL <snl20465 at gmail.com> wrote:
+>>
+>>>
+>>>
+>>> Two questions:
+>>>
+>>>
+>>> 1. I am using jemalloc-dev version and configured it as follows
+>>>
+>>> ./configure --enable-debug --enable-fill --enable-ivsalloc
+>>> --disable-tcache
+>>>
+>>>
+>>> I am running following simple test case but double free is not detected,
+>>> what am I missing ?
+>>>
+>>>
+>>> int main()
+>>> {
+>>>     char * ptr = malloc(1024);
+>>>     free(ptr);
+>>>     free(ptr);
+>>>     return 0;
+>>> }
+>>>
+>>>
+>>> 2.  Is quarantine basically a per thread free list ? How does it
+>>> interact with tcache ?
+>>>
+>>>
+>>> Cheers.
+>>>
+>>
+>>
+>>
+>> --
+>>
+>> Cheers,
+>> Sunny.
+>>
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>>
+
+
+-- 
+
+Cheers,
+Sunny.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/d6465280/attachment.html>
+
+From mh at glandium.org  Tue Feb  3 14:51:17 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 4 Feb 2015 07:51:17 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+Message-ID: <20150203225117.GA26491@glandium.org>
+
+Hi,
+
+I've been tracking a startup time regression in Firefox for Android when
+we tried to switch from mozjemalloc (memory refresher: it's derived from
+jemalloc 0.9) to mostly current jemalloc dev.
+
+It turned out to be https://github.com/jemalloc/jemalloc/pull/192 but in
+the process I found a few interesting things that I thought are worth
+mentioning:
+
+- Several changesets between 3.6 and current dev made the number of
+  instructions as reported by perf stat on GNU/Linux x86-64 increase
+  significantly, on a ~200k alloc/dealloc testcase that does nothing
+  else[1]:
+  - 5460aa6f6676c7f253bfcb75c028dfd38cae8aaf made the count go from
+  69M to 76M.
+  - 6ef80d68f092caf3b3802a73b8d716057b41864c from 76M to 81.5M
+  - 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 from 81.5M to 85M
+  - 155bfa7da18cab0d21d87aa2dce4554166836f5d from 85M to 88M
+  I didn't investigate further because it was a red herring as far as
+  the regression I was tracking was concerned.
+
+- The average number of mutex lock per alloc/dealloc is close to 1 with
+  mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as above).
+  Fortunately, contention is likely lower (I measured it to be lower, but
+  the instrumentation had so much overhead that it may have skewed the
+  results), but pthread_mutex_lock/unlock are not free as far as
+  instruction count is concerned.
+
+Cheers,
+
+Mike
+
+1. That testcase is derived from a dump of the allocations happening
+during a Firefox for Android startup.
+
+From danielmicay at gmail.com  Tue Feb  3 15:25:11 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Tue, 03 Feb 2015 18:25:11 -0500
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150203225117.GA26491@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+Message-ID: <54D158D7.6000802@gmail.com>
+
+On 03/02/15 05:51 PM, Mike Hommey wrote:
+> Hi,
+> 
+> I've been tracking a startup time regression in Firefox for Android when
+> we tried to switch from mozjemalloc (memory refresher: it's derived from
+> jemalloc 0.9) to mostly current jemalloc dev.
+> 
+> It turned out to be https://github.com/jemalloc/jemalloc/pull/192 but in
+> the process I found a few interesting things that I thought are worth
+> mentioning:
+> 
+> - Several changesets between 3.6 and current dev made the number of
+>   instructions as reported by perf stat on GNU/Linux x86-64 increase
+>   significantly, on a ~200k alloc/dealloc testcase that does nothing
+>   else[1]:
+>   - 5460aa6f6676c7f253bfcb75c028dfd38cae8aaf made the count go from
+>   69M to 76M.
+>   - 6ef80d68f092caf3b3802a73b8d716057b41864c from 76M to 81.5M
+>   - 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 from 81.5M to 85M
+>   - 155bfa7da18cab0d21d87aa2dce4554166836f5d from 85M to 88M
+>   I didn't investigate further because it was a red herring as far as
+>   the regression I was tracking was concerned.
+> 
+> - The average number of mutex lock per alloc/dealloc is close to 1 with
+>   mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as above).
+>   Fortunately, contention is likely lower (I measured it to be lower, but
+>   the instrumentation had so much overhead that it may have skewed the
+>   results), but pthread_mutex_lock/unlock are not free as far as
+>   instruction count is concerned.
+> 
+> Cheers,
+> 
+> Mike
+
+You can speed up locking/unlocking by ~10-20% by dropping a lighter
+mutex implementation. Here's a simple C11 implementation based on
+Drepper's futex paper, for example:
+
+https://github.com/thestinger/allocator/blob/master/mutex.h
+https://github.com/thestinger/allocator/blob/master/mutex.c
+
+It would be easy enough to add (adaptive) spinning to lock/unlock just
+like the glibc adaptive mutex that's currently used by jemalloc.
+
+Implementing great load balancing for arenas would greatly reduce the
+benefits of fine-grained locking. The best approach that I've come up
+with is the following:
+
+* 1 arena per core, rather than 4 arenas per core
+* assign the initial threads via round-robin, until each arena is used
+* when there are no unused arenas, switch to sched_getcpu()
+* store the thread ID of the last thread to allocate in the arena
+
+The algorithm for picking an arena for allocating:
+
+if thread.last_arena.last_allocator == thread.id && trylock() != fail
+    pass
+else:
+    pick_arena_with_sched_getcpu()
+    lock()
+set_last_allocator()
+
+This results in significantly better load balancing than jemalloc has at
+the moment while using 1/4 as many arenas.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150203/7cf28004/attachment.sig>
+
+From mh at glandium.org  Tue Feb  3 16:00:11 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 4 Feb 2015 09:00:11 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150203225117.GA26491@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+Message-ID: <20150204000011.GA28717@glandium.org>
+
+On Wed, Feb 04, 2015 at 07:51:17AM +0900, Mike Hommey wrote:
+> Hi,
+> 
+> I've been tracking a startup time regression in Firefox for Android when
+> we tried to switch from mozjemalloc (memory refresher: it's derived from
+> jemalloc 0.9) to mostly current jemalloc dev.
+> 
+> It turned out to be https://github.com/jemalloc/jemalloc/pull/192 but in
+> the process I found a few interesting things that I thought are worth
+> mentioning:
+> 
+> - Several changesets between 3.6 and current dev made the number of
+>   instructions as reported by perf stat on GNU/Linux x86-64 increase
+>   significantly, on a ~200k alloc/dealloc testcase that does nothing
+>   else[1]:
+>   - 5460aa6f6676c7f253bfcb75c028dfd38cae8aaf made the count go from
+>   69M to 76M.
+>   - 6ef80d68f092caf3b3802a73b8d716057b41864c from 76M to 81.5M
+>   - 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 from 81.5M to 85M
+>   - 155bfa7da18cab0d21d87aa2dce4554166836f5d from 85M to 88M
+>   I didn't investigate further because it was a red herring as far as
+>   the regression I was tracking was concerned.
+> 
+> - The average number of mutex lock per alloc/dealloc is close to 1 with
+>   mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as above).
+>   Fortunately, contention is likely lower (I measured it to be lower, but
+>   the instrumentation had so much overhead that it may have skewed the
+>   results), but pthread_mutex_lock/unlock are not free as far as
+>   instruction count is concerned.
+
+Forgot to mention, this is with tcache disabled. Tcache does make
+instruction count significantly lower and does much less mutex locking,
+but at the cost of more memory overhead. We'll investigate the
+tradeoffs, but we're not ready for that yet.
+
+Mike
+
+From jasone at canonware.com  Tue Feb  3 16:19:00 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 3 Feb 2015 16:19:00 -0800
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150203225117.GA26491@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+Message-ID: <8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+
+On Feb 3, 2015, at 2:51 PM, Mike Hommey <mh at glandium.org> wrote:
+> I've been tracking a startup time regression in Firefox for Android when
+> we tried to switch from mozjemalloc (memory refresher: it's derived from
+> jemalloc 0.9) to mostly current jemalloc dev.
+> 
+> It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+
+I intentionally removed the functionality #192 adds back (in e3d13060c8a04f08764b16b003169eb205fa09eb), but apparently forgot to update the documentation.  Do you have an understanding of why it's hurting performance so much?  I originally implemented that additional threshold because dirty page purging happened on a per chunk granularity, and I didn't want to spend a bunch of time iterating over chunks with very little purgeable memory.  Now that an LRU is used to purge page runs (see Qinfan Wu's patches in July 2014), that is certainly no longer an issue.  The only way I can think of this change hurting Firefox startup time is if there are a bunch of large memory usage fluctuations.
+
+> - Several changesets between 3.6 and current dev made the number of
+>  instructions as reported by perf stat on GNU/Linux x86-64 increase
+>  significantly, on a ~200k alloc/dealloc testcase that does nothing
+>  else[1]:
+>  - 5460aa6f6676c7f253bfcb75c028dfd38cae8aaf made the count go from
+>  69M to 76M.
+
+This is on ARM?  I can't think of a reason this would happen other than register pressure (which didn't appear to be an issue on x64), or a failure to inline despite all the *ALWAYS_INLINE* macros in the fast path.
+
+>  - 6ef80d68f092caf3b3802a73b8d716057b41864c from 76M to 81.5M
+
+This is strictly related to heap profiling, so it should have no impact on your test.  Perhaps it's related to binary layout randomness?
+
+>  - 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 from 81.5M to 85M
+
+Not surprising in the context of high lock acquisition rates (which is a problem in itself).
+
+>  - 155bfa7da18cab0d21d87aa2dce4554166836f5d from 85M to 88M
+
+This might cause more unused memory coalescing due to lower fragmentation.
+
+>  I didn't investigate further because it was a red herring as far as
+>  the regression I was tracking was concerned.
+
+Did you also collect elapsed times when you ran the tests?  I ran some heavy stress tests a few months ago and measured a substantial throughput increase for dev versus 3.6, so I'm curious if the instruction count increase you measured exists despite speedups.
+
+> - The average number of mutex lock per alloc/dealloc is close to 1 with
+>  mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as above).
+>  Fortunately, contention is likely lower (I measured it to be lower, but
+>  the instrumentation had so much overhead that it may have skewed the
+>  results), but pthread_mutex_lock/unlock are not free as far as
+>  instruction count is concerned.
+
+This especially surprises me, and I really want to figure out what's going on.
+
+Is there any chance you can make your test case available so I can dig in further?
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Tue Feb  3 16:22:35 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 3 Feb 2015 16:22:35 -0800
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150204000011.GA28717@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<20150204000011.GA28717@glandium.org>
+Message-ID: <065E8332-D356-4D2E-B798-B89BE75A0C52@canonware.com>
+
+On Feb 3, 2015, at 4:00 PM, Mike Hommey <mh at glandium.org> wrote:
+> On Wed, Feb 04, 2015 at 07:51:17AM +0900, Mike Hommey wrote:
+>> 
+>> - The average number of mutex lock per alloc/dealloc is close to 1 with
+>>  mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as above).
+>>  Fortunately, contention is likely lower (I measured it to be lower, but
+>>  the instrumentation had so much overhead that it may have skewed the
+>>  results), but pthread_mutex_lock/unlock are not free as far as
+>>  instruction count is concerned.
+> 
+> Forgot to mention, this is with tcache disabled. Tcache does make
+> instruction count significantly lower and does much less mutex locking,
+> but at the cost of more memory overhead. We'll investigate the
+> tradeoffs, but we're not ready for that yet.
+
+Oh!  mozjemalloc only has one mutex per arena, whereas jemalloc 1+ has per bin mutexes as well.  In the fast path only the bin mutex is needed for a small allocation/deallocation, but if a page run has to be allocated/deallocated, additional locking occurs.  In the absence of tcache this increase in locking makes sense, though it's a bit higher than I'd normally expect.
+
+Thanks,
+Jason
+
+From mh at glandium.org  Tue Feb  3 16:40:55 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 4 Feb 2015 09:40:55 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+Message-ID: <20150204004055.GA29464@glandium.org>
+
+On Tue, Feb 03, 2015 at 04:19:00PM -0800, Jason Evans wrote:
+> On Feb 3, 2015, at 2:51 PM, Mike Hommey <mh at glandium.org> wrote:
+> > I've been tracking a startup time regression in Firefox for Android
+> > when we tried to switch from mozjemalloc (memory refresher: it's
+> > derived from jemalloc 0.9) to mostly current jemalloc dev.
+> > 
+> > It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+> 
+> I intentionally removed the functionality #192 adds back (in
+> e3d13060c8a04f08764b16b003169eb205fa09eb), but apparently forgot to
+> update the documentation.  Do you have an understanding of why it's
+> hurting performance so much?
+
+My understanding is that the huge increase in page faults is making the
+difference. On Firefox startup we go from 50k page faults to 35k with
+that patch. I can surely double check whether it's really the page
+faults, or if it's actually the madvising itself that causes the
+regression. Or both.
+
+> I originally implemented that additional
+> threshold because dirty page purging happened on a per chunk
+> granularity, and I didn't want to spend a bunch of time iterating over
+> chunks with very little purgeable memory.  Now that an LRU is used to
+> purge page runs (see Qinfan Wu's patches in July 2014), that is
+> certainly no longer an issue.  The only way I can think of this change
+> hurting Firefox startup time is if there are a bunch of large memory
+> usage fluctuations.
+> 
+> > - Several changesets between 3.6 and current dev made the number of
+> > instructions as reported by perf stat on GNU/Linux x86-64 increase
+> > significantly, on a ~200k alloc/dealloc testcase that does nothing
+> > else[1]: - 5460aa6f6676c7f253bfcb75c028dfd38cae8aaf made the count
+> > go from 69M to 76M.
+> 
+> This is on ARM?
+
+non-Android x86-64, as written above.
+
+> I can't think of a reason this would happen other than register
+> pressure (which didn't appear to be an issue on x64), or a failure to
+> inline despite all the *ALWAYS_INLINE* macros in the fast path.
+> 
+> >  - 6ef80d68f092caf3b3802a73b8d716057b41864c from 76M to 81.5M
+> 
+> This is strictly related to heap profiling, so it should have no
+> impact on your test.  Perhaps it's related to binary layout
+> randomness?
+> 
+> >  - 4dcf04bfc03b9e9eb50015a8fc8735de28c23090 from 81.5M to 85M
+> 
+> Not surprising in the context of high lock acquisition rates (which is
+> a problem in itself).
+> 
+> >  - 155bfa7da18cab0d21d87aa2dce4554166836f5d from 85M to 88M
+> 
+> This might cause more unused memory coalescing due to lower
+> fragmentation.
+> 
+> >  I didn't investigate further because it was a red herring as far as
+> >  the regression I was tracking was concerned.
+> 
+> Did you also collect elapsed times when you ran the tests?  I ran some
+> heavy stress tests a few months ago and measured a substantial
+> throughput increase for dev versus 3.6, so I'm curious if the
+> instruction count increase you measured exists despite speedups.
+
+Elapsed times didn't seem to vary much, but that's x86-64. ARM would
+likely be much more affected by this (and in fact, 3.6 *does* fare
+better than current -dev on ARM)
+
+> > - The average number of mutex lock per alloc/dealloc is close to 1
+> > with mozjemalloc (1.001), but 1.13 with jemalloc 3 (same testcase as
+> > above).  Fortunately, contention is likely lower (I measured it to
+> > be lower, but the instrumentation had so much overhead that it may
+> > have skewed the results), but pthread_mutex_lock/unlock are not free
+> > as far as instruction count is concerned.
+> 
+> This especially surprises me, and I really want to figure out what's
+> going on.
+> 
+> Is there any chance you can make your test case available so I can dig
+> in further?
+
+https://gist.githubusercontent.com/glandium/a42d0265e324688cafc4/raw/gistfile1.c
+
+Yes, that's a big source file. I did that to eliminate other overheads
+(we have a tool to replay a log we get out of firefox, but the tool
+itself had overhead that i needed to be eliminated during investigation)
+
+Mike
+
+From mh at glandium.org  Tue Feb  3 18:54:32 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 4 Feb 2015 11:54:32 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150203225117.GA26491@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+Message-ID: <20150204025432.GA5248@glandium.org>
+
+On Wed, Feb 04, 2015 at 07:51:17AM +0900, Mike Hommey wrote:
+> Hi,
+> 
+> I've been tracking a startup time regression in Firefox for Android when
+> we tried to switch from mozjemalloc (memory refresher: it's derived from
+> jemalloc 0.9) to mostly current jemalloc dev.
+> 
+> It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+
+*sigh* and sadly, this doesn't fix it all :(
+
+From mhall at mhcomputing.net  Tue Feb  3 19:38:49 2015
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Tue, 3 Feb 2015 19:38:49 -0800
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150204025432.GA5248@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<20150204025432.GA5248@glandium.org>
+Message-ID: <20150204033849.GA2364@mhcomputing.net>
+
+On Wed, Feb 04, 2015 at 11:54:32AM +0900, Mike Hommey wrote:
+> *sigh* and sadly, this doesn't fix it all :(
+
+Can you compile all the tests with debug symbols, and use perf top et. al. to 
+stack-sample the top-executing functions inside the test-case processes? 
+Frequently an issue can be found pretty quickly with a dump of stack samples, 
+pointing into the right areas. I didn't work much on jemalloc guts but I did 
+fix a lot of other code in various languages this way.
+
+Matthew.
+
+From mh at glandium.org  Wed Feb  4 01:51:53 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 4 Feb 2015 18:51:53 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150204033849.GA2364@mhcomputing.net>
+References: <20150203225117.GA26491@glandium.org>
+	<20150204025432.GA5248@glandium.org>
+	<20150204033849.GA2364@mhcomputing.net>
+Message-ID: <20150204095153.GA12964@glandium.org>
+
+On Tue, Feb 03, 2015 at 07:38:49PM -0800, Matthew Hall wrote:
+> On Wed, Feb 04, 2015 at 11:54:32AM +0900, Mike Hommey wrote:
+> > *sigh* and sadly, this doesn't fix it all :(
+> 
+> Can you compile all the tests with debug symbols, and use perf top et. al. to 
+> stack-sample the top-executing functions inside the test-case processes? 
+
+I wish it were that easy. We're talking about Android and ARM. This
+means not much control over the kernel used, which may or may not have
+perf counters enabled, and may or may not have everything necessary for
+perf to return something interesting. For instance, I can't get perf to
+save a profile it can read back without segfaulting when attaching it
+to an existing process, for whatever reason. It works fine when perf is
+starting the process, but starting an android process with perf means
+having the zygote wrap the process, which in itself changes the runtime
+conditions. And even trying that didn't work, even after disabling
+selinux because it was preventing perf from reading some /proc files.
+
+This also means at most 1 sample per millisecond, when we're talking
+about 200k+ alloc/dealloc happening in the time frame of 3 seconds,
+where those alloc/dealloc take something between 100ms and 500ms (hard to
+tell precisely, but taken out of context in the separate testcase, they
+do take around 180ms with jemalloc3 and 120ms with mozjemalloc, but
+measuring in context with clock_gettime gives bigger numbers (and using
+clock_gettime adds a huge overhead)).
+
+The problem here is that very low-level things are involved, and taking
+a test-case out of context changes the very conditions of those low-level
+things. As I wrote in the start of this thread, I did see things out of
+context that may or may not matter, and it turns out issue #192 is the
+one thing that made the most difference because of its impact on page
+faults. All the other things I did, like tweaking the config (enabling
+tcache, adjusting lg_dirty_mult, ...), returning to 3.6 instead of dev,
+etc. didn't do much.
+
+With that being said, it /seems/ I'm getting close to mozjemalloc results
+with #192 + 3.6, and it seems I'm getting better results than
+mozjemalloc with #192 + tcache on dev (while tcache alone on dev didn't
+make a big difference). *But* those results are also to be taken with a
+grain of salt because I don't have results for all kinds of devices and
+I've had very different response to changes on different devices (yeah,
+one more benefit of low-level things being involved, depending on cpu,
+memory, etc. results can be completely different; that's also why
+mutexes and page faults are tempting candidates)
+
+Mike
+
+From jasone at canonware.com  Wed Feb  4 10:15:37 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 4 Feb 2015 10:15:37 -0800
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150204004055.GA29464@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+	<20150204004055.GA29464@glandium.org>
+Message-ID: <A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+
+On Feb 3, 2015, at 4:40 PM, Mike Hommey <mh at glandium.org> wrote:
+> On Tue, Feb 03, 2015 at 04:19:00PM -0800, Jason Evans wrote:
+>> On Feb 3, 2015, at 2:51 PM, Mike Hommey <mh at glandium.org> wrote:
+>>> I've been tracking a startup time regression in Firefox for Android
+>>> when we tried to switch from mozjemalloc (memory refresher: it's
+>>> derived from jemalloc 0.9) to mostly current jemalloc dev.
+>>> 
+>>> It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+>> 
+>> I intentionally removed the functionality #192 adds back (in
+>> e3d13060c8a04f08764b16b003169eb205fa09eb), but apparently forgot to
+>> update the documentation.  Do you have an understanding of why it's
+>> hurting performance so much?
+> 
+> My understanding is that the huge increase in page faults is making the
+> difference. On Firefox startup we go from 50k page faults to 35k with
+> that patch. I can surely double check whether it's really the page
+> faults, or if it's actually the madvising itself that causes the
+> regression. Or both.
+> 
+>> Is there any chance you can make your test case available so I can dig
+>> in further?
+> 
+> https://gist.githubusercontent.com/glandium/a42d0265e324688cafc4/raw/gistfile1.c
+
+I added some logging and determined that ~90% of the dirty page purging is happening in the first 2% of the allocation trace.  This appears to be almost entirely due to repeated 32 KiB allocation/deallocation.
+
+I still have vague plans to add time-based hysteresis mechanisms so that #192 isn't necessary, but until then, #192 it is.
+
+Thank you for the detailed feedback.  It's scary to hear of such performance regressions without a way to gain insight into what's going on.
+
+Jason
+
+From mhall at mhcomputing.net  Wed Feb  4 14:27:09 2015
+From: mhall at mhcomputing.net (Matthew Hall)
+Date: Wed, 4 Feb 2015 14:27:09 -0800
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150204095153.GA12964@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<20150204025432.GA5248@glandium.org>
+	<20150204033849.GA2364@mhcomputing.net>
+	<20150204095153.GA12964@glandium.org>
+Message-ID: <20150204222709.GA19210@mhcomputing.net>
+
+On Wed, Feb 04, 2015 at 06:51:53PM +0900, Mike Hommey wrote:
+> The problem here is that very low-level things are involved, and taking
+> a test-case out of context changes the very conditions of those low-level
+> things. As I wrote in the start of this thread, I did see things out of
+> context that may or may not matter, and it turns out issue #192 is the
+> one thing that made the most difference because of its impact on page
+> faults. All the other things I did, like tweaking the config (enabling
+> tcache, adjusting lg_dirty_mult, ...), returning to 3.6 instead of dev,
+> etc. didn't do much.
+
+It makes me wonder if a simpler setup of ARM Linux running the test cases on 
+an embedded board like an RPIV2 w/ quad-core, BeagleBoard, etc. would be able 
+to repro the issue or not. Then you wouldn't have to worry about all the 
+Android hacks getting in the way of the test.
+
+Matthew.
+
+From jasone at canonware.com  Wed Feb  4 21:44:50 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 4 Feb 2015 21:44:50 -0800
+Subject: Jemalloc debug mode
+In-Reply-To: <CAGvmEXhtcLhCkpc-cDtCvvKjTfymPB7dyM7zuk=dcTt6kvT3jA@mail.gmail.com>
+References: <CAGvmEXhtcLhCkpc-cDtCvvKjTfymPB7dyM7zuk=dcTt6kvT3jA@mail.gmail.com>
+Message-ID: <136B0B63-9856-4EA7-B1D4-D76754D0EEB8@canonware.com>
+
+On Jan 30, 2015, at 7:18 AM, SNL <snl20465 at gmail.com> wrote:
+> I am running following simple test case but double free is not detected, what am I missing ?
+> 
+> [df.c]
+
+I saved your program as ~/jemalloc/df.c, added #include <stdlib.h>, then did the following:
+
+	gcc -g df.c -o df
+	./autogen.sh --enable-prof --enable-prof-libunwind --enable-debug && make all
+	LD_PRELOAD=$HOME/jemalloc/lib/libjemalloc.so.2 MALLOC_CONF=tcache:false ./df
+
+Here's the result:
+
+	<jemalloc>: include/jemalloc/internal/arena.h:1003: Failed assertion: "arena_mapbits_allocated_get(chunk, pageind) != 0"
+
+You can verify that you're actually using jemalloc (and that it's configured as you intend) by adding stats_print:true to MALLOC_CONF, e.g.:
+
+	LD_PRELOAD=$HOME/jemalloc/lib/libjemalloc.so.2 MALLOC_CONF=tcache:false,stats_print:true ./df
+
+> 2.  Is quarantine basically a per thread free list ? How does it interact with tcache ?
+
+
+tcache is a lower level facility than quarantine, so freed objects travel quarantine-->tcache-->arena.
+
+Jason
+
+From Zhengkun.Hou at alcatel-lucent.com  Thu Feb  5 16:51:27 2015
+From: Zhengkun.Hou at alcatel-lucent.com (HOU Zhengkun)
+Date: Fri, 6 Feb 2015 00:51:27 +0000
+Subject: one quesiton about the src code of jemalloc
+Message-ID: <DB9BE609E8045144B6CD809B8DD0BA86372588A5@CNSHJMBX04.ad4.ad.alcatel.com>
+
+Hi, all
+when i read the src code of jemalloc of redis, i'm confused for below code in malloc_init_hard() function. do you know what's mean of IS_INITIALIZER, it said that it for: this thread is the initializing thread, and it is recursively allocating. what's the mean of the sentence? could you take an example for it? another question is if one thread is initializing, and this thread will wait for init_lock, after that thread finish the initializing. then the malloc_initialized will be set to true. then this thread will return false. but malloc_init_hard in invoked by je_malloc, so for this thread the je_malloc will be return false? and then allocated fail???? thanks for your time.
+static bool
+malloc_init_hard(void)
+{
+arena_t *init_arenas[1];
+malloc_mutex_lock(&init_lock);
+if (malloc_initialized || IS_INITIALIZER) {
+* Another thread initialized the allocator before this one
+* acquired init_lock, or this thread is the initializing
+* thread, and it is recursively allocating.
+*/
+malloc_mutex_unlock(&init_lock);
+return (false);
+}
+void *
+je_malloc(size_t size)
+{
+void *ret;
+size_t usize JEMALLOC_CC_SILENCE_INIT(0);
+prof_thr_cnt_t *cnt JEMALLOC_CC_SILENCE_INIT(NULL);
+if (malloc_init()) {
+    ret = NULL;
+    goto label_oom;
+}
+label_oom:
+if (ret == NULL) {
+if (config_xmalloc && opt_xmalloc) {
+malloc_write(": Error in malloc(): "
+"out of memory\n");
+abort();
+}
+set_errno(ENOMEM);
+}
+if (config_prof && opt_prof && ret != NULL)
+prof_malloc(ret, usize, cnt);
+if (config_stats && ret != NULL) {
+assert(usize == isalloc(ret, config_prof));
+thread_allocated_tsd_get()->allocated += usize;
+}
+UTRACE(0, size, ret);
+JEMALLOC_VALGRIND_MALLOC(ret != NULL, ret, usize, false);
+return (ret);
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150206/42f3ba91/attachment.html>
+
+From brock.pytlik at gmail.com  Fri Feb  6 18:40:08 2015
+From: brock.pytlik at gmail.com (Brock Pytlik)
+Date: Fri, 6 Feb 2015 18:40:08 -0800
+Subject: Enabling profiling causes hang?
+Message-ID: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+
+I'm trying to track down a possible memory leak in ardb
+<https://github.com/yinqiwen/ardb>, which uses jemalloc, when running on an
+arm processor.
+
+The problem I have is that when I set 'MALLOC_CONF=prof_leak:true' and
+start ardb, the program hangs.
+When I strace it, this is the system call it does:
+
+> futex(0xb6db3c0c, FUTEX_WAIT_PRIVATE, 2, NULL
+
+
+Here's the stack trace gdb reports:
+
+> (gdb) bt
+> #0  0xb6e1af4c in __lll_lock_wait_private () from /lib/libc.so.6
+> #1  0xb6d79de4 in __new_exitfn () from /lib/libc.so.6
+> #2  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+> #3  0x0016d75c in je_prof_boot2 () at src/prof.c:1349
+> #4  0x00143418 in malloc_init_hard () at src/jemalloc.c:767
+> #5  0x0014db70 in malloc_init () at src/jemalloc.c:292
+> #6  calloc (num=1, size=520) at src/jemalloc.c:1123
+> #7  0xb6d79da4 in __new_exitfn () from /lib/libc.so.6
+> #8  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+> #9  0x00013410 in __static_initialization_and_destruction_0 (
+>     __initialize_p=<optimized out>, __priority=<optimized out>)
+>     at <>/include/c++/4.7.3/iostream:75
+> #10 _GLOBAL__sub_I_channel.cpp(void) () at common/channel/channel.cpp:738
+> #11 0x001786f8 in __libc_csu_init ()
+> #12 0xb6d61834 in __libc_start_main () from /lib/libc.so.6
+> #13 0x0001424c in _start ()
+
+
+I'll admit at this point I'm kind of stumped as to how to proceed. I
+thought I'd start by asking here in case anyone had seen similar behavior
+or knew what the problem was. I checked the issues at the github page and
+couldn't find anything similar. This is using version 3.6.0 of jemalloc.
+
+When I looked at the jemalloc.xml user manual in the gate tip (not the
+3.6.0 branch I'm using) I saw some discussion of atexit being problematic
+in the context of prof_final. If that's the problem, is there a way to
+generate profiling information either while the program is running,
+avoiding the atexit issue? I didn't quite follow the comment in the user
+manual that says that an application can register its own atexit parameter
+with equivalent functionality. Is there an example someplace I could crib
+from or could someone help me understand that a bit?
+
+Thanks,
+Brock
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150206/1d3d5a07/attachment.html>
+
+From jasone at canonware.com  Fri Feb  6 22:47:05 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Fri, 6 Feb 2015 22:47:05 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+Message-ID: <3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+
+On Feb 6, 2015, at 6:40 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+> I'm trying to track down a possible memory leak in ardb, which uses jemalloc, when running on an arm processor.
+> 
+> The problem I have is that when I set 'MALLOC_CONF=prof_leak:true' and start ardb, the program hangs.
+> When I strace it, this is the system call it does:
+> futex(0xb6db3c0c, FUTEX_WAIT_PRIVATE, 2, NULL
+> 
+> Here's the stack trace gdb reports:
+> (gdb) bt 
+> #0  0xb6e1af4c in __lll_lock_wait_private () from /lib/libc.so.6
+> #1  0xb6d79de4 in __new_exitfn () from /lib/libc.so.6
+> #2  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+> #3  0x0016d75c in je_prof_boot2 () at src/prof.c:1349
+> #4  0x00143418 in malloc_init_hard () at src/jemalloc.c:767
+> #5  0x0014db70 in malloc_init () at src/jemalloc.c:292
+> #6  calloc (num=1, size=520) at src/jemalloc.c:1123
+> #7  0xb6d79da4 in __new_exitfn () from /lib/libc.so.6
+> #8  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+> #9  0x00013410 in __static_initialization_and_destruction_0 (
+>     __initialize_p=<optimized out>, __priority=<optimized out>)
+>     at <>/include/c++/4.7.3/iostream:75
+> #10 _GLOBAL__sub_I_channel.cpp(void) () at common/channel/channel.cpp:738
+> #11 0x001786f8 in __libc_csu_init ()
+> #12 0xb6d61834 in __libc_start_main () from /lib/libc.so.6
+> #13 0x0001424c in _start ()
+> 
+> I'll admit at this point I'm kind of stumped as to how to proceed. I thought I'd start by asking here in case anyone had seen similar behavior or knew what the problem was. I checked the issues at the github page and couldn't find anything similar. This is using version 3.6.0 of jemalloc.
+> 
+> When I looked at the jemalloc.xml user manual in the gate tip (not the 3.6.0 branch I'm using) I saw some discussion of atexit being problematic in the context of prof_final. If that's the problem, is there a way to generate profiling information either while the program is running, avoiding the atexit issue? I didn't quite follow the comment in the user manual that says that an application can register its own atexit parameter with equivalent functionality. Is there an example someplace I could crib from or could someone help me understand that a bit?
+
+Yes, it looks like you're hitting the same atexit() issue that caused me to disable prof_final by default in the dev branch of jemalloc.  If you instead use MALLOC_CONF=prof_final:false,lg_prof_interval=20 (see http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval and choose an appropriate dump interval), you should be able to get useful heap profiles without modifying the ardb source code.  The prof_gdump option provides an alternative mechanism for triggering heap dumps.  If you want to go as far as modifying ardb source code, you can call the prof.dump mallctl to trigger a dump.  None of these options will cause jemalloc to print a leak report during exit, but the resulting heap profiles are what you really need anyway.
+
+Jason
+
+From brock.pytlik at gmail.com  Sat Feb  7 12:17:12 2015
+From: brock.pytlik at gmail.com (Brock Pytlik)
+Date: Sat, 7 Feb 2015 12:17:12 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+	<3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+Message-ID: <CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+
+Awesome, thanks for getting back to me so quickly. I wasn't understanding
+quite how the lg_prof_interval option was working. That should definitely
+handle what I need!
+
+Brock
+
+On Fri, Feb 6, 2015 at 10:47 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Feb 6, 2015, at 6:40 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+> > I'm trying to track down a possible memory leak in ardb, which uses
+> jemalloc, when running on an arm processor.
+> >
+> > The problem I have is that when I set 'MALLOC_CONF=prof_leak:true' and
+> start ardb, the program hangs.
+> > When I strace it, this is the system call it does:
+> > futex(0xb6db3c0c, FUTEX_WAIT_PRIVATE, 2, NULL
+> >
+> > Here's the stack trace gdb reports:
+> > (gdb) bt
+> > #0  0xb6e1af4c in __lll_lock_wait_private () from /lib/libc.so.6
+> > #1  0xb6d79de4 in __new_exitfn () from /lib/libc.so.6
+> > #2  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+> > #3  0x0016d75c in je_prof_boot2 () at src/prof.c:1349
+> > #4  0x00143418 in malloc_init_hard () at src/jemalloc.c:767
+> > #5  0x0014db70 in malloc_init () at src/jemalloc.c:292
+> > #6  calloc (num=1, size=520) at src/jemalloc.c:1123
+> > #7  0xb6d79da4 in __new_exitfn () from /lib/libc.so.6
+> > #8  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+> > #9  0x00013410 in __static_initialization_and_destruction_0 (
+> >     __initialize_p=<optimized out>, __priority=<optimized out>)
+> >     at <>/include/c++/4.7.3/iostream:75
+> > #10 _GLOBAL__sub_I_channel.cpp(void) () at common/channel/channel.cpp:738
+> > #11 0x001786f8 in __libc_csu_init ()
+> > #12 0xb6d61834 in __libc_start_main () from /lib/libc.so.6
+> > #13 0x0001424c in _start ()
+> >
+> > I'll admit at this point I'm kind of stumped as to how to proceed. I
+> thought I'd start by asking here in case anyone had seen similar behavior
+> or knew what the problem was. I checked the issues at the github page and
+> couldn't find anything similar. This is using version 3.6.0 of jemalloc.
+> >
+> > When I looked at the jemalloc.xml user manual in the gate tip (not the
+> 3.6.0 branch I'm using) I saw some discussion of atexit being problematic
+> in the context of prof_final. If that's the problem, is there a way to
+> generate profiling information either while the program is running,
+> avoiding the atexit issue? I didn't quite follow the comment in the user
+> manual that says that an application can register its own atexit parameter
+> with equivalent functionality. Is there an example someplace I could crib
+> from or could someone help me understand that a bit?
+>
+> Yes, it looks like you're hitting the same atexit() issue that caused me
+> to disable prof_final by default in the dev branch of jemalloc.  If you
+> instead use MALLOC_CONF=prof_final:false,lg_prof_interval=20 (see
+> http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval
+> and choose an appropriate dump interval), you should be able to get useful
+> heap profiles without modifying the ardb source code.  The prof_gdump
+> option provides an alternative mechanism for triggering heap dumps.  If you
+> want to go as far as modifying ardb source code, you can call the prof.dump
+> mallctl to trigger a dump.  None of these options will cause jemalloc to
+> print a leak report during exit, but the resulting heap profiles are what
+> you really need anyway.
+>
+> Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150207/c6852d62/attachment.html>
+
+From brock.pytlik at gmail.com  Mon Feb  9 15:11:16 2015
+From: brock.pytlik at gmail.com (Brock Pytlik)
+Date: Mon, 9 Feb 2015 15:11:16 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+	<3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+	<CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+Message-ID: <CAKthKind0pb9hfD5qyws2MudM1c3-Hp=w6zn5jffsVS4e7op-g@mail.gmail.com>
+
+Well, I thought it would handle what I needed, but I can't seem to get it
+to produce a dump. Here's what I did:
+>From my experiments on x86, it seems like prof:true needs to be part of
+MALLOC_CONF for lg_prof_interval to work at all. However, when I set
+prof:true on arm, ardb hangs in the atexit code. This happens even when I
+set prof_final to false. To be clear this command hangs (on arm):
+
+> MALLOC_CONF=prof:true,lg_prof_interval:2,prof_final:false ardb-server
+> ardb.conf
+
+
+This command works, but doesn't produce any dumps (on x86 or arm):
+
+> MALLOC_CONF=lg_prof_interval:2,prof_final:false ardb-server
+> ./httpd/ardb/ardb.conf
+
+
+I even tried:
+
+> MALLOC_CONF=prof:true,prof_gdump:false,prof_active:false,lg_prof_interval:2,prof_final:false,prof_leak:false
+> ardb-server ardb.conf
+
+but that also hung (on arm).
+
+I'm confused about a couple of things:
+1) Why it works on x86 and not arm (and whether that means the cross
+compiling build for arm has some issues).
+2) Why it hangs on arm in the atexit thing even when prof_final (and the
+other profiling flags) are set to false.
+
+If these are things that are fixed in the gate tip of jemalloc, I'd also be
+happy to try changing ardb to use that (assuming it's largely a drop in
+replacement).
+
+Any suggestions on where I go next?
+
+Thanks,
+Brock
+
+On Sat, Feb 7, 2015 at 12:17 PM, Brock Pytlik <brock.pytlik at gmail.com>
+wrote:
+
+> Awesome, thanks for getting back to me so quickly. I wasn't understanding
+> quite how the lg_prof_interval option was working. That should definitely
+> handle what I need!
+>
+> Brock
+>
+> On Fri, Feb 6, 2015 at 10:47 PM, Jason Evans <jasone at canonware.com> wrote:
+>
+>> On Feb 6, 2015, at 6:40 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+>> > I'm trying to track down a possible memory leak in ardb, which uses
+>> jemalloc, when running on an arm processor.
+>> >
+>> > The problem I have is that when I set 'MALLOC_CONF=prof_leak:true' and
+>> start ardb, the program hangs.
+>> > When I strace it, this is the system call it does:
+>> > futex(0xb6db3c0c, FUTEX_WAIT_PRIVATE, 2, NULL
+>> >
+>> > Here's the stack trace gdb reports:
+>> > (gdb) bt
+>> > #0  0xb6e1af4c in __lll_lock_wait_private () from /lib/libc.so.6
+>> > #1  0xb6d79de4 in __new_exitfn () from /lib/libc.so.6
+>> > #2  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+>> > #3  0x0016d75c in je_prof_boot2 () at src/prof.c:1349
+>> > #4  0x00143418 in malloc_init_hard () at src/jemalloc.c:767
+>> > #5  0x0014db70 in malloc_init () at src/jemalloc.c:292
+>> > #6  calloc (num=1, size=520) at src/jemalloc.c:1123
+>> > #7  0xb6d79da4 in __new_exitfn () from /lib/libc.so.6
+>> > #8  0xb6d79e34 in __internal_atexit () from /lib/libc.so.6
+>> > #9  0x00013410 in __static_initialization_and_destruction_0 (
+>> >     __initialize_p=<optimized out>, __priority=<optimized out>)
+>> >     at <>/include/c++/4.7.3/iostream:75
+>> > #10 _GLOBAL__sub_I_channel.cpp(void) () at
+>> common/channel/channel.cpp:738
+>> > #11 0x001786f8 in __libc_csu_init ()
+>> > #12 0xb6d61834 in __libc_start_main () from /lib/libc.so.6
+>> > #13 0x0001424c in _start ()
+>> >
+>> > I'll admit at this point I'm kind of stumped as to how to proceed. I
+>> thought I'd start by asking here in case anyone had seen similar behavior
+>> or knew what the problem was. I checked the issues at the github page and
+>> couldn't find anything similar. This is using version 3.6.0 of jemalloc.
+>> >
+>> > When I looked at the jemalloc.xml user manual in the gate tip (not the
+>> 3.6.0 branch I'm using) I saw some discussion of atexit being problematic
+>> in the context of prof_final. If that's the problem, is there a way to
+>> generate profiling information either while the program is running,
+>> avoiding the atexit issue? I didn't quite follow the comment in the user
+>> manual that says that an application can register its own atexit parameter
+>> with equivalent functionality. Is there an example someplace I could crib
+>> from or could someone help me understand that a bit?
+>>
+>> Yes, it looks like you're hitting the same atexit() issue that caused me
+>> to disable prof_final by default in the dev branch of jemalloc.  If you
+>> instead use MALLOC_CONF=prof_final:false,lg_prof_interval=20 (see
+>> http://www.canonware.com/download/jemalloc/jemalloc-latest/doc/jemalloc.html#opt.lg_prof_interval
+>> and choose an appropriate dump interval), you should be able to get useful
+>> heap profiles without modifying the ardb source code.  The prof_gdump
+>> option provides an alternative mechanism for triggering heap dumps.  If you
+>> want to go as far as modifying ardb source code, you can call the prof.dump
+>> mallctl to trigger a dump.  None of these options will cause jemalloc to
+>> print a leak report during exit, but the resulting heap profiles are what
+>> you really need anyway.
+>>
+>> Jason
+>
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150209/124c9b79/attachment.html>
+
+From jasone at canonware.com  Mon Feb  9 15:23:44 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 9 Feb 2015 15:23:44 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <CAKthKind0pb9hfD5qyws2MudM1c3-Hp=w6zn5jffsVS4e7op-g@mail.gmail.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+	<3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+	<CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+	<CAKthKind0pb9hfD5qyws2MudM1c3-Hp=w6zn5jffsVS4e7op-g@mail.gmail.com>
+Message-ID: <317645FD-ECD6-498E-9B2B-C14EA3545182@canonware.com>
+
+On Feb 9, 2015, at 3:11 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+> Well, I thought it would handle what I needed, but I can't seem to get it to produce a dump. Here's what I did:
+> From my experiments on x86, it seems like prof:true needs to be part of MALLOC_CONF for lg_prof_interval to work at all. However, when I set prof:true on arm, ardb hangs in the atexit code. This happens even when I set prof_final to false. To be clear this command hangs (on arm):
+> MALLOC_CONF=prof:true,lg_prof_interval:2,prof_final:false ardb-server ardb.conf
+
+Oh, whoops, I forgot that in the dev branch I refactored the prof bootstrapping code to make the atexit() call conditional, but in 3.6.0 the call always happens if prof:true is set.  I think you will have to hack jemalloc in order to work around this.
+
+> I'm confused about a couple of things:
+> 1) Why it works on x86 and not arm (and whether that means the cross compiling build for arm has some issues).
+
+I haven't dug into this, but I'm assuming that this is an arbitrary implementation difference in the libc being used on ARM, possibly motivated by the desire to reduce the data segment size and only pay for internal atexit() metadata overhead if the functionality is actually used.  I'm not very familiar with ARM-specific development, but I get the impression that there are multiple stripped down libc implementations in use.
+
+> If these are things that are fixed in the gate tip of jemalloc, I'd also be happy to try changing ardb to use that (assuming it's largely a drop in replacement).
+> 
+> Any suggestions on where I go next?
+
+Assuming that your current goal is simply to get heap profiles and diagnose a leak, I'd recommend just trying to use the dev version of jemalloc.  If that doesn't work for some reason, then disabling the atexit() call in jemalloc's src/prof.c and rebuilding will probably be enough to get you what you need.
+
+Thanks,
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150209/222bd896/attachment.html>
+
+From mh at glandium.org  Mon Feb  9 20:32:10 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Tue, 10 Feb 2015 13:32:10 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+	<20150204004055.GA29464@glandium.org>
+	<A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+Message-ID: <20150210043210.GA25825@glandium.org>
+
+On Wed, Feb 04, 2015 at 10:15:37AM -0800, Jason Evans wrote:
+> On Feb 3, 2015, at 4:40 PM, Mike Hommey <mh at glandium.org> wrote:
+> > On Tue, Feb 03, 2015 at 04:19:00PM -0800, Jason Evans wrote:
+> >> On Feb 3, 2015, at 2:51 PM, Mike Hommey <mh at glandium.org> wrote:
+> >>> I've been tracking a startup time regression in Firefox for
+> >>> Android when we tried to switch from mozjemalloc (memory
+> >>> refresher: it's derived from jemalloc 0.9) to mostly current
+> >>> jemalloc dev.
+> >>> 
+> >>> It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+> >> 
+> >> I intentionally removed the functionality #192 adds back (in
+> >> e3d13060c8a04f08764b16b003169eb205fa09eb), but apparently forgot to
+> >> update the documentation.  Do you have an understanding of why it's
+> >> hurting performance so much?
+> > 
+> > My understanding is that the huge increase in page faults is making
+> > the difference. On Firefox startup we go from 50k page faults to 35k
+> > with that patch. I can surely double check whether it's really the
+> > page faults, or if it's actually the madvising itself that causes
+> > the regression. Or both.
+> > 
+> >> Is there any chance you can make your test case available so I can
+> >> dig in further?
+> > 
+> > https://gist.githubusercontent.com/glandium/a42d0265e324688cafc4/raw/gistfile1.c
+> 
+> I added some logging and determined that ~90% of the dirty page
+> purging is happening in the first 2% of the allocation trace.  This
+> appears to be almost entirely due to repeated 32 KiB
+> allocation/deallocation.
+
+So, interestingly, this appears to be a bug that was intended to have
+been fixed, but wasn't (the repeated allocation/deallocation of 32kiB
+buffers). Fixing that, however, still leaves us with a big difference in
+the number of page faults (but lower than before), but now the dirty
+page purging threshold patch seems to have less impact than it did...
+
+I haven't analyzed these builds further yet, so I can't really tell much
+more at the moment.
+
+> I still have vague plans to add time-based hysteresis mechanisms so
+> that #192 isn't necessary, but until then, #192 it is.
+
+Sadly, #192 also makes the RSS footprint bigger when using more than one
+arena. With 4 cores, so 16 arenas, and default 4MB chunks, that's 64MB
+of memory that won't be purged. It's not a problem for us because we use
+1MB chunks and 1 arena, but I can see this being a problem with the
+default settings.
+
+FWIW, I also tried to remove all the bin mutexes, and make them all use
+the arena mutex, and, counter-intuitively, it made things faster. Not by
+a very significant margin, though, but it's interesting to note that the
+synchronization overheads of n locks can make things slower than 1
+lock with more contention.
+
+IOW, I'm still searching for what's wrong :(
+
+Mike
+
+From danielmicay at gmail.com  Mon Feb  9 21:16:45 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Tue, 10 Feb 2015 00:16:45 -0500
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150210043210.GA25825@glandium.org>
+References: <20150203225117.GA26491@glandium.org>	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>	<20150204004055.GA29464@glandium.org>	<A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+	<20150210043210.GA25825@glandium.org>
+Message-ID: <54D9943D.5010300@gmail.com>
+
+
+
+On 09/02/15 11:32 PM, Mike Hommey wrote:
+> On Wed, Feb 04, 2015 at 10:15:37AM -0800, Jason Evans wrote:
+>> On Feb 3, 2015, at 4:40 PM, Mike Hommey <mh at glandium.org> wrote:
+>>> On Tue, Feb 03, 2015 at 04:19:00PM -0800, Jason Evans wrote:
+>>>> On Feb 3, 2015, at 2:51 PM, Mike Hommey <mh at glandium.org> wrote:
+>>>>> I've been tracking a startup time regression in Firefox for
+>>>>> Android when we tried to switch from mozjemalloc (memory
+>>>>> refresher: it's derived from jemalloc 0.9) to mostly current
+>>>>> jemalloc dev.
+>>>>>
+>>>>> It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+>>>>
+>>>> I intentionally removed the functionality #192 adds back (in
+>>>> e3d13060c8a04f08764b16b003169eb205fa09eb), but apparently forgot to
+>>>> update the documentation.  Do you have an understanding of why it's
+>>>> hurting performance so much?
+>>>
+>>> My understanding is that the huge increase in page faults is making
+>>> the difference. On Firefox startup we go from 50k page faults to 35k
+>>> with that patch. I can surely double check whether it's really the
+>>> page faults, or if it's actually the madvising itself that causes
+>>> the regression. Or both.
+>>>
+>>>> Is there any chance you can make your test case available so I can
+>>>> dig in further?
+>>>
+>>> https://gist.githubusercontent.com/glandium/a42d0265e324688cafc4/raw/gistfile1.c
+>>
+>> I added some logging and determined that ~90% of the dirty page
+>> purging is happening in the first 2% of the allocation trace.  This
+>> appears to be almost entirely due to repeated 32 KiB
+>> allocation/deallocation.
+> 
+> So, interestingly, this appears to be a bug that was intended to have
+> been fixed, but wasn't (the repeated allocation/deallocation of 32kiB
+> buffers). Fixing that, however, still leaves us with a big difference in
+> the number of page faults (but lower than before), but now the dirty
+> page purging threshold patch seems to have less impact than it did...
+
+I think jemalloc now uses FIFO for purging, and that may not play very
+well with the preference for reusing low addresses with some patterns.
+
+FWIW, if you have large spans of memory that you know you are going to
+use, you can greatly reduce the cost of page faults by pre-faulting with
+MADV_WILLNEED instead of the regular lazy commit.
+
+> I haven't analyzed these builds further yet, so I can't really tell much
+> more at the moment.
+> 
+>> I still have vague plans to add time-based hysteresis mechanisms so
+>> that #192 isn't necessary, but until then, #192 it is.
+> 
+> Sadly, #192 also makes the RSS footprint bigger when using more than one
+> arena. With 4 cores, so 16 arenas, and default 4MB chunks, that's 64MB
+> of memory that won't be purged. It's not a problem for us because we use
+> 1MB chunks and 1 arena, but I can see this being a problem with the
+> default settings.
+
+This would be a lot less bad with the per-core arena design, since it
+would be a n_cores multipler instead of n_cores * 4.
+
+> FWIW, I also tried to remove all the bin mutexes, and make them all use
+> the arena mutex, and, counter-intuitively, it made things faster. Not by
+> a very significant margin, though, but it's interesting to note that the
+> synchronization overheads of n locks can make things slower than 1
+> lock with more contention.
+
+It's not really surprising. A LOCK prefix on x86 is extremely expensive
+so locks without contention still have an enormous cost, as do many of
+the atomic operations. An atomic_load() with acquire semantics or an
+atomic_store() with release semantics are fast since no LOCK is needed.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/5959c8d7/attachment-0001.sig>
+
+From bradley at mit.edu  Mon Feb  9 21:53:57 2015
+From: bradley at mit.edu (Bradley C. Kuszmaul)
+Date: Tue, 10 Feb 2015 00:53:57 -0500
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <54D9943D.5010300@gmail.com>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+	<20150204004055.GA29464@glandium.org>
+	<A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+	<20150210043210.GA25825@glandium.org> <54D9943D.5010300@gmail.com>
+Message-ID: <CAKSyJXcGt44JSRzEo52-U2=xCcxNgHoq6_G7LohuR_XQwBY_1g@mail.gmail.com>
+
+Lock instructions on modern x86 processors aren't really that expensive.
+What is expensive is lock contention.  When I've measured something code
+that does this in a bunch of concurrent threads:
+  1. acquire_lock()
+  2. do_something_really_small_on_thread_local_data()
+  3. release_lock()
+
+It costs about 1ns to do step 2 with no locks.
+It costs about 5ns to acquire the lock if the lock is thread-local, and
+thus not actually contended.
+It costs about 100ns-200ns if the lock is actually contended.
+
+I've found that these measurements have changed the way I write lock-based
+code.  For example, I like per-core data structures that need a lock,
+because the per-core lock is almost always uncontended.  (The difference
+between per-core and per-thread shows up only when a thread is preempted.)
+
+-Badley
+
+On Tue, Feb 10, 2015 at 12:16 AM, Daniel Micay <danielmicay at gmail.com>
+wrote:
+
+>
+>
+> > FWIW, I also tried to remove all the bin mutexes, and make them all use
+> > the arena mutex, and, counter-intuitively, it made things faster. Not by
+> > a very significant margin, though, but it's interesting to note that the
+> > synchronization overheads of n locks can make things slower than 1
+> > lock with more contention.
+>
+> It's not really surprising. A LOCK prefix on x86 is extremely expensive
+> so locks without contention still have an enormous cost, as do many of
+> the atomic operations. An atomic_load() with acquire semantics or an
+> atomic_store() with release semantics are fast since no LOCK is needed.
+>
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/0cc6caf7/attachment.html>
+
+From mh at glandium.org  Mon Feb  9 22:00:42 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Tue, 10 Feb 2015 15:00:42 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <CAKSyJXcGt44JSRzEo52-U2=xCcxNgHoq6_G7LohuR_XQwBY_1g@mail.gmail.com>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+	<20150204004055.GA29464@glandium.org>
+	<A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+	<20150210043210.GA25825@glandium.org> <54D9943D.5010300@gmail.com>
+	<CAKSyJXcGt44JSRzEo52-U2=xCcxNgHoq6_G7LohuR_XQwBY_1g@mail.gmail.com>
+Message-ID: <20150210060042.GA30493@glandium.org>
+
+On Tue, Feb 10, 2015 at 12:53:57AM -0500, Bradley C. Kuszmaul wrote:
+> Lock instructions on modern x86 processors aren't really that expensive.
+> What is expensive is lock contention.  When I've measured something code
+> that does this in a bunch of concurrent threads:
+>   1. acquire_lock()
+>   2. do_something_really_small_on_thread_local_data()
+>   3. release_lock()
+> 
+> It costs about 1ns to do step 2 with no locks.
+> It costs about 5ns to acquire the lock if the lock is thread-local, and
+> thus not actually contended.
+> It costs about 100ns-200ns if the lock is actually contended.
+> 
+> I've found that these measurements have changed the way I write lock-based
+> code.  For example, I like per-core data structures that need a lock,
+> because the per-core lock is almost always uncontended.  (The difference
+> between per-core and per-thread shows up only when a thread is preempted.)
+
+... except I'm talking about arm and arm has very different performance
+properties.
+
+Mike
+
+From danielmicay at gmail.com  Mon Feb  9 22:11:58 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Tue, 10 Feb 2015 01:11:58 -0500
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <CAKSyJXcGt44JSRzEo52-U2=xCcxNgHoq6_G7LohuR_XQwBY_1g@mail.gmail.com>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+	<20150204004055.GA29464@glandium.org>
+	<A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+	<20150210043210.GA25825@glandium.org> <54D9943D.5010300@gmail.com>
+	<CAKSyJXcGt44JSRzEo52-U2=xCcxNgHoq6_G7LohuR_XQwBY_1g@mail.gmail.com>
+Message-ID: <54D9A12E.6060204@gmail.com>
+
+On 10/02/15 12:53 AM, Bradley C. Kuszmaul wrote:
+> Lock instructions on modern x86 processors aren't really that
+> expensive.  What is expensive is lock contention.  When I've measured
+> something code that does this in a bunch of concurrent threads:
+>   1. acquire_lock()
+>   2. do_something_really_small_on_thread_local_data()
+>   3. release_lock()
+> 
+> It costs about 1ns to do step 2 with no locks.
+> It costs about 5ns to acquire the lock if the lock is thread-local, and
+> thus not actually contended.
+> It costs about 100ns-200ns if the lock is actually contended.
+> 
+> I've found that these measurements have changed the way I write
+> lock-based code.  For example, I like per-core data structures that need
+> a lock, because the per-core lock is almost always uncontended.  (The
+> difference between per-core and per-thread shows up only when a thread
+> is preempted.)
+> 
+> -Badley
+
+A lock prefix *is* very expensive in this context. The cost of locking
+and unlocking is where up to 50% of the time is spent in a fast memory
+allocator without thread caching, *without* contention. It's why thread
+caching results in a huge performance win even when it's only being
+filled and flushed with no reuse. For example, making an intrusive list
+with one million nodes and then freeing the entire thing is ~2x faster
+with a thread cache on top (with a fast O(1) slab allocator at least).
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/fd747236/attachment.sig>
+
+From bradley at mit.edu  Mon Feb  9 22:12:58 2015
+From: bradley at mit.edu (Bradley C. Kuszmaul)
+Date: Tue, 10 Feb 2015 01:12:58 -0500
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150210060042.GA30493@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+	<20150204004055.GA29464@glandium.org>
+	<A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+	<20150210043210.GA25825@glandium.org> <54D9943D.5010300@gmail.com>
+	<CAKSyJXcGt44JSRzEo52-U2=xCcxNgHoq6_G7LohuR_XQwBY_1g@mail.gmail.com>
+	<20150210060042.GA30493@glandium.org>
+Message-ID: <CAKSyJXd1Wn+zWxKTij6Vw1ri9wJ_vxD9ORARutB7gQYmACssnw@mail.gmail.com>
+
+On Tue, Feb 10, 2015 at 1:00 AM, Mike Hommey <mh at glandium.org> wrote:
+>
+> ... except I'm talking about arm and arm has very different performance
+> properties.
+>
+>  I'd be interested in hearing what happens on ARM (I was responding to
+Don's statement that x86 lock prefixes are very expensive.  I wouldn't
+characterize them that way.).  Attached is a program I wrote that measures
+it.  It may require some changes to run on ARM (for example, the
+__mm_pause() primitive seems to be intel-specific rather than gcc-specific)
+
+-Bradley
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/71368b9d/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: lock-overhead.cc
+Type: text/x-c++src
+Size: 3747 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/71368b9d/attachment.cc>
+
+From bradley at mit.edu  Mon Feb  9 22:33:47 2015
+From: bradley at mit.edu (Bradley C. Kuszmaul)
+Date: Tue, 10 Feb 2015 01:33:47 -0500
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <54D9A12E.6060204@gmail.com>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+	<20150204004055.GA29464@glandium.org>
+	<A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+	<20150210043210.GA25825@glandium.org> <54D9943D.5010300@gmail.com>
+	<CAKSyJXcGt44JSRzEo52-U2=xCcxNgHoq6_G7LohuR_XQwBY_1g@mail.gmail.com>
+	<54D9A12E.6060204@gmail.com>
+Message-ID: <CAKSyJXfRVao=p26+5uT1FN8YrnH+FigUrc03RB3NE7FSVsPb6A@mail.gmail.com>
+
+Perhaps I am tone deaf. "extremely expensive" sounds, to my ear, worse than
+the reality that I've experienced.  But one persons "extreme" might be
+another's "moderate".  Rather than use that kind of subjective adjective,
+I've tried to give numbers, and it sounds like we are basically in
+agreement about the costs.
+
+To me, what is interesting about these numbers is that to overcome the lock
+overhead, a thread cache can be small.  (There I go with a subjective
+adjective again...)  For example, if the locked version is 5x as expensive
+as the unlocked, then a thread cache that holds 5 objects will reduce the
+effective cost to 2x the unlocked cache, in the worst case.  A thread cache
+that holds 20 objects reduces the worst-case overhead to 25%.  In some
+allocators, the thread cache is much larger (perhaps thousands of objects)
+because it is trying to overcome the 200ns contended-lock overhead instead
+of the 5ns uncontended-lock overhead.  On modern x86 processors, it isn't
+always necessary to take heroic measures to avoid locks 99.9% of the time.
+It's sometimes good enough to avoid locks in something like 80% of the
+cases.
+
+One way to make such a thread cache work is to maintain a doubly-linked
+list so that when the lock *is* acquired (e.g., when the thread cache fills
+up on a free()), all 5 objects in the thread cache can be moved to the
+per-core cache with a constant number of memory references.  One also needs
+a little hysteresis: so one might use two doubly-linked lists in the
+per-thread cache, and an array of doubly-linked lists (each containing 5
+objects) in the per-core cache.  When calling free(), if both doubly-linked
+lists are full, then move one of them to the per-core cache.  When calling
+malloc(), if both doubly-linked lists are empty, then get a collection of 5
+objects from the per-core cache.  Similarly, when the per-core cache gets
+too full, a group of 5 objects can be moved from a per-core cache to a
+global cache using only O(1) operations, and with a little hysteresis, that
+operation will seldom occur.
+
+I'm curious.  How big is the thread cache in jemalloc?
+
+-Bradley
+
+
+On Tue, Feb 10, 2015 at 1:11 AM, Daniel Micay <danielmicay at gmail.com> wrote:
+
+> On 10/02/15 12:53 AM, Bradley C. Kuszmaul wrote:
+> > Lock instructions on modern x86 processors aren't really that
+> > expensive.  What is expensive is lock contention.  When I've measured
+> > something code that does this in a bunch of concurrent threads:
+> >   1. acquire_lock()
+> >   2. do_something_really_small_on_thread_local_data()
+> >   3. release_lock()
+> >
+> > It costs about 1ns to do step 2 with no locks.
+> > It costs about 5ns to acquire the lock if the lock is thread-local, and
+> > thus not actually contended.
+> > It costs about 100ns-200ns if the lock is actually contended.
+> >
+> > I've found that these measurements have changed the way I write
+> > lock-based code.  For example, I like per-core data structures that need
+> > a lock, because the per-core lock is almost always uncontended.  (The
+> > difference between per-core and per-thread shows up only when a thread
+> > is preempted.)
+> >
+> > -Badley
+>
+> A lock prefix *is* very expensive in this context. The cost of locking
+> and unlocking is where up to 50% of the time is spent in a fast memory
+> allocator without thread caching, *without* contention. It's why thread
+> caching results in a huge performance win even when it's only being
+> filled and flushed with no reuse. For example, making an intrusive list
+> with one million nodes and then freeing the entire thing is ~2x faster
+> with a thread cache on top (with a fast O(1) slab allocator at least).
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/46ffea03/attachment-0001.html>
+
+From danielmicay at gmail.com  Mon Feb  9 22:42:28 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Tue, 10 Feb 2015 01:42:28 -0500
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <CAKSyJXfRVao=p26+5uT1FN8YrnH+FigUrc03RB3NE7FSVsPb6A@mail.gmail.com>
+References: <20150203225117.GA26491@glandium.org>
+	<8216B0AF-3885-4C94-91E3-028E0D58E12A@canonware.com>
+	<20150204004055.GA29464@glandium.org>
+	<A68166CB-5314-4717-BD52-04B1EA05F010@canonware.com>
+	<20150210043210.GA25825@glandium.org> <54D9943D.5010300@gmail.com>
+	<CAKSyJXcGt44JSRzEo52-U2=xCcxNgHoq6_G7LohuR_XQwBY_1g@mail.gmail.com>
+	<54D9A12E.6060204@gmail.com>
+	<CAKSyJXfRVao=p26+5uT1FN8YrnH+FigUrc03RB3NE7FSVsPb6A@mail.gmail.com>
+Message-ID: <54D9A854.8020008@gmail.com>
+
+On 10/02/15 01:33 AM, Bradley C. Kuszmaul wrote:
+> Perhaps I am tone deaf. "extremely expensive" sounds, to my ear, worse
+> than the reality that I've experienced.  But one persons "extreme" might
+> be another's "moderate".  Rather than use that kind of subjective
+> adjective, I've tried to give numbers, and it sounds like we are
+> basically in agreement about the costs.
+> 
+> To me, what is interesting about these numbers is that to overcome the
+> lock overhead, a thread cache can be small.  (There I go with a
+> subjective adjective again...)  For example, if the locked version is 5x
+> as expensive as the unlocked, then a thread cache that holds 5 objects
+> will reduce the effective cost to 2x the unlocked cache, in the worst
+> case.  A thread cache that holds 20 objects reduces the worst-case
+> overhead to 25%.  In some allocators, the thread cache is much larger
+> (perhaps thousands of objects) because it is trying to overcome the
+> 200ns contended-lock overhead instead of the 5ns uncontended-lock
+> overhead.  On modern x86 processors, it isn't always necessary to take
+> heroic measures to avoid locks 99.9% of the time.  It's sometimes good
+> enough to avoid locks in something like 80% of the cases.
+> 
+> One way to make such a thread cache work is to maintain a doubly-linked
+> list so that when the lock *is* acquired (e.g., when the thread cache
+> fills up on a free()), all 5 objects in the thread cache can be moved to
+> the per-core cache with a constant number of memory references.  One
+> also needs a little hysteresis: so one might use two doubly-linked lists
+> in the per-thread cache, and an array of doubly-linked lists (each
+> containing 5 objects) in the per-core cache.  When calling free(), if
+> both doubly-linked lists are full, then move one of them to the per-core
+> cache.  When calling malloc(), if both doubly-linked lists are empty,
+> then get a collection of 5 objects from the per-core cache.  Similarly,
+> when the per-core cache gets too full, a group of 5 objects can be moved
+> from a per-core cache to a global cache using only O(1) operations, and
+> with a little hysteresis, that operation will seldom occur.
+> 
+> I'm curious.  How big is the thread cache in jemalloc?
+> 
+> -Bradley
+
+Yes, it seems we're in total agreement. By extremely expensive I meant
+relative to normal instructions without a LOCK prefix. Slab allocation
+for small size classes means you can have O(1) operations all of the way
+down to chunk allocation so you don't really need anything other than a
+tiny thread cache.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150210/6784a35e/attachment.sig>
+
+From ldalessa at indiana.edu  Tue Feb 10 19:52:12 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 11 Feb 2015 03:52:12 +0000
+Subject: Does arena_tcache_fill_small() ever end up bypassing custom chunk
+	allocation?
+Message-ID: <BD6E4EC2-E15A-46CF-88C5-7EA0ABA77DBF@indiana.edu>
+
+We have an arena that we are using for a specific bit of memory that we are managing with a custom chunk allocator.
+
+We?re seeing initial small allocations through this arena succeed without calling out to our custom chunk allocator. This behavior appears to be new since b617df8. While tracing this behavior, I?m seeing the initial allocations miss in the cache, and forward to arena_tcache_fill_small() which does some difficult-to-disect stuff including something to do with runs. After this call, the cache succeeds in supplying the allocation, without ever getting our chunk allocator involved.
+
+This causes us issues because the memory we?re getting back doesn?t seem to come from the place we?re expecting it to come from.
+
+Is arena_tcache_fill_small() going somewhere special to find memory that was allocated with some other chunk allocator, previous to our initialization of our arena?
+
+Thanks in advance,
+Luke
+
+From ldalessa at indiana.edu  Tue Feb 10 20:00:36 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 11 Feb 2015 04:00:36 +0000
+Subject: Does arena_tcache_fill_small() ever end up bypassing custom
+	chunk	allocation?
+In-Reply-To: <BD6E4EC2-E15A-46CF-88C5-7EA0ABA77DBF@indiana.edu>
+References: <BD6E4EC2-E15A-46CF-88C5-7EA0ABA77DBF@indiana.edu>
+Message-ID: <3F5E03D3-6CB4-48EE-81D8-41B4ECE19400@indiana.edu>
+
+Ah, actually, I see one call happening to the default chunk allocator for another arena during initialization.
+
+We?re calling mallctl with opt.lg_chunk, and that triggers a really early a0malloc() inside of ctl_init(), which cascades into the chunk_alloc_default before we?ve had a chance to set our custom allocator on the default arena. I guess that arena_tcache_fill_small() uses this chunk to satisfy misses for small objects, which makes sense.
+
+Is this early a0malloc() behavior new? 
+
+I?ll will try and see if we can promote our custom allocator to be the default arena?s allocator before we do any other interaction with jemalloc.
+
+Let me know if there is any other way to bypass this issue,
+Luke
+
+> On Feb 10, 2015, at 10:52 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> 
+> We have an arena that we are using for a specific bit of memory that we are managing with a custom chunk allocator.
+> 
+> We?re seeing initial small allocations through this arena succeed without calling out to our custom chunk allocator. This behavior appears to be new since b617df8. While tracing this behavior, I?m seeing the initial allocations miss in the cache, and forward to arena_tcache_fill_small() which does some difficult-to-disect stuff including something to do with runs. After this call, the cache succeeds in supplying the allocation, without ever getting our chunk allocator involved.
+> 
+> This causes us issues because the memory we?re getting back doesn?t seem to come from the place we?re expecting it to come from.
+> 
+> Is arena_tcache_fill_small() going somewhere special to find memory that was allocated with some other chunk allocator, previous to our initialization of our arena?
+> 
+> Thanks in advance,
+> Luke
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From ldalessa at indiana.edu  Tue Feb 10 20:29:13 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 11 Feb 2015 04:29:13 +0000
+Subject: Does arena_tcache_fill_small() ever end up bypassing custom
+	chunk	allocation?
+In-Reply-To: <3F5E03D3-6CB4-48EE-81D8-41B4ECE19400@indiana.edu>
+References: <BD6E4EC2-E15A-46CF-88C5-7EA0ABA77DBF@indiana.edu>
+	<3F5E03D3-6CB4-48EE-81D8-41B4ECE19400@indiana.edu>
+Message-ID: <56589DB2-FCCC-43B2-B52B-587D344D497E@indiana.edu>
+
+
+> On Feb 10, 2015, at 11:00 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+> 
+> Ah, actually, I see one call happening to the default chunk allocator for another arena during initialization.
+> 
+> We?re calling mallctl with opt.lg_chunk, and that triggers a really early a0malloc() inside of ctl_init(), which cascades into the chunk_alloc_default before we?ve had a chance to set our custom allocator on the default arena. I guess that arena_tcache_fill_small() uses this chunk to satisfy misses for small objects, which makes sense.
+> 
+> Is this early a0malloc() behavior new? 
+> 
+> I?ll will try and see if we can promote our custom allocator to be the default arena?s allocator before we do any other interaction with jemalloc.
+
+Okay, I?ve run into a wall here.
+
+In order to change the custom chunk allocator I am using the mallctl interface, which requires that I provide the arena id which I normally get through mallctl, but this triggers the a0malloc() that causes my problem.
+
+If I hard-code arena to be 0, which is correct, but feels brittle, I can skip that initial mallctl query, however I still need to use mallctl to set the chunk allocator which will trigger the bad a0malloc() before the allocator is installed.
+
+Is there a way around this? Could I set the allocator without passing through the mallctl interface as a workaround for now? Where would I look to do that? Can I have a0malloc() use the system malloc instead (we?re using jemalloc in prefixed form)?
+
+Any help would be appreciated as this is a blocker for us.
+
+Thanks,
+Luke
+
+> Let me know if there is any other way to bypass this issue,
+> Luke
+> 
+>> On Feb 10, 2015, at 10:52 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> 
+>> We have an arena that we are using for a specific bit of memory that we are managing with a custom chunk allocator.
+>> 
+>> We?re seeing initial small allocations through this arena succeed without calling out to our custom chunk allocator. This behavior appears to be new since b617df8. While tracing this behavior, I?m seeing the initial allocations miss in the cache, and forward to arena_tcache_fill_small() which does some difficult-to-disect stuff including something to do with runs. After this call, the cache succeeds in supplying the allocation, without ever getting our chunk allocator involved.
+>> 
+>> This causes us issues because the memory we?re getting back doesn?t seem to come from the place we?re expecting it to come from.
+>> 
+>> Is arena_tcache_fill_small() going somewhere special to find memory that was allocated with some other chunk allocator, previous to our initialization of our arena?
+>> 
+>> Thanks in advance,
+>> Luke
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> 
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From jasone at canonware.com  Tue Feb 10 21:45:36 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 10 Feb 2015 21:45:36 -0800
+Subject: Does arena_tcache_fill_small() ever end up bypassing custom
+	chunk	allocation?
+In-Reply-To: <56589DB2-FCCC-43B2-B52B-587D344D497E@indiana.edu>
+References: <BD6E4EC2-E15A-46CF-88C5-7EA0ABA77DBF@indiana.edu>
+	<3F5E03D3-6CB4-48EE-81D8-41B4ECE19400@indiana.edu>
+	<56589DB2-FCCC-43B2-B52B-587D344D497E@indiana.edu>
+Message-ID: <F02328E5-230C-42C6-9352-FB0B26B49258@canonware.com>
+
+On Feb 10, 2015, at 8:29 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>> On Feb 10, 2015, at 11:00 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>> On Feb 10, 2015, at 10:52 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>> We have an arena that we are using for a specific bit of memory that we are managing with a custom chunk allocator.
+>>> 
+>>> We?re seeing initial small allocations through this arena succeed without calling out to our custom chunk allocator. This behavior appears to be new since b617df8. While tracing this behavior, I?m seeing the initial allocations miss in the cache, and forward to arena_tcache_fill_small() which does some difficult-to-disect stuff including something to do with runs. After this call, the cache succeeds in supplying the allocation, without ever getting our chunk allocator involved.
+
+10aff3f3e1b8b3ac0348b259c439c9fe870a6b95 had a lot of a0-related changes in it, which may be related to the behavior change you're seeing.
+
+>>> This causes us issues because the memory we?re getting back doesn?t seem to come from the place we?re expecting it to come from.
+>>> 
+>>> Is arena_tcache_fill_small() going somewhere special to find memory that was allocated with some other chunk allocator, previous to our initialization of our arena?
+>>> 
+>> Ah, actually, I see one call happening to the default chunk allocator for another arena during initialization.
+>> 
+>> We?re calling mallctl with opt.lg_chunk, and that triggers a really early a0malloc() inside of ctl_init(), which cascades into the chunk_alloc_default before we?ve had a chance to set our custom allocator on the default arena. I guess that arena_tcache_fill_small() uses this chunk to satisfy misses for small objects, which makes sense.
+
+Is the problem that the region that is allocated from arena 0 ends up being freed back to the tcache, and you're depending on the tcache only containing regions from your custom arena?  In that case you could flush the tcache once you have the arena fully configured.
+
+>> Is this early a0malloc() behavior new? 
+>> 
+>> I?ll will try and see if we can promote our custom allocator to be the default arena?s allocator before we do any other interaction with jemalloc.
+>> Let me know if there is any other way to bypass this issue,
+> 
+> Okay, I?ve run into a wall here.
+> 
+> In order to change the custom chunk allocator I am using the mallctl interface, which requires that I provide the arena id which I normally get through mallctl, but this triggers the a0malloc() that causes my problem.
+> 
+> If I hard-code arena to be 0, which is correct, but feels brittle, I can skip that initial mallctl query, however I still need to use mallctl to set the chunk allocator which will trigger the bad a0malloc() before the allocator is installed.
+> 
+> Is there a way around this? Could I set the allocator without passing through the mallctl interface as a workaround for now? Where would I look to do that? Can I have a0malloc() use the system malloc instead (we?re using jemalloc in prefixed form)?
+> 
+> Any help would be appreciated as this is a blocker for us.
+
+I'm a bit confused about what your code is trying to do, but maybe you're hitting one of these problems:
+
+- You're trying to change the chunk allocator for one of the automatic arenas (arena 0?).  This is unlikely to ever work reliably for arena 0, though it would potentially be possible for other automatic arenas prior to launching any threads.
+- You're calling the thread.arena mallctl to refer to a newly created arena before you've finished setting up the arena to use your chunk allocator.
+
+I still have a bit of work to do on making sure that no metadata are allocated from non-auto arenas, so that they can be reset (see https://github.com/jemalloc/jemalloc/issues/146).  Is that related to what you're hitting?
+
+Thanks,
+Jason
+
+From ldalessa at indiana.edu  Wed Feb 11 06:26:59 2015
+From: ldalessa at indiana.edu (D'Alessandro, Luke K)
+Date: Wed, 11 Feb 2015 14:26:59 +0000
+Subject: Does arena_tcache_fill_small() ever end up bypassing custom
+	chunk	allocation?
+In-Reply-To: <F02328E5-230C-42C6-9352-FB0B26B49258@canonware.com>
+References: <BD6E4EC2-E15A-46CF-88C5-7EA0ABA77DBF@indiana.edu>
+	<3F5E03D3-6CB4-48EE-81D8-41B4ECE19400@indiana.edu>
+	<56589DB2-FCCC-43B2-B52B-587D344D497E@indiana.edu>
+	<F02328E5-230C-42C6-9352-FB0B26B49258@canonware.com>
+Message-ID: <2B80E96C-A736-4B30-9F40-B03E2B42D618@indiana.edu>
+
+Okay, sorry for the stream of consciousness last night. I was completely wrong about the source of our problem. Specifying MALLOCX_ARENA() used to implicitly bypass the cache, but now I see MALLOCX_TCACHE_NONE as a separate option. Adding that to our flags fixes the immediate issue we were having.
+
+I have some responses to the previous issue that I?ve included inline.
+
+> On Feb 11, 2015, at 12:45 AM, Jason Evans <jasone at canonware.com> wrote:
+> 
+> On Feb 10, 2015, at 8:29 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>> On Feb 10, 2015, at 11:00 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>>> On Feb 10, 2015, at 10:52 PM, D'Alessandro, Luke K <ldalessa at indiana.edu> wrote:
+>>>> We have an arena that we are using for a specific bit of memory that we are managing with a custom chunk allocator.
+>>>> 
+>>>> We?re seeing initial small allocations through this arena succeed without calling out to our custom chunk allocator. This behavior appears to be new since b617df8. While tracing this behavior, I?m seeing the initial allocations miss in the cache, and forward to arena_tcache_fill_small() which does some difficult-to-disect stuff including something to do with runs. After this call, the cache succeeds in supplying the allocation, without ever getting our chunk allocator involved.
+> 
+> 10aff3f3e1b8b3ac0348b259c439c9fe870a6b95 had a lot of a0-related changes in it, which may be related to the behavior change you're seeing.
+> 
+>>>> This causes us issues because the memory we?re getting back doesn?t seem to come from the place we?re expecting it to come from.
+>>>> 
+>>>> Is arena_tcache_fill_small() going somewhere special to find memory that was allocated with some other chunk allocator, previous to our initialization of our arena?
+>>>> 
+>>> Ah, actually, I see one call happening to the default chunk allocator for another arena during initialization.
+>>> 
+>>> We?re calling mallctl with opt.lg_chunk, and that triggers a really early a0malloc() inside of ctl_init(), which cascades into the chunk_alloc_default before we?ve had a chance to set our custom allocator on the default arena. I guess that arena_tcache_fill_small() uses this chunk to satisfy misses for small objects, which makes sense.
+> 
+> Is the problem that the region that is allocated from arena 0 ends up being freed back to the tcache, and you're depending on the tcache only containing regions from your custom arena?  
+
+I think that could be a problem, but I?m not sure it?s actually happening.
+
+> In that case you could flush the tcache once you have the arena fully configured.
+
+I do that, right before swapping in a custom arena, but I was worried that jemalloc was filling the cache from the arena 0 chunk that get?s allocated right away. If that ever happens I?m out of luck. I?ve added some asserts to make sure that we?re always getting memory back from a chunk that we didn?t provide?it may be that this is a complete non-issue
+
+> I'm a bit confused about what your code is trying to do, but maybe you're hitting one of these problems:
+> 
+> - You're trying to change the chunk allocator for one of the automatic arenas (arena 0?).  This is unlikely to ever work reliably for arena 0, though it would potentially be possible for other automatic arenas prior to launching any threads.
+
+We swap in custom arenas for all of the threads to avoid this issue. I was simply confused about seeing the default chunk allocator firing, but now I understand when and why that happens, and it wasn?t the cause of this issue.
+
+> - You're calling the thread.arena mallctl to refer to a newly created arena before you've finished setting up the arena to use your chunk allocator.
+> 
+> I still have a bit of work to do on making sure that no metadata are allocated from non-auto arenas, so that they can be reset (see https://github.com/jemalloc/jemalloc/issues/146).  Is that related to what you're hitting?
+
+Not directly. As long as our cache never contains objects from the ?primordial? chunk, we?re okay. We never free anything from that chunk, so as long as jemalloc doesn?t try and fill from that chunk (given that I?m no longer using it?s arena I don?t think that it should), we?re okay.
+
+As it is, linking our prefixed jemalloc to manage our network-registered memory region has been working quite well up to this point.
+
+Thank you,
+Luke
+
+
+From brock.pytlik at gmail.com  Wed Feb 11 14:49:59 2015
+From: brock.pytlik at gmail.com (Brock Pytlik)
+Date: Wed, 11 Feb 2015 14:49:59 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <317645FD-ECD6-498E-9B2B-C14EA3545182@canonware.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+	<3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+	<CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+	<CAKthKind0pb9hfD5qyws2MudM1c3-Hp=w6zn5jffsVS4e7op-g@mail.gmail.com>
+	<317645FD-ECD6-498E-9B2B-C14EA3545182@canonware.com>
+Message-ID: <CAKthKi=eAR2PRuA-XeQq+JE-Q8jBBhn-GwAX5CHn7vPesBiy-w@mail.gmail.com>
+
+So I think we're closing in on the finish line. I've successfully generated
+profiles from ardb using the gate tip malloc. The problem I'm having is
+that pprof (the one distributed w/ jemalloc) shows no allocation
+information. (I use the one distributed w/ jemalloc b/c the one that's part
+of gperftools 2.4 doesn't know about heap_v2 afaict.) To be clear, pprof
+loads the file, then I do "top" and it says '0 B', as does "top --cum".
+
+I haven't found documentation about what the heap_v2 file format is, so I'm
+not sure where the problem is. I've included what one of the profile files
+looks like. If you can point me to the documentation for the heap_v2 file
+format that would be great, then I could possibly interpret what's below.
+If you know what's going on when you look @ the file below, that would be
+great as well.
+
+heap_v2/524288
+>   t*: 217: 3029560 [0: 0]
+>   t0: 6: 1015808 [0: 0]
+>   t1: 0: 0 [0: 0]
+>   t2: 207: 1440312 [0: 0]
+>   t3: 0: 0 [0: 0]
+>   t4: 0: 0 [0: 0]
+>   t5: 0: 0 [0: 0]
+>   t6: 0: 0 [0: 0]
+>   t7: 4: 573440 [0: 0]
+> @
+>   t*: 217: 3029560 [0: 0]
+>   t0: 6: 1015808 [0: 0]
+>   t2: 207: 1440312 [0: 0]
+>   t7: 4: 573440 [0: 0]
+> MAPPED_LIBRARIES:
+> 00008000-001f5000 r-xp 00000000 08:05 1318210    /usr/bin/ardb-server.prof
+> 001fc000-00202000 rw-p 001ec000 08:05 1318210    /usr/bin/ardb-server.prof
+> 00202000-00214000 rw-p 00000000 00:00 0          [heap]
+> a6000000-adc00000 rw-p 00000000 00:00 0
+> adc00000-adc01000 ---p 00000000 00:00 0
+> adc01000-af400000 rw-p 00000000 00:00 0          [stack:5192]
+> af400000-af401000 ---p 00000000 00:00 0
+> af401000-b0400000 rw-p 00000000 00:00 0          [stack:4628]
+> b0400000-b0401000 ---p 00000000 00:00 0
+> b0401000-b1000000 rw-p 00000000 00:00 0          [stack:4627]
+> b11ff000-b1200000 ---p 00000000 00:00 0
+> b1200000-b19ff000 rw-p 00000000 00:00 0          [stack:4626]
+> b19ff000-b1a00000 ---p 00000000 00:00 0
+> b1a00000-b21ff000 rw-p 00000000 00:00 0          [stack:4625]
+> b21ff000-b2200000 ---p 00000000 00:00 0
+> b2200000-b29ff000 rw-p 00000000 00:00 0          [stack:4624]
+> b29ff000-b2a00000 ---p 00000000 00:00 0
+> b2a00000-b31ff000 rw-p 00000000 00:00 0          [stack:4623]
+> b31ff000-b6400000 rw-s 00000000 08:06 2883593    <>/repl/repl.log
+> b6400000-b6c00000 rw-p 00000000 00:00 0
+> b6d25000-b6d26000 rw-p 00000000 00:00 0
+> b6d27000-b6e42000 r-xp 00000000 08:05 130837     /lib/libc-2.13.so
+> b6e42000-b6e49000 ---p 0011b000 08:05 130837     /lib/libc-2.13.so
+> b6e49000-b6e4b000 r--p 0011a000 08:05 130837     /lib/libc-2.13.so
+> b6e4b000-b6e4c000 rw-p 0011c000 08:05 130837     /lib/libc-2.13.so
+> b6e4c000-b6e4f000 rw-p 00000000 00:00 0
+> b6e4f000-b6e6e000 r-xp 00000000 08:05 130944     /lib/libgcc_s.so.1
+> b6e6e000-b6e75000 ---p 0001f000 08:05 130944     /lib/libgcc_s.so.1
+> b6e75000-b6e76000 rw-p 0001e000 08:05 130944     /lib/libgcc_s.so.1
+> b6e76000-b6edf000 r-xp 00000000 08:05 130976     /lib/libm-2.13.so
+> b6edf000-b6ee6000 ---p 00069000 08:05 130976     /lib/libm-2.13.so
+> b6ee6000-b6ee7000 r--p 00068000 08:05 130976     /lib/libm-2.13.so
+> b6ee7000-b6ee8000 rw-p 00069000 08:05 130976     /lib/libm-2.13.so
+> b6ee8000-b6f84000 r-xp 00000000 08:05 1316222
+> /usr/lib/libstdc++.so.6.0.17
+> b6f84000-b6f8b000 ---p 0009c000 08:05 1316222
+> /usr/lib/libstdc++.so.6.0.17
+> b6f8b000-b6f8f000 r--p 0009b000 08:05 1316222
+> /usr/lib/libstdc++.so.6.0.17
+> b6f8f000-b6f91000 rw-p 0009f000 08:05 1316222
+> /usr/lib/libstdc++.so.6.0.17
+> b6f91000-b6f98000 rw-p 00000000 00:00 0
+> b6f98000-b6fac000 r-xp 00000000 08:05 130941     /lib/libpthread-2.13.so
+> b6fac000-b6fb3000 ---p 00014000 08:05 130941     /lib/libpthread-2.13.so
+> b6fb3000-b6fb4000 r--p 00013000 08:05 130941     /lib/libpthread-2.13.so
+> b6fb4000-b6fb5000 rw-p 00014000 08:05 130941     /lib/libpthread-2.13.so
+> b6fb5000-b6fb7000 rw-p 00000000 00:00 0
+> b6fb7000-b6fd4000 r-xp 00000000 08:05 130826     /lib/ld-2.13.so
+> b6fd4000-b6fd7000 rw-p 00000000 00:00 0
+> b6fd7000-b6fda000 rw-p 00000000 00:00 0
+> b6fda000-b6fdb000 r-xp 00000000 00:00 0          [sigpage]
+> b6fdb000-b6fdc000 r--p 0001c000 08:05 130826     /lib/ld-2.13.so
+> b6fdc000-b6fdd000 rw-p 0001d000 08:05 130826     /lib/ld-2.13.so
+> bef38000-bef59000 rw-p 00000000 00:00 0          [stack]
+> ffff0000-ffff1000 r-xp 00000000 00:00 0          [vectors]
+
+
+
+Thanks,
+Brock
+
+
+On Mon, Feb 9, 2015 at 3:23 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Feb 9, 2015, at 3:11 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+>
+> Well, I thought it would handle what I needed, but I can't seem to get it
+> to produce a dump. Here's what I did:
+> From my experiments on x86, it seems like prof:true needs to be part of
+> MALLOC_CONF for lg_prof_interval to work at all. However, when I set
+> prof:true on arm, ardb hangs in the atexit code. This happens even when I
+> set prof_final to false. To be clear this command hangs (on arm):
+>
+>> MALLOC_CONF=prof:true,lg_prof_interval:2,prof_final:false ardb-server
+>> ardb.conf
+>
+>
+> Oh, whoops, I forgot that in the dev branch I refactored the prof
+> bootstrapping code to make the atexit() call conditional, but in 3.6.0 the
+> call always happens if prof:true is set.  I think you will have to hack
+> jemalloc in order to work around this.
+>
+> I'm confused about a couple of things:
+> 1) Why it works on x86 and not arm (and whether that means the cross
+> compiling build for arm has some issues).
+>
+>
+> I haven't dug into this, but I'm assuming that this is an arbitrary
+> implementation difference in the libc being used on ARM, possibly motivated
+> by the desire to reduce the data segment size and only pay for internal
+> atexit() metadata overhead if the functionality is actually used.  I'm not
+> very familiar with ARM-specific development, but I get the impression that
+> there are multiple stripped down libc implementations in use.
+>
+> If these are things that are fixed in the gate tip of jemalloc, I'd also
+> be happy to try changing ardb to use that (assuming it's largely a drop in
+> replacement).
+>
+> Any suggestions on where I go next?
+>
+>
+> Assuming that your current goal is simply to get heap profiles and
+> diagnose a leak, I'd recommend just trying to use the dev version of
+> jemalloc.  If that doesn't work for some reason, then disabling the
+> atexit() call in jemalloc's src/prof.c and rebuilding will probably be
+> enough to get you what you need.
+>
+> Thanks,
+> Jason
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150211/0c761d33/attachment.html>
+
+From jasone at canonware.com  Wed Feb 11 15:36:36 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 11 Feb 2015 15:36:36 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <CAKthKi=eAR2PRuA-XeQq+JE-Q8jBBhn-GwAX5CHn7vPesBiy-w@mail.gmail.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+	<3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+	<CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+	<CAKthKind0pb9hfD5qyws2MudM1c3-Hp=w6zn5jffsVS4e7op-g@mail.gmail.com>
+	<317645FD-ECD6-498E-9B2B-C14EA3545182@canonware.com>
+	<CAKthKi=eAR2PRuA-XeQq+JE-Q8jBBhn-GwAX5CHn7vPesBiy-w@mail.gmail.com>
+Message-ID: <A523BB7F-AD5F-47CD-AE74-5D5E2A05CFDD@canonware.com>
+
+On Feb 11, 2015, at 2:49 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+> So I think we're closing in on the finish line. I've successfully generated profiles from ardb using the gate tip malloc. The problem I'm having is that pprof (the one distributed w/ jemalloc) shows no allocation information. (I use the one distributed w/ jemalloc b/c the one that's part of gperftools 2.4 doesn't know about heap_v2 afaict.) To be clear, pprof loads the file, then I do "top" and it says '0 B', as does "top --cum".
+> 
+> I haven't found documentation about what the heap_v2 file format is, so I'm not sure where the problem is. I've included what one of the profile files looks like. If you can point me to the documentation for the heap_v2 file format that would be great, then I could possibly interpret what's below. If you know what's going on when you look @ the file below, that would be great as well.
+> 
+> heap_v2/524288
+>   t*: 217: 3029560 [0: 0]
+>   t0: 6: 1015808 [0: 0]
+>   t1: 0: 0 [0: 0]
+>   t2: 207: 1440312 [0: 0]
+>   t3: 0: 0 [0: 0]
+>   t4: 0: 0 [0: 0]
+>   t5: 0: 0 [0: 0]
+>   t6: 0: 0 [0: 0]
+>   t7: 4: 573440 [0: 0]
+> @
+>   t*: 217: 3029560 [0: 0]
+>   t0: 6: 1015808 [0: 0]
+>   t2: 207: 1440312 [0: 0]
+>   t7: 4: 573440 [0: 0]
+
+The line that starts with @ should also have a sequence of hex addresses (the backtrace).  For some reason you appear to be getting zero-length (i.e. failed) backtraces, which means that all samples are being merged into a single record.  Which backtracing mechanism are you using?  See the configure output to determine whether libunwind, libgcc, or gcc intrinsics are being used.
+
+Thanks,
+Jason
+
+From brock.pytlik at gmail.com  Wed Feb 11 16:45:55 2015
+From: brock.pytlik at gmail.com (Brock Pytlik)
+Date: Wed, 11 Feb 2015 16:45:55 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <A523BB7F-AD5F-47CD-AE74-5D5E2A05CFDD@canonware.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+	<3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+	<CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+	<CAKthKind0pb9hfD5qyws2MudM1c3-Hp=w6zn5jffsVS4e7op-g@mail.gmail.com>
+	<317645FD-ECD6-498E-9B2B-C14EA3545182@canonware.com>
+	<CAKthKi=eAR2PRuA-XeQq+JE-Q8jBBhn-GwAX5CHn7vPesBiy-w@mail.gmail.com>
+	<A523BB7F-AD5F-47CD-AE74-5D5E2A05CFDD@canonware.com>
+Message-ID: <CAKthKi=vC6xc5T-unr924pEK5cMif4p9PGNMokpG3s-aE6qJGQ@mail.gmail.com>
+
+I think these are the relevant lines from config.log:
+
+> configure:8897: checking configured backtracing method
+> configure:8899: result: libgcc
+
+
+I see the same lines for both the x86 and arm builds.
+
+Brock
+
+On Wed, Feb 11, 2015 at 3:36 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Feb 11, 2015, at 2:49 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+> > So I think we're closing in on the finish line. I've successfully
+> generated profiles from ardb using the gate tip malloc. The problem I'm
+> having is that pprof (the one distributed w/ jemalloc) shows no allocation
+> information. (I use the one distributed w/ jemalloc b/c the one that's part
+> of gperftools 2.4 doesn't know about heap_v2 afaict.) To be clear, pprof
+> loads the file, then I do "top" and it says '0 B', as does "top --cum".
+> >
+> > I haven't found documentation about what the heap_v2 file format is, so
+> I'm not sure where the problem is. I've included what one of the profile
+> files looks like. If you can point me to the documentation for the heap_v2
+> file format that would be great, then I could possibly interpret what's
+> below. If you know what's going on when you look @ the file below, that
+> would be great as well.
+> >
+> > heap_v2/524288
+> >   t*: 217: 3029560 [0: 0]
+> >   t0: 6: 1015808 [0: 0]
+> >   t1: 0: 0 [0: 0]
+> >   t2: 207: 1440312 [0: 0]
+> >   t3: 0: 0 [0: 0]
+> >   t4: 0: 0 [0: 0]
+> >   t5: 0: 0 [0: 0]
+> >   t6: 0: 0 [0: 0]
+> >   t7: 4: 573440 [0: 0]
+> > @
+> >   t*: 217: 3029560 [0: 0]
+> >   t0: 6: 1015808 [0: 0]
+> >   t2: 207: 1440312 [0: 0]
+> >   t7: 4: 573440 [0: 0]
+>
+> The line that starts with @ should also have a sequence of hex addresses
+> (the backtrace).  For some reason you appear to be getting zero-length
+> (i.e. failed) backtraces, which means that all samples are being merged
+> into a single record.  Which backtracing mechanism are you using?  See the
+> configure output to determine whether libunwind, libgcc, or gcc intrinsics
+> are being used.
+>
+> Thanks,
+> Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150211/e45b726e/attachment.html>
+
+From jasone at canonware.com  Wed Feb 11 16:51:09 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 11 Feb 2015 16:51:09 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <CAKthKi=vC6xc5T-unr924pEK5cMif4p9PGNMokpG3s-aE6qJGQ@mail.gmail.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+	<3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+	<CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+	<CAKthKind0pb9hfD5qyws2MudM1c3-Hp=w6zn5jffsVS4e7op-g@mail.gmail.com>
+	<317645FD-ECD6-498E-9B2B-C14EA3545182@canonware.com>
+	<CAKthKi=eAR2PRuA-XeQq+JE-Q8jBBhn-GwAX5CHn7vPesBiy-w@mail.gmail.com>
+	<A523BB7F-AD5F-47CD-AE74-5D5E2A05CFDD@canonware.com>
+	<CAKthKi=vC6xc5T-unr924pEK5cMif4p9PGNMokpG3s-aE6qJGQ@mail.gmail.com>
+Message-ID: <3EDFED72-644A-4C51-A689-F15D8765E707@canonware.com>
+
+On Feb 11, 2015, at 4:45 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+> I think these are the relevant lines from config.log:
+> configure:8897: checking configured backtracing method
+> configure:8899: result: libgcc
+> 
+> I see the same lines for both the x86 and arm builds.
+
+Unless you are stripping your binaries of all the unwind-related DWARF info, I don't have any likely explanations for the backtracing failures.
+
+Jason
+
+From brock.pytlik at gmail.com  Wed Feb 11 17:00:13 2015
+From: brock.pytlik at gmail.com (Brock Pytlik)
+Date: Wed, 11 Feb 2015 17:00:13 -0800
+Subject: Enabling profiling causes hang?
+In-Reply-To: <3EDFED72-644A-4C51-A689-F15D8765E707@canonware.com>
+References: <CAKthKinNa8a5VNaSuNiYOyaqkkHg2naXDs7+tUYY81n24EN29Q@mail.gmail.com>
+	<3B59EC63-8D66-43E7-95B2-F2FB77FC7FB5@canonware.com>
+	<CAKthKi=A3UcEjq7ycWT2eT3FjZS3-ALzpu8-Q2un4nHPvrB6+g@mail.gmail.com>
+	<CAKthKind0pb9hfD5qyws2MudM1c3-Hp=w6zn5jffsVS4e7op-g@mail.gmail.com>
+	<317645FD-ECD6-498E-9B2B-C14EA3545182@canonware.com>
+	<CAKthKi=eAR2PRuA-XeQq+JE-Q8jBBhn-GwAX5CHn7vPesBiy-w@mail.gmail.com>
+	<A523BB7F-AD5F-47CD-AE74-5D5E2A05CFDD@canonware.com>
+	<CAKthKi=vC6xc5T-unr924pEK5cMif4p9PGNMokpG3s-aE6qJGQ@mail.gmail.com>
+	<3EDFED72-644A-4C51-A689-F15D8765E707@canonware.com>
+Message-ID: <CAKthKinDpQgoO7nnKUf9hQ4dCwB8Wu8G47RMUgVRJxMHJD+7Xg@mail.gmail.com>
+
+Well ... when I do objdump --dwarf on ardb-server, I get a bunch of info.
+When I run ardb under gdb, I'm able to stop and get backtraces w/ symbolic
+info. When I use jemalloc 3.6.0 (on x86), I get useful info. Given all
+that, I think it's unlikely that I'm stripping unwind-related DWARF info,
+but if there's something specific I should look for, I'm happy to do that.
+
+If you don't have any other ideas, I guess I'll try going back to 3.6.0 and
+patching out the atexit functionality like you suggested previously.
+
+Thanks,
+Brock
+
+On Wed, Feb 11, 2015 at 4:51 PM, Jason Evans <jasone at canonware.com> wrote:
+
+> On Feb 11, 2015, at 4:45 PM, Brock Pytlik <brock.pytlik at gmail.com> wrote:
+> > I think these are the relevant lines from config.log:
+> > configure:8897: checking configured backtracing method
+> > configure:8899: result: libgcc
+> >
+> > I see the same lines for both the x86 and arm builds.
+>
+> Unless you are stripping your binaries of all the unwind-related DWARF
+> info, I don't have any likely explanations for the backtracing failures.
+>
+> Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150211/d9521012/attachment.html>
+
+From bottiger10 at gmail.com  Thu Feb 12 01:22:59 2015
+From: bottiger10 at gmail.com (Bottiger)
+Date: Thu, 12 Feb 2015 01:22:59 -0800
+Subject: Transparent huge pages patch
+Message-ID: <CA+2UFhnUMNEuUqHnvFp7T43FHZnr_xbw5jPSLkH5-eiaYNjKsw@mail.gmail.com>
+
+Hello I am wondering if the patch here ever got merged. I could not
+find anything about it in the changelogs or on Github.
+
+http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb
+
+We experienced RSS leakage using jemalloc 3.4.1 on Linux
+3.13.0-39-generic. It disappeared when we did echo never >
+/sys/kernel/mm/transparent_hugepage/enabled
+
+We would prefer not to have to change a global setting.
+
+From danielmicay at gmail.com  Thu Feb 12 01:50:35 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Thu, 12 Feb 2015 04:50:35 -0500
+Subject: Transparent huge pages patch
+In-Reply-To: <CA+2UFhnUMNEuUqHnvFp7T43FHZnr_xbw5jPSLkH5-eiaYNjKsw@mail.gmail.com>
+References: <CA+2UFhnUMNEuUqHnvFp7T43FHZnr_xbw5jPSLkH5-eiaYNjKsw@mail.gmail.com>
+Message-ID: <54DC776B.7060608@gmail.com>
+
+On 12/02/15 04:22 AM, Bottiger wrote:
+> Hello I am wondering if the patch here ever got merged. I could not
+> find anything about it in the changelogs or on Github.
+> 
+> http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb
+> 
+> We experienced RSS leakage using jemalloc 3.4.1 on Linux
+> 3.13.0-39-generic. It disappeared when we did echo never >
+> /sys/kernel/mm/transparent_hugepage/enabled
+> 
+> We would prefer not to have to change a global setting.
+
+Transparent huge pages are a significant performance win (10%+) memory
+intensive workloads so disabling them across the board isn't a great
+solution. AFAIK, MADV_DONTNEED will split huge pages and the kernel will
+only assign new huge pages if the memory is densely packed.
+
+I think the reason that jemalloc ends up with so many of them is the
+fact that it aligns chunks to >=2MiB boundaries, so it ends up
+triggering the optimistic huge page allocation for 2M aligned page
+faults. I think it could just pre-fault a page per 2M at an unaligned
+boundary in order to work around this, but I haven't looked into it yet.
+
+If it's not working well even with a workaround for the 2M fault issue,
+then there are bugs to report upstream.
+
+It's actually quite good that huge allocations are huge page aligned,
+because you almost always want huge pages for those (unless it's used
+for a sparse data structure).
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150212/e60c28d8/attachment.sig>
+
+From gnurizen at gmail.com  Thu Feb 12 02:08:53 2015
+From: gnurizen at gmail.com (Tommy Reilly)
+Date: Thu, 12 Feb 2015 05:08:53 -0500
+Subject: Transparent huge pages patch
+In-Reply-To: <CA+2UFhnUMNEuUqHnvFp7T43FHZnr_xbw5jPSLkH5-eiaYNjKsw@mail.gmail.com>
+References: <CA+2UFhnUMNEuUqHnvFp7T43FHZnr_xbw5jPSLkH5-eiaYNjKsw@mail.gmail.com>
+Message-ID: <CANAJUdOnaYWUQ0rjWfHvjzs=cS7RumhwbnKUp0M9Lax=5DBLFQ@mail.gmail.com>
+
+We (nuodb) developed a patch to have jemalloc call MADV_NOHUGEPAGE on all
+memory it mapped but this only works if THP setting on OS is [madvise] so
+its not a complete fix. It does give our customers the flexibility to use
+madvise instead of never to work around this problem.   If such a patch
+would be welcome I will put one together but we consider it a half fix.
+Personally I think linux should be changed so that THP can be disabled by a
+process regardless of system setting but that doesn't appear to be possible
+at the moment.
+
+On Thu, Feb 12, 2015 at 4:22 AM, Bottiger <bottiger10 at gmail.com> wrote:
+
+> Hello I am wondering if the patch here ever got merged. I could not
+> find anything about it in the changelogs or on Github.
+>
+>
+> http://dev.nuodb.com/techblog/linux-transparent-huge-pages-jemalloc-and-nuodb
+>
+> We experienced RSS leakage using jemalloc 3.4.1 on Linux
+> 3.13.0-39-generic. It disappeared when we did echo never >
+> /sys/kernel/mm/transparent_hugepage/enabled
+>
+> We would prefer not to have to change a global setting.
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150212/b239182b/attachment.html>
+
+From danielmicay at gmail.com  Thu Feb 12 02:13:21 2015
+From: danielmicay at gmail.com (Daniel Micay)
+Date: Thu, 12 Feb 2015 05:13:21 -0500
+Subject: Transparent huge pages patch
+In-Reply-To: <CANAJUdOnaYWUQ0rjWfHvjzs=cS7RumhwbnKUp0M9Lax=5DBLFQ@mail.gmail.com>
+References: <CA+2UFhnUMNEuUqHnvFp7T43FHZnr_xbw5jPSLkH5-eiaYNjKsw@mail.gmail.com>
+	<CANAJUdOnaYWUQ0rjWfHvjzs=cS7RumhwbnKUp0M9Lax=5DBLFQ@mail.gmail.com>
+Message-ID: <54DC7CC1.8040709@gmail.com>
+
+On 12/02/15 05:08 AM, Tommy Reilly wrote:
+> We (nuodb) developed a patch to have jemalloc call MADV_NOHUGEPAGE on
+> all memory it mapped but this only works if THP setting on OS is
+> [madvise] so its not a complete fix. It does give our customers the
+> flexibility to use madvise instead of never to work around this problem.
+>   If such a patch would be welcome I will put one together but we
+> consider it a half fix.   Personally I think linux should be changed so
+> that THP can be disabled by a process regardless of system setting but
+> that doesn't appear to be possible at the moment.
+
+If it's on 'madvise', then it will only use huge pages if ranges are
+marked with MADV_HUGEPAGE. The MADV_NOHUGEPAGE hint is a no-op unless
+the range was already marked with MADV_HUGEPAGE or if it's set to the
+'always' setting. It can certainly be disabled by a process regardless
+of the system setting, but it's only opt-out with 'always' anyway.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 819 bytes
+Desc: OpenPGP digital signature
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150212/5ff07687/attachment.sig>
+
+From galkin-vv at yandex.ru  Sun Feb 15 22:58:06 2015
+From: galkin-vv at yandex.ru (Vasily Galkin)
+Date: Mon, 16 Feb 2015 09:58:06 +0300
+Subject: memory overhead for allocation a lot of aligned blocks
+Message-ID: <8297311424069886@web11g.yandex.ru>
+
+I'm trying to implement a technique that would allow to store array limits and specific array position in a single pointer, calculating array limits from pointer alignment.
+So I want to allocate arrays of 2**N bytes at 2**N boundary.
+The idea is quite genereic so N's value may vary from 8 to huge values like 34 (for 64-bit system).
+
+Analyzing source of glibc allocator for this case I found that for aligned_alloc of 2**N block on 2**N boundary it may introduce worse case 2 times overhead by trying to allocate size+align block, finding aligned address in it and freeing unused part.
+jemalloc is more complex so I decided to ask about it.
+
+What is jemalloc worst case overhead for allocating 2**N bytes at 2**N boundary?
+I think for jemalloc-huge objects "no overhead" can be achived depends via mmap with fixed aligned adress. Does jemalloc do it such way?
+For jemalloc-small and jemalloc-large allocations: does typical 2**N allocs are always aligned to 2**N boundaries or this requirement will change the way how jemalloc handle this allocations?
+
+Thanks!
+
+From jasone at canonware.com  Mon Feb 16 11:44:09 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Mon, 16 Feb 2015 11:44:09 -0800
+Subject: memory overhead for allocation a lot of aligned blocks
+In-Reply-To: <8297311424069886@web11g.yandex.ru>
+References: <8297311424069886@web11g.yandex.ru>
+Message-ID: <71237848-511D-4035-9F50-E42C3A3CB7C6@canonware.com>
+
+On Feb 15, 2015, at 10:58 PM, Vasily Galkin <galkin-vv at yandex.ru> wrote:
+> I'm trying to implement a technique that would allow to store array limits and specific array position in a single pointer, calculating array limits from pointer alignment.
+> So I want to allocate arrays of 2**N bytes at 2**N boundary.
+> The idea is quite genereic so N's value may vary from 8 to huge values like 34 (for 64-bit system).
+
+Note that e.g. a 4 MiB naturally aligned allocation happens to also be naturally aligned at all lesser alignments (2 MiB, 1 MiB, ..., 16 B, etc.), so I don't understand how you're going to make this work unless you prevent e.g. 16 byte allocations from being page-aligned.
+
+> Analyzing source of glibc allocator for this case I found that for aligned_alloc of 2**N block on 2**N boundary it may introduce worse case 2 times overhead by trying to allocate size+align block, finding aligned address in it and freeing unused part.
+> jemalloc is more complex so I decided to ask about it.
+> 
+> What is jemalloc worst case overhead for allocating 2**N bytes at 2**N boundary?
+> I think for jemalloc-huge objects "no overhead" can be achived depends via mmap with fixed aligned adress. Does jemalloc do it such way?
+> For jemalloc-small and jemalloc-large allocations: does typical 2**N allocs are always aligned to 2**N boundaries or this requirement will change the way how jemalloc handle this allocations?
+
+I think you're asking about metadata overhead.  jemalloc stores all metadata separately from allocations, so there are no inherent issues as there would be if allocations had metadata headers.  Also, if you specify --with-lg-size-class-group=0 while configuring the dev version of jemalloc, all size classes will be powers of 2, and all allocations will be naturally aligned.
+
+Regarding worst case fragmentation, the answer depends on size class category and allocation size mixture:
+
+- Small: All 2^n-aligned allocations of size 2^n will incur no additional overhead, due to how small allocations are aligned and packed.
+
+- Large: The worst case size is half the chunk size, in which case only one allocation per chunk can be allocated.  If the remaining (nearly) half of the chunk isn't otherwise useful for smaller allocations, the overhead will essentially be 50%.  However, assuming you use a diverse mixture of size classes, the actual overhead shouldn't be a significant issue in practice.
+
+- Huge: Extra virtual memory is mapped, then the excess is trimmed and unmapped.  This can leave virtual memory holes, but it incurs no physical memory overhead.  Earlier versions of jemalloc heuristically attempted to optimistically map chunks without excess that would need to be trimmed, but it didn't save much system call overhead in practice, and I ripped the code out during a simplification pass.
+
+ Jason
+
+From dave at linuxprogrammer.org  Tue Feb 17 13:00:30 2015
+From: dave at linuxprogrammer.org (Dave Huseby)
+Date: Tue, 17 Feb 2015 13:00:30 -0800
+Subject: pull request to add support for Bitrig
+Message-ID: <1424206830.2536005.228920625.43D7FFA3@webmail.messagingengine.com>
+
+Hi everybody,
+
+I just submitted a pull request to add support for building jemalloc on
+Bitrig:
+
+https://github.com/jemalloc/jemalloc/pull/194
+
+Is that the best/easiest way to get a patch landed?  If not, how should
+I submit the change?
+
+Thanks,
+--dave
+
+From mh at glandium.org  Wed Feb 18 01:34:26 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 18 Feb 2015 18:34:26 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150204025432.GA5248@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<20150204025432.GA5248@glandium.org>
+Message-ID: <20150218093426.GA15780@glandium.org>
+
+On Wed, Feb 04, 2015 at 11:54:32AM +0900, Mike Hommey wrote:
+> On Wed, Feb 04, 2015 at 07:51:17AM +0900, Mike Hommey wrote:
+> > Hi,
+> > 
+> > I've been tracking a startup time regression in Firefox for Android when
+> > we tried to switch from mozjemalloc (memory refresher: it's derived from
+> > jemalloc 0.9) to mostly current jemalloc dev.
+> > 
+> > It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+> 
+> *sigh* and sadly, this doesn't fix it all :(
+
+So, it /might/ be related to the size classes. I don't have all results
+yet, but it looks like I'm getting good results with #192,
+--with-lg-quantum=4, --with-lg-tiny-min=2 and replacing size2index,
+index2size and s2u so that jemalloc3 uses the same size classes as
+mozjemalloc (IOW, a very bastardized jemalloc3)
+
+If that happens to be true, I'll dig deeper as to what particular size
+classes changes are making a difference.
+
+In the meanwhile I spotted something "interesting" in size_classes.sh:
+it generates size classes for large allocations up to close to the
+entire size of the address space, which, apart from being completely
+unrealistic on 64 bits, and kind of crazy on 32 bits, is completely
+useless since those classes are not ever used, since jemalloc switches
+to huge allocations for size >= chunksize (simplifying a bit), and
+AFAICT, huge allocations don't rely on size2index/index2size.
+
+So in practice, only 68 of the 108 classes on 32 bits systems are ever
+used with 4MB chunks, and 68 of the 236 classes on 64 bits systems.
+
+Sure, there is no limit to lg_chunk, but there probably should.
+
+Mike
+
+From mh at glandium.org  Wed Feb 18 02:15:11 2015
+From: mh at glandium.org (Mike Hommey)
+Date: Wed, 18 Feb 2015 19:15:11 +0900
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150218093426.GA15780@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<20150204025432.GA5248@glandium.org>
+	<20150218093426.GA15780@glandium.org>
+Message-ID: <20150218101511.GA30439@glandium.org>
+
+On Wed, Feb 18, 2015 at 06:34:26PM +0900, Mike Hommey wrote:
+> On Wed, Feb 04, 2015 at 11:54:32AM +0900, Mike Hommey wrote:
+> > On Wed, Feb 04, 2015 at 07:51:17AM +0900, Mike Hommey wrote:
+> > > Hi,
+> > > 
+> > > I've been tracking a startup time regression in Firefox for Android when
+> > > we tried to switch from mozjemalloc (memory refresher: it's derived from
+> > > jemalloc 0.9) to mostly current jemalloc dev.
+> > > 
+> > > It turned out to be https://github.com/jemalloc/jemalloc/pull/192
+> > 
+> > *sigh* and sadly, this doesn't fix it all :(
+> 
+> So, it /might/ be related to the size classes. I don't have all results
+> yet, but it looks like I'm getting good results with #192,
+> --with-lg-quantum=4, --with-lg-tiny-min=2 and replacing size2index,
+> index2size and s2u so that jemalloc3 uses the same size classes as
+> mozjemalloc (IOW, a very bastardized jemalloc3)
+> 
+> If that happens to be true, I'll dig deeper as to what particular size
+> classes changes are making a difference.
+
+And with more results coming in, it's starting to look like it was a red
+herring :(
+The comment about the size classes well above the chunk size still stands,
+though.
+
+Mike
+
+From jasone at canonware.com  Wed Feb 18 21:28:28 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 18 Feb 2015 21:28:28 -0800
+Subject: pull request to add support for Bitrig
+In-Reply-To: <1424206830.2536005.228920625.43D7FFA3@webmail.messagingengine.com>
+References: <1424206830.2536005.228920625.43D7FFA3@webmail.messagingengine.com>
+Message-ID: <BC3CB28D-01D8-48F3-AB67-1420507B39D0@canonware.com>
+
+On Feb 17, 2015, at 1:00 PM, Dave Huseby <dave at linuxprogrammer.org> wrote:
+> I just submitted a pull request to add support for building jemalloc on
+> Bitrig:
+> 
+> https://github.com/jemalloc/jemalloc/pull/194
+> 
+> Is that the best/easiest way to get a patch landed?  If not, how should
+> I submit the change?
+
+Yes, your pull request was the optimal submission mechanism.  I got hung up trying to figure out what Bitrig is, whether it is in use in the wild, etc.  Is it in a state that justifies merging support?
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed Feb 18 22:21:34 2015
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 18 Feb 2015 22:21:34 -0800
+Subject: jemalloc 3 performance vs. mozjemalloc
+In-Reply-To: <20150218093426.GA15780@glandium.org>
+References: <20150203225117.GA26491@glandium.org>
+	<20150204025432.GA5248@glandium.org>
+	<20150218093426.GA15780@glandium.org>
+Message-ID: <E466BE87-15A4-46D1-A7FA-6ED41540DE53@canonware.com>
+
+On Feb 18, 2015, at 1:34 AM, Mike Hommey <mh at glandium.org> wrote:
+> [...] I spotted something "interesting" in size_classes.sh:
+> it generates size classes for large allocations up to close to the
+> entire size of the address space, which, apart from being completely
+> unrealistic on 64 bits, and kind of crazy on 32 bits, is completely
+> useless since those classes are not ever used, since jemalloc switches
+> to huge allocations for size >= chunksize (simplifying a bit), and
+> AFAICT, huge allocations don't rely on size2index/index2size.
+> 
+> So in practice, only 68 of the 108 classes on 32 bits systems are ever
+> used with 4MB chunks, and 68 of the 236 classes on 64 bits systems.
+
+Indeed, on 64-bit systems the size classes starting at ~2^48 aren't usable in practice, and a handful of size classes are unusable on 32-bit systems as well, but the size classes are used for huge allocations up to the limits imposed by virtual memory.  The only practical implication of having more size classes than can ever be used is that the index2size_tab and size2index_tab tables are a bit bigger than absolutely necessary.
+
+Thanks,
+Jason
+
+From nate at verse.com  Fri Feb 20 18:06:23 2015
+From: nate at verse.com (Nathan Kurz)
+Date: Fri, 20 Feb 2015 18:06:23 -0800
+Subject: Suitability for use in a reference counting / garbage collecting
+	hybrid
+Message-ID: <CAFAN8vwA08SkxgXryfYkTwXRqnKnpPSmeZamr4WMd1+vZjk3qw@mail.gmail.com>
+
+I've been looking at improving the performance of my code in R, and
+thus started looking at how it handles memory allocation.   R is
+single threaded, and currently uses a combination of internal slabs,
+system malloc, and a crufty generational garbage collector.
+
+When things go badly, allocating and deallocating memory can dominate
+the execution time.   I'm fairly certain that jemalloc could do a much
+better job.  A pie-in-the-sky option that has some backing within the
+R community is to improve this by finding a good malloc that can be a
+starting point for our needs.
+
+The goal would likely be to have a simple reference counting
+implementation that easily overflows (1, 2, 3, many, such that many -
+1 == many) and to immediately release memory that's known to be
+available for reuse, such as when a variable with a single reference
+is assigned a new value.  But importantly, the goal would not be to
+reference count everything accurately.  Variables would also be
+allowed to just leave scope, with the plan that the garbage collector
+will periodically handle them.
+
+What sort of data does jemalloc keep centrally about previous allocations?
+Is this information kept in a way that makes it efficient to iterate
+through them?
+Does such an iteration require accessing the memory which is being pointed to?
+Would there be a good place to add a 2-bit reference count to the
+existing record?
+What's jemalloc's approach to returning memory to the system
+especially for large allocations.
+The hope would be for it to be possible, but not immediate.  That is,
+we want to avoid the case where freeing a multi-GB allocation triggers
+a munmap(), but then we immediately need to create another one.
+
+Thanks for answers to any of these!
+
+Nathan Kurz
+nate at verse.com
+
+(To be clear, I am not part of the core R community, just an
+interested bystander who's been looking at the code.)
+
+From dave at linuxprogrammer.org  Mon Feb 23 16:47:35 2015
+From: dave at linuxprogrammer.org (Dave Huseby)
+Date: Mon, 23 Feb 2015 16:47:35 -0800
+Subject: pull request to add support for Bitrig
+In-Reply-To: <BC3CB28D-01D8-48F3-AB67-1420507B39D0@canonware.com>
+References: <1424206830.2536005.228920625.43D7FFA3@webmail.messagingengine.com>
+	<BC3CB28D-01D8-48F3-AB67-1420507B39D0@canonware.com>
+Message-ID: <54EBCA27.3050006@linuxprogrammer.org>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+Bitrig just released released their 1.0.  It is in use in the wild, so
+I believe it is worth merging this.
+
+I ported Rust to Bitrig and originally submitted this patch to the
+Rust team's fork of jemalloc.  They suggested that I upstream it since
+jemalloc is used for other things (e.g. Firefox).
+
+My Bitrig Rust port just landed two days ago:
+
+https://github.com/rust-lang/rust/commit/551304015bac6f8424fcc6827855d3c61fe167c9
+
+- --dave
+
+On 02/18/2015 09:28 PM, Jason Evans wrote:
+> On Feb 17, 2015, at 1:00 PM, Dave Huseby <dave at linuxprogrammer.org>
+> wrote:
+>> I just submitted a pull request to add support for building
+>> jemalloc on Bitrig:
+>> 
+>> https://github.com/jemalloc/jemalloc/pull/194
+>> 
+>> Is that the best/easiest way to get a patch landed?  If not, how
+>> should I submit the change?
+> 
+> Yes, your pull request was the optimal submission mechanism.  I got
+> hung up trying to figure out what Bitrig is, whether it is in use
+> in the wild, etc.  Is it in a state that justifies merging
+> support?
+> 
+> Thanks, Jason
+> 
+-----BEGIN PGP SIGNATURE-----
+
+iF4EAREIAAYFAlTryicACgkQvt/JvmUQuOlpVgD+MCHXBj1MNBp3T8+Qh+N6VYOK
+JBpv69FtB3BJK/3cBrYA/iGSf1XR2KxLn9/zupats5xZmZQinJRle1DvMXZD3ssH
+=SwV5
+-----END PGP SIGNATURE-----
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0x6510B8E9.asc
+Type: application/pgp-keys
+Size: 30390 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150223/9f171880/attachment-0001.key>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0x6510B8E9.asc.sig
+Type: application/pgp-signature
+Size: 96 bytes
+Desc: not available
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150223/9f171880/attachment-0001.sig>
+

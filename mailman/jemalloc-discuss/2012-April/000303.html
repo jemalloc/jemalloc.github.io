@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH] Remove extra argument for malloc_tsd_cleanup_register
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20extra%20argument%20for%20malloc_tsd_cleanup_register&In-Reply-To=%3C1334684785-17957-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000358.html">
+   <LINK REL="Next"  HREF="000305.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH] Remove extra argument for malloc_tsd_cleanup_register</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%5D%20Remove%20extra%20argument%20for%20malloc_tsd_cleanup_register&In-Reply-To=%3C1334684785-17957-1-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH] Remove extra argument for malloc_tsd_cleanup_register">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Tue Apr 17 10:46:25 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000358.html">[PATCH] Avoid variable length arrays and remove declarations within	code
+</A></li>
+        <LI>Next message: <A HREF="000305.html">[PATCH] Add an abstraction layer for threading in tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#303">[ date ]</a>
+              <a href="thread.html#303">[ thread ]</a>
+              <a href="subject.html#303">[ subject ]</a>
+              <a href="author.html#303">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+Bookkeeping an extra argument that actually only stores a function pointer
+for a function we already have is not very useful.
+---
+ include/jemalloc/internal/tsd.h |   15 +++++----------
+ src/tsd.c                       |    7 +++----
+ 2 files changed, 8 insertions(+), 14 deletions(-)
+
+diff --git a/include/jemalloc/internal/tsd.h b/include/jemalloc/internal/tsd.h
+index c6ed683..4163dea 100644
+--- a/include/jemalloc/internal/tsd.h
++++ b/include/jemalloc/internal/tsd.h
+@@ -4,11 +4,7 @@
+ /* Maximum number of malloc_tsd users with cleanup functions. */
+ #define	MALLOC_TSD_CLEANUPS_MAX	8
+ 
+-typedef struct malloc_tsd_cleanup_s malloc_tsd_cleanup_t;
+-struct malloc_tsd_cleanup_s {
+-	bool	(*f)(void *);
+-	void	*arg;
+-};
++typedef bool (*malloc_tsd_cleanup_t)(void);
+ 
+ /*
+  * TLS/TSD-agnostic macro-based implementation of thread-specific data.  There
+@@ -110,13 +106,12 @@ a_attr bool		a_name##_booted = false;
+     a_cleanup)								\
+ /* Initialization/cleanup. */						\
+ a_attr bool								\
+-a_name##_tsd_cleanup_wrapper(void *arg)					\
++a_name##_tsd_cleanup_wrapper(void)					\
+ {									\
+-	bool (*cleanup)(void *) = arg;					\
+ 									\
+ 	if (a_name##_initialized) {					\
+ 		a_name##_initialized = false;				\
+-		cleanup(&amp;a_name##_tls);					\
++		a_cleanup(&amp;a_name##_tls);					\
+ 	}								\
+ 	return (a_name##_initialized);					\
+ }									\
+@@ -126,7 +121,7 @@ a_name##_tsd_boot(void)							\
+ 									\
+ 	if (a_cleanup != malloc_tsd_no_cleanup) {			\
+ 		malloc_tsd_cleanup_register(				\
+-		    &amp;a_name##_tsd_cleanup_wrapper, a_cleanup);		\
++		    &amp;a_name##_tsd_cleanup_wrapper);			\
+ 	}								\
+ 	a_name##_booted = true;						\
+ 	return (false);							\
+@@ -257,7 +252,7 @@ a_name##_tsd_set(a_type *val)						\
+ void	*malloc_tsd_malloc(size_t size);
+ void	malloc_tsd_dalloc(void *wrapper);
+ void	malloc_tsd_no_cleanup(void *);
+-void	malloc_tsd_cleanup_register(bool (*f)(void *), void *arg);
++void	malloc_tsd_cleanup_register(bool (*f)(void));
+ void	malloc_tsd_boot(void);
+ 
+ #endif /* JEMALLOC_H_EXTERNS */
+diff --git a/src/tsd.c b/src/tsd.c
+index 0838dc8..8e5e716 100644
+--- a/src/tsd.c
++++ b/src/tsd.c
+@@ -45,7 +45,7 @@ _malloc_thread_cleanup(void)
+ 		again = false;
+ 		for (i = 0; i &lt; ncleanups; i++) {
+ 			if (pending[i]) {
+-				pending[i] = cleanups[i].f(cleanups[i].arg);
++				pending[i] = cleanups[i]();
+ 				if (pending[i])
+ 					again = true;
+ 			}
+@@ -55,12 +55,11 @@ _malloc_thread_cleanup(void)
+ #endif
+ 
+ void
+-malloc_tsd_cleanup_register(bool (*f)(void *), void *arg)
++malloc_tsd_cleanup_register(bool (*f)(void))
+ {
+ 
+ 	assert(ncleanups &lt; MALLOC_TSD_CLEANUPS_MAX);
+-	cleanups[ncleanups].f = f;
+-	cleanups[ncleanups].arg = arg;
++	cleanups[ncleanups] = f;
+ 	ncleanups++;
+ }
+ 
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000358.html">[PATCH] Avoid variable length arrays and remove declarations within	code
+</A></li>
+	<LI>Next message: <A HREF="000305.html">[PATCH] Add an abstraction layer for threading in tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#303">[ date ]</a>
+              <a href="thread.html#303">[ thread ]</a>
+              <a href="subject.html#303">[ subject ]</a>
+              <a href="author.html#303">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

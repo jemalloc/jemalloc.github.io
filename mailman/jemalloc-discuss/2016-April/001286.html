@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Regression%3A%20jemalloc%20%3E%3D%204.0%20use%20munmap%28%29%20even%20when%20configured%0A%09with%20--disable-munmap&In-Reply-To=%3CDC691FE4-629F-403F-B1AE-B18A5B33DB6A%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001285.html">
+   <LINK REL="Next"  HREF="001287.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Regression%3A%20jemalloc%20%3E%3D%204.0%20use%20munmap%28%29%20even%20when%20configured%0A%09with%20--disable-munmap&In-Reply-To=%3CDC691FE4-629F-403F-B1AE-B18A5B33DB6A%40canonware.com%3E"
+       TITLE="Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap">jasone at canonware.com
+       </A><BR>
+    <I>Fri Apr 22 21:24:30 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001285.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured with	--disable-munmap
+</A></li>
+        <LI>Next message: <A HREF="001287.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1286">[ date ]</a>
+              <a href="thread.html#1286">[ thread ]</a>
+              <a href="subject.html#1286">[ subject ]</a>
+              <a href="author.html#1286">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Apr 22, 2016, at 4:38 PM, Daniel Mewes &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">daniel at rethinkdb.com</A>&gt; wrote:
+&gt;<i> In jemalloc 3.0, this patch added the `--disable-munmap` option and disabled the use of `munmap` on Linux by default: <A HREF="https://github.com/jemalloc/jemalloc/commit/59ae2766af88bad07ac721c4ee427b171e897bcb">https://github.com/jemalloc/jemalloc/commit/59ae2766af88bad07ac721c4ee427b171e897bcb</A>
+</I>&gt;<i> 
+</I>&gt;<i> It looks like jemalloc starting with version 4.0 makes use of `munmap` even when `--disable-munmap` is specified. From what I can tell, `chunk_map.c` honors the `config_munmap` flag, but the function `page_unmap` in `pages.c` ignores it (this code appears to be new in jemalloc 4?).
+</I>&gt;<i> 
+</I>&gt;<i> We are using jemalloc for RethinkDB and would like to upgrade to version 4.1 because we think that it fixes some bugs that our users have run into.
+</I>&gt;<i> However it causes a regression for <A HREF="https://github.com/rethinkdb/rethinkdb/issues/3516">https://github.com/rethinkdb/rethinkdb/issues/3516</A> :
+</I>&gt;<i> &quot;&lt;jemalloc&gt;: Error in munmap(): Cannot allocate memory&quot;
+</I>
+pages_unmap() is used to trim mappings so that what remains is chunk-aligned, regardless of whether --disable-munmap is specified.  jemalloc 3.x has similar code that calls munmap().  I don't see anything in what you're describing that is particular to jemalloc 4.x.  Are you able to determine anything else about the failure?  Its' extremely unusual for munmap() to fail (I've not seen it happen since ~2005 during initial development), so I'm guessing there's a memory corruption issue of some sort, whether due to a bug in jemalloc or RethinkDB.
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001285.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured with	--disable-munmap
+</A></li>
+	<LI>Next message: <A HREF="001287.html">Regression: jemalloc &gt;= 4.0 use munmap() even when configured	with --disable-munmap
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1286">[ date ]</a>
+              <a href="thread.html#1286">[ thread ]</a>
+              <a href="subject.html#1286">[ subject ]</a>
+              <a href="author.html#1286">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

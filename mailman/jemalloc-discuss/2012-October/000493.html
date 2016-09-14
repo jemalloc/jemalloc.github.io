@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Memory usage regression
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121031070011.GA6923%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000492.html">
+   <LINK REL="Next"  HREF="000494.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Memory usage regression</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Memory%20usage%20regression&In-Reply-To=%3C20121031070011.GA6923%40glandium.org%3E"
+       TITLE="Memory usage regression">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Wed Oct 31 00:00:11 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000492.html">Memory usage regression
+</A></li>
+        <LI>Next message: <A HREF="000494.html">mallctl(&quot;arenas.purge&quot;) dead-locks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#493">[ date ]</a>
+              <a href="thread.html#493">[ thread ]</a>
+              <a href="subject.html#493">[ subject ]</a>
+              <a href="author.html#493">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Tue, Oct 30, 2012 at 04:35:53PM -0700, Jason Evans wrote:
+&gt;<i> On Oct 30, 2012, at 12:49 PM, Jason Evans wrote:
+</I>&gt;<i> &gt; The preference for allocating dirty runs was a solution to excessive
+</I>&gt;<i> &gt; dirty page purging.  However, the purging policy (as of jemalloc
+</I>&gt;<i> &gt; 3.0.0) is round-robin, justified only as a strategy for allowing
+</I>&gt;<i> &gt; dirty pages to accumulate in chunks before going to the considerable
+</I>&gt;<i> &gt; effort (including arena mutex operations) of scanning a chunk for
+</I>&gt;<i> &gt; dirty pages.  In retrospect I'm thinking maybe this was a bad
+</I>&gt;<i> &gt; choice, and that we should go back to scanning downward through
+</I>&gt;<i> &gt; memory to purge dirty pages.  The danger is that the linear scanning
+</I>&gt;<i> &gt; overhead for scanning each chunk will cause a measurable performance
+</I>&gt;<i> &gt; degradation if high chunks routinely have many runs, only a few of
+</I>&gt;<i> &gt; which are unused dirty runs.  I think that problem can be solved
+</I>&gt;<i> &gt; with slightly more sophisticated hysteresis though.
+</I>&gt;<i> &gt; 
+</I>&gt;<i> &gt; I'll work on a diff for you to test, and see how it affects Firefox.
+</I>&gt;<i> &gt; I'll do some testing with Facebook server loads too (quite different
+</I>&gt;<i> &gt; behavior from Firefox).  If this causes a major reduction in virtual
+</I>&gt;<i> &gt; memory usage for both workloads, it's probably the right thing to
+</I>&gt;<i> &gt; do, even speed-wise.
+</I>&gt;<i> 
+</I>&gt;<i> Here's a very lightly tested patch.  Apologies if it's buggy, but I'm
+</I>&gt;<i> out of time for today.
+</I>
+It's unfortunately only slightly better.
+<A HREF="http://i.imgur.com/hN1Cj.png">http://i.imgur.com/hN1Cj.png</A>
+
+Mike
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000492.html">Memory usage regression
+</A></li>
+	<LI>Next message: <A HREF="000494.html">mallctl(&quot;arenas.purge&quot;) dead-locks
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#493">[ date ]</a>
+              <a href="thread.html#493">[ thread ]</a>
+              <a href="subject.html#493">[ subject ]</a>
+              <a href="author.html#493">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

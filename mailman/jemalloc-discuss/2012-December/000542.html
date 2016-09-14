@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> valgrind 3.8.1 warning in jemalloc 3.2
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C50C8BB62.7020907%40buscape-inc.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000540.html">
+   <LINK REL="Next"  HREF="000543.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>valgrind 3.8.1 warning in jemalloc 3.2</H1>
+    <B>Daniel Mezzatto Rodrigues</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20valgrind%203.8.1%20warning%20in%20jemalloc%203.2&In-Reply-To=%3C50C8BB62.7020907%40buscape-inc.com%3E"
+       TITLE="valgrind 3.8.1 warning in jemalloc 3.2">danielm at buscape-inc.com
+       </A><BR>
+    <I>Wed Dec 12 09:14:10 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000540.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+        <LI>Next message: <A HREF="000543.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#542">[ date ]</a>
+              <a href="thread.html#542">[ thread ]</a>
+              <a href="subject.html#542">[ subject ]</a>
+              <a href="author.html#542">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Unfortunately I can't generate a simple test program that makes the 
+valgring errors occur. Even inside my system the valgrind error messeges 
+don't happen for every HTTP request.
+
+Looks like only memory intense requests, that allocates 64 MB or more in 
+a single chunk, triggers the errors. It also appears that it is related 
+to reallocs. If I have a HTTP request that somehow generates more than 
+64 MB of data in a single chunk of memory and this chunck needs to me 
+realloc'd, then valgring starts complaning.
+
+I'm sending the full valgrind report (20K lines, 15k .bz2 file) of one 
+of these memory intense requests to <A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jasone at canonware.com</A> so that you can 
+have some more details.
+
+best regards,
+
+Daniel Mezzatto
+
+On 12/12/2012 02:52 PM, Jason Evans wrote:
+&gt;<i> The bulk of the valgrind error messages is almost certainly a result of valgrind complaining about what jemalloc is doing under the covers with internal data structures.  I'm perplexed as to why valgrind is complaining though.  It's almost as if valgrind knows something about the mmap'ed memory jemalloc manages, where jemalloc expects valgrind not to know anything about it.  Do such valgrind errors occur for a simple test program in your environment?
+</I>&gt;<i>
+</I>&gt;<i> I'm starting to wonder if there's a change between Valgrind 3.7.x and 3.8.x that jemalloc needs to be updated for.
+</I>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000540.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+	<LI>Next message: <A HREF="000543.html">valgrind 3.8.1 warning in jemalloc 3.2
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#542">[ date ]</a>
+              <a href="thread.html#542">[ thread ]</a>
+              <a href="subject.html#542">[ subject ]</a>
+              <a href="author.html#542">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

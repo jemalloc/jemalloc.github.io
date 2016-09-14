@@ -1,0 +1,2765 @@
+From zhu.qunying at gmail.com  Thu Feb  9 15:32:39 2012
+From: zhu.qunying at gmail.com (Zhu Qun-Ying)
+Date: Thu, 09 Feb 2012 15:32:39 -0800
+Subject: code checkout fail on windows platform
+Message-ID: <op.v9fqcpisipat8s@qy82.fortinet.com>
+
+
+Hi,
+
+Due to filename constrain on Windows platform, file could not be named  
+prn, as it has special meaning.
+The file in include/jemalloc/internal/prn.h could not be created during  
+checkout.
+
+--
+Qunying
+
+
+From yoni at hola.org  Tue Feb 14 09:10:35 2012
+From: yoni at hola.org (Yoni Londner)
+Date: Tue, 14 Feb 2012 19:10:35 +0200
+Subject: jemalloc win32 port
+In-Reply-To: <4F27C183.3020201@hola.org>
+References: <4F27C183.3020201@hola.org>
+Message-ID: <4F3A958B.6020409@hola.org>
+
+Hi again,
+
+Well, I did not get any response, so I had to complete the work alone.
+I am attaching a patch for a fully working version of jemalloc for msvc.
+We are using this version for about a week, and it looks pretty good so far.
+As I mentioned in my last email, I really hope that this patch will be 
+committed to git.
+Comments/suggestions are more than welcome
+
+Yoni.
+
+On 31/1/2012 12:25, Yoni Londner wrote:
+> Hi,
+>
+> I am working with Firefox version of jemalloc (x86 and x64), And it is 
+> working as expected.
+> But, I wanted to use the original version of jemalloc, mainly because 
+> there are profiling features missing
+> in Firefox's version, and because I wanted to be able to get bug fixes 
+> and new features from TRUNK.
+> So, I Ported jemalloc to win32 (using msvc10 on win7 x86)
+> I did not completed all the work (yet), but i have a working version.
+> These are the changes I made (patch attached):
+>
+>  * prn.h - apparently it is not possible to create a file named prn.xxx
+>    on windows. I changed the name of the file to _prn.h
+>  * atomic.h - added win32 intrinsic implementation
+>  * compat_win32.h - all sort of definitions needed for win32 (most of
+>    them from Firefox version + pthread handling - not completed yet)
+>  * compat_win32.c - need to complete here win32_setspecific and
+>    win32_setspecific by using ".CRT$XXX"
+>  * arena.c, ctl.h, ctl.c, ckh.c - C99 compatibility
+>  * hunk_mmap.c
+>  * jemalloc_defs.h, jemalloc.h, jemalloc_internal.h - I don't have
+>    configure, so I copied jemalloc_internal.h.in and hand edited it.
+>  * mutex.h - win32 mutex (from Firefox version)
+>  * chunk_mmap.c -pages_map/pages_unmap from Firefox version
+>  * jemalloc.c - system settings (ncpus etc) + added _crtheap
+>  * jemalloc.c - win32 crt specific functions (msize, calloc_impl,
+>    _recalloc, get_heap_handle...)
+>
+> since jemalloc does not patch malloc and friends, I need to use a 
+> striped version of msvcrt (removed malloc/free etc).
+> I have a scripts to do this.
+>
+> I hope that after the work is done, you can commit this patch to the git.
+> Any comments/suggestions/help are welcome
+>
+> Yoni.
+>
+>
+>
+>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: jemallooc_win32.patch
+URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120214/d0275685/attachment.ksh>
+
+From mh at glandium.org  Thu Feb 16 07:14:35 2012
+From: mh at glandium.org (Mike Hommey)
+Date: Thu, 16 Feb 2012 16:14:35 +0100
+Subject: jemalloc win32 port
+In-Reply-To: <4F3A958B.6020409@hola.org>
+References: <4F27C183.3020201@hola.org>
+ <4F3A958B.6020409@hola.org>
+Message-ID: <20120216151435.GA15925@glandium.org>
+
+On Tue, Feb 14, 2012 at 07:10:35PM +0200, Yoni Londner wrote:
+> Hi again,
+> 
+> Well, I did not get any response, so I had to complete the work alone.
+> I am attaching a patch for a fully working version of jemalloc for msvc.
+> We are using this version for about a week, and it looks pretty good so far.
+> As I mentioned in my last email, I really hope that this patch will be 
+> committed to git.
+> Comments/suggestions are more than welcome
+
+Just a few comments after a quick glance. (Please note that I'm not a
+jemalloc developer)
+
+- I don't see anything using your pseudo random generator, so you
+  probably can just skip prn.h altogether.
+- It's confusing to mix porting changes and unrelated changes, like
+  abort->xabort.
+
+For what it's worth, Mozilla has been patching jemalloc to work on win32
+for quite some time now, and I'm going to refresh the copy used in
+Firefox to use a much more recent jemalloc. In the process of doing so,
+I'll obviously have to forward-port our win32 code, and/or borrow yours.
+I guess I'll come back when I have something ready.
+
+Cheers,
+
+Mike
+
+> On 31/1/2012 12:25, Yoni Londner wrote:
+> > Hi,
+> >
+> > I am working with Firefox version of jemalloc (x86 and x64), And it is 
+> > working as expected.
+> > But, I wanted to use the original version of jemalloc, mainly because 
+> > there are profiling features missing
+> > in Firefox's version, and because I wanted to be able to get bug fixes 
+> > and new features from TRUNK.
+> > So, I Ported jemalloc to win32 (using msvc10 on win7 x86)
+> > I did not completed all the work (yet), but i have a working version.
+> > These are the changes I made (patch attached):
+> >
+> >  * prn.h - apparently it is not possible to create a file named prn.xxx
+> >    on windows. I changed the name of the file to _prn.h
+> >  * atomic.h - added win32 intrinsic implementation
+> >  * compat_win32.h - all sort of definitions needed for win32 (most of
+> >    them from Firefox version + pthread handling - not completed yet)
+> >  * compat_win32.c - need to complete here win32_setspecific and
+> >    win32_setspecific by using ".CRT$XXX"
+> >  * arena.c, ctl.h, ctl.c, ckh.c - C99 compatibility
+> >  * hunk_mmap.c
+> >  * jemalloc_defs.h, jemalloc.h, jemalloc_internal.h - I don't have
+> >    configure, so I copied jemalloc_internal.h.in and hand edited it.
+> >  * mutex.h - win32 mutex (from Firefox version)
+> >  * chunk_mmap.c -pages_map/pages_unmap from Firefox version
+> >  * jemalloc.c - system settings (ncpus etc) + added _crtheap
+> >  * jemalloc.c - win32 crt specific functions (msize, calloc_impl,
+> >    _recalloc, get_heap_handle...)
+> >
+> > since jemalloc does not patch malloc and friends, I need to use a 
+> > striped version of msvcrt (removed malloc/free etc).
+> > I have a scripts to do this.
+> >
+> > I hope that after the work is done, you can commit this patch to the git.
+> > Any comments/suggestions/help are welcome
+> >
+> > Yoni.
+> >
+> >
+> >
+> >
+> -------------- next part --------------
+> An embedded and charset-unspecified text was scrubbed...
+> Name: jemallooc_win32.patch
+> URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120214/d0275685/attachment-0001.ksh>
+> 
+
+
+From yoni at hola.org  Sun Feb 19 00:46:41 2012
+From: yoni at hola.org (Yoni Londner)
+Date: Sun, 19 Feb 2012 10:46:41 +0200
+Subject: jemalloc win32 port
+In-Reply-To: <20120216151435.GA15925@glandium.org>
+References: <4F27C183.3020201@hola.org> <4F3A958B.6020409@hola.org>
+	<20120216151435.GA15925@glandium.org>
+Message-ID: <4F40B6F1.8030406@hola.org>
+
+Hi Mike,
+
+>  - I don't see anything using your pseudo random generator, so you
+>   probably can just skip prn.h altogether.
+
+You are right, but I think its better to change its name, so we an to use it in the future.
+It took me a while to understand why the tar.gz didn't open correctly on my machine, and I didn't want anyone else to spend time on this error.
+
+>  - It's confusing to mix porting changes and unrelated changes, like
+>   abort->xabort.
+
+Again, you are right. I am porting jemalloc as part of a bigger project, 
+and its hard to separate the changes.
+On the other hand, they are all good changes (I think), and they make 
+jemalloc better.
+
+>  For what it's worth, Mozilla has been patching jemalloc to work on win32
+>  for quite some time now, and I'm going to refresh the copy used in
+>  Firefox to use a much more recent jemalloc. In the process of doing so,
+>  I'll obviously have to forward-port our win32 code, and/or borrow yours.
+>  I guess I'll come back when I have something ready.
+
+Mozilla's code is not only a snapshot of a very old version of jemalloc, 
+but its also a totally stripped down version, missing a huge amount of 
+features of configurability, debugging and profiling available in jemalloc.
+I think its much better to port jemalloc as-is, and then to get the 
+changes with no added work need to be done every time.
+
+Yoni.
+
+On 16/2/2012 17:14, Mike Hommey wrote:
+> On Tue, Feb 14, 2012 at 07:10:35PM +0200, Yoni Londner wrote:
+>> Hi again,
+>>
+>> Well, I did not get any response, so I had to complete the work alone.
+>> I am attaching a patch for a fully working version of jemalloc for msvc.
+>> We are using this version for about a week, and it looks pretty good so far.
+>> As I mentioned in my last email, I really hope that this patch will be
+>> committed to git.
+>> Comments/suggestions are more than welcome
+> Just a few comments after a quick glance. (Please note that I'm not a
+> jemalloc developer)
+>
+> - I don't see anything using your pseudo random generator, so you
+>    probably can just skip prn.h altogether.
+> - It's confusing to mix porting changes and unrelated changes, like
+>    abort->xabort.
+>
+> For what it's worth, Mozilla has been patching jemalloc to work on win32
+> for quite some time now, and I'm going to refresh the copy used in
+> Firefox to use a much more recent jemalloc. In the process of doing so,
+> I'll obviously have to forward-port our win32 code, and/or borrow yours.
+> I guess I'll come back when I have something ready.
+>
+> Cheers,
+>
+> Mike
+>
+>> On 31/1/2012 12:25, Yoni Londner wrote:
+>>> Hi,
+>>>
+>>> I am working with Firefox version of jemalloc (x86 and x64), And it is
+>>> working as expected.
+>>> But, I wanted to use the original version of jemalloc, mainly because
+>>> there are profiling features missing
+>>> in Firefox's version, and because I wanted to be able to get bug fixes
+>>> and new features from TRUNK.
+>>> So, I Ported jemalloc to win32 (using msvc10 on win7 x86)
+>>> I did not completed all the work (yet), but i have a working version.
+>>> These are the changes I made (patch attached):
+>>>
+>>>   * prn.h - apparently it is not possible to create a file named prn.xxx
+>>>     on windows. I changed the name of the file to _prn.h
+>>>   * atomic.h - added win32 intrinsic implementation
+>>>   * compat_win32.h - all sort of definitions needed for win32 (most of
+>>>     them from Firefox version + pthread handling - not completed yet)
+>>>   * compat_win32.c - need to complete here win32_setspecific and
+>>>     win32_setspecific by using ".CRT$XXX"
+>>>   * arena.c, ctl.h, ctl.c, ckh.c - C99 compatibility
+>>>   * hunk_mmap.c
+>>>   * jemalloc_defs.h, jemalloc.h, jemalloc_internal.h - I don't have
+>>>     configure, so I copied jemalloc_internal.h.in and hand edited it.
+>>>   * mutex.h - win32 mutex (from Firefox version)
+>>>   * chunk_mmap.c -pages_map/pages_unmap from Firefox version
+>>>   * jemalloc.c - system settings (ncpus etc) + added _crtheap
+>>>   * jemalloc.c - win32 crt specific functions (msize, calloc_impl,
+>>>     _recalloc, get_heap_handle...)
+>>>
+>>> since jemalloc does not patch malloc and friends, I need to use a
+>>> striped version of msvcrt (removed malloc/free etc).
+>>> I have a scripts to do this.
+>>>
+>>> I hope that after the work is done, you can commit this patch to the git.
+>>> Any comments/suggestions/help are welcome
+>>>
+>>> Yoni.
+>>>
+>>>
+>>>
+>>>
+>> -------------- next part --------------
+>> An embedded and charset-unspecified text was scrubbed...
+>> Name: jemallooc_win32.patch
+>> URL:<http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20120214/d0275685/attachment-0001.ksh>
+>>
+>
+
+
+From mh+jemalloc at glandium.org  Sun Feb 19 01:55:13 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Sun, 19 Feb 2012 10:55:13 +0100
+Subject: jemalloc win32 port
+In-Reply-To: <4F40B6F1.8030406@hola.org>
+References: <4F27C183.3020201@hola.org> <4F3A958B.6020409@hola.org>
+	<20120216151435.GA15925@glandium.org> <4F40B6F1.8030406@hola.org>
+Message-ID: <20120219095513.GB24987@glandium.org>
+
+On Sun, Feb 19, 2012 at 10:46:41AM +0200, Yoni Londner wrote:
+> Hi Mike,
+> 
+> > - I don't see anything using your pseudo random generator, so you
+> >  probably can just skip prn.h altogether.
+> 
+> You are right, but I think its better to change its name, so we an to use it in the future.
+> It took me a while to understand why the tar.gz didn't open correctly on my machine, and I didn't want anyone else to spend time on this error.
+
+Again, I'm not a jemalloc developer, but if i were, i'd avoid commits
+changing too many things at the same time. If this is needed in the
+future, it can be added then.
+ 
+> > - It's confusing to mix porting changes and unrelated changes, like
+> >  abort->xabort.
+> 
+> Again, you are right. I am porting jemalloc as part of a bigger
+> project, and its hard to separate the changes.
+> On the other hand, they are all good changes (I think), and they
+> make jemalloc better.
+
+Like above.
+
+Mike
+
+
+From jakob.blomer at cern.ch  Mon Feb 20 07:44:37 2012
+From: jakob.blomer at cern.ch (Jakob Blomer)
+Date: Mon, 20 Feb 2012 16:44:37 +0100
+Subject: Transparent Huge Pages
+Message-ID: <4F426A65.8030303@cern.ch>
+
+Hi,
+
+jemalloc seems to be prone to transparent huge pages 
+(https://lwn.net/Articles/423584), presumably due to its use of mmap(). 
+  In my case (fuse module), the initial memory consumption jumped from 
+~12M to ~27M.  The use of --enable-dss helps a little, bringing the 
+consumption down to ~19M.
+
+Did anyone else experienced similar behavior?  Is there an easy way of 
+avoiding transparent huge pages for jemalloc'ed memory?  The only 
+workaround that comes to my mind is a malloc wrapper that runs 
+madvise(..., MADV_NOHUGEPAGE) on every newly allocated chunk.
+
+Cheers,
+Jakob
+
+
+
+From justin.lebar at gmail.com  Mon Feb 20 07:59:35 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Mon, 20 Feb 2012 16:59:35 +0100
+Subject: Transparent Huge Pages
+In-Reply-To: <4F426A65.8030303@cern.ch>
+References: <4F426A65.8030303@cern.ch>
+Message-ID: <CAFWcpZ5Eq-PT6mDSNOgVpAir1OUonPhg9HFNaprbWt8JYbK0+g@mail.gmail.com>
+
+> jemalloc seems to be prone to transparent huge pages
+> (https://lwn.net/Articles/423584), presumably due to its use of mmap(). ?In
+> my case (fuse module), the initial memory consumption jumped from ~12M to
+> ~27M. ?The use of --enable-dss helps a little, bringing the consumption down
+> to ~19M.
+
+Ouch!
+
+> Did anyone else experienced similar behavior? ?Is there an easy way of
+> avoiding transparent huge pages for jemalloc'ed memory? ?The only workaround
+> that comes to my mind is a malloc wrapper that runs madvise(...,
+> MADV_NOHUGEPAGE) on every newly allocated chunk.
+
+You'd probably want to do this only on the 1MB chunks jemalloc
+allocates for small and tiny allocations.  For huge allocations (more
+than 1MB), it's likely the user will touch the whole thing, so huge
+pages could be a benefit.
+
+>
+> Cheers,
+> Jakob
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From justin.lebar at gmail.com  Mon Feb 20 08:10:32 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Mon, 20 Feb 2012 17:10:32 +0100
+Subject: Transparent Huge Pages
+In-Reply-To: <CAFWcpZ5Eq-PT6mDSNOgVpAir1OUonPhg9HFNaprbWt8JYbK0+g@mail.gmail.com>
+References: <4F426A65.8030303@cern.ch>
+	<CAFWcpZ5Eq-PT6mDSNOgVpAir1OUonPhg9HFNaprbWt8JYbK0+g@mail.gmail.com>
+Message-ID: <CAFWcpZ7PVvjs5aNgDVMNgrepTTQbr=CwidPB2CDcypqWiNCVmg@mail.gmail.com>
+
+Hm, upon further consideration...
+
+If you mmap a huge page (say, 1MB), then MADV_DONTNEED a few 4-KB
+chunks inside, transparent huge pages should break up the huge page so
+it can decommit the parts I asked it to decommit.  If it doesn't, that
+sounds like a kernel bug to me!
+
+Similarly, if I mmap 1MB, get a huge page, and then touch only a few
+bytes in the middle, the kernel shouldn't commit a huge page.
+
+If huge pages is behaving how I expect, I don't see why it would cause
+your application to use more memory.
+
+Just to check, you're measuring RSS, not vsize, right?
+
+On Mon, Feb 20, 2012 at 4:59 PM, Justin Lebar <justin.lebar at gmail.com> wrote:
+>> jemalloc seems to be prone to transparent huge pages
+>> (https://lwn.net/Articles/423584), presumably due to its use of mmap(). ?In
+>> my case (fuse module), the initial memory consumption jumped from ~12M to
+>> ~27M. ?The use of --enable-dss helps a little, bringing the consumption down
+>> to ~19M.
+>
+> Ouch!
+>
+>> Did anyone else experienced similar behavior? ?Is there an easy way of
+>> avoiding transparent huge pages for jemalloc'ed memory? ?The only workaround
+>> that comes to my mind is a malloc wrapper that runs madvise(...,
+>> MADV_NOHUGEPAGE) on every newly allocated chunk.
+>
+> You'd probably want to do this only on the 1MB chunks jemalloc
+> allocates for small and tiny allocations. ?For huge allocations (more
+> than 1MB), it's likely the user will touch the whole thing, so huge
+> pages could be a benefit.
+>
+>>
+>> Cheers,
+>> Jakob
+>>
+>> _______________________________________________
+>> jemalloc-discuss mailing list
+>> jemalloc-discuss at canonware.com
+>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From jakob.blomer at cern.ch  Mon Feb 20 09:00:19 2012
+From: jakob.blomer at cern.ch (Jakob Blomer)
+Date: Mon, 20 Feb 2012 18:00:19 +0100
+Subject: Transparent Huge Pages
+In-Reply-To: <CAFWcpZ7PVvjs5aNgDVMNgrepTTQbr=CwidPB2CDcypqWiNCVmg@mail.gmail.com>
+References: <4F426A65.8030303@cern.ch>
+	<CAFWcpZ5Eq-PT6mDSNOgVpAir1OUonPhg9HFNaprbWt8JYbK0+g@mail.gmail.com>
+	<CAFWcpZ7PVvjs5aNgDVMNgrepTTQbr=CwidPB2CDcypqWiNCVmg@mail.gmail.com>
+Message-ID: <4F427C23.2050009@cern.ch>
+
+> If you mmap a huge page (say, 1MB), then MADV_DONTNEED a few 4-KB
+> chunks inside, transparent huge pages should break up the huge page so
+> it can decommit the parts I asked it to decommit.  If it doesn't, that
+> sounds like a kernel bug to me!
+>
+> Similarly, if I mmap 1MB, get a huge page, and then touch only a few
+> bytes in the middle, the kernel shouldn't commit a huge page.
+>
+> If huge pages is behaving how I expect, I don't see why it would cause
+> your application to use more memory.
+>
+> Just to check, you're measuring RSS, not vsize, right?
+It is VmRSS from /proc/$pid/status.  And I find the difference between 
+loaded and not loaded in AnonHugePages from /proc/meminfo.
+
+Hm... it's not a vanilla kernel but Scientific Linux 6.2 / Fedora 16.  I 
+can check again using a vanilla kernel.
+
+Cheers,
+Jakob
+
+
+From jakob.blomer at cern.ch  Mon Feb 20 10:55:23 2012
+From: jakob.blomer at cern.ch (Jakob Blomer)
+Date: Mon, 20 Feb 2012 19:55:23 +0100
+Subject: Transparent Huge Pages
+In-Reply-To: <CAFWcpZ7PVvjs5aNgDVMNgrepTTQbr=CwidPB2CDcypqWiNCVmg@mail.gmail.com>
+References: <4F426A65.8030303@cern.ch>
+	<CAFWcpZ5Eq-PT6mDSNOgVpAir1OUonPhg9HFNaprbWt8JYbK0+g@mail.gmail.com>
+	<CAFWcpZ7PVvjs5aNgDVMNgrepTTQbr=CwidPB2CDcypqWiNCVmg@mail.gmail.com>
+Message-ID: <4F42971B.5020002@cern.ch>
+
+After thinking a bit more about it, I don't think it's a bug but this is 
+just the way transparent huge pages work.  For properly aligned memory, 
+the kernel takes a 2M page.  This just means 2M of real memory are gone, 
+and I think not even splitting afterwards can change that.
+
+The following program requires 300-400k RSS without transparent huge 
+pages, but >2M with THP.
+
+#include <unistd.h>
+#include <sys/mman.h>
+#include <stdio.h>
+#include <errno.h>
+
+int main() {
+   int size = 4*1024*1024;
+   int _2m = 2*1024*1024;
+   char *mapping = mmap(0x42000000, size, PROT_READ | PROT_WRITE,
+                        MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+   mapping[0] = '\0';
+   printf("Region of size %d mapped at %p (error %d), aligned at 2M: 
+%d\n", size, mapping, errno, (long)mapping%_2m);
+
+   sleep(30);
+   return 0;
+}
+
+Cheers,
+Jakob
+
+On 2/20/12 5:10 PM, Justin Lebar wrote:
+> Hm, upon further consideration...
+>
+> If you mmap a huge page (say, 1MB), then MADV_DONTNEED a few 4-KB
+> chunks inside, transparent huge pages should break up the huge page so
+> it can decommit the parts I asked it to decommit.  If it doesn't, that
+> sounds like a kernel bug to me!
+>
+> Similarly, if I mmap 1MB, get a huge page, and then touch only a few
+> bytes in the middle, the kernel shouldn't commit a huge page.
+>
+> If huge pages is behaving how I expect, I don't see why it would cause
+> your application to use more memory.
+>
+> Just to check, you're measuring RSS, not vsize, right?
+>
+> On Mon, Feb 20, 2012 at 4:59 PM, Justin Lebar<justin.lebar at gmail.com>  wrote:
+>>> jemalloc seems to be prone to transparent huge pages
+>>> (https://lwn.net/Articles/423584), presumably due to its use of mmap().  In
+>>> my case (fuse module), the initial memory consumption jumped from ~12M to
+>>> ~27M.  The use of --enable-dss helps a little, bringing the consumption down
+>>> to ~19M.
+>>
+>> Ouch!
+>>
+>>> Did anyone else experienced similar behavior?  Is there an easy way of
+>>> avoiding transparent huge pages for jemalloc'ed memory?  The only workaround
+>>> that comes to my mind is a malloc wrapper that runs madvise(...,
+>>> MADV_NOHUGEPAGE) on every newly allocated chunk.
+>>
+>> You'd probably want to do this only on the 1MB chunks jemalloc
+>> allocates for small and tiny allocations.  For huge allocations (more
+>> than 1MB), it's likely the user will touch the whole thing, so huge
+>> pages could be a benefit.
+>>
+>>>
+>>> Cheers,
+>>> Jakob
+>>>
+>>> _______________________________________________
+>>> jemalloc-discuss mailing list
+>>> jemalloc-discuss at canonware.com
+>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+> .
+>
+
+
+
+From justin.lebar at gmail.com  Mon Feb 20 14:08:57 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Mon, 20 Feb 2012 23:08:57 +0100
+Subject: Transparent Huge Pages
+In-Reply-To: <4F42971B.5020002@cern.ch>
+References: <4F426A65.8030303@cern.ch>
+	<CAFWcpZ5Eq-PT6mDSNOgVpAir1OUonPhg9HFNaprbWt8JYbK0+g@mail.gmail.com>
+	<CAFWcpZ7PVvjs5aNgDVMNgrepTTQbr=CwidPB2CDcypqWiNCVmg@mail.gmail.com>
+	<4F42971B.5020002@cern.ch>
+Message-ID: <CAFWcpZ4ROQkvp04n93Qp4c3j1KdJZB+wzTBRWv27wgy=M+S54Q@mail.gmail.com>
+
+Okay, this behavior is not entirely ridiculous, but at least Firefox's
+fork of jemalloc will need to change to work well with this.
+
+What happens if you MADV_DONTNEED all but the first 4k after you touch
+the first byte?  What about if you MADV_DONTNEED the whole thing
+before you touch any part?
+
+On Mon, Feb 20, 2012 at 7:55 PM, Jakob Blomer <jakob.blomer at cern.ch> wrote:
+> After thinking a bit more about it, I don't think it's a bug but this is
+> just the way transparent huge pages work. ?For properly aligned memory, the
+> kernel takes a 2M page. ?This just means 2M of real memory are gone, and I
+> think not even splitting afterwards can change that.
+>
+> The following program requires 300-400k RSS without transparent huge pages,
+> but >2M with THP.
+>
+> #include <unistd.h>
+> #include <sys/mman.h>
+> #include <stdio.h>
+> #include <errno.h>
+>
+> int main() {
+> ?int size = 4*1024*1024;
+> ?int _2m = 2*1024*1024;
+> ?char *mapping = mmap(0x42000000, size, PROT_READ | PROT_WRITE,
+> ? ? ? ? ? ? ? ? ? ? ? MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+> ?mapping[0] = '\0';
+> ?printf("Region of size %d mapped at %p (error %d), aligned at 2M: %d\n",
+> size, mapping, errno, (long)mapping%_2m);
+>
+> ?sleep(30);
+> ?return 0;
+> }
+>
+> Cheers,
+> Jakob
+>
+>
+> On 2/20/12 5:10 PM, Justin Lebar wrote:
+>>
+>> Hm, upon further consideration...
+>>
+>> If you mmap a huge page (say, 1MB), then MADV_DONTNEED a few 4-KB
+>> chunks inside, transparent huge pages should break up the huge page so
+>> it can decommit the parts I asked it to decommit. ?If it doesn't, that
+>> sounds like a kernel bug to me!
+>>
+>> Similarly, if I mmap 1MB, get a huge page, and then touch only a few
+>> bytes in the middle, the kernel shouldn't commit a huge page.
+>>
+>> If huge pages is behaving how I expect, I don't see why it would cause
+>> your application to use more memory.
+>>
+>> Just to check, you're measuring RSS, not vsize, right?
+>>
+>> On Mon, Feb 20, 2012 at 4:59 PM, Justin Lebar<justin.lebar at gmail.com>
+>> ?wrote:
+>>>>
+>>>> jemalloc seems to be prone to transparent huge pages
+>>>> (https://lwn.net/Articles/423584), presumably due to its use of mmap().
+>>>> ?In
+>>>> my case (fuse module), the initial memory consumption jumped from ~12M
+>>>> to
+>>>> ~27M. ?The use of --enable-dss helps a little, bringing the consumption
+>>>> down
+>>>> to ~19M.
+>>>
+>>>
+>>> Ouch!
+>>>
+>>>> Did anyone else experienced similar behavior? ?Is there an easy way of
+>>>> avoiding transparent huge pages for jemalloc'ed memory? ?The only
+>>>> workaround
+>>>> that comes to my mind is a malloc wrapper that runs madvise(...,
+>>>> MADV_NOHUGEPAGE) on every newly allocated chunk.
+>>>
+>>>
+>>> You'd probably want to do this only on the 1MB chunks jemalloc
+>>> allocates for small and tiny allocations. ?For huge allocations (more
+>>> than 1MB), it's likely the user will touch the whole thing, so huge
+>>> pages could be a benefit.
+>>>
+>>>>
+>>>> Cheers,
+>>>> Jakob
+>>>>
+>>>> _______________________________________________
+>>>> jemalloc-discuss mailing list
+>>>> jemalloc-discuss at canonware.com
+>>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>
+>> .
+>>
+>
+
+
+From jakob.blomer at cern.ch  Tue Feb 21 03:14:46 2012
+From: jakob.blomer at cern.ch (Jakob Blomer)
+Date: Tue, 21 Feb 2012 12:14:46 +0100
+Subject: Transparent Huge Pages
+In-Reply-To: <CAFWcpZ4ROQkvp04n93Qp4c3j1KdJZB+wzTBRWv27wgy=M+S54Q@mail.gmail.com>
+References: <4F426A65.8030303@cern.ch>
+	<CAFWcpZ5Eq-PT6mDSNOgVpAir1OUonPhg9HFNaprbWt8JYbK0+g@mail.gmail.com>
+	<CAFWcpZ7PVvjs5aNgDVMNgrepTTQbr=CwidPB2CDcypqWiNCVmg@mail.gmail.com>
+	<4F42971B.5020002@cern.ch>
+	<CAFWcpZ4ROQkvp04n93Qp4c3j1KdJZB+wzTBRWv27wgy=M+S54Q@mail.gmail.com>
+Message-ID: <4F437CA6.9000905@cern.ch>
+
+You're right, the MADV_DONTNEED trick does work for the test program. 
+If I understand correctly, the way it works is to first provoke a page 
+fault to grab a 2M page, and then, by marking all but the first one of 
+these 4k pages with MADV_DONTNEED, let the kernel split it into 4k pages 
+and release the real memory.
+
+The problem here is that after some time khugepaged kicks in and merges 
+all the small pages back together into a large page.  That might be 
+avoidable with another call to madvise() with MADV_NOHUGEPAGE (not in 
+the RHEL 6.2 kernel, as far as I can see).  But even then, it looks to 
+me a bit shaky.  Is there a guarantee that the kernel follows a 
+MADV_DONTNEED advise?
+
+I think for the moment I will check if in practice it just turns out to 
+be a constant overhead of ~15M.  And in this case, live with it...
+
+Cheers,
+Jakob
+
+On 2/20/12 11:08 PM, Justin Lebar wrote:
+> Okay, this behavior is not entirely ridiculous, but at least Firefox's
+> fork of jemalloc will need to change to work well with this.
+>
+> What happens if you MADV_DONTNEED all but the first 4k after you touch
+> the first byte?  What about if you MADV_DONTNEED the whole thing
+> before you touch any part?
+>
+> On Mon, Feb 20, 2012 at 7:55 PM, Jakob Blomer<jakob.blomer at cern.ch>  wrote:
+>> After thinking a bit more about it, I don't think it's a bug but this is
+>> just the way transparent huge pages work.  For properly aligned memory, the
+>> kernel takes a 2M page.  This just means 2M of real memory are gone, and I
+>> think not even splitting afterwards can change that.
+>>
+>> The following program requires 300-400k RSS without transparent huge pages,
+>> but>2M with THP.
+>>
+>> #include<unistd.h>
+>> #include<sys/mman.h>
+>> #include<stdio.h>
+>> #include<errno.h>
+>>
+>> int main() {
+>>   int size = 4*1024*1024;
+>>   int _2m = 2*1024*1024;
+>>   char *mapping = mmap(0x42000000, size, PROT_READ | PROT_WRITE,
+>>                        MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+>>   mapping[0] = '\0';
+>>   printf("Region of size %d mapped at %p (error %d), aligned at 2M: %d\n",
+>> size, mapping, errno, (long)mapping%_2m);
+>>
+>>   sleep(30);
+>>   return 0;
+>> }
+>>
+>> Cheers,
+>> Jakob
+>>
+>>
+>> On 2/20/12 5:10 PM, Justin Lebar wrote:
+>>>
+>>> Hm, upon further consideration...
+>>>
+>>> If you mmap a huge page (say, 1MB), then MADV_DONTNEED a few 4-KB
+>>> chunks inside, transparent huge pages should break up the huge page so
+>>> it can decommit the parts I asked it to decommit.  If it doesn't, that
+>>> sounds like a kernel bug to me!
+>>>
+>>> Similarly, if I mmap 1MB, get a huge page, and then touch only a few
+>>> bytes in the middle, the kernel shouldn't commit a huge page.
+>>>
+>>> If huge pages is behaving how I expect, I don't see why it would cause
+>>> your application to use more memory.
+>>>
+>>> Just to check, you're measuring RSS, not vsize, right?
+>>>
+>>> On Mon, Feb 20, 2012 at 4:59 PM, Justin Lebar<justin.lebar at gmail.com>
+>>>   wrote:
+>>>>>
+>>>>> jemalloc seems to be prone to transparent huge pages
+>>>>> (https://lwn.net/Articles/423584), presumably due to its use of mmap().
+>>>>>   In
+>>>>> my case (fuse module), the initial memory consumption jumped from ~12M
+>>>>> to
+>>>>> ~27M.  The use of --enable-dss helps a little, bringing the consumption
+>>>>> down
+>>>>> to ~19M.
+>>>>
+>>>>
+>>>> Ouch!
+>>>>
+>>>>> Did anyone else experienced similar behavior?  Is there an easy way of
+>>>>> avoiding transparent huge pages for jemalloc'ed memory?  The only
+>>>>> workaround
+>>>>> that comes to my mind is a malloc wrapper that runs madvise(...,
+>>>>> MADV_NOHUGEPAGE) on every newly allocated chunk.
+>>>>
+>>>>
+>>>> You'd probably want to do this only on the 1MB chunks jemalloc
+>>>> allocates for small and tiny allocations.  For huge allocations (more
+>>>> than 1MB), it's likely the user will touch the whole thing, so huge
+>>>> pages could be a benefit.
+>>>>
+>>>>>
+>>>>> Cheers,
+>>>>> Jakob
+>>>>>
+>>>>> _______________________________________________
+>>>>> jemalloc-discuss mailing list
+>>>>> jemalloc-discuss at canonware.com
+>>>>> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+>>>
+>>> .
+>>>
+>>
+> .
+>
+
+
+
+From mh+jemalloc at glandium.org  Tue Feb 21 05:12:24 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 21 Feb 2012 14:12:24 +0100
+Subject: [PATCH] Remove unused variables in tcache_dalloc_large
+Message-ID: <1329829944-29961-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ include/jemalloc/internal/tcache.h |    7 +------
+ 1 files changed, 1 insertions(+), 6 deletions(-)
+
+diff --git a/include/jemalloc/internal/tcache.h b/include/jemalloc/internal/tcache.h
+index 717682d..5de14f4 100644
+--- a/include/jemalloc/internal/tcache.h
++++ b/include/jemalloc/internal/tcache.h
+@@ -360,9 +360,7 @@ tcache_dalloc_small(tcache_t *tcache, void *ptr)
+ JEMALLOC_INLINE void
+ tcache_dalloc_large(tcache_t *tcache, void *ptr, size_t size)
+ {
+-	arena_t *arena;
+-	arena_chunk_t *chunk;
+-	size_t pageind, binind;
++	size_t binind;
+ 	tcache_bin_t *tbin;
+ 	tcache_bin_info_t *tbin_info;
+ 
+@@ -370,9 +368,6 @@ tcache_dalloc_large(tcache_t *tcache, void *ptr, size_t size)
+ 	assert(arena_salloc(ptr) > small_maxclass);
+ 	assert(arena_salloc(ptr) <= tcache_maxclass);
+ 
+-	chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(ptr);
+-	arena = chunk->arena;
+-	pageind = ((uintptr_t)ptr - (uintptr_t)chunk) >> PAGE_SHIFT;
+ 	binind = nbins + (size >> PAGE_SHIFT) - 1;
+ 
+ 	if (config_fill && opt_junk)
+-- 
+1.7.9
+
+
+
+From mh+jemalloc at glandium.org  Tue Feb 21 05:18:49 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 21 Feb 2012 14:18:49 +0100
+Subject: [PATCH 1/2] Remove unused variable in arena_run_split
+Message-ID: <1329830329-30367-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ src/arena.c |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
+
+diff --git a/src/arena.c b/src/arena.c
+index 33f3f85..c3413f3 100644
+--- a/src/arena.c
++++ b/src/arena.c
+@@ -281,12 +281,11 @@ arena_run_split(arena_t *arena, arena_run_t *run, size_t size, bool large,
+     bool zero)
+ {
+ 	arena_chunk_t *chunk;
+-	size_t old_ndirty, run_ind, total_pages, need_pages, rem_pages, i;
++	size_t run_ind, total_pages, need_pages, rem_pages, i;
+ 	size_t flag_dirty;
+ 	arena_avail_tree_t *runs_avail;
+ 
+ 	chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(run);
+-	old_ndirty = chunk->ndirty;
+ 	run_ind = (unsigned)(((uintptr_t)run - (uintptr_t)chunk)
+ 	    >> PAGE_SHIFT);
+ 	flag_dirty = chunk->map[run_ind-map_bias].bits & CHUNK_MAP_DIRTY;
+-- 
+1.7.9
+
+
+
+From mh+jemalloc at glandium.org  Tue Feb 21 05:18:59 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 21 Feb 2012 14:18:59 +0100
+Subject: [PATCH 2/2] Remove unused variables in stats_print
+Message-ID: <1329830339-30415-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ src/stats.c |    4 ----
+ 1 files changed, 0 insertions(+), 4 deletions(-)
+
+diff --git a/src/stats.c b/src/stats.c
+index 6d9ba9d..ee74ada 100644
+--- a/src/stats.c
++++ b/src/stats.c
+@@ -643,7 +643,6 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 	}
+ 
+ 	if (config_stats) {
+-		size_t sszp, ssz;
+ 		size_t *cactive;
+ 		size_t allocated, active, mapped;
+ 		size_t chunks_current, chunks_high;
+@@ -651,9 +650,6 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+ 		size_t huge_allocated;
+ 		uint64_t huge_nmalloc, huge_ndalloc;
+ 
+-		sszp = sizeof(size_t *);
+-		ssz = sizeof(size_t);
+-
+ 		CTL_GET("stats.cactive", &cactive, size_t *);
+ 		CTL_GET("stats.allocated", &allocated, size_t);
+ 		CTL_GET("stats.active", &active, size_t);
+-- 
+1.7.9
+
+
+
+From mh+jemalloc at glandium.org  Tue Feb 21 07:39:00 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 21 Feb 2012 16:39:00 +0100
+Subject: [PATCH] Hook jemalloc into glibc's malloc
+Message-ID: <1329838740-9490-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+When jemalloc is used as a libc malloc replacement (i.e. not prefixed),
+some particular setups may end up inconsistently calling malloc from
+libc and free from jemalloc, or the other way around.
+
+Glibc provides hooks to make its functions use alternative
+implementations. Use them.
+
+Original patch by: Karl Tomlinson <karlt+ at karlt.net>
+---
+ configure.ac                        |   10 +++++++-
+ include/jemalloc/jemalloc_defs.h.in |    5 ++++
+ src/jemalloc.c                      |   44 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 58 insertions(+), 1 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index fdbf1ba..5ce16eb 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -714,6 +714,12 @@ AC_CHECK_LIB([pthread], [pthread_create], [LIBS="$LIBS -lpthread"],
+ 
+ CPPFLAGS="$CPPFLAGS -D_REENTRANT"
+ 
++AC_CHECK_HEADERS([dlfcn.h], has_dlfcn=yes, has_dlfcn=no)
++
++if test "x${has_dlfcn}" = "xyes" ; then
++  AC_DEFINE([JEMALLOC_DLFCN])
++fi
++
+ dnl Disable lazy locking by default.
+ AC_ARG_ENABLE([lazy_lock],
+   [AS_HELP_STRING([--enable-lazy-lock],
+@@ -727,7 +733,9 @@ fi
+ [enable_lazy_lock="0"]
+ )
+ if test "x$enable_lazy_lock" = "x1" ; then
+-  AC_CHECK_HEADERS([dlfcn.h], , [AC_MSG_ERROR([dlfcn.h is missing])])
++  if test "x${has_dlfcn}" != "xyes"; then
++    AC_MSG_ERROR([dlfcn.h is missing])
++  fi
+   AC_CHECK_LIB([dl], [dlopen], [LIBS="$LIBS -ldl"],
+                [AC_MSG_ERROR([libdl is missing])])
+   AC_DEFINE([JEMALLOC_LAZY_LOCK], [ ])
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 66da6f3..d1622fb 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -34,6 +34,11 @@
+ #undef CPU_SPINWAIT
+ 
+ /*
++ * Defined if the dlfcn.h header is available.
++ */
++#undef JEMALLOC_DLFCN
++
++/*
+  * Defined if OSAtomic*() functions are available, as provided by Darwin, and
+  * documented in the atomic(3) manual page.
+  */
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 81829fe..f678358 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -1666,3 +1666,47 @@ jemalloc_postfork(void)
+ }
+ 
+ /******************************************************************************/
++
++#ifndef JEMALLOC_PREFIX
++
++#if defined(__GLIBC__) && !defined(__UCLIBC__)
++/*
++ * glibc provides the RTLD_DEEPBIND flag for dlopen which can make it possible
++ * to inconsistently reference libc's malloc(3)-compatible functions
++ * (https://bugzilla.mozilla.org/show_bug.cgi?id=493541)
++ *
++ * These definitions interpose hooks in glibc.  The functions are actually
++ * passed an extra argument for the caller return address, which will be
++ * ignored.
++ */
++JEMALLOC_ATTR(visibility("default"))
++void (* const __free_hook)(void *ptr) = free;
++
++JEMALLOC_ATTR(visibility("default"))
++void *(* const __malloc_hook)(size_t size) = malloc;
++
++JEMALLOC_ATTR(visibility("default"))
++void *(* const __realloc_hook)(void *ptr, size_t size) = realloc;
++
++JEMALLOC_ATTR(visibility("default"))
++void *(* const __memalign_hook)(size_t alignment, size_t size) = memalign;
++
++#else
++#ifdef JEMALLOC_DLFCN
++#include <dlfcn.h>
++
++#ifdef RTLD_DEEPBIND
++/*
++ * XXX On systems that support RTLD_GROUP or DF_1_GROUP, do their
++ * implementations permit similar inconsistencies?  Should STV_SINGLETON
++ * visibility be used for interposition where available?
++ */
++#  error "Interposing malloc is unsafe on this system without libc malloc hooks."
++
++#endif
++
++#endif
++
++#endif
++
++#endif
+-- 
+1.7.9
+
+
+
+From mh+jemalloc at glandium.org  Tue Feb 21 08:21:40 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 21 Feb 2012 17:21:40 +0100
+Subject: [PATCH] Don't fail memalign with an alignment < sizeof(void *)
+Message-ID: <1329841300-13144-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+While posix_memalign needs alignment to be a power of two and a multiple
+of sizeof(void *), memalign only requires the former.
+
+Combined with interposing of glibc's memalign, we can end up in situations
+where glibc calls memalign with a power of two smaller than sizeof(void *),
+and where the failure in imemalign breaks normal functionality.
+---
+ src/jemalloc.c |   14 ++++++++++----
+ 1 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index f678358..e819b7e 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -965,9 +965,8 @@ imemalign(void **memptr, size_t alignment, size_t size)
+ 			}
+ 		}
+ 
+-		/* Make sure that alignment is a large enough power of 2. */
+-		if (((alignment - 1) & alignment) != 0
+-		    || alignment < sizeof(void *)) {
++		/* Make sure that alignment is a power of 2. */
++		if (((alignment - 1) & alignment) != 0) {
+ 			if (config_xmalloc && opt_xmalloc) {
+ 				malloc_write("<jemalloc>: Error in "
+ 				    "posix_memalign(): invalid alignment\n");
+@@ -1038,7 +1037,14 @@ JEMALLOC_ATTR(visibility("default"))
+ int
+ JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
+ {
+-
++	/*
++	 * posix_memalign needs alignment to be a power of two and a multiple
++	 * of sizeof(void *). If it's not, pass an alignment that is not a
++	 * power of two so that imemalign fails appropriately.
++	 */
++	if (alignment < sizeof(void *)) {
++		alignment = 3;
++	}
+ 	return imemalign(memptr, alignment, size);
+ }
+ 
+-- 
+1.7.9
+
+
+
+From mh+jemalloc at glandium.org  Tue Feb 21 08:31:41 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 21 Feb 2012 17:31:41 +0100
+Subject: [PATCH] Use s2u in zone_good_size
+Message-ID: <1329841901-13708-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ src/zone.c |   17 +----------------
+ 1 files changed, 1 insertions(+), 16 deletions(-)
+
+diff --git a/src/zone.c b/src/zone.c
+index 2c1b231..190954d 100644
+--- a/src/zone.c
++++ b/src/zone.c
+@@ -133,22 +133,7 @@ zone_destroy(malloc_zone_t *zone)
+ static size_t
+ zone_good_size(malloc_zone_t *zone, size_t size)
+ {
+-	size_t ret;
+-	void *p;
+-
+-	/*
+-	 * Actually create an object of the appropriate size, then find out
+-	 * how large it could have been without moving up to the next size
+-	 * class.
+-	 */
+-	p = JEMALLOC_P(malloc)(size);
+-	if (p != NULL) {
+-		ret = isalloc(p);
+-		JEMALLOC_P(free)(p);
+-	} else
+-		ret = size;
+-
+-	return (ret);
++	return s2u(size);
+ }
+ 
+ static void
+-- 
+1.7.9
+
+
+
+From mh+jemalloc at glandium.org  Tue Feb 21 08:39:10 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Tue, 21 Feb 2012 17:39:10 +0100
+Subject: [PATCH] Add a malloc_usable_size_in_advance function
+Message-ID: <1329842350-14148-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+ doc/jemalloc.xml.in            |   13 +++++++++++++
+ include/jemalloc/jemalloc.h.in |    2 ++
+ src/jemalloc.c                 |    7 +++++++
+ 3 files changed, 22 insertions(+), 0 deletions(-)
+
+diff --git a/doc/jemalloc.xml.in b/doc/jemalloc.xml.in
+index 1e8c800..c125738 100644
+--- a/doc/jemalloc.xml.in
++++ b/doc/jemalloc.xml.in
+@@ -33,6 +33,7 @@
+     <refname>realloc</refname>
+     <refname>free</refname>
+     <refname>malloc_usable_size</refname>
++    <refname>malloc_usable_size_in_advance</refname>
+     <refname>malloc_stats_print</refname>
+     <refname>mallctl</refname>
+     <refname>mallctlnametomib</refname>
+@@ -89,6 +90,11 @@
+           <paramdef>const void *<parameter>ptr</parameter></paramdef>
+         </funcprototype>
+         <funcprototype>
++          <funcdef>size_t <function>malloc_usable_size_in_advance</function></funcdef>
++          <paramdef>size_t <parameter>size</parameter></paramdef>
++          <paramdef>size_t <parameter>alignment</parameter></paramdef>
++        </funcprototype>
++        <funcprototype>
+           <funcdef>void <function>malloc_stats_print</function></funcdef>
+           <paramdef>void <parameter>(*write_cb)</parameter>
+             <funcparams>void *, const char *</funcparams>
+@@ -217,6 +223,13 @@
+       depended on, since such behavior is entirely implementation-dependent.
+       </para>
+ 
++      <para>The <function>malloc_usable_size_in_advance<parameter/></function>
++      function returns the usable size that would be allocated if the given
++      <parameter>size</parameter> and <parameter>alignment</parameter> were
++      used with <function>malloc<parameter/></function>,
++      <function>memalign<parameter/></function>, or other allocation function.
++      </para>
++
+       <para>The <function>malloc_stats_print<parameter/></function> function
+       writes human-readable summary statistics via the
+       <parameter>write_cb</parameter> callback function pointer and
+diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+index 580a5ec..e43a060 100644
+--- a/include/jemalloc/jemalloc.h.in
++++ b/include/jemalloc/jemalloc.h.in
+@@ -43,6 +43,8 @@ void	*JEMALLOC_P(realloc)(void *ptr, size_t size);
+ void	JEMALLOC_P(free)(void *ptr);
+ 
+ size_t	JEMALLOC_P(malloc_usable_size)(const void *ptr);
++size_t	JEMALLOC_P(malloc_usable_size_in_advance)(size_t size,
++    size_t alignment);
+ void	JEMALLOC_P(malloc_stats_print)(void (*write_cb)(void *, const char *),
+     void *cbopaque, const char *opts);
+ int	JEMALLOC_P(mallctl)(const char *name, void *oldp, size_t *oldlenp,
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index e819b7e..64961c5 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -1357,6 +1357,13 @@ JEMALLOC_P(malloc_usable_size)(const void *ptr)
+ }
+ 
+ JEMALLOC_ATTR(visibility("default"))
++size_t
++JEMALLOC_P(malloc_usable_size_in_advance)(size_t size, size_t alignment)
++{
++	return (alignment == 0) ? s2u(size) : sa2u(size, alignment, NULL);
++}
++
++JEMALLOC_ATTR(visibility("default"))
+ void
+ JEMALLOC_P(malloc_stats_print)(void (*write_cb)(void *, const char *),
+     void *cbopaque, const char *opts)
+-- 
+1.7.9
+
+
+
+From mh+jemalloc at glandium.org  Wed Feb 22 09:36:50 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Wed, 22 Feb 2012 18:36:50 +0100
+Subject: [PATCH] Allow to include memalign and valloc even when prefixing the
+	API
+Message-ID: <1329932210-25776-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+In some cases, like when using the "__wrap_" prefix for use with ld's
+--wrap, one may want to still expose memalign and valloc.
+---
+ configure.ac                        |    6 ++++++
+ include/jemalloc/jemalloc_defs.h.in |    6 ++++++
+ src/jemalloc.c                      |    5 +++--
+ 3 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 5ce16eb..e3c0736 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -320,6 +320,12 @@ if test "x$JEMALLOC_PREFIX" != "x" ; then
+   AC_DEFINE_UNQUOTED([JEMALLOC_P(string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix)], [${JEMALLOC_PREFIX}##string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix])
+ fi
+ 
++AC_ARG_ENABLE([jemalloc_prefix_omit],
++  [AS_HELP_STRING([--disable-jemalloc-prefix-omit], [Do not omit APIs that are normally ommitted when --with-jemalloc-prefix is used])])
++if test "x$enable_jemalloc_prefix_omit" = "xno" ; then
++  AC_DEFINE([JEMALLOC_PREFIX_NO_OMIT])
++fi
++
+ dnl Do not mangle library-private APIs by default.
+ AC_ARG_WITH([private_namespace],
+   [AS_HELP_STRING([--with-private-namespace=<prefix>], [Prefix to prepend to all library-private APIs])],
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index d1622fb..7bb171d 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -19,6 +19,12 @@
+ #endif
+ 
+ /*
++ * If JEMALLOC_PREFIX_NO_OMIT is defined, it will cause APIs that are normally
++ * ommitted when JEMALLOC_PREFIX is defined, to be included.
++ */
++#undef JEMALLOC_PREFIX_NO_OMIT
++
++/*
+  * JEMALLOC_PRIVATE_NAMESPACE is used as a prefix for all library-private APIs.
+  * For shared libraries, symbol visibility mechanisms prevent these symbols
+  * from being exported, but for static libraries, naming collisions are a real
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 64961c5..67035b7 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -1293,9 +1293,10 @@ JEMALLOC_P(free)(void *ptr)
+  * Begin non-standard override functions.
+  *
+  * These overrides are omitted if the JEMALLOC_PREFIX is defined, since the
+- * entire point is to avoid accidental mixed allocator usage.
++ * entire point is to avoid accidental mixed allocator usage. They may however
++ * be included with the JEMALLOC_PREFIX if JEMALLOC_PREFIX_NO_OMIT is defined.
+  */
+-#ifndef JEMALLOC_PREFIX
++#if !defined(JEMALLOC_PREFIX) || defined(JEMALLOC_PREFIX_NO_OMIT)
+ 
+ #ifdef JEMALLOC_OVERRIDE_MEMALIGN
+ JEMALLOC_ATTR(malloc)
+-- 
+1.7.9
+
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 03:23:01 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 23 Feb 2012 12:23:01 +0100
+Subject: [PATCH] Allow to use different prefixes for jemalloc-specific
+	functions and libc functions
+In-Reply-To: <1329932210-25776-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329932210-25776-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <1329996181-706-2-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+In some cases, it can be interesting to use different prefixes for the
+"standard" libc malloc functions and for jemalloc specific functions. One such
+case is to use the "__wrap_" prefix on libc malloc functions (for use with ld's
+--wrap option) and no prefix or "je_" for jemalloc functions.
+
+In such cases, it can also me interesting not to exclude memalign and valloc,
+so this change also adds an option not to omit them when the prefix is set.
+---
+ configure.ac                        |   18 ++++++++++++++++++
+ include/jemalloc/jemalloc.h.in      |   15 +++++++++------
+ include/jemalloc/jemalloc_defs.h.in |   10 ++++++++++
+ src/jemalloc.c                      |   25 +++++++++++++------------
+ 4 files changed, 50 insertions(+), 18 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 5ce16eb..704a703 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -320,6 +320,22 @@ if test "x$JEMALLOC_PREFIX" != "x" ; then
+   AC_DEFINE_UNQUOTED([JEMALLOC_P(string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix)], [${JEMALLOC_PREFIX}##string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix])
+ fi
+ 
++AC_ARG_WITH([libc_prefix],
++  [AS_HELP_STRING([--with-libc-prefix=<prefix>], [Prefix to prepend to public APIs normally defined in libc. By default, same as --with-jemalloc-prefix])],
++  [JEMALLOC_LIBC_PREFIX="$with_libc_prefix"],
++  [JEMALLOC_LIBC_PREFIX="$JEMALLOC_PREFIX"])
++
++if test "x$JEMALLOC_LIBC_PREFIX" != "x" ; then
++  AC_DEFINE_UNQUOTED([JEMALLOC_LIBC_PREFIX], ["$JEMALLOC_LIBC_PREFIX"])
++  AC_DEFINE_UNQUOTED([JEMALLOC_LIBC(string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix)], [${JEMALLOC_LIBC_PREFIX}##string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix])
++fi
++
++AC_ARG_ENABLE([libc_omit],
++  [AS_HELP_STRING([--disable-libc-omit], [Do not omit APIs that are normally ommitted when --with-jemalloc-prefix or --with-libc-prefix is used])])
++if test "x$enable_libc_omit" = "xno" ; then
++  AC_DEFINE([JEMALLOC_LIBC_NO_OMIT])
++fi
++
+ dnl Do not mangle library-private APIs by default.
+ AC_ARG_WITH([private_namespace],
+   [AS_HELP_STRING([--with-private-namespace=<prefix>], [Prefix to prepend to all library-private APIs])],
+@@ -915,6 +931,8 @@ AC_MSG_RESULT([objroot            : ${objroot}])
+ AC_MSG_RESULT([abs_objroot        : ${abs_objroot}])
+ AC_MSG_RESULT([])
+ AC_MSG_RESULT([JEMALLOC_PREFIX    : ${JEMALLOC_PREFIX}])
++AC_MSG_RESULT([JEMALLOC_LIBC_PREFIX])
++AC_MSG_RESULT([                   : ${JEMALLOC_LIBC_PREFIX}])
+ AC_MSG_RESULT([JEMALLOC_PRIVATE_NAMESPACE])
+ AC_MSG_RESULT([                   : ${JEMALLOC_PRIVATE_NAMESPACE}])
+ AC_MSG_RESULT([install_suffix     : ${install_suffix}])
+diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+index e43a060..5e3d595 100644
+--- a/include/jemalloc/jemalloc.h.in
++++ b/include/jemalloc/jemalloc.h.in
+@@ -15,6 +15,9 @@ extern "C" {
+ #define	JEMALLOC_VERSION_GID "@jemalloc_version_gid@"
+ 
+ #include "jemalloc_defs at install_suffix@.h"
++#ifndef JEMALLOC_LIBC
++#  define JEMALLOC_LIBC(s) s
++#endif
+ #ifndef JEMALLOC_P
+ #  define JEMALLOC_P(s) s
+ #endif
+@@ -35,14 +38,14 @@ extern "C" {
+ extern const char	*JEMALLOC_P(malloc_conf);
+ extern void		(*JEMALLOC_P(malloc_message))(void *, const char *);
+ 
+-void	*JEMALLOC_P(malloc)(size_t size) JEMALLOC_ATTR(malloc);
+-void	*JEMALLOC_P(calloc)(size_t num, size_t size) JEMALLOC_ATTR(malloc);
+-int	JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
++void	*JEMALLOC_LIBC(malloc)(size_t size) JEMALLOC_ATTR(malloc);
++void	*JEMALLOC_LIBC(calloc)(size_t num, size_t size) JEMALLOC_ATTR(malloc);
++int	JEMALLOC_LIBC(posix_memalign)(void **memptr, size_t alignment, size_t size)
+     JEMALLOC_ATTR(nonnull(1));
+-void	*JEMALLOC_P(realloc)(void *ptr, size_t size);
+-void	JEMALLOC_P(free)(void *ptr);
++void	*JEMALLOC_LIBC(realloc)(void *ptr, size_t size);
++void	JEMALLOC_LIBC(free)(void *ptr);
+ 
+-size_t	JEMALLOC_P(malloc_usable_size)(const void *ptr);
++size_t	JEMALLOC_LIBC(malloc_usable_size)(const void *ptr);
+ size_t	JEMALLOC_P(malloc_usable_size_in_advance)(size_t size,
+     size_t alignment);
+ void	JEMALLOC_P(malloc_stats_print)(void (*write_cb)(void *, const char *),
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index d1622fb..18cad28 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -17,6 +17,16 @@
+ #if (defined(JEMALLOC_PREFIX) && defined(JEMALLOC_MANGLE))
+ #undef JEMALLOC_P
+ #endif
++#undef JEMALLOC_LIBC_PREFIX
++#if (defined(JEMALLOC_LIBC_PREFIX) && defined(JEMALLOC_MANGLE))
++#undef JEMALLOC_LIBC
++#endif
++
++/*
++ * If JEMALLOC_LIBC_NO_OMIT is defined, it will cause APIs that are normally
++ * ommitted when JEMALLOC_LIBC is defined, to be included.
++ */
++#undef JEMALLOC_LIBC_NO_OMIT
+ 
+ /*
+  * JEMALLOC_PRIVATE_NAMESPACE is used as a prefix for all library-private APIs.
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 64961c5..8b927f8 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -856,7 +856,7 @@ jemalloc_darwin_init(void)
+ JEMALLOC_ATTR(malloc)
+ JEMALLOC_ATTR(visibility("default"))
+ void *
+-JEMALLOC_P(malloc)(size_t size)
++JEMALLOC_LIBC(malloc)(size_t size)
+ {
+ 	void *ret;
+ 	size_t usize;
+@@ -1035,7 +1035,7 @@ RETURN:
+ JEMALLOC_ATTR(nonnull(1))
+ JEMALLOC_ATTR(visibility("default"))
+ int
+-JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
++JEMALLOC_LIBC(posix_memalign)(void **memptr, size_t alignment, size_t size)
+ {
+ 	/*
+ 	 * posix_memalign needs alignment to be a power of two and a multiple
+@@ -1051,7 +1051,7 @@ JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
+ JEMALLOC_ATTR(malloc)
+ JEMALLOC_ATTR(visibility("default"))
+ void *
+-JEMALLOC_P(calloc)(size_t num, size_t size)
++JEMALLOC_LIBC(calloc)(size_t num, size_t size)
+ {
+ 	void *ret;
+ 	size_t num_size;
+@@ -1130,7 +1130,7 @@ RETURN:
+ 
+ JEMALLOC_ATTR(visibility("default"))
+ void *
+-JEMALLOC_P(realloc)(void *ptr, size_t size)
++JEMALLOC_LIBC(realloc)(void *ptr, size_t size)
+ {
+ 	void *ret;
+ 	size_t usize;
+@@ -1264,7 +1264,7 @@ RETURN:
+ 
+ JEMALLOC_ATTR(visibility("default"))
+ void
+-JEMALLOC_P(free)(void *ptr)
++JEMALLOC_LIBC(free)(void *ptr)
+ {
+ 
+ 	if (ptr != NULL) {
+@@ -1292,16 +1292,17 @@ JEMALLOC_P(free)(void *ptr)
+ /*
+  * Begin non-standard override functions.
+  *
+- * These overrides are omitted if the JEMALLOC_PREFIX is defined, since the
+- * entire point is to avoid accidental mixed allocator usage.
++ * These overrides are omitted if the JEMALLOC_LIBC_PREFIX is defined, since the
++ * entire point is to avoid accidental mixed allocator usage. They may however
++ * be included with the JEMALLOC_LIBC prefix if JEMALLOC_LIBC_NO_OMIT is defined.
+  */
+-#ifndef JEMALLOC_PREFIX
++#if !defined(JEMALLOC_LIBC_PREFIX) || defined(JEMALLOC_LIBC_NO_OMIT)
+ 
+ #ifdef JEMALLOC_OVERRIDE_MEMALIGN
+ JEMALLOC_ATTR(malloc)
+ JEMALLOC_ATTR(visibility("default"))
+ void *
+-JEMALLOC_P(memalign)(size_t alignment, size_t size)
++JEMALLOC_LIBC(memalign)(size_t alignment, size_t size)
+ {
+ 	void *ret
+ #ifdef JEMALLOC_CC_SILENCE
+@@ -1317,7 +1318,7 @@ JEMALLOC_P(memalign)(size_t alignment, size_t size)
+ JEMALLOC_ATTR(malloc)
+ JEMALLOC_ATTR(visibility("default"))
+ void *
+-JEMALLOC_P(valloc)(size_t size)
++JEMALLOC_LIBC(valloc)(size_t size)
+ {
+ 	void *ret
+ #ifdef JEMALLOC_CC_SILENCE
+@@ -1340,7 +1341,7 @@ JEMALLOC_P(valloc)(size_t size)
+ 
+ JEMALLOC_ATTR(visibility("default"))
+ size_t
+-JEMALLOC_P(malloc_usable_size)(const void *ptr)
++JEMALLOC_LIBC(malloc_usable_size)(const void *ptr)
+ {
+ 	size_t ret;
+ 
+@@ -1680,7 +1681,7 @@ jemalloc_postfork(void)
+ 
+ /******************************************************************************/
+ 
+-#ifndef JEMALLOC_PREFIX
++#ifndef JEMALLOC_LIBC_PREFIX
+ 
+ #if defined(__GLIBC__) && !defined(__UCLIBC__)
+ /*
+-- 
+1.7.9.1
+
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 03:25:11 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 23 Feb 2012 12:25:11 +0100
+Subject: [PATCH] Allow to use different prefixes for jemalloc-specific
+	functions and libc functions
+In-Reply-To: <1329996181-706-2-git-send-email-mh+jemalloc@glandium.org>
+References: <1329932210-25776-1-git-send-email-mh+jemalloc@glandium.org>
+	<1329996181-706-2-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <20120223112511.GA839@glandium.org>
+
+I failed to add the following comment when sending the patch:
+
+This supersedes the "Allow to include memalign and valloc even when
+prefixing the API" patch.
+
+On Thu, Feb 23, 2012 at 12:23:01PM +0100, Mike Hommey wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> In some cases, it can be interesting to use different prefixes for the
+> "standard" libc malloc functions and for jemalloc specific functions. One such
+> case is to use the "__wrap_" prefix on libc malloc functions (for use with ld's
+> --wrap option) and no prefix or "je_" for jemalloc functions.
+> 
+> In such cases, it can also me interesting not to exclude memalign and valloc,
+> so this change also adds an option not to omit them when the prefix is set.
+> ---
+>  configure.ac                        |   18 ++++++++++++++++++
+>  include/jemalloc/jemalloc.h.in      |   15 +++++++++------
+>  include/jemalloc/jemalloc_defs.h.in |   10 ++++++++++
+>  src/jemalloc.c                      |   25 +++++++++++++------------
+>  4 files changed, 50 insertions(+), 18 deletions(-)
+> 
+> diff --git a/configure.ac b/configure.ac
+> index 5ce16eb..704a703 100644
+> --- a/configure.ac
+> +++ b/configure.ac
+> @@ -320,6 +320,22 @@ if test "x$JEMALLOC_PREFIX" != "x" ; then
+>    AC_DEFINE_UNQUOTED([JEMALLOC_P(string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix)], [${JEMALLOC_PREFIX}##string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix])
+>  fi
+>  
+> +AC_ARG_WITH([libc_prefix],
+> +  [AS_HELP_STRING([--with-libc-prefix=<prefix>], [Prefix to prepend to public APIs normally defined in libc. By default, same as --with-jemalloc-prefix])],
+> +  [JEMALLOC_LIBC_PREFIX="$with_libc_prefix"],
+> +  [JEMALLOC_LIBC_PREFIX="$JEMALLOC_PREFIX"])
+> +
+> +if test "x$JEMALLOC_LIBC_PREFIX" != "x" ; then
+> +  AC_DEFINE_UNQUOTED([JEMALLOC_LIBC_PREFIX], ["$JEMALLOC_LIBC_PREFIX"])
+> +  AC_DEFINE_UNQUOTED([JEMALLOC_LIBC(string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix)], [${JEMALLOC_LIBC_PREFIX}##string_that_no_one_should_want_to_use_as_a_jemalloc_API_prefix])
+> +fi
+> +
+> +AC_ARG_ENABLE([libc_omit],
+> +  [AS_HELP_STRING([--disable-libc-omit], [Do not omit APIs that are normally ommitted when --with-jemalloc-prefix or --with-libc-prefix is used])])
+> +if test "x$enable_libc_omit" = "xno" ; then
+> +  AC_DEFINE([JEMALLOC_LIBC_NO_OMIT])
+> +fi
+> +
+>  dnl Do not mangle library-private APIs by default.
+>  AC_ARG_WITH([private_namespace],
+>    [AS_HELP_STRING([--with-private-namespace=<prefix>], [Prefix to prepend to all library-private APIs])],
+> @@ -915,6 +931,8 @@ AC_MSG_RESULT([objroot            : ${objroot}])
+>  AC_MSG_RESULT([abs_objroot        : ${abs_objroot}])
+>  AC_MSG_RESULT([])
+>  AC_MSG_RESULT([JEMALLOC_PREFIX    : ${JEMALLOC_PREFIX}])
+> +AC_MSG_RESULT([JEMALLOC_LIBC_PREFIX])
+> +AC_MSG_RESULT([                   : ${JEMALLOC_LIBC_PREFIX}])
+>  AC_MSG_RESULT([JEMALLOC_PRIVATE_NAMESPACE])
+>  AC_MSG_RESULT([                   : ${JEMALLOC_PRIVATE_NAMESPACE}])
+>  AC_MSG_RESULT([install_suffix     : ${install_suffix}])
+> diff --git a/include/jemalloc/jemalloc.h.in b/include/jemalloc/jemalloc.h.in
+> index e43a060..5e3d595 100644
+> --- a/include/jemalloc/jemalloc.h.in
+> +++ b/include/jemalloc/jemalloc.h.in
+> @@ -15,6 +15,9 @@ extern "C" {
+>  #define	JEMALLOC_VERSION_GID "@jemalloc_version_gid@"
+>  
+>  #include "jemalloc_defs at install_suffix@.h"
+> +#ifndef JEMALLOC_LIBC
+> +#  define JEMALLOC_LIBC(s) s
+> +#endif
+>  #ifndef JEMALLOC_P
+>  #  define JEMALLOC_P(s) s
+>  #endif
+> @@ -35,14 +38,14 @@ extern "C" {
+>  extern const char	*JEMALLOC_P(malloc_conf);
+>  extern void		(*JEMALLOC_P(malloc_message))(void *, const char *);
+>  
+> -void	*JEMALLOC_P(malloc)(size_t size) JEMALLOC_ATTR(malloc);
+> -void	*JEMALLOC_P(calloc)(size_t num, size_t size) JEMALLOC_ATTR(malloc);
+> -int	JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
+> +void	*JEMALLOC_LIBC(malloc)(size_t size) JEMALLOC_ATTR(malloc);
+> +void	*JEMALLOC_LIBC(calloc)(size_t num, size_t size) JEMALLOC_ATTR(malloc);
+> +int	JEMALLOC_LIBC(posix_memalign)(void **memptr, size_t alignment, size_t size)
+>      JEMALLOC_ATTR(nonnull(1));
+> -void	*JEMALLOC_P(realloc)(void *ptr, size_t size);
+> -void	JEMALLOC_P(free)(void *ptr);
+> +void	*JEMALLOC_LIBC(realloc)(void *ptr, size_t size);
+> +void	JEMALLOC_LIBC(free)(void *ptr);
+>  
+> -size_t	JEMALLOC_P(malloc_usable_size)(const void *ptr);
+> +size_t	JEMALLOC_LIBC(malloc_usable_size)(const void *ptr);
+>  size_t	JEMALLOC_P(malloc_usable_size_in_advance)(size_t size,
+>      size_t alignment);
+>  void	JEMALLOC_P(malloc_stats_print)(void (*write_cb)(void *, const char *),
+> diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+> index d1622fb..18cad28 100644
+> --- a/include/jemalloc/jemalloc_defs.h.in
+> +++ b/include/jemalloc/jemalloc_defs.h.in
+> @@ -17,6 +17,16 @@
+>  #if (defined(JEMALLOC_PREFIX) && defined(JEMALLOC_MANGLE))
+>  #undef JEMALLOC_P
+>  #endif
+> +#undef JEMALLOC_LIBC_PREFIX
+> +#if (defined(JEMALLOC_LIBC_PREFIX) && defined(JEMALLOC_MANGLE))
+> +#undef JEMALLOC_LIBC
+> +#endif
+> +
+> +/*
+> + * If JEMALLOC_LIBC_NO_OMIT is defined, it will cause APIs that are normally
+> + * ommitted when JEMALLOC_LIBC is defined, to be included.
+> + */
+> +#undef JEMALLOC_LIBC_NO_OMIT
+>  
+>  /*
+>   * JEMALLOC_PRIVATE_NAMESPACE is used as a prefix for all library-private APIs.
+> diff --git a/src/jemalloc.c b/src/jemalloc.c
+> index 64961c5..8b927f8 100644
+> --- a/src/jemalloc.c
+> +++ b/src/jemalloc.c
+> @@ -856,7 +856,7 @@ jemalloc_darwin_init(void)
+>  JEMALLOC_ATTR(malloc)
+>  JEMALLOC_ATTR(visibility("default"))
+>  void *
+> -JEMALLOC_P(malloc)(size_t size)
+> +JEMALLOC_LIBC(malloc)(size_t size)
+>  {
+>  	void *ret;
+>  	size_t usize;
+> @@ -1035,7 +1035,7 @@ RETURN:
+>  JEMALLOC_ATTR(nonnull(1))
+>  JEMALLOC_ATTR(visibility("default"))
+>  int
+> -JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
+> +JEMALLOC_LIBC(posix_memalign)(void **memptr, size_t alignment, size_t size)
+>  {
+>  	/*
+>  	 * posix_memalign needs alignment to be a power of two and a multiple
+> @@ -1051,7 +1051,7 @@ JEMALLOC_P(posix_memalign)(void **memptr, size_t alignment, size_t size)
+>  JEMALLOC_ATTR(malloc)
+>  JEMALLOC_ATTR(visibility("default"))
+>  void *
+> -JEMALLOC_P(calloc)(size_t num, size_t size)
+> +JEMALLOC_LIBC(calloc)(size_t num, size_t size)
+>  {
+>  	void *ret;
+>  	size_t num_size;
+> @@ -1130,7 +1130,7 @@ RETURN:
+>  
+>  JEMALLOC_ATTR(visibility("default"))
+>  void *
+> -JEMALLOC_P(realloc)(void *ptr, size_t size)
+> +JEMALLOC_LIBC(realloc)(void *ptr, size_t size)
+>  {
+>  	void *ret;
+>  	size_t usize;
+> @@ -1264,7 +1264,7 @@ RETURN:
+>  
+>  JEMALLOC_ATTR(visibility("default"))
+>  void
+> -JEMALLOC_P(free)(void *ptr)
+> +JEMALLOC_LIBC(free)(void *ptr)
+>  {
+>  
+>  	if (ptr != NULL) {
+> @@ -1292,16 +1292,17 @@ JEMALLOC_P(free)(void *ptr)
+>  /*
+>   * Begin non-standard override functions.
+>   *
+> - * These overrides are omitted if the JEMALLOC_PREFIX is defined, since the
+> - * entire point is to avoid accidental mixed allocator usage.
+> + * These overrides are omitted if the JEMALLOC_LIBC_PREFIX is defined, since the
+> + * entire point is to avoid accidental mixed allocator usage. They may however
+> + * be included with the JEMALLOC_LIBC prefix if JEMALLOC_LIBC_NO_OMIT is defined.
+>   */
+> -#ifndef JEMALLOC_PREFIX
+> +#if !defined(JEMALLOC_LIBC_PREFIX) || defined(JEMALLOC_LIBC_NO_OMIT)
+>  
+>  #ifdef JEMALLOC_OVERRIDE_MEMALIGN
+>  JEMALLOC_ATTR(malloc)
+>  JEMALLOC_ATTR(visibility("default"))
+>  void *
+> -JEMALLOC_P(memalign)(size_t alignment, size_t size)
+> +JEMALLOC_LIBC(memalign)(size_t alignment, size_t size)
+>  {
+>  	void *ret
+>  #ifdef JEMALLOC_CC_SILENCE
+> @@ -1317,7 +1318,7 @@ JEMALLOC_P(memalign)(size_t alignment, size_t size)
+>  JEMALLOC_ATTR(malloc)
+>  JEMALLOC_ATTR(visibility("default"))
+>  void *
+> -JEMALLOC_P(valloc)(size_t size)
+> +JEMALLOC_LIBC(valloc)(size_t size)
+>  {
+>  	void *ret
+>  #ifdef JEMALLOC_CC_SILENCE
+> @@ -1340,7 +1341,7 @@ JEMALLOC_P(valloc)(size_t size)
+>  
+>  JEMALLOC_ATTR(visibility("default"))
+>  size_t
+> -JEMALLOC_P(malloc_usable_size)(const void *ptr)
+> +JEMALLOC_LIBC(malloc_usable_size)(const void *ptr)
+>  {
+>  	size_t ret;
+>  
+> @@ -1680,7 +1681,7 @@ jemalloc_postfork(void)
+>  
+>  /******************************************************************************/
+>  
+> -#ifndef JEMALLOC_PREFIX
+> +#ifndef JEMALLOC_LIBC_PREFIX
+>  
+>  #if defined(__GLIBC__) && !defined(__UCLIBC__)
+>  /*
+> -- 
+> 1.7.9.1
+> 
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 04:49:09 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 23 Feb 2012 13:49:09 +0100
+Subject: [PATCH] Add a build option to freeze the number of arenas to 1
+Message-ID: <1330001349-19752-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+
+Mozilla does not currently make extensive use of concurrent allocation,
+so the increased fragmentation associated with multiple arenas is not
+warranted.
+
+ configure.ac                                     |    4 ++++
+ include/jemalloc/internal/jemalloc_internal.h.in |    8 ++++++++
+ include/jemalloc/jemalloc_defs.h.in              |    3 +++
+ src/jemalloc.c                                   |   10 ++++++++++
+ 4 files changed, 25 insertions(+), 0 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 704a703..4cc7d6f 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -787,6 +787,10 @@ if test "x${enable_tls}" = "x0" ; then
+   AC_DEFINE_UNQUOTED([NO_TLS], [ ])
+ fi
+ 
++AC_ARG_WITH([one_arena],
++  [AS_HELP_STRING([--with-one-arena], [Force jemalloc to use only one arena])],
++  [AC_DEFINE([JEMALLOC_ONE_ARENA])])
++
+ dnl ============================================================================
+ dnl Check for ffsl(3), and fail if not found.  This function exists on all
+ dnl platforms that jemalloc currently has a chance of functioning on without
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index 971336e..75b4b66 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -384,7 +384,11 @@ extern bool	opt_junk;
+ extern bool	opt_sysv;
+ extern bool	opt_xmalloc;
+ extern bool	opt_zero;
++#ifdef JEMALLOC_ONE_ARENA
++static const size_t	opt_narenas = 1;
++#else
+ extern size_t	opt_narenas;
++#endif
+ 
+ #ifdef DYNAMIC_PAGE_SHIFT
+ extern size_t		pagesize;
+@@ -420,7 +424,11 @@ extern __thread arena_t	*arenas_tls JEMALLOC_ATTR(tls_model("initial-exec"));
+  * arenas array are necessarily used; arenas are created lazily as needed.
+  */
+ extern arena_t		**arenas;
++#ifdef JEMALLOC_ONE_ARENA
++static const unsigned	narenas = 1;
++#else
+ extern unsigned		narenas;
++#endif
+ 
+ #ifndef NO_TLS
+ extern __thread thread_allocated_t	thread_allocated_tls;
+diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+index 18cad28..e7e12d5 100644
+--- a/include/jemalloc/jemalloc_defs.h.in
++++ b/include/jemalloc/jemalloc_defs.h.in
+@@ -128,6 +128,9 @@
+ /* TLS is used to map arenas and magazine caches to threads. */
+ #undef NO_TLS
+ 
++/* Forces jemalloc to use only one arena when defined */
++#undef JEMALLOC_ONE_ARENA
++
+ /*
+  * JEMALLOC_IVSALLOC enables ivsalloc(), which verifies that pointers reside
+  * within jemalloc-owned chunks before dereferencing them.
+diff --git a/src/jemalloc.c b/src/jemalloc.c
+index 8b927f8..540f211 100644
+--- a/src/jemalloc.c
++++ b/src/jemalloc.c
+@@ -6,7 +6,9 @@
+ 
+ malloc_mutex_t		arenas_lock;
+ arena_t			**arenas;
++#ifndef JEMALLOC_ONE_ARENA
+ unsigned		narenas;
++#endif
+ 
+ pthread_key_t		arenas_tsd;
+ #ifndef NO_TLS
+@@ -51,7 +53,9 @@ bool	opt_junk = false;
+ bool	opt_sysv = false;
+ bool	opt_xmalloc = false;
+ bool	opt_zero = false;
++#ifndef JEMALLOC_ONE_ARENA
+ size_t	opt_narenas = 0;
++#endif
+ 
+ /******************************************************************************/
+ /* Function prototypes for non-inline static functions. */
+@@ -573,7 +577,9 @@ malloc_conf_init(void)
+ 			 */
+ 			CONF_HANDLE_SIZE_T(lg_chunk, PAGE_SHIFT+1,
+ 			    (sizeof(size_t) << 3) - 1)
++#ifndef JEMALLOC_ONE_ARENA
+ 			CONF_HANDLE_SIZE_T(narenas, 1, SIZE_T_MAX)
++#endif
+ 			CONF_HANDLE_SSIZE_T(lg_dirty_mult, -1,
+ 			    (sizeof(size_t) << 3) - 1)
+ 			CONF_HANDLE_BOOL(stats_print)
+@@ -745,7 +751,9 @@ malloc_init_hard(void)
+ 	 * Create enough scaffolding to allow recursive allocation in
+ 	 * malloc_ncpus().
+ 	 */
++#ifndef JEMALLOC_ONE_ARENA
+ 	narenas = 1;
++#endif
+ 	arenas = init_arenas;
+ 	memset(arenas, 0, sizeof(arena_t *) * narenas);
+ 
+@@ -778,6 +786,7 @@ malloc_init_hard(void)
+ 	ncpus = malloc_ncpus();
+ 	malloc_mutex_lock(&init_lock);
+ 
++#ifndef JEMALLOC_ONE_ARENA
+ 	if (opt_narenas == 0) {
+ 		/*
+ 		 * For SMP systems, create more than one arena per CPU by
+@@ -802,6 +811,7 @@ malloc_init_hard(void)
+ 		malloc_write(u2s(narenas, 10, buf));
+ 		malloc_write(")\n");
+ 	}
++#endif
+ 
+ 	/* Allocate and initialize arenas. */
+ 	arenas = (arena_t **)base_alloc(sizeof(arena_t *) * narenas);
+-- 
+1.7.9.1
+
+
+
+From justin.lebar at gmail.com  Thu Feb 23 05:40:41 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Thu, 23 Feb 2012 14:40:41 +0100
+Subject: [PATCH] Add a build option to freeze the number of arenas to 1
+In-Reply-To: <1330001349-19752-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1330001349-19752-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <CAFWcpZ78q+18uCEoyemtMvnCR19a0u4hc=CLeLGXgTdG1aowfg@mail.gmail.com>
+
+> Mozilla does not currently make extensive use of concurrent allocation,
+> so the increased fragmentation associated with multiple arenas is not
+> warranted.
+
+If any testing was done on Firefox with its fork of jemalloc to reach
+this conclusion, surely it's no longer valid.
+
+I'd rather stick closer to the stock implementation until we can
+demonstrate that changes are beneficial.
+
+> ?configure.ac ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? | ? ?4 ++++
+> ?include/jemalloc/internal/jemalloc_internal.h.in | ? ?8 ++++++++
+> ?include/jemalloc/jemalloc_defs.h.in ? ? ? ? ? ? ?| ? ?3 +++
+> ?src/jemalloc.c ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? | ? 10 ++++++++++
+> ?4 files changed, 25 insertions(+), 0 deletions(-)
+>
+> diff --git a/configure.ac b/configure.ac
+> index 704a703..4cc7d6f 100644
+> --- a/configure.ac
+> +++ b/configure.ac
+> @@ -787,6 +787,10 @@ if test "x${enable_tls}" = "x0" ; then
+> ? AC_DEFINE_UNQUOTED([NO_TLS], [ ])
+> ?fi
+>
+> +AC_ARG_WITH([one_arena],
+> + ?[AS_HELP_STRING([--with-one-arena], [Force jemalloc to use only one arena])],
+> + ?[AC_DEFINE([JEMALLOC_ONE_ARENA])])
+> +
+> ?dnl ============================================================================
+> ?dnl Check for ffsl(3), and fail if not found. ?This function exists on all
+> ?dnl platforms that jemalloc currently has a chance of functioning on without
+> diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+> index 971336e..75b4b66 100644
+> --- a/include/jemalloc/internal/jemalloc_internal.h.in
+> +++ b/include/jemalloc/internal/jemalloc_internal.h.in
+> @@ -384,7 +384,11 @@ extern bool ? ? ? ?opt_junk;
+> ?extern bool ? ?opt_sysv;
+> ?extern bool ? ?opt_xmalloc;
+> ?extern bool ? ?opt_zero;
+> +#ifdef JEMALLOC_ONE_ARENA
+> +static const size_t ? ?opt_narenas = 1;
+> +#else
+> ?extern size_t ?opt_narenas;
+> +#endif
+>
+> ?#ifdef DYNAMIC_PAGE_SHIFT
+> ?extern size_t ? ? ? ? ?pagesize;
+> @@ -420,7 +424,11 @@ extern __thread arena_t ? ?*arenas_tls JEMALLOC_ATTR(tls_model("initial-exec"));
+> ?* arenas array are necessarily used; arenas are created lazily as needed.
+> ?*/
+> ?extern arena_t ? ? ? ? **arenas;
+> +#ifdef JEMALLOC_ONE_ARENA
+> +static const unsigned ?narenas = 1;
+> +#else
+> ?extern unsigned ? ? ? ? ? ? ? ?narenas;
+> +#endif
+>
+> ?#ifndef NO_TLS
+> ?extern __thread thread_allocated_t ? ? thread_allocated_tls;
+> diff --git a/include/jemalloc/jemalloc_defs.h.in b/include/jemalloc/jemalloc_defs.h.in
+> index 18cad28..e7e12d5 100644
+> --- a/include/jemalloc/jemalloc_defs.h.in
+> +++ b/include/jemalloc/jemalloc_defs.h.in
+> @@ -128,6 +128,9 @@
+> ?/* TLS is used to map arenas and magazine caches to threads. */
+> ?#undef NO_TLS
+>
+> +/* Forces jemalloc to use only one arena when defined */
+> +#undef JEMALLOC_ONE_ARENA
+> +
+> ?/*
+> ?* JEMALLOC_IVSALLOC enables ivsalloc(), which verifies that pointers reside
+> ?* within jemalloc-owned chunks before dereferencing them.
+> diff --git a/src/jemalloc.c b/src/jemalloc.c
+> index 8b927f8..540f211 100644
+> --- a/src/jemalloc.c
+> +++ b/src/jemalloc.c
+> @@ -6,7 +6,9 @@
+>
+> ?malloc_mutex_t ? ? ? ? arenas_lock;
+> ?arena_t ? ? ? ? ? ? ? ? ? ? ? ?**arenas;
+> +#ifndef JEMALLOC_ONE_ARENA
+> ?unsigned ? ? ? ? ? ? ? narenas;
+> +#endif
+>
+> ?pthread_key_t ? ? ? ? ?arenas_tsd;
+> ?#ifndef NO_TLS
+> @@ -51,7 +53,9 @@ bool ?opt_junk = false;
+> ?bool ? opt_sysv = false;
+> ?bool ? opt_xmalloc = false;
+> ?bool ? opt_zero = false;
+> +#ifndef JEMALLOC_ONE_ARENA
+> ?size_t opt_narenas = 0;
+> +#endif
+>
+> ?/******************************************************************************/
+> ?/* Function prototypes for non-inline static functions. */
+> @@ -573,7 +577,9 @@ malloc_conf_init(void)
+> ? ? ? ? ? ? ? ? ? ? ? ? */
+> ? ? ? ? ? ? ? ? ? ? ? ?CONF_HANDLE_SIZE_T(lg_chunk, PAGE_SHIFT+1,
+> ? ? ? ? ? ? ? ? ? ? ? ? ? ?(sizeof(size_t) << 3) - 1)
+> +#ifndef JEMALLOC_ONE_ARENA
+> ? ? ? ? ? ? ? ? ? ? ? ?CONF_HANDLE_SIZE_T(narenas, 1, SIZE_T_MAX)
+> +#endif
+> ? ? ? ? ? ? ? ? ? ? ? ?CONF_HANDLE_SSIZE_T(lg_dirty_mult, -1,
+> ? ? ? ? ? ? ? ? ? ? ? ? ? ?(sizeof(size_t) << 3) - 1)
+> ? ? ? ? ? ? ? ? ? ? ? ?CONF_HANDLE_BOOL(stats_print)
+> @@ -745,7 +751,9 @@ malloc_init_hard(void)
+> ? ? ? ? * Create enough scaffolding to allow recursive allocation in
+> ? ? ? ? * malloc_ncpus().
+> ? ? ? ? */
+> +#ifndef JEMALLOC_ONE_ARENA
+> ? ? ? ?narenas = 1;
+> +#endif
+> ? ? ? ?arenas = init_arenas;
+> ? ? ? ?memset(arenas, 0, sizeof(arena_t *) * narenas);
+>
+> @@ -778,6 +786,7 @@ malloc_init_hard(void)
+> ? ? ? ?ncpus = malloc_ncpus();
+> ? ? ? ?malloc_mutex_lock(&init_lock);
+>
+> +#ifndef JEMALLOC_ONE_ARENA
+> ? ? ? ?if (opt_narenas == 0) {
+> ? ? ? ? ? ? ? ?/*
+> ? ? ? ? ? ? ? ? * For SMP systems, create more than one arena per CPU by
+> @@ -802,6 +811,7 @@ malloc_init_hard(void)
+> ? ? ? ? ? ? ? ?malloc_write(u2s(narenas, 10, buf));
+> ? ? ? ? ? ? ? ?malloc_write(")\n");
+> ? ? ? ?}
+> +#endif
+>
+> ? ? ? ?/* Allocate and initialize arenas. */
+> ? ? ? ?arenas = (arena_t **)base_alloc(sizeof(arena_t *) * narenas);
+> --
+> 1.7.9.1
+>
+> _______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 05:49:54 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 23 Feb 2012 14:49:54 +0100
+Subject: [PATCH] Add a build option to freeze the number of arenas to 1
+In-Reply-To: <CAFWcpZ78q+18uCEoyemtMvnCR19a0u4hc=CLeLGXgTdG1aowfg@mail.gmail.com>
+References: <1330001349-19752-1-git-send-email-mh+jemalloc@glandium.org>
+	<CAFWcpZ78q+18uCEoyemtMvnCR19a0u4hc=CLeLGXgTdG1aowfg@mail.gmail.com>
+Message-ID: <20120223134954.GA20949@glandium.org>
+
+On Thu, Feb 23, 2012 at 02:40:41PM +0100, Justin Lebar wrote:
+> > Mozilla does not currently make extensive use of concurrent allocation,
+> > so the increased fragmentation associated with multiple arenas is not
+> > warranted.
+> 
+> If any testing was done on Firefox with its fork of jemalloc to reach
+> this conclusion, surely it's no longer valid.
+> 
+> I'd rather stick closer to the stock implementation until we can
+> demonstrate that changes are beneficial.
+
+I really don't think Firefox will benefit from having as much arenas as
+there are CPUs, and each thread being bound to a given arena. I'm pretty
+certain this will significantly increase its memory footprint.
+
+I also don't think things changed significantly with multiple arenas
+between the old jemalloc fork it uses and current jemalloc.
+
+Anyways, besides Mozilla, I'm pretty sure this can have some other uses.
+
+Mike
+
+
+From justin.lebar at gmail.com  Thu Feb 23 06:09:14 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Thu, 23 Feb 2012 15:09:14 +0100
+Subject: [PATCH] Add a build option to freeze the number of arenas to 1
+In-Reply-To: <20120223134954.GA20949@glandium.org>
+References: <1330001349-19752-1-git-send-email-mh+jemalloc@glandium.org>
+	<CAFWcpZ78q+18uCEoyemtMvnCR19a0u4hc=CLeLGXgTdG1aowfg@mail.gmail.com>
+	<20120223134954.GA20949@glandium.org>
+Message-ID: <CAFWcpZ5GaVHgjbfOtGxZC+1PF7yXd3M0XfdKnk5zUnqVp8epPw@mail.gmail.com>
+
+>> If any testing was done on Firefox with its fork of jemalloc to reach
+>> this conclusion, surely it's no longer valid.
+>>
+>> I'd rather stick closer to the stock implementation until we can
+>> demonstrate that changes are beneficial.
+>
+> I really don't think Firefox will benefit from having as much arenas as
+> there are CPUs, and each thread being bound to a given arena.
+
+Running stuff off main thread is not so uncommon these days.  Web
+workers are the obvious case.  We intend to move image decoding off
+main thread.  I recall that audio/video decoding may run off main
+thread.  We intend to move compositing off main thread...
+
+> I'm pretty certain this will significantly increase its memory footprint.
+
+The overhead of an arena is
+
+  constant bookkeeping (not affected by number of allocations) +
+  proportional bookkeeping (roughly proportional to number of allocations) +
+  fragmentation +
+  pages which could be decommitted but haven't been yet
+
+Proportional bookeeping is, in total, not affected, so we can ignore
+it.  My guess is that constant bookkeeping is negligible.  I'd further
+guess that adding arenas per-thread would likely decrease
+fragmentation within each arena.  And jemalloc can bound the
+not-yet-decommitted pages.
+
+Anyway, I'm not saying that it's impossible or even unlikely that this
+won't significantly increase memory usage, just that it's conceivable
+that it might not be so bad.
+
+> I also don't think things changed significantly with multiple arenas
+> between the old jemalloc fork it uses and current jemalloc.
+
+For one thing, would this change impact the lock-free alloc/dealloc
+path, either in terms of correctness or performance?
+
+But I also do not have evidence that one arena is the right thing for
+Firefox even with the current jemalloc, so comparing then-and-now is
+not particularly convincing...
+
+> Anyways, besides Mozilla, I'm pretty sure this can have some other uses.
+
+Perhaps, depending on the overhead.
+
+I guess it's a relatively small change, so whatever.  I'm more
+concerned with turning it on in Firefox without evidence that it's
+beneficial.
+
+-Justin
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 08:05:13 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 23 Feb 2012 17:05:13 +0100
+Subject: [PATCH] Add build options to disable either static or shared library
+	by default
+Message-ID: <1330013113-15048-1-git-send-email-mh+jemalloc@glandium.org>
+
+From: Mike Hommey <mh at glandium.org>
+
+---
+
+We (Mozilla)'re most probably going to include jemalloc's build system
+to avoid any trouble, and it would be easier for us if calling make
+would only create the static library.
+
+ Makefile.in  |    7 ++++++-
+ configure.ac |   18 ++++++++++++++++++
+ 2 files changed, 24 insertions(+), 1 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index ca4365e..536fd3a 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -76,7 +76,12 @@ CTESTS := @srcroot at test/allocated.c @srcroot at test/allocm.c \
+ .SECONDARY : $(CTESTS:@srcroot@%.c=@objroot@%.o)
+ 
+ # Default target.
+-all: $(DSOS) $(STATIC_LIBS)
++ifeq (1, @enable_shared@)
++all: $(DSOS)
++endif
++ifeq (1, @enable_static@)
++all: $(STATIC_LIBS)
++endif
+ 
+ dist: doc
+ 
+diff --git a/configure.ac b/configure.ac
+index 4cc7d6f..c82f079 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -272,6 +272,24 @@ if test "x${mremap_fixed}" = "xyes" ; then
+   AC_DEFINE([JEMALLOC_MREMAP_FIXED])
+ fi
+ 
++AC_ARG_ENABLE([static],
++  [AS_HELP_STRING([--disable-static], [Do not build a static library by default])])
++if test "x$enable_static" = "xno" ; then
++  enable_static="0"
++else
++  enable_static="1"
++fi
++AC_SUBST([enable_static])
++
++AC_ARG_ENABLE([shared],
++  [AS_HELP_STRING([--disable-shared], [Do not build a shared library by default])])
++if test "x$enable_shared" = "xno" ; then
++  enable_shared="0"
++else
++  enable_shared="1"
++fi
++AC_SUBST([enable_shared])
++
+ dnl Support optional additions to rpath.
+ AC_ARG_WITH([rpath],
+   [AS_HELP_STRING([--with-rpath=<rpath>], [Colon-separated rpath (ELF systems only)])],
+-- 
+1.7.9.1
+
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 08:32:05 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 23 Feb 2012 17:32:05 +0100
+Subject: [PATCH] Add build options to disable either static or shared
+	library by default
+In-Reply-To: <1330013113-15048-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1330013113-15048-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <20120223163205.GA23859@glandium.org>
+
+On Thu, Feb 23, 2012 at 05:05:13PM +0100, Mike Hommey wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> ---
+> 
+> We (Mozilla)'re most probably going to include jemalloc's build system
+> to avoid any trouble, and it would be easier for us if calling make
+> would only create the static library.
+
+In fact it doesn't really matter, there are other problems that makes us
+need a glue anyways, so you can forget this patch.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 11:23:21 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Thu, 23 Feb 2012 20:23:21 +0100
+Subject: [PATCH] Add a malloc_usable_size_in_advance function
+In-Reply-To: <1329842350-14148-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329842350-14148-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <20120223192321.GA4016@glandium.org>
+
+On Tue, Feb 21, 2012 at 05:39:10PM +0100, Mike Hommey wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> ---
+>  JEMALLOC_ATTR(visibility("default"))
+> +size_t
+> +JEMALLOC_P(malloc_usable_size_in_advance)(size_t size, size_t alignment)
+> +{
+> +	return (alignment == 0) ? s2u(size) : sa2u(size, alignment, NULL);
+> +}
+
+Both this and the "Use s2u in zone_good_size" patch don't work as
+expected.
+
+Please note that the "Allow to use different prefixes for
+jemalloc-specific functions and libc functions" patch depends on "Use
+s2u in zone_good_size" (since the latter removes calls to
+JEMALLOC_P(malloc|free) which the former thus doesn't change.
+
+Cheers,
+
+Mike
+
+
+From jasone at canonware.com  Thu Feb 23 17:11:25 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 23 Feb 2012 17:11:25 -0800
+Subject: [PATCH] Add a build option to freeze the number of arenas to
+ 1
+In-Reply-To: <1330001349-19752-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1330001349-19752-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <4F46E3BD.5030705@canonware.com>
+
+On 02/23/2012 04:49 AM, Mike Hommey wrote:
+> From: Mike Hommey<mh at glandium.org>
+>
+> ---
+>
+> Mozilla does not currently make extensive use of concurrent allocation,
+> so the increased fragmentation associated with multiple arenas is not
+> warranted.
+
+Why isn't it sufficient to just add this to the Mozilla source somewhere?:
+
+   malloc_conf = "narenas:1";
+
+The overhead for this as compared to conditionally compiling out support 
+for multiple arenas should be negligible.
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Thu Feb 23 17:14:31 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Thu, 23 Feb 2012 17:14:31 -0800
+Subject: [PATCH] Add build options to disable either static or shared
+	library by default
+In-Reply-To: <20120223163205.GA23859@glandium.org>
+References: <1330013113-15048-1-git-send-email-mh+jemalloc@glandium.org>
+	<20120223163205.GA23859@glandium.org>
+Message-ID: <4F46E477.1090703@canonware.com>
+
+On 02/23/2012 08:32 AM, Mike Hommey wrote:
+> On Thu, Feb 23, 2012 at 05:05:13PM +0100, Mike Hommey wrote:
+>> From: Mike Hommey<mh at glandium.org>
+>>
+>> ---
+>>
+>> We (Mozilla)'re most probably going to include jemalloc's build system
+>> to avoid any trouble, and it would be easier for us if calling make
+>> would only create the static library.
+>
+> In fact it doesn't really matter, there are other problems that makes us
+> need a glue anyways, so you can forget this patch.
+
+An alternative would be to split the make targets out a bit more, so 
+that you can do something like:
+
+   make build_lib_static
+   make install_lib_static install_bin install_include
+
+Would that be helpful?
+
+Thanks,
+Jason
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 23:56:46 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Fri, 24 Feb 2012 08:56:46 +0100
+Subject: [PATCH] Add build options to disable either static or shared
+	library by default
+In-Reply-To: <4F46E477.1090703@canonware.com>
+References: <1330013113-15048-1-git-send-email-mh+jemalloc@glandium.org>
+	<20120223163205.GA23859@glandium.org>
+	<4F46E477.1090703@canonware.com>
+Message-ID: <20120224075646.GA18172@glandium.org>
+
+On Thu, Feb 23, 2012 at 05:14:31PM -0800, Jason Evans wrote:
+> On 02/23/2012 08:32 AM, Mike Hommey wrote:
+> >On Thu, Feb 23, 2012 at 05:05:13PM +0100, Mike Hommey wrote:
+> >>From: Mike Hommey<mh at glandium.org>
+> >>
+> >>---
+> >>
+> >>We (Mozilla)'re most probably going to include jemalloc's build system
+> >>to avoid any trouble, and it would be easier for us if calling make
+> >>would only create the static library.
+> >
+> >In fact it doesn't really matter, there are other problems that makes us
+> >need a glue anyways, so you can forget this patch.
+> 
+> An alternative would be to split the make targets out a bit more, so
+> that you can do something like:
+> 
+>   make build_lib_static
+>   make install_lib_static install_bin install_include
+> 
+> Would that be helpful?
+
+Not sure it would, at least for us. I'm sure it will be of use for some
+people, though.
+
+Mike
+
+
+From mh+jemalloc at glandium.org  Thu Feb 23 23:59:06 2012
+From: mh+jemalloc at glandium.org (Mike Hommey)
+Date: Fri, 24 Feb 2012 08:59:06 +0100
+Subject: [PATCH] Add a malloc_usable_size_in_advance function
+In-Reply-To: <4F46E293.9050101@canonware.com>
+References: <1329842350-14148-1-git-send-email-mh+jemalloc@glandium.org>
+	<20120223192321.GA4016@glandium.org>
+	<4F46E293.9050101@canonware.com>
+Message-ID: <20120224075906.GB18172@glandium.org>
+
+On Thu, Feb 23, 2012 at 05:06:27PM -0800, Jason Evans wrote:
+> On 02/23/2012 11:23 AM, Mike Hommey wrote:
+> >On Tue, Feb 21, 2012 at 05:39:10PM +0100, Mike Hommey wrote:
+> >>From: Mike Hommey<mh at glandium.org>
+> >>
+> >>---
+> >>  JEMALLOC_ATTR(visibility("default"))
+> >>+size_t
+> >>+JEMALLOC_P(malloc_usable_size_in_advance)(size_t size, size_t alignment)
+> >>+{
+> >>+	return (alignment == 0) ? s2u(size) : sa2u(size, alignment, NULL);
+> >>+}
+> >
+> >Both this and the "Use s2u in zone_good_size" patch don't work as
+> >expected.
+> 
+> Perhaps bad alignment values are being passed by your tests?
+
+Actually, alignment is always 0 in my tests. I haven't even started to
+check the results with alignment. The first thing that is striking is
+that malloc_usable_size(malloc(0)) is 8, and s2u(0) doesn't return that.
+
+> imemalign() does some validation of alignment before calling
+> ipalloc()-->sa2u(), and similar validation should probably be done
+> here.
+> 
+> By the way, malloc_usable_size_in_advance() is a real mouthful.  Is
+> there precedence for that name?  OS X has malloc_good_size(), which
+> isn't great, but still a lot better.
+
+We've been using malloc_usable_size_in_advance in Mozilla code, but it's
+not something hard to change.
+
+Mike
+
+
+From tfengjun at gmail.com  Tue Feb 28 00:34:13 2012
+From: tfengjun at gmail.com (Jokea)
+Date: Tue, 28 Feb 2012 16:34:13 +0800
+Subject: Is it safe to mix jemalloc with glibc malloc?
+Message-ID: <4F4C9185.7010903@gmail.com>
+
+Hi,
+
+I want to configure jemalloc to use mmap with disk backed file, and use 
+malloc
+for system memory.
+
+1. compile jemalloc with "je_" prefix and with "--enable-swap",
+2. in my application:
+...
+void *big = je_malloc(10000);
+void *small = malloc(10);
+...
+je_free(big);
+free(small);
+...
+
+There are plenty of small objects which will be freed soon, so I want to 
+use the real
+memory for these temp objects to improve performance. Is it safe to mix 
+je_malloc and malloc?
+
+
+Thanks,
+Jokea
+
+
+From justin.lebar at gmail.com  Tue Feb 28 06:29:31 2012
+From: justin.lebar at gmail.com (Justin Lebar)
+Date: Tue, 28 Feb 2012 09:29:31 -0500
+Subject: Is it safe to mix jemalloc with glibc malloc?
+In-Reply-To: <4F4C9185.7010903@gmail.com>
+References: <4F4C9185.7010903@gmail.com>
+Message-ID: <CAFWcpZ57FCt7PETDo8CVfQA-NFd1_=LrYkNpmHoc7HJbRTT5dQ@mail.gmail.com>
+
+> 1. compile jemalloc with "je_" prefix and with "--enable-swap",
+> 2. in my application:
+> ...
+> void *big = je_malloc(10000);
+> void *small = malloc(10);
+> ...
+> je_free(big);
+> free(small);
+
+Yes, this is safe.
+
+> There are plenty of small objects which will be freed soon, so I want to use
+> the real
+> memory for these temp objects to improve performance.
+
+But I seriously doubt you're going to see a performance improvement by
+doing this.  IME, jemalloc is much faster than glibc malloc, for all
+allocation sizes.
+
+-Justin
+
+
+From tfengjun at gmail.com  Tue Feb 28 17:31:35 2012
+From: tfengjun at gmail.com (Jokea)
+Date: Wed, 29 Feb 2012 09:31:35 +0800
+Subject: Is it safe to mix jemalloc with glibc malloc?
+In-Reply-To: <CAFWcpZ57FCt7PETDo8CVfQA-NFd1_=LrYkNpmHoc7HJbRTT5dQ@mail.gmail.com>
+References: <4F4C9185.7010903@gmail.com>
+	<CAFWcpZ57FCt7PETDo8CVfQA-NFd1_=LrYkNpmHoc7HJbRTT5dQ@mail.gmail.com>
+Message-ID: <4F4D7FF7.5070504@gmail.com>
+
+Justin,
+
+I'm trying to use jemalloc with FusionIO, where all objects allocated by
+jemalloc are from FusionIO, because the application needs a really huge
+amount of them, and the actual ram size does not fit.
+
+I'm just assuming that je_malloc from mmap-ed FusionIO will be slower
+than malloc from real ram, and free them are slower too.
+
+
+Regards,
+Jokea
+
+Justin Lebar ??:
+>> 1. compile jemalloc with "je_" prefix and with "--enable-swap",
+>> 2. in my application:
+>> ...
+>> void *big = je_malloc(10000);
+>> void *small = malloc(10);
+>> ...
+>> je_free(big);
+>> free(small);
+>>     
+>
+> Yes, this is safe.
+>
+>   
+>> There are plenty of small objects which will be freed soon, so I want to use
+>> the real
+>> memory for these temp objects to improve performance.
+>>     
+>
+> But I seriously doubt you're going to see a performance improvement by
+> doing this.  IME, jemalloc is much faster than glibc malloc, for all
+> allocation sizes.
+>
+> -Justin
+>   
+
+
+From jasone at canonware.com  Tue Feb 28 21:04:35 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Feb 2012 21:04:35 -0800
+Subject: realloc behavior
+In-Reply-To: <4F2575EB.7020700@hola.org>
+References: <4F2575EB.7020700@hola.org>
+Message-ID: <4F4DB1E3.8050002@canonware.com>
+
+On 01/29/2012 08:38 AM, Yoni Londner wrote:
+> I just started using jemalloc, and one of our tests fail, because
+> realloc with size=0
+> does malloc with size 1.
+>
+> from realloc spec at
+> http://pubs.opengroup.org/onlinepubs/000095399/functions/realloc.html :
+> If/size/is 0 and/ptr/is not a null pointer, the object pointed to is freed.
+>
+>
+> Why does jemalloc chooses to behave differently?
+
+This was a bug.  I committed a fix to the dev branch.  The fix will be 
+part of version 3.0.0 (and 2.2.6, if enough bugs surface to warrant it).
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Tue Feb 28 21:09:33 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Feb 2012 21:09:33 -0800
+Subject: [PATCH] Remove unused variables in tcache_dalloc_large
+In-Reply-To: <1329829944-29961-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329829944-29961-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <4F4DB30D.7010501@canonware.com>
+
+Committed.
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Tue Feb 28 21:12:09 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Feb 2012 21:12:09 -0800
+Subject: [PATCH 1/2] Remove unused variable in arena_run_split
+In-Reply-To: <1329830329-30367-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329830329-30367-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <4F4DB3A9.9090808@canonware.com>
+
+Committed.
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Tue Feb 28 21:13:58 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Feb 2012 21:13:58 -0800
+Subject: [PATCH 2/2] Remove unused variables in stats_print
+In-Reply-To: <1329830339-30415-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329830339-30415-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <4F4DB416.9050001@canonware.com>
+
+Committed.
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Tue Feb 28 21:51:36 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Tue, 28 Feb 2012 21:51:36 -0800
+Subject: [PATCH] Don't fail memalign with an alignment < sizeof(void *)
+In-Reply-To: <1329841300-13144-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329841300-13144-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <4F4DBCE8.5000307@canonware.com>
+
+On 02/21/2012 08:21 AM, Mike Hommey wrote:
+> While posix_memalign needs alignment to be a power of two and a multiple
+> of sizeof(void *), memalign only requires the former.
+>
+> Combined with interposing of glibc's memalign, we can end up in situations
+> where glibc calls memalign with a power of two smaller than sizeof(void *),
+> and where the failure in imemalign breaks normal functionality.
+
+I committed a different solution, with equivalent effect.  See the 
+commit message for more detail about this issue if you're curious:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=5965631636c620fba2eb33698accee75fd207aab
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Wed Feb 29 10:47:52 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 29 Feb 2012 10:47:52 -0800
+Subject: [PATCH] Hook jemalloc into glibc's malloc
+In-Reply-To: <1329838740-9490-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329838740-9490-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <ACDBE215-7520-4009-B598-9C0B2B93725F@canonware.com>
+
+On Feb 21, 2012, at 7:39 AM, Mike Hommey wrote:
+> When jemalloc is used as a libc malloc replacement (i.e. not prefixed),
+> some particular setups may end up inconsistently calling malloc from
+> libc and free from jemalloc, or the other way around.
+> 
+> Glibc provides hooks to make its functions use alternative
+> implementations. Use them.
+> 
+> Original patch by: Karl Tomlinson <karlt+ at karlt.net>
+
+
+I committed the important part of this:
+
+	http://www.canonware.com/cgi-bin/gitweb.cgi?p=jemalloc.git;a=commitdiff;h=4bb09830133ffa8b27a95bc3727558007722c152
+
+The configure.ac change caused mysterious failures if the AC_MSG_ERROR([dlfcn.h is missing]) statement was actually executed.  I came up with a workaround, but in the end left that part of the change out completely, because I don't think it makes sense to #error just because some poorly behaved applications that use RTLD_DEEPBIND might break.
+
+Thanks,
+Jason
+
+
+
+
+From jasone at canonware.com  Wed Feb 29 13:02:24 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 29 Feb 2012 13:02:24 -0800
+Subject: [PATCH] Add a malloc_usable_size_in_advance function
+In-Reply-To: <1329842350-14148-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329842350-14148-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <69D17290-12A0-4FB5-B1B5-5BD670B87098@canonware.com>
+
+I just added nallocm(), which is functionally equivalent to malloc_usable_size_in_advance().  Please let me know if doesn't meet your needs for some reason.
+
+Thanks,
+Jason
+
+From jasone at canonware.com  Wed Feb 29 13:04:16 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 29 Feb 2012 13:04:16 -0800
+Subject: [PATCH] Use s2u in zone_good_size
+In-Reply-To: <1329841901-13708-1-git-send-email-mh+jemalloc@glandium.org>
+References: <1329841901-13708-1-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <121E2EAB-18D4-409D-88AE-4CB549F44000@canonware.com>
+
+Committed (with a small fix).
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Wed Feb 29 13:41:13 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 29 Feb 2012 13:41:13 -0800
+Subject: jemalloc win32 port
+In-Reply-To: <4F3A958B.6020409@hola.org>
+References: <4F27C183.3020201@hola.org> <4F3A958B.6020409@hola.org>
+Message-ID: <7E8A65C2-0F92-4665-A0AE-22B87AF25735@canonware.com>
+
+I looked through your patch and found numerous issues that would make it a lot of work to integrate, some of which Mike Hommey pointed out.  The real non-starter though is that it uses hand-edited versions of the *.h.in header files.  That's not a maintainable solution.  I don't regularly use Windows, and even if I integrated this patch, the Windows support would be sure to break almost immediately due to innocuous changes.
+
+Thanks,
+Jason
+
+On Feb 14, 2012, at 9:10 AM, Yoni Londner wrote:
+> Hi again,
+> 
+> Well, I did not get any response, so I had to complete the work alone.
+> I am attaching a patch for a fully working version of jemalloc for msvc.
+> We are using this version for about a week, and it looks pretty good so far.
+> As I mentioned in my last email, I really hope that this patch will be committed to git.
+> Comments/suggestions are more than welcome
+> 
+> Yoni.
+> 
+> On 31/1/2012 12:25, Yoni Londner wrote:
+>> Hi,
+>> 
+>> I am working with Firefox version of jemalloc (x86 and x64), And it is working as expected.
+>> But, I wanted to use the original version of jemalloc, mainly because there are profiling features missing
+>> in Firefox's version, and because I wanted to be able to get bug fixes and new features from TRUNK.
+>> So, I Ported jemalloc to win32 (using msvc10 on win7 x86)
+>> I did not completed all the work (yet), but i have a working version.
+>> These are the changes I made (patch attached):
+>> 
+>> * prn.h - apparently it is not possible to create a file named prn.xxx
+>>   on windows. I changed the name of the file to _prn.h
+>> * atomic.h - added win32 intrinsic implementation
+>> * compat_win32.h - all sort of definitions needed for win32 (most of
+>>   them from Firefox version + pthread handling - not completed yet)
+>> * compat_win32.c - need to complete here win32_setspecific and
+>>   win32_setspecific by using ".CRT$XXX"
+>> * arena.c, ctl.h, ctl.c, ckh.c - C99 compatibility
+>> * hunk_mmap.c
+>> * jemalloc_defs.h, jemalloc.h, jemalloc_internal.h - I don't have
+>>   configure, so I copied jemalloc_internal.h.in and hand edited it.
+>> * mutex.h - win32 mutex (from Firefox version)
+>> * chunk_mmap.c -pages_map/pages_unmap from Firefox version
+>> * jemalloc.c - system settings (ncpus etc) + added _crtheap
+>> * jemalloc.c - win32 crt specific functions (msize, calloc_impl,
+>>   _recalloc, get_heap_handle...)
+>> 
+>> since jemalloc does not patch malloc and friends, I need to use a striped version of msvcrt (removed malloc/free etc).
+>> I have a scripts to do this.
+>> 
+>> I hope that after the work is done, you can commit this patch to the git.
+>> Any comments/suggestions/help are welcome
+>> 
+>> Yoni.
+>> 
+>> 
+>> 
+>> 
+> <jemallooc_win32.patch>_______________________________________________
+> jemalloc-discuss mailing list
+> jemalloc-discuss at canonware.com
+> http://www.canonware.com/mailman/listinfo/jemalloc-discuss
+
+
+
+From jasone at canonware.com  Wed Feb 29 16:15:37 2012
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 29 Feb 2012 16:15:37 -0800
+Subject: [PATCH] Allow to use different prefixes for jemalloc-specific
+	functions and libc functions
+In-Reply-To: <1329996181-706-2-git-send-email-mh+jemalloc@glandium.org>
+References: <1329932210-25776-1-git-send-email-mh+jemalloc@glandium.org>
+	<1329996181-706-2-git-send-email-mh+jemalloc@glandium.org>
+Message-ID: <B667717E-8CB4-4C6F-B244-D8F57CD17D88@canonware.com>
+
+On Feb 23, 2012, at 3:23 AM, Mike Hommey wrote:
+> From: Mike Hommey <mh at glandium.org>
+> 
+> In some cases, it can be interesting to use different prefixes for the
+> "standard" libc malloc functions and for jemalloc specific functions. One such
+> case is to use the "__wrap_" prefix on libc malloc functions (for use with ld's
+> --wrap option) and no prefix or "je_" for jemalloc functions.
+> 
+> In such cases, it can also me interesting not to exclude memalign and valloc,
+> so this change also adds an option not to omit them when the prefix is set.
+
+Do you have a practical use case that makes this a compelling feature?  I'm reluctant to hard-code the set of JEMALLOC_LIBC() functions to make distinct from JEMALLOC_P() functions, because it may vary by operating system.
+
+Thanks,
+Jason
+

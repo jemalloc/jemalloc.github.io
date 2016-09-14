@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> No subject
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20No%20subject&In-Reply-To=%3C700edb0cf99cb0e0e0d84d37611d3010.squirrel%40webmail.cebitec.uni-bielefeld.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000901.html">
+   <LINK REL="Next"  HREF="000903.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>No subject</H1>
+    <B>gholley at CeBiTec.Uni-Bielefeld.DE</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20No%20subject&In-Reply-To=%3C700edb0cf99cb0e0e0d84d37611d3010.squirrel%40webmail.cebitec.uni-bielefeld.de%3E"
+       TITLE="No subject">gholley at CeBiTec.Uni-Bielefeld.DE
+       </A><BR>
+    <I>Tue Aug  5 10:35:22 PDT 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000901.html">SIGSEGV on arenas_cleanup
+</A></li>
+        <LI>Next message: <A HREF="000903.html">
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#902">[ date ]</a>
+              <a href="thread.html#902">[ thread ]</a>
+              <a href="subject.html#902">[ subject ]</a>
+              <a href="author.html#902">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Hello,
+
+I&#146;m currently working on a data structure allowing the storage of a
+dynamic set of short DNA sequences plus annotations.
+Here are few details : the data structure is written in C, tests are
+currently run on Ubuntu 14.04 64 bits, everything is single threaded and
+Valgrind indicates that the program which manipulates the data structure
+has no memory leaks.
+
+I&#146;ve started to use Jemalloc in an attempt to reduce the fragmentation of
+the memory (by using one arena, disabling the thread caching system and
+using a high ratio of dirty pages). On small data sets (30 millions
+insertions), results are very good in comparison of Glibc: about 150MB
+less by using tuned Jemalloc.
+
+Now, I&#146;ve started tests with much bigger data sets (3 to 10 billions
+insertions) and I realized that Jemalloc is using more memory than Glibc.
+I have generated a data set of 200 millions entries which I tried to
+insert in the data structure and when the memory used reached 1GB, I
+stopped the program and reported the number of entries inserted.
+When using Jemalloc, doesn&#146;t matter the tuning parameters (1 or 4 arenas,
+tcache activated or not, lg_dirty = 3 or 8 or 16, lg_chunk = 14 or 22 or
+30), the number of entries inserted varies between 120 millions to 172
+millions. Or by using the standard Glibc, I&#146;m able to insert 187 millions
+of entries.
+And on billions of entries, Glibc (I don&#146;t have precise numbers
+unfortunately) uses few Gigabytes less than Jemalloc.
+
+So I would like to know if there is an explanation for this and if I can
+do something to make Jemalloc at least as efficient as Glibc is on my
+tests ? Maybe I&#146;m not using Jemalloc correctly ?
+
+Thank you a lot for your help and your time.
+
+Have a nice day.
+
+Guillaume Holley
+
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000901.html">SIGSEGV on arenas_cleanup
+</A></li>
+	<LI>Next message: <A HREF="000903.html">
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#902">[ date ]</a>
+              <a href="thread.html#902">[ thread ]</a>
+              <a href="subject.html#902">[ subject ]</a>
+              <a href="author.html#902">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

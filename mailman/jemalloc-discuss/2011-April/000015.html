@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> jemalloc on ppc32: Missing implementation for 32-bit atomic	operations
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20on%20ppc32%3A%20Missing%20implementation%20for%2032-bit%20atomic%0A%09operations&In-Reply-To=%3C4DADC451.7030506%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000014.html">
+   <LINK REL="Next"  HREF="000017.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>jemalloc on ppc32: Missing implementation for 32-bit atomic	operations</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20jemalloc%20on%20ppc32%3A%20Missing%20implementation%20for%2032-bit%20atomic%0A%09operations&In-Reply-To=%3C4DADC451.7030506%40canonware.com%3E"
+       TITLE="jemalloc on ppc32: Missing implementation for 32-bit atomic	operations">jasone at canonware.com
+       </A><BR>
+    <I>Tue Apr 19 10:20:17 PDT 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000014.html">jemalloc on ppc32: Missing implementation for 32-bit atomic operations
+</A></li>
+        <LI>Next message: <A HREF="000017.html">jemalloc on ppc32: Missing implementation for 32-bit atomic	operations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#15">[ date ]</a>
+              <a href="thread.html#15">[ thread ]</a>
+              <a href="subject.html#15">[ subject ]</a>
+              <a href="author.html#15">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On 04/19/2011 06:45 AM, Ingvar Hagelund wrote:
+&gt;<i> Building a git checkout of jemalloc today on 32bit ppc:
+</I>&gt;<i>
+</I>&gt;<i> gcc -std=gnu99 -Wall -pipe -g3 -fvisibility=hidden -O3 -funroll-loops
+</I>&gt;<i> -fPIC -DPIC -c -D_GNU_SOURCE -D_REENTRANT -Iinclude -Iinclude -o
+</I>&gt;<i> src/jemalloc.pic.o src/jemalloc.c
+</I>&gt;<i> In file included from include/jemalloc/internal/jemalloc_internal.h:386,
+</I>&gt;<i> from src/jemalloc.c:2:
+</I>&gt;<i> include/jemalloc/internal/atomic.h:164:4: #error &quot;Missing implementation
+</I>&gt;<i> for 32-bit atomic operations&quot;
+</I>&gt;<i> make: *** [src/jemalloc.pic.o] Error 1
+</I>&gt;<i>
+</I>&gt;<i>
+</I>&gt;<i> Seems to work fine on ppc64, though.
+</I>
+gcc added intrinsics for atomic operations sometime in the 4.x series 
+(4.4.x certainly has them), which jemalloc tries to use, so chances are 
+that you are using a newer compiler on the ppc64 system than on the 
+32-bit system.  I added native implementations for x86/x64 systems, but 
+haven't had the time to do so for PowerPC (plus I don't have ppc 
+hardware anymore).
+
+Thanks,
+Jason
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000014.html">jemalloc on ppc32: Missing implementation for 32-bit atomic operations
+</A></li>
+	<LI>Next message: <A HREF="000017.html">jemalloc on ppc32: Missing implementation for 32-bit atomic	operations
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#15">[ date ]</a>
+              <a href="thread.html#15">[ thread ]</a>
+              <a href="subject.html#15">[ subject ]</a>
+              <a href="author.html#15">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

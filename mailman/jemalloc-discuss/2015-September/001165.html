@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Explicit huge pages
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Explicit%20huge%20pages&In-Reply-To=%3C4D0973B2-D5A9-47CB-9004-986A106C6E6F%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001164.html">
+   <LINK REL="Next"  HREF="001166.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Explicit huge pages</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Explicit%20huge%20pages&In-Reply-To=%3C4D0973B2-D5A9-47CB-9004-986A106C6E6F%40canonware.com%3E"
+       TITLE="Explicit huge pages">jasone at canonware.com
+       </A><BR>
+    <I>Thu Sep 10 09:45:22 PDT 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001164.html">Explicit huge pages
+</A></li>
+        <LI>Next message: <A HREF="001166.html">jemalloc 4.0.2 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1165">[ date ]</a>
+              <a href="thread.html#1165">[ thread ]</a>
+              <a href="subject.html#1165">[ subject ]</a>
+              <a href="author.html#1165">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 10, 2015, at 7:48 AM, D'Alessandro, Luke K &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ldalessa at indiana.edu</A>&gt; wrote:
+&gt;<i> I have an application that wants to use explicit huge pages during mmap. I have the infrastructure set up to do chunk allocation/deallocation from the hugetlbfs infrastructure, and we use it in custom arenas for network-registered memory allocation.
+</I>&gt;<i> 
+</I>&gt;<i> I&#8217;d like to also use these explicit huge pages for the default arenas. It&#8217;s fine with me if the vestigial chunks are allocated from 4k pages, so I can replace the chunk_hooks as necessary. My concern is related to jemalloc&#8217;s understanding of &#8220;page-size&#8221; as reported by arenas.page, dirty page purging, and --with-lg-page-sizes. Basically, I don&#8217;t understand enough about what is going on internal to jemalloc here.
+</I>&gt;<i> 
+</I>&gt;<i> If I end up using, e.g., 2GB pages and a 4GB chunk size, is there any point in enabling dirty-page purging? Would it even work? Do I need to tell jemalloc about the 2GB huge page size with the --with flag? The huge page size is a dynamic property&#8212;do I have to reconfigure jemalloc each time I want a different one?
+</I>
+I think the most promising approach is to leave jemalloc's notion of page size at 4 KiB, set the chunk size to be at least as large as the huge page size, and disable dirty page purging.  This allows the huge pages to be carved up with 4 KiB granularity for small/large allocations, and assures that chunks comprise distinct sets of huge pages.  Dirty page purging would be at best a waste of time in this set up, probably with no effect.
+
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001164.html">Explicit huge pages
+</A></li>
+	<LI>Next message: <A HREF="001166.html">jemalloc 4.0.2 released
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1165">[ date ]</a>
+              <a href="thread.html#1165">[ thread ]</a>
+              <a href="subject.html#1165">[ subject ]</a>
+              <a href="author.html#1165">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

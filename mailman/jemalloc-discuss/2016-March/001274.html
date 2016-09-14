@@ -1,0 +1,199 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> SIGBUS issue with jemalloc-4.1.0 on SH4 platform
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20SIGBUS%20issue%20with%20jemalloc-4.1.0%20on%20SH4%20platform&In-Reply-To=%3CDB5PR05MB10489AF55B8C8AEC0FF9A26891B40%40DB5PR05MB1048.eurprd05.prod.outlook.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001273.html">
+   <LINK REL="Next"  HREF="001275.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>SIGBUS issue with jemalloc-4.1.0 on SH4 platform</H1>
+    <B>Schenk, Michael</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20SIGBUS%20issue%20with%20jemalloc-4.1.0%20on%20SH4%20platform&In-Reply-To=%3CDB5PR05MB10489AF55B8C8AEC0FF9A26891B40%40DB5PR05MB1048.eurprd05.prod.outlook.com%3E"
+       TITLE="SIGBUS issue with jemalloc-4.1.0 on SH4 platform">Michael.Schenk at albistechnologies.com
+       </A><BR>
+    <I>Thu Mar 10 02:49:33 PST 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001273.html">Interpretation of bit patters in arena_chunk_map_bits_s
+</A></li>
+        <LI>Next message: <A HREF="001275.html">Tuning-advise for soft-realtime systems
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1274">[ date ]</a>
+              <a href="thread.html#1274">[ thread ]</a>
+              <a href="subject.html#1274">[ subject ]</a>
+              <a href="author.html#1274">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Dear Jason, dear friends,
+
+I'm a big fan of JEMALLOC and we use it since years in our products but running into problems from time to time when upgrade to newer
+versions. Currently we run (stable) with 4.0.4 on our SH-4 platform. Yesterday I have done some tests with the 4.1.0 and hit some SIGBUS issues during updating the software on my embedded devices.
+The crash looks like:
+
+crasher:  /proc/self/maps: 298c7000-298d7000 ---p 0000b000 00:0f 2312       /tmp/root/libgcc_s-4.8.4.so.1
+crasher:  /proc/self/maps: 298d7000-298d8000 rw-p 0000b000 00:0f 2312       /tmp/root/libgcc_s-4.8.4.so.1
+crasher:  /proc/self/maps: 298d8000-298da000 rw-p 00000000 00:00 0
+crasher:  /proc/self/maps: 29a00000-29e02000 rw-p 00000000 00:00 0          [stack:2071]
+crasher:  /proc/self/maps: 2dce4000-2dce5000 rw-p 00000000 00:00 0
+crasher:  /proc/self/maps: 7b84a000-7b86c000 rw-p 00000000 00:00 0
+crasher:BACKTRACE:
+crasher: #0 stacktrace + 0x44 [ip=0x2960e400] [sp=0x29c534f0]
+crasher: #1 stacktrace + 0x256 [ip=0x2960e612] [sp=0x29c577f8]
+crasher: #2 &lt;unknown symbol&gt; [ip=0x29c579ac] [sp=0x29c57828]
+crasher: #3 calloc + 0x5ac [ip=0x29589024] [sp=0x7b86a718]
+Bus error
+Error updating the software
+
+In the past we discovered exactly the same issue on 4.0.0 which then was fixed in the 4.0.1 release. It's hard to get more traces because when we compile jemalloc with debug the crash did not happen.
+
+Config for normal build:
+jemalloc version   : 4.1.0-0-gdf900dbfaf4835d3efc06d771535f3e781544913
+library revision   : 2
+
+CONFIG             : --target=sh4-linux --host=sh4-linux --prefix=/work/galileo-8xxx/libs/jemalloc/install host_alias=sh4-linux target_alias=sh4-linux
+CC                 : sh4-linux-gcc
+CFLAGS             : -std=gnu99 -Wall -Werror=declaration-after-statement -pipe -g3 -fvisibility=hidden -O3 -funroll-loops
+CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+LDFLAGS            :
+EXTRA_LDFLAGS      :
+LIBS               :  -lpthread
+TESTLIBS           : -lrt
+RPATH_EXTRA        :
+
+XSLTPROC           : /usr/bin/xsltproc
+XSLROOT            : /usr/share/sgml/docbook/xsl-stylesheets
+
+PREFIX             : /work/galileo-8xxx/libs/jemalloc/install
+BINDIR             : /work/galileo-8xxx/libs/jemalloc/install/bin
+DATADIR            : /work/galileo-8xxx/libs/jemalloc/install/share
+INCLUDEDIR         : /work/galileo-8xxx/libs/jemalloc/install/include
+LIBDIR             : /work/galileo-8xxx/libs/jemalloc/install/lib
+MANDIR             : /work/galileo-8xxx/libs/jemalloc/install/share/man
+
+srcroot            :
+abs_srcroot        : /work/galileo-8xxx/libs/jemalloc/jemalloc-4.1.0/
+objroot            :
+abs_objroot        : /work/galileo-8xxx/libs/jemalloc/jemalloc-4.1.0/
+
+JEMALLOC_PREFIX    :
+JEMALLOC_PRIVATE_NAMESPACE
+                   : je_
+install_suffix     :
+malloc_conf        :
+autogen            : 0
+cc-silence         : 1
+debug              : 0
+code-coverage      : 0
+stats              : 1
+prof               : 0
+prof-libunwind     : 0
+prof-libgcc        : 0
+prof-gcc           : 0
+tcache             : 1
+fill               : 1
+utrace             : 0
+valgrind           : 0
+xmalloc            : 0
+munmap             : 0
+lazy_lock          : 0
+tls                : 1
+cache-oblivious    : 1
+
+
+Config for debug build
+jemalloc version   : 4.1.0-0-gdf900dbfaf4835d3efc06d771535f3e781544913
+library revision   : 2
+
+CONFIG             : --target=sh4-linux --host=sh4-linux --enable-debug --enable-prof --enable-prof-libunwind --prefix=/work/galileo-8xxx/libs/jemalloc/install host_alias=sh4-linux target_alias=sh4-linux
+CC                 : sh4-linux-gcc
+CFLAGS             : -std=gnu99 -Wall -Werror=declaration-after-statement -pipe -g3 -fvisibility=hidden
+CPPFLAGS           :  -D_GNU_SOURCE -D_REENTRANT
+LDFLAGS            :
+EXTRA_LDFLAGS      :
+LIBS               :  -lunwind -lm -lpthread
+TESTLIBS           : -lrt
+RPATH_EXTRA        :
+
+XSLTPROC           : /usr/bin/xsltproc
+XSLROOT            : /usr/share/sgml/docbook/xsl-stylesheets
+
+PREFIX             : /work/galileo-8xxx/libs/jemalloc/install
+BINDIR             : /work/galileo-8xxx/libs/jemalloc/install/bin
+DATADIR            : /work/galileo-8xxx/libs/jemalloc/install/share
+INCLUDEDIR         : /work/galileo-8xxx/libs/jemalloc/install/include
+LIBDIR             : /work/galileo-8xxx/libs/jemalloc/install/lib
+MANDIR             : /work/galileo-8xxx/libs/jemalloc/install/share/man
+
+srcroot            :
+abs_srcroot        : /work/galileo-8xxx/libs/jemalloc/jemalloc-4.1.0/
+objroot            :
+abs_objroot        : /work/galileo-8xxx/libs/jemalloc/jemalloc-4.1.0/
+
+JEMALLOC_PREFIX    :
+JEMALLOC_PRIVATE_NAMESPACE
+                   : je_
+install_suffix     :
+malloc_conf        :
+autogen            : 0
+cc-silence         : 1
+debug              : 1
+code-coverage      : 0
+stats              : 1
+prof               : 1
+prof-libunwind     : 1
+prof-libgcc        : 0
+prof-gcc           : 0
+tcache             : 1
+fill               : 1
+utrace             : 0
+valgrind           : 0
+xmalloc            : 0
+munmap             : 0
+lazy_lock          : 0
+tls                : 1
+cache-oblivious    : 1
+
+Any idea how I can debug this further or any hint what't going wrong ?
+
+Many thanks in advanced and kind regards
+
+Michael
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160310/2f5c5eab/attachment-0001.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160310/2f5c5eab/attachment-0001.html</A>&gt;
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001273.html">Interpretation of bit patters in arena_chunk_map_bits_s
+</A></li>
+	<LI>Next message: <A HREF="001275.html">Tuning-advise for soft-realtime systems
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1274">[ date ]</a>
+              <a href="thread.html#1274">[ thread ]</a>
+              <a href="subject.html#1274">[ subject ]</a>
+              <a href="author.html#1274">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

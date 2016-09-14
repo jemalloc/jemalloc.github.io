@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> memalign() bug found &amp; fixed
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memalign%28%29%20bug%20found%20%26%20fixed&In-Reply-To=%3C95D00586-E414-45AE-A02D-0D5DD1ED0097%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000983.html">
+   <LINK REL="Next"  HREF="000985.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>memalign() bug found &amp; fixed</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20memalign%28%29%20bug%20found%20%26%20fixed&In-Reply-To=%3C95D00586-E414-45AE-A02D-0D5DD1ED0097%40canonware.com%3E"
+       TITLE="memalign() bug found &amp; fixed">jasone at canonware.com
+       </A><BR>
+    <I>Fri Jan 16 18:08:56 PST 2015</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000983.html">memalign() bug found &amp; fixed
+</A></li>
+        <LI>Next message: <A HREF="000985.html">jemalloc-3.6.0 erroneously recycles already-allocated memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#984">[ date ]</a>
+              <a href="thread.html#984">[ thread ]</a>
+              <a href="subject.html#984">[ subject ]</a>
+              <a href="author.html#984">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jan 16, 2015, at 5:44 PM, Kurt Wampler &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">Kurt.Wampler at asml.com</A>&gt; wrote:
+&gt;<i> I'd like to report a bug which we found and fixed in jemalloc-3.6.0.
+</I>&gt;<i> 
+</I>&gt;<i> In the imemalign() function, when the allocation fails, there are
+</I>&gt;<i> &quot;goto&quot; statements that end up reaching &quot;label_return:&quot; without ever
+</I>&gt;<i> dereferencing memptr (the first argument).  However, je_memalign() is
+</I>&gt;<i> written in a way that ignores imemalign()'s function return value, and
+</I>&gt;<i> depends instead on imemalign() to communicate the results using memptr.
+</I>&gt;<i> 
+</I>&gt;<i> Our local fix for this problem was to move one line in imemalign() below
+</I>&gt;<i> &quot;label_return:&quot;.
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Original code:
+</I>&gt;<i> -------------
+</I>&gt;<i> 
+</I>&gt;<i>        *memptr = result;
+</I>&gt;<i>        ret = 0;
+</I>&gt;<i> label_return:
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> Revised code:
+</I>&gt;<i> ------------
+</I>&gt;<i> 
+</I>&gt;<i>        ret = 0;
+</I>&gt;<i> label_return:
+</I>&gt;<i>        *memptr = result;
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>&gt;<i> The above seemed like the simplest fix, but maybe it would be clearer
+</I>&gt;<i> to change je_memalign() to follow the same convention as je_posix_memalign()?
+</I>
+Yes, imemalign() works as intended, but memalign() and valloc() are wrong to ignore the return value.  Fixed:
+
+	<A HREF="https://github.com/jemalloc/jemalloc/commit/44b57b8e8b25797b94c7cccc0e32705f76fcf03b">https://github.com/jemalloc/jemalloc/commit/44b57b8e8b25797b94c7cccc0e32705f76fcf03b</A>
+
+Thanks,
+Jason
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000983.html">memalign() bug found &amp; fixed
+</A></li>
+	<LI>Next message: <A HREF="000985.html">jemalloc-3.6.0 erroneously recycles already-allocated memory
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#984">[ date ]</a>
+              <a href="thread.html#984">[ thread ]</a>
+              <a href="subject.html#984">[ subject ]</a>
+              <a href="author.html#984">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

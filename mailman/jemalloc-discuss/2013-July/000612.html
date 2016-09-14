@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> High amount of private clean data in smaps
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3CBEE110C0-6E9D-404D-B259-CB0552D16473%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000613.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>High amount of private clean data in smaps</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20High%20amount%20of%20private%20clean%20data%20in%20smaps&In-Reply-To=%3CBEE110C0-6E9D-404D-B259-CB0552D16473%40canonware.com%3E"
+       TITLE="High amount of private clean data in smaps">jasone at canonware.com
+       </A><BR>
+    <I>Wed Jul  3 13:37:52 PDT 2013</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000613.html">valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#612">[ date ]</a>
+              <a href="thread.html#612">[ thread ]</a>
+              <a href="subject.html#612">[ subject ]</a>
+              <a href="author.html#612">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Jun 27, 2013, at 8:31 PM, Thomas R Gissel wrote:
+&gt;<i> I apologize for the delinquency of my response.  The previously provided stressTest.c does not exhibit the same RSS growth problem as our larger application.   As perhaps an interesting data point, running with 1 arena seems to eliminate or at least mitigate the issue to the point where it is no longer noticeable with our current tests. This seems to indicate internal, across arena, fragmentation, but what is still puzzling is that in the multi-arena configuration the jemalloc stats seem to disconfirm that hypothesis. Specifically, the pattern we see is that after our test has been running for some long period of time, usually several hours, and after our eviction logic has run several eviction cycles, the process begins to and continues to behave in the following way until the test is terminated: jemalloc's mapped statistic and process VmRSS seem to grow in a correlated way while jemalloc's active statistic stays flat.  Does this information give you any insights?  
+</I>&gt;<i> 
+</I>&gt;<i> 
+</I>I can only think of a couple of ways this could happen, barring an outright bug in jemalloc:
+
+- madvise(2) is failing.  You should be able to use strace to determine whether this is an issue.  The only legitimate reason I can think of for this failure would be an interaction with mlockall(2).
+- The application is touching memory that has been freed, after it has been purged via madvise(2).
+
+Jason
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130703/a6fb6afa/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20130703/a6fb6afa/attachment.html</A>&gt;
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000613.html">valgrind 3.8.1 warnings when doing calloc in jemalloc 3.4
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#612">[ date ]</a>
+              <a href="thread.html#612">[ thread ]</a>
+              <a href="subject.html#612">[ subject ]</a>
+              <a href="author.html#612">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

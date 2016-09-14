@@ -1,0 +1,889 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [PATCH 7/7] Replace fprintf with malloc_printf in tests.
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Replace%20fprintf%20with%20malloc_printf%20in%20tests.&In-Reply-To=%3C1334586626-2008-7-git-send-email-mh%2Bjemalloc%40glandium.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000281.html">
+   <LINK REL="Next"  HREF="000279.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[PATCH 7/7] Replace fprintf with malloc_printf in tests.</H1>
+    <B>Mike Hommey</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20%5BPATCH%207/7%5D%20Replace%20fprintf%20with%20malloc_printf%20in%20tests.&In-Reply-To=%3C1334586626-2008-7-git-send-email-mh%2Bjemalloc%40glandium.org%3E"
+       TITLE="[PATCH 7/7] Replace fprintf with malloc_printf in tests.">mh+jemalloc at glandium.org
+       </A><BR>
+    <I>Mon Apr 16 07:30:26 PDT 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000281.html">[PATCH 6/7] Limit the number of flags directly given to the linker,	and refactor rpath
+</A></li>
+        <LI>Next message: <A HREF="000279.html">[PATCH 2/7] Use $(LIBS) instead of -lpthread when linking tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#283">[ date ]</a>
+              <a href="thread.html#283">[ thread ]</a>
+              <a href="subject.html#283">[ subject ]</a>
+              <a href="author.html#283">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>From: Mike Hommey &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">mh at glandium.org</A>&gt;
+
+---
+ Makefile.in                                      |    6 ++-
+ include/jemalloc/internal/jemalloc_internal.h.in |    3 ++
+ test/aligned_alloc.c                             |   18 ++++----
+ test/allocated.c                                 |   18 ++++----
+ test/allocm.c                                    |   54 +++++++++++-----------
+ test/bitmap.c                                    |   10 +---
+ test/jemalloc_test.h.in                          |    1 +
+ test/mremap.c                                    |   12 ++---
+ test/posix_memalign.c                            |   18 ++++----
+ test/rallocm.c                                   |   52 ++++++++++-----------
+ test/thread_arena.c                              |   16 +++----
+ test/thread_tcache_enabled.c                     |    8 ++--
+ 12 files changed, 108 insertions(+), 108 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index ef8f717..0dfddea 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -148,10 +148,12 @@ $(objroot)test/%.$(O): $(srcroot)test/%.c
+ 	$(CC) $(CFLAGS) -c $(CPPFLAGS) -I$(objroot)test -o $@ $&lt;
+ 	@$(CC) -MM $(CPPFLAGS) -I$(objroot)test -MT $@ -o $(@:%.$(O)=%.d) $&lt;
+ 
+-$(objroot)test/%$(EXE): $(objroot)test/%.$(O) \
++$(objroot)test/bitmap$(EXE): $(objroot)src/bitmap.$(O)
++
++$(objroot)test/%$(EXE): $(objroot)test/%.$(O) $(objroot)src/util.$(O) \
+ 		 $(objroot)lib/$(LIBJEMALLOC).$(SO)
+ 	@mkdir -p $(@D)
+-	$(CC) -o $@ $&lt; $(call RPATH,$(objroot)lib) -L$(objroot)lib -ljemalloc$(install_suffix) $(LIBS)
++	$(CC) -o $@ $(filter %.$(O),$^) $(call RPATH,$(objroot)lib) -L$(objroot)lib -ljemalloc$(install_suffix) $(LIBS)
+ 
+ build_lib_shared: $(DSOS)
+ build_lib_static: $(STATIC_LIBS)
+diff --git a/include/jemalloc/internal/jemalloc_internal.h.in b/include/jemalloc/internal/jemalloc_internal.h.in
+index aa21aa5..7b16b6c 100644
+--- a/include/jemalloc/internal/jemalloc_internal.h.in
++++ b/include/jemalloc/internal/jemalloc_internal.h.in
+@@ -1,3 +1,5 @@
++#ifndef jemalloc_internal_h
++#define jemalloc_internal_h
+ #include &lt;sys/mman.h&gt;
+ #include &lt;sys/param.h&gt;
+ #include &lt;sys/syscall.h&gt;
+@@ -868,3 +870,4 @@ malloc_tsd_funcs(JEMALLOC_INLINE, thread_allocated, thread_allocated_t,
+ 
+ #undef JEMALLOC_H_INLINES
+ /******************************************************************************/
++#endif
+diff --git a/test/aligned_alloc.c b/test/aligned_alloc.c
+index 2a95604..81b8f93 100644
+--- a/test/aligned_alloc.c
++++ b/test/aligned_alloc.c
+@@ -20,14 +20,14 @@ main(void)
+ 	unsigned i;
+ 	void *p, *ps[NITER];
+ 
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	/* Test error conditions. */
+ 	alignment = 0;
+ 	errno = 0;
+ 	p = aligned_alloc(alignment, 1);
+ 	if (p != NULL || errno != EINVAL) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for invalid alignment %zu\n&quot;, alignment);
+ 	}
+ 
+@@ -36,7 +36,7 @@ main(void)
+ 		errno = 0;
+ 		p = aligned_alloc(alignment + 1, 1);
+ 		if (p != NULL || errno != EINVAL) {
+-			fprintf(stderr,
++			malloc_printf(
+ 			    &quot;Expected error for invalid alignment %zu\n&quot;,
+ 			    alignment + 1);
+ 		}
+@@ -52,7 +52,7 @@ main(void)
+ 	errno = 0;
+ 	p = aligned_alloc(alignment, size);
+ 	if (p != NULL || errno != ENOMEM) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for aligned_alloc(%zu, %zu)\n&quot;,
+ 		    alignment, size);
+ 	}
+@@ -67,7 +67,7 @@ main(void)
+ 	errno = 0;
+ 	p = aligned_alloc(alignment, size);
+ 	if (p != NULL || errno != ENOMEM) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for aligned_alloc(%zu, %zu)\n&quot;,
+ 		    alignment, size);
+ 	}
+@@ -81,7 +81,7 @@ main(void)
+ 	errno = 0;
+ 	p = aligned_alloc(alignment, size);
+ 	if (p != NULL || errno != ENOMEM) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for aligned_alloc(&amp;p, %zu, %zu)\n&quot;,
+ 		    alignment, size);
+ 	}
+@@ -93,14 +93,14 @@ main(void)
+ 	    alignment &lt;= MAXALIGN;
+ 	    alignment &lt;&lt;= 1) {
+ 		total = 0;
+-		fprintf(stderr, &quot;Alignment: %zu\n&quot;, alignment);
++		malloc_printf(&quot;Alignment: %zu\n&quot;, alignment);
+ 		for (size = 1;
+ 		    size &lt; 3 * alignment &amp;&amp; size &lt; (1U &lt;&lt; 31);
+ 		    size += (alignment &gt;&gt; (LG_SIZEOF_PTR-1)) - 1) {
+ 			for (i = 0; i &lt; NITER; i++) {
+ 				ps[i] = aligned_alloc(alignment, size);
+ 				if (ps[i] == NULL) {
+-					fprintf(stderr,
++					malloc_printf(
+ 					    &quot;Error for size %zu (%#zx): %s\n&quot;,
+ 					    size, size, strerror(errno));
+ 					exit(1);
+@@ -118,6 +118,6 @@ main(void)
+ 		}
+ 	}
+ 
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (0);
+ }
+diff --git a/test/allocated.c b/test/allocated.c
+index 921ab3a..81cd4ca 100644
+--- a/test/allocated.c
++++ b/test/allocated.c
+@@ -27,7 +27,7 @@ thread_start(void *arg)
+ #endif
+ 			goto label_return;
+ 		}
+-		fprintf(stderr, &quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
++		malloc_printf(&quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
+ 		    strerror(err));
+ 		exit(1);
+ 	}
+@@ -39,7 +39,7 @@ thread_start(void *arg)
+ #endif
+ 			goto label_return;
+ 		}
+-		fprintf(stderr, &quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
++		malloc_printf(&quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
+ 		    strerror(err));
+ 		exit(1);
+ 	}
+@@ -53,7 +53,7 @@ thread_start(void *arg)
+ #endif
+ 			goto label_return;
+ 		}
+-		fprintf(stderr, &quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
++		malloc_printf(&quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
+ 		    strerror(err));
+ 		exit(1);
+ 	}
+@@ -65,7 +65,7 @@ thread_start(void *arg)
+ #endif
+ 			goto label_return;
+ 		}
+-		fprintf(stderr, &quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
++		malloc_printf(&quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
+ 		    strerror(err));
+ 		exit(1);
+ 	}
+@@ -73,7 +73,7 @@ thread_start(void *arg)
+ 
+ 	p = malloc(1);
+ 	if (p == NULL) {
+-		fprintf(stderr, &quot;%s(): Error in malloc()\n&quot;, __func__);
++		malloc_printf(&quot;%s(): Error in malloc()\n&quot;, __func__);
+ 		exit(1);
+ 	}
+ 
+@@ -108,13 +108,13 @@ main(void)
+ 	int ret = 0;
+ 	pthread_t thread;
+ 
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	thread_start(NULL);
+ 
+ 	if (pthread_create(&amp;thread, NULL, thread_start, NULL)
+ 	    != 0) {
+-		fprintf(stderr, &quot;%s(): Error in pthread_create()\n&quot;, __func__);
++		malloc_printf(&quot;%s(): Error in pthread_create()\n&quot;, __func__);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+@@ -124,7 +124,7 @@ main(void)
+ 
+ 	if (pthread_create(&amp;thread, NULL, thread_start, NULL)
+ 	    != 0) {
+-		fprintf(stderr, &quot;%s(): Error in pthread_create()\n&quot;, __func__);
++		malloc_printf(&quot;%s(): Error in pthread_create()\n&quot;, __func__);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+@@ -133,6 +133,6 @@ main(void)
+ 	thread_start(NULL);
+ 
+ label_return:
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (ret);
+ }
+diff --git a/test/allocm.c b/test/allocm.c
+index 3aa0fd2..c6bc6f8 100644
+--- a/test/allocm.c
++++ b/test/allocm.c
+@@ -19,52 +19,52 @@ main(void)
+ 	unsigned i;
+ 	void *ps[NITER];
+ 
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	sz = 42;
+ 	nsz = 0;
+ 	r = nallocm(&amp;nsz, sz, 0);
+ 	if (r != ALLOCM_SUCCESS) {
+-		fprintf(stderr, &quot;Unexpected nallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected nallocm() error\n&quot;);
+ 		abort();
+ 	}
+ 	rsz = 0;
+ 	r = allocm(&amp;p, &amp;rsz, sz, 0);
+ 	if (r != ALLOCM_SUCCESS) {
+-		fprintf(stderr, &quot;Unexpected allocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected allocm() error\n&quot;);
+ 		abort();
+ 	}
+ 	if (rsz &lt; sz)
+-		fprintf(stderr, &quot;Real size smaller than expected\n&quot;);
++		malloc_printf(&quot;Real size smaller than expected\n&quot;);
+ 	if (nsz != rsz)
+-		fprintf(stderr, &quot;nallocm()/allocm() rsize mismatch\n&quot;);
++		malloc_printf(&quot;nallocm()/allocm() rsize mismatch\n&quot;);
+ 	if (dallocm(p, 0) != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected dallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected dallocm() error\n&quot;);
+ 
+ 	r = allocm(&amp;p, NULL, sz, 0);
+ 	if (r != ALLOCM_SUCCESS) {
+-		fprintf(stderr, &quot;Unexpected allocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected allocm() error\n&quot;);
+ 		abort();
+ 	}
+ 	if (dallocm(p, 0) != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected dallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected dallocm() error\n&quot;);
+ 
+ 	nsz = 0;
+ 	r = nallocm(&amp;nsz, sz, ALLOCM_ZERO);
+ 	if (r != ALLOCM_SUCCESS) {
+-		fprintf(stderr, &quot;Unexpected nallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected nallocm() error\n&quot;);
+ 		abort();
+ 	}
+ 	rsz = 0;
+ 	r = allocm(&amp;p, &amp;rsz, sz, ALLOCM_ZERO);
+ 	if (r != ALLOCM_SUCCESS) {
+-		fprintf(stderr, &quot;Unexpected allocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected allocm() error\n&quot;);
+ 		abort();
+ 	}
+ 	if (nsz != rsz)
+-		fprintf(stderr, &quot;nallocm()/allocm() rsize mismatch\n&quot;);
++		malloc_printf(&quot;nallocm()/allocm() rsize mismatch\n&quot;);
+ 	if (dallocm(p, 0) != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected dallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected dallocm() error\n&quot;);
+ 
+ #if LG_SIZEOF_PTR == 3
+ 	alignment = UINT64_C(0x8000000000000000);
+@@ -76,19 +76,19 @@ main(void)
+ 	nsz = 0;
+ 	r = nallocm(&amp;nsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for nallocm(&amp;nsz, %zu, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 	rsz = 0;
+ 	r = allocm(&amp;p, &amp;rsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for allocm(&amp;p, %zu, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 	if (nsz != rsz)
+-		fprintf(stderr, &quot;nallocm()/allocm() rsize mismatch\n&quot;);
++		malloc_printf(&quot;nallocm()/allocm() rsize mismatch\n&quot;);
+ 
+ #if LG_SIZEOF_PTR == 3
+ 	alignment = UINT64_C(0x4000000000000000);
+@@ -100,11 +100,11 @@ main(void)
+ 	nsz = 0;
+ 	r = nallocm(&amp;nsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected nallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected nallocm() error\n&quot;);
+ 	rsz = 0;
+ 	r = allocm(&amp;p, &amp;rsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for allocm(&amp;p, %zu, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+@@ -118,19 +118,19 @@ main(void)
+ 	nsz = 0;
+ 	r = nallocm(&amp;nsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for nallocm(&amp;nsz, %zu, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 	rsz = 0;
+ 	r = allocm(&amp;p, &amp;rsz, sz, ALLOCM_ALIGN(alignment));
+ 	if (r == ALLOCM_SUCCESS) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for allocm(&amp;p, %zu, %#x)\n&quot;,
+ 		    sz, ALLOCM_ALIGN(alignment));
+ 	}
+ 	if (nsz != rsz)
+-		fprintf(stderr, &quot;nallocm()/allocm() rsize mismatch\n&quot;);
++		malloc_printf(&quot;nallocm()/allocm() rsize mismatch\n&quot;);
+ 
+ 	for (i = 0; i &lt; NITER; i++)
+ 		ps[i] = NULL;
+@@ -139,7 +139,7 @@ main(void)
+ 	    alignment &lt;= MAXALIGN;
+ 	    alignment &lt;&lt;= 1) {
+ 		total = 0;
+-		fprintf(stderr, &quot;Alignment: %zu\n&quot;, alignment);
++		malloc_printf(&quot;Alignment: %zu\n&quot;, alignment);
+ 		for (sz = 1;
+ 		    sz &lt; 3 * alignment &amp;&amp; sz &lt; (1U &lt;&lt; 31);
+ 		    sz += (alignment &gt;&gt; (LG_SIZEOF_PTR-1)) - 1) {
+@@ -148,7 +148,7 @@ main(void)
+ 				r = nallocm(&amp;nsz, sz,
+ 				    ALLOCM_ALIGN(alignment) | ALLOCM_ZERO);
+ 				if (r != ALLOCM_SUCCESS) {
+-					fprintf(stderr,
++					malloc_printf(
+ 					    &quot;nallocm() error for size %zu&quot;
+ 					    &quot; (%#zx): %d\n&quot;,
+ 					    sz, sz, r);
+@@ -158,24 +158,24 @@ main(void)
+ 				r = allocm(&amp;ps[i], &amp;rsz, sz,
+ 				    ALLOCM_ALIGN(alignment) | ALLOCM_ZERO);
+ 				if (r != ALLOCM_SUCCESS) {
+-					fprintf(stderr,
++					malloc_printf(
+ 					    &quot;allocm() error for size %zu&quot;
+ 					    &quot; (%#zx): %d\n&quot;,
+ 					    sz, sz, r);
+ 					exit(1);
+ 				}
+ 				if (rsz &lt; sz) {
+-					fprintf(stderr,
++					malloc_printf(
+ 					    &quot;Real size smaller than&quot;
+ 					    &quot; expected\n&quot;);
+ 				}
+ 				if (nsz != rsz) {
+-					fprintf(stderr,
++					malloc_printf(
+ 					    &quot;nallocm()/allocm() rsize&quot;
+ 					    &quot; mismatch\n&quot;);
+ 				}
+ 				if ((uintptr_t)p &amp; (alignment-1)) {
+-					fprintf(stderr,
++					malloc_printf(
+ 					    &quot;%p inadequately aligned for&quot;
+ 					    &quot; alignment: %zu\n&quot;, p, alignment);
+ 				}
+@@ -193,6 +193,6 @@ main(void)
+ 		}
+ 	}
+ 
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (0);
+ }
+diff --git a/test/bitmap.c b/test/bitmap.c
+index adfaacf..ee9b1ec 100644
+--- a/test/bitmap.c
++++ b/test/bitmap.c
+@@ -7,12 +7,6 @@
+  * */
+ #include &lt;assert.h&gt;
+ 
+-/*
+- * Directly include the bitmap code, since it isn't exposed outside
+- * libjemalloc.
+- */
+-#include &quot;../src/bitmap.c&quot;
+-
+ #if (LG_BITMAP_MAXBITS &gt; 12)
+ #  define MAXBITS	4500
+ #else
+@@ -144,7 +138,7 @@ test_bitmap_sfu(void)
+ int
+ main(void)
+ {
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	test_bitmap_size();
+ 	test_bitmap_init();
+@@ -152,6 +146,6 @@ main(void)
+ 	test_bitmap_unset();
+ 	test_bitmap_sfu();
+ 
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (0);
+ }
+diff --git a/test/jemalloc_test.h.in b/test/jemalloc_test.h.in
+index 0c48895..58fa08e 100644
+--- a/test/jemalloc_test.h.in
++++ b/test/jemalloc_test.h.in
+@@ -4,3 +4,4 @@
+  * have a different name.
+  */
+ #include &quot;jemalloc/<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">jemalloc at install_suffix</A>@.h&quot;
++#include &quot;jemalloc/internal/jemalloc_internal.h&quot;
+diff --git a/test/mremap.c b/test/mremap.c
+index cac3bd8..84c0349 100644
+--- a/test/mremap.c
++++ b/test/mremap.c
+@@ -14,12 +14,12 @@ main(void)
+ 	size_t sz, lg_chunk, chunksize, i;
+ 	char *p, *q;
+ 
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	sz = sizeof(lg_chunk);
+ 	if ((err = mallctl(&quot;opt.lg_chunk&quot;, &amp;lg_chunk, &amp;sz, NULL, 0))) {
+ 		assert(err != ENOENT);
+-		fprintf(stderr, &quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
++		malloc_printf(&quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
+ 		    strerror(err));
+ 		ret = 1;
+ 		goto label_return;
+@@ -28,7 +28,7 @@ main(void)
+ 
+ 	p = (char *)malloc(chunksize);
+ 	if (p == NULL) {
+-		fprintf(stderr, &quot;malloc(%zu) --&gt; %p\n&quot;, chunksize, p);
++		malloc_printf(&quot;malloc(%zu) --&gt; %p\n&quot;, chunksize, p);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+@@ -36,7 +36,7 @@ main(void)
+ 
+ 	q = (char *)realloc(p, chunksize * 2);
+ 	if (q == NULL) {
+-		fprintf(stderr, &quot;realloc(%p, %zu) --&gt; %p\n&quot;, p, chunksize * 2,
++		malloc_printf(&quot;realloc(%p, %zu) --&gt; %p\n&quot;, p, chunksize * 2,
+ 		    q);
+ 		ret = 1;
+ 		goto label_return;
+@@ -49,7 +49,7 @@ main(void)
+ 
+ 	q = (char *)realloc(p, chunksize);
+ 	if (q == NULL) {
+-		fprintf(stderr, &quot;realloc(%p, %zu) --&gt; %p\n&quot;, p, chunksize, q);
++		malloc_printf(&quot;realloc(%p, %zu) --&gt; %p\n&quot;, p, chunksize, q);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+@@ -61,6 +61,6 @@ main(void)
+ 
+ 	ret = 0;
+ label_return:
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (ret);
+ }
+diff --git a/test/posix_memalign.c b/test/posix_memalign.c
+index 0ea35c8..e1302df 100644
+--- a/test/posix_memalign.c
++++ b/test/posix_memalign.c
+@@ -21,13 +21,13 @@ main(void)
+ 	int err;
+ 	void *p, *ps[NITER];
+ 
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	/* Test error conditions. */
+ 	for (alignment = 0; alignment &lt; sizeof(void *); alignment++) {
+ 		err = posix_memalign(&amp;p, alignment, 1);
+ 		if (err != EINVAL) {
+-			fprintf(stderr,
++			malloc_printf(
+ 			    &quot;Expected error for invalid alignment %zu\n&quot;,
+ 			    alignment);
+ 		}
+@@ -37,7 +37,7 @@ main(void)
+ 	    alignment &lt;&lt;= 1) {
+ 		err = posix_memalign(&amp;p, alignment + 1, 1);
+ 		if (err == 0) {
+-			fprintf(stderr,
++			malloc_printf(
+ 			    &quot;Expected error for invalid alignment %zu\n&quot;,
+ 			    alignment + 1);
+ 		}
+@@ -52,7 +52,7 @@ main(void)
+ #endif
+ 	err = posix_memalign(&amp;p, alignment, size);
+ 	if (err == 0) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for posix_memalign(&amp;p, %zu, %zu)\n&quot;,
+ 		    alignment, size);
+ 	}
+@@ -66,7 +66,7 @@ main(void)
+ #endif
+ 	err = posix_memalign(&amp;p, alignment, size);
+ 	if (err == 0) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for posix_memalign(&amp;p, %zu, %zu)\n&quot;,
+ 		    alignment, size);
+ 	}
+@@ -79,7 +79,7 @@ main(void)
+ #endif
+ 	err = posix_memalign(&amp;p, alignment, size);
+ 	if (err == 0) {
+-		fprintf(stderr,
++		malloc_printf(
+ 		    &quot;Expected error for posix_memalign(&amp;p, %zu, %zu)\n&quot;,
+ 		    alignment, size);
+ 	}
+@@ -91,7 +91,7 @@ main(void)
+ 	    alignment &lt;= MAXALIGN;
+ 	    alignment &lt;&lt;= 1) {
+ 		total = 0;
+-		fprintf(stderr, &quot;Alignment: %zu\n&quot;, alignment);
++		malloc_printf(&quot;Alignment: %zu\n&quot;, alignment);
+ 		for (size = 1;
+ 		    size &lt; 3 * alignment &amp;&amp; size &lt; (1U &lt;&lt; 31);
+ 		    size += (alignment &gt;&gt; (LG_SIZEOF_PTR-1)) - 1) {
+@@ -99,7 +99,7 @@ main(void)
+ 				err = posix_memalign(&amp;ps[i],
+ 				    alignment, size);
+ 				if (err) {
+-					fprintf(stderr,
++					malloc_printf(
+ 					    &quot;Error for size %zu (%#zx): %s\n&quot;,
+ 					    size, size, strerror(err));
+ 					exit(1);
+@@ -117,6 +117,6 @@ main(void)
+ 		}
+ 	}
+ 
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (0);
+ }
+diff --git a/test/rallocm.c b/test/rallocm.c
+index 9c0df40..18db5ee 100644
+--- a/test/rallocm.c
++++ b/test/rallocm.c
+@@ -15,7 +15,7 @@ main(void)
+ 	size_t sz, tsz;
+ 	int r;
+ 
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	/* Get page size. */
+ 	{
+@@ -26,51 +26,51 @@ main(void)
+ 
+ 	r = allocm(&amp;p, &amp;sz, 42, 0);
+ 	if (r != ALLOCM_SUCCESS) {
+-		fprintf(stderr, &quot;Unexpected allocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected allocm() error\n&quot;);
+ 		abort();
+ 	}
+ 
+ 	q = p;
+ 	r = rallocm(&amp;q, &amp;tsz, sz, 0, ALLOCM_NO_MOVE);
+ 	if (r != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected rallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected rallocm() error\n&quot;);
+ 	if (q != p)
+-		fprintf(stderr, &quot;Unexpected object move\n&quot;);
++		malloc_printf(&quot;Unexpected object move\n&quot;);
+ 	if (tsz != sz) {
+-		fprintf(stderr, &quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
++		malloc_printf(&quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 
+ 	q = p;
+ 	r = rallocm(&amp;q, &amp;tsz, sz, 5, ALLOCM_NO_MOVE);
+ 	if (r != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected rallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected rallocm() error\n&quot;);
+ 	if (q != p)
+-		fprintf(stderr, &quot;Unexpected object move\n&quot;);
++		malloc_printf(&quot;Unexpected object move\n&quot;);
+ 	if (tsz != sz) {
+-		fprintf(stderr, &quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
++		malloc_printf(&quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 
+ 	q = p;
+ 	r = rallocm(&amp;q, &amp;tsz, sz + 5, 0, ALLOCM_NO_MOVE);
+ 	if (r != ALLOCM_ERR_NOT_MOVED)
+-		fprintf(stderr, &quot;Unexpected rallocm() result\n&quot;);
++		malloc_printf(&quot;Unexpected rallocm() result\n&quot;);
+ 	if (q != p)
+-		fprintf(stderr, &quot;Unexpected object move\n&quot;);
++		malloc_printf(&quot;Unexpected object move\n&quot;);
+ 	if (tsz != sz) {
+-		fprintf(stderr, &quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
++		malloc_printf(&quot;Unexpected size change: %zu --&gt; %zu\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 
+ 	q = p;
+ 	r = rallocm(&amp;q, &amp;tsz, sz + 5, 0, 0);
+ 	if (r != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected rallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected rallocm() error\n&quot;);
+ 	if (q == p)
+-		fprintf(stderr, &quot;Expected object move\n&quot;);
++		malloc_printf(&quot;Expected object move\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		malloc_printf(&quot;Expected size change: %zu --&gt; %zu\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	p = q;
+@@ -78,11 +78,11 @@ main(void)
+ 
+ 	r = rallocm(&amp;q, &amp;tsz, pagesize*2, 0, 0);
+ 	if (r != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected rallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected rallocm() error\n&quot;);
+ 	if (q == p)
+-		fprintf(stderr, &quot;Expected object move\n&quot;);
++		malloc_printf(&quot;Expected object move\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		malloc_printf(&quot;Expected size change: %zu --&gt; %zu\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	p = q;
+@@ -90,9 +90,9 @@ main(void)
+ 
+ 	r = rallocm(&amp;q, &amp;tsz, pagesize*4, 0, 0);
+ 	if (r != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected rallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected rallocm() error\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		malloc_printf(&quot;Expected size change: %zu --&gt; %zu\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	p = q;
+@@ -100,28 +100,28 @@ main(void)
+ 
+ 	r = rallocm(&amp;q, &amp;tsz, pagesize*2, 0, ALLOCM_NO_MOVE);
+ 	if (r != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected rallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected rallocm() error\n&quot;);
+ 	if (q != p)
+-		fprintf(stderr, &quot;Unexpected object move\n&quot;);
++		malloc_printf(&quot;Unexpected object move\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		malloc_printf(&quot;Expected size change: %zu --&gt; %zu\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	sz = tsz;
+ 
+ 	r = rallocm(&amp;q, &amp;tsz, pagesize*4, 0, ALLOCM_NO_MOVE);
+ 	if (r != ALLOCM_SUCCESS)
+-		fprintf(stderr, &quot;Unexpected rallocm() error\n&quot;);
++		malloc_printf(&quot;Unexpected rallocm() error\n&quot;);
+ 	if (q != p)
+-		fprintf(stderr, &quot;Unexpected object move\n&quot;);
++		malloc_printf(&quot;Unexpected object move\n&quot;);
+ 	if (tsz == sz) {
+-		fprintf(stderr, &quot;Expected size change: %zu --&gt; %zu\n&quot;,
++		malloc_printf(&quot;Expected size change: %zu --&gt; %zu\n&quot;,
+ 		    sz, tsz);
+ 	}
+ 	sz = tsz;
+ 
+ 	dallocm(p, 0);
+ 
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (0);
+ }
+diff --git a/test/thread_arena.c b/test/thread_arena.c
+index 9b7b2dd..e443b71 100644
+--- a/test/thread_arena.c
++++ b/test/thread_arena.c
+@@ -20,14 +20,14 @@ thread_start(void *arg)
+ 
+ 	p = malloc(1);
+ 	if (p == NULL) {
+-		fprintf(stderr, &quot;%s(): Error in malloc()\n&quot;, __func__);
++		malloc_printf(&quot;%s(): Error in malloc()\n&quot;, __func__);
+ 		return (void *)1;
+ 	}
+ 
+ 	size = sizeof(arena_ind);
+ 	if ((err = mallctl(&quot;thread.arena&quot;, &amp;arena_ind, &amp;size, &amp;main_arena_ind,
+ 	    sizeof(main_arena_ind)))) {
+-		fprintf(stderr, &quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
++		malloc_printf(&quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
+ 		    strerror(err));
+ 		return (void *)1;
+ 	}
+@@ -35,7 +35,7 @@ thread_start(void *arg)
+ 	size = sizeof(arena_ind);
+ 	if ((err = mallctl(&quot;thread.arena&quot;, &amp;arena_ind, &amp;size, NULL,
+ 	    0))) {
+-		fprintf(stderr, &quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
++		malloc_printf(&quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
+ 		    strerror(err));
+ 		return (void *)1;
+ 	}
+@@ -55,18 +55,18 @@ main(void)
+ 	pthread_t threads[NTHREADS];
+ 	unsigned i;
+ 
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	p = malloc(1);
+ 	if (p == NULL) {
+-		fprintf(stderr, &quot;%s(): Error in malloc()\n&quot;, __func__);
++		malloc_printf(&quot;%s(): Error in malloc()\n&quot;, __func__);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+ 
+ 	size = sizeof(arena_ind);
+ 	if ((err = mallctl(&quot;thread.arena&quot;, &amp;arena_ind, &amp;size, NULL, 0))) {
+-		fprintf(stderr, &quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
++		malloc_printf(&quot;%s(): Error in mallctl(): %s\n&quot;, __func__,
+ 		    strerror(err));
+ 		ret = 1;
+ 		goto label_return;
+@@ -75,7 +75,7 @@ main(void)
+ 	for (i = 0; i &lt; NTHREADS; i++) {
+ 		if (pthread_create(&amp;threads[i], NULL, thread_start,
+ 		    (void *)&amp;arena_ind) != 0) {
+-			fprintf(stderr, &quot;%s(): Error in pthread_create()\n&quot;,
++			malloc_printf(&quot;%s(): Error in pthread_create()\n&quot;,
+ 			    __func__);
+ 			ret = 1;
+ 			goto label_return;
+@@ -86,6 +86,6 @@ main(void)
+ 		pthread_join(threads[i], (void *)&amp;ret);
+ 
+ label_return:
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (ret);
+ }
+diff --git a/test/thread_tcache_enabled.c b/test/thread_tcache_enabled.c
+index 0a3e45a..59b76a2 100644
+--- a/test/thread_tcache_enabled.c
++++ b/test/thread_tcache_enabled.c
+@@ -79,13 +79,13 @@ main(void)
+ 	int ret = 0;
+ 	pthread_t thread;
+ 
+-	fprintf(stderr, &quot;Test begin\n&quot;);
++	malloc_printf(&quot;Test begin\n&quot;);
+ 
+ 	thread_start(NULL);
+ 
+ 	if (pthread_create(&amp;thread, NULL, thread_start, NULL)
+ 	    != 0) {
+-		fprintf(stderr, &quot;%s(): Error in pthread_create()\n&quot;, __func__);
++		malloc_printf(&quot;%s(): Error in pthread_create()\n&quot;, __func__);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+@@ -95,7 +95,7 @@ main(void)
+ 
+ 	if (pthread_create(&amp;thread, NULL, thread_start, NULL)
+ 	    != 0) {
+-		fprintf(stderr, &quot;%s(): Error in pthread_create()\n&quot;, __func__);
++		malloc_printf(&quot;%s(): Error in pthread_create()\n&quot;, __func__);
+ 		ret = 1;
+ 		goto label_return;
+ 	}
+@@ -104,6 +104,6 @@ main(void)
+ 	thread_start(NULL);
+ 
+ label_return:
+-	fprintf(stderr, &quot;Test end\n&quot;);
++	malloc_printf(&quot;Test end\n&quot;);
+ 	return (ret);
+ }
+-- 
+1.7.10
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000281.html">[PATCH 6/7] Limit the number of flags directly given to the linker,	and refactor rpath
+</A></li>
+	<LI>Next message: <A HREF="000279.html">[PATCH 2/7] Use $(LIBS) instead of -lpthread when linking tests
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#283">[ date ]</a>
+              <a href="thread.html#283">[ thread ]</a>
+              <a href="subject.html#283">[ subject ]</a>
+              <a href="author.html#283">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

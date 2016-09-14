@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> pprof
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20pprof&In-Reply-To=%3C0A405525-9036-4976-A3A2-CD303BE8E1BD%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000518.html">
+   <LINK REL="Next"  HREF="000523.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>pprof</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20pprof&In-Reply-To=%3C0A405525-9036-4976-A3A2-CD303BE8E1BD%40canonware.com%3E"
+       TITLE="pprof">jasone at canonware.com
+       </A><BR>
+    <I>Sun Nov 25 10:15:14 PST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000518.html">pprof
+</A></li>
+        <LI>Next message: <A HREF="000523.html">dev branch
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#519">[ date ]</a>
+              <a href="thread.html#519">[ thread ]</a>
+              <a href="subject.html#519">[ subject ]</a>
+              <a href="author.html#519">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Nov 25, 2012, at 9:45 AM, Stefan &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">donotspammemail at me.com</A>&gt; wrote:
+&gt;<i> Is there a reason why you are repackaging pprof, isn't it supposed to come with gperftools ?
+</I>
+The heap profiling functionality in jemalloc isn't very useful without pprof.  Also, when I first added heap profiling to jemalloc, there was a critical bug in pprof that remained unfixed for quite some time (IIRC, more than six months, across two releases).  At the time, I had little choice but to package a patched pprof, and even when patches aren't necessary, I think it's a good idea to provide pprof with jemalloc.  However, I'm open to naming it something else to avoid packaging conflicts.  Any suggestions?  pprof-jemalloc is cumbersome, jeprof strikes me as presumptuous (though it matches the default prefix for the files jemalloc outputs), and that's about the extent of my naming creativity.
+
+Thanks,
+Jason
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000518.html">pprof
+</A></li>
+	<LI>Next message: <A HREF="000523.html">dev branch
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#519">[ date ]</a>
+              <a href="thread.html#519">[ thread ]</a>
+              <a href="subject.html#519">[ subject ]</a>
+              <a href="author.html#519">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>
