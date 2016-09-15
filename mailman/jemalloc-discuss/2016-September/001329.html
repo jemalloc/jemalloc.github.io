@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> Need help with jemalloc cores
+   </TITLE>
+   <LINK REL="Index" HREF="index.html" >
+   <LINK REL="made" HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20help%20with%20jemalloc%20cores&In-Reply-To=%3CE5439869-91AA-4303-852F-38C2CF15CB26%40canonware.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001326.html">
+   <LINK REL="Next"  HREF="001330.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>Need help with jemalloc cores</H1>
+    <B>Jason Evans</B> 
+    <A HREF="mailto:jemalloc-discuss%40canonware.com?Subject=Re%3A%20Need%20help%20with%20jemalloc%20cores&In-Reply-To=%3CE5439869-91AA-4303-852F-38C2CF15CB26%40canonware.com%3E"
+       TITLE="Need help with jemalloc cores">jasone at canonware.com
+       </A><BR>
+    <I>Wed Sep 14 16:34:42 PDT 2016</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001326.html">Need help with jemalloc cores
+</A></li>
+        <LI>Next message: <A HREF="001330.html">Mailing list retirement
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1329">[ date ]</a>
+              <a href="thread.html#1329">[ thread ]</a>
+              <a href="subject.html#1329">[ subject ]</a>
+              <a href="author.html#1329">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>On Sep 13, 2016, at 10:57 PM, Asmita Jagtap &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ajopensrc at gmail.com</A>&gt; wrote:
+&gt;<i> Forgot to mention the version, it is jemalloc 4.2.1 
+</I>&gt;<i> 
+</I>&gt;<i> On Wed, Sep 14, 2016 at 11:11 AM, Asmita Jagtap &lt;<A HREF="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">ajopensrc at gmail.com</A>&gt; wrote:
+</I>&gt;<i> Hi,
+</I>&gt;<i> 
+</I>&gt;<i> We are using jemalloc library (compiled with --enable-fill and --enable-debug options) in a multi-threaded daemon and seeing multiple cores during malloc/realloc with jemalloc library. The core files are approximately 61GB and 79GB in size, so this is typically seen under heavy memory usage situation. 
+</I>&gt;<i> 
+</I>&gt;<i> Are these issues in jemalloc code or the application code that is using jemalloc?
+</I>
+It's hard to say for sure whether this is an application bug or jemalloc bug.  Is it possible that the application is double-freeing a huge allocation?  If you're unable to narrow down the problem, I recommend running with a debug build of jemalloc to see if any assertions fail.  Hopefully that will help us determine where things first go wrong.
+
+Thanks,
+Jason
+
+P.S. I'm just about to retire this mailing list, so if you need to follow up on this thread, please create a new GitHub issue (<A HREF="https://github.com/jemalloc/jemalloc/issues">https://github.com/jemalloc/jemalloc/issues</A>), and refer to this thread's archive (e.g. <A HREF="http://jemalloc.net/mailman/jemalloc-discuss/2016-September/001326.html">http://jemalloc.net/mailman/jemalloc-discuss/2016-September/001326.html</A>).
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001326.html">Need help with jemalloc cores
+</A></li>
+	<LI>Next message: <A HREF="001330.html">Mailing list retirement
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1329">[ date ]</a>
+              <a href="thread.html#1329">[ thread ]</a>
+              <a href="subject.html#1329">[ subject ]</a>
+              <a href="author.html#1329">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="http://www.canonware.com/mailman/listinfo/jemalloc-discuss">More information about the jemalloc-discuss
+mailing list</a><br>
+</body></html>

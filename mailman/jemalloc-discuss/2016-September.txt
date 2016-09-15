@@ -784,3 +784,109 @@ On Fri, Sep 9, 2016 at 2:46 AM, Jason Evans <jasone at canonware.com> wrote:
 An HTML attachment was scrubbed...
 URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20160914/fb67b878/attachment.html>
 
+From jasone at canonware.com  Wed Sep 14 16:24:35 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 14 Sep 2016 16:24:35 -0700
+Subject: Jemalloc library is hitting Segmentation fault on CentOS-7
+In-Reply-To: <CAECJSJ4WMOdD_DNhqXXYjhYoFpCkrj+1+b1otX73d-=EOp3_gg@mail.gmail.com>
+References: <CAECJSJ7nFxHQ=rM1paoS9VYAFFaznYrs=vOTAD8vwD42gePZsg@mail.gmail.com>
+	<CAECJSJ4WMOdD_DNhqXXYjhYoFpCkrj+1+b1otX73d-=EOp3_gg@mail.gmail.com>
+Message-ID: <E2C03579-1463-467E-BDAB-34A303B83A54@canonware.com>
+
+On Aug 25, 2016, at 2:27 AM, Ramesh Sivaraman <ramesh.sivaraman at percona.com> wrote:
+> Forgot to mention version details
+> 
+> jemalloc.x86_64  : 3.6.0-3.el7 
+> 
+> On Thu, Aug 25, 2016 at 2:49 PM, Ramesh Sivaraman <ramesh.sivaraman at percona.com> wrote:
+> 
+> Jemalloc library is hitting  Segmentation fault on CentOS-7
+> 
+> With debug library Segmentation fault issue triggering with simple `ls` command.
+> 
+> $ export LD_PRELOAD=/usr/lib/debug/usr/lib64/libjemalloc.so.1.debug
+> $ ls
+> Segmentation fault (core dumped)
+> $
+> 
+> Also seeing a segmentation fault issue (same issue?) with non-debug jemalloc
+> 
+> $ export LD_PRELOAD=/usr/lib64/libjemalloc.so.1 
+> $ ./bin/mysqld --version
+> Segmentation fault (core dumped)
+> $ gdb ./bin/mysqld core.11345.mysqld.11 
+> [..]
+> (gdb) bt
+> +bt
+> #0  0x00007f1c21fa5964 in get_nprocs () from /lib64/libc.so.6
+> #1  0x00007f1c21f70b0c in sysconf () from /lib64/libc.so.6
+> #2  0x00007f1c26efebd0 in malloc_ncpus () at src/jemalloc.c:256
+> #3  malloc_init_hard () at src/jemalloc.c:776
+> #4  0x00007f1c26f01705 in malloc_init () at src/jemalloc.c:292
+> #5  calloc (num=1, size=32) at src/jemalloc.c:1123
+> #6  0x00007f1c22eb1690 in _dlerror_run () from /lib64/libdl.so.2
+> #7  0x00007f1c22eb1198 in dlsym () from /lib64/libdl.so.2
+> #8  0x00007f1c23f88fec in ?? () from /lib64/libasan.so.0
+> #9  0x00007f1c23f7b2c9 in ?? () from /lib64/libasan.so.0
+> #10 0x00007f1c23f7d91b in __asan_init_v1 () from /lib64/libasan.so.0
+> #11 0x00007f1c271426c3 in _dl_init_internal () from /lib64/ld-linux-x86-64.so.2
+> #12 0x00007f1c2713445a in _dl_start_user () from /lib64/ld-linux-x86-64.so.2
+> #13 0x0000000000000002 in ?? ()
+> #14 0x00007fff9d552740 in ?? ()
+> #15 0x00007fff9d55274d in ?? ()
+> #16 0x0000000000000000 in ?? ()
+> (gdb) 
+
+Tracking via GitHub:
+
+	https://github.com/jemalloc/jemalloc/issues/455
+
+Thanks,
+Jason
+
+
+From jasone at canonware.com  Wed Sep 14 16:34:42 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 14 Sep 2016 16:34:42 -0700
+Subject: Need help with jemalloc cores
+In-Reply-To: <CAP3En4PK9mRq6W9t8=qsDggOFxVuthzd--QbxeKXX2zDSSKpQA@mail.gmail.com>
+References: <CAP3En4P6UO6nnhUWXn6y0=6=DxuxVWO0pLRnOsjpZ9LnL_6d-Q@mail.gmail.com>
+	<CAP3En4PK9mRq6W9t8=qsDggOFxVuthzd--QbxeKXX2zDSSKpQA@mail.gmail.com>
+Message-ID: <E5439869-91AA-4303-852F-38C2CF15CB26@canonware.com>
+
+On Sep 13, 2016, at 10:57 PM, Asmita Jagtap <ajopensrc at gmail.com> wrote:
+> Forgot to mention the version, it is jemalloc 4.2.1 
+> 
+> On Wed, Sep 14, 2016 at 11:11 AM, Asmita Jagtap <ajopensrc at gmail.com> wrote:
+> Hi,
+> 
+> We are using jemalloc library (compiled with --enable-fill and --enable-debug options) in a multi-threaded daemon and seeing multiple cores during malloc/realloc with jemalloc library. The core files are approximately 61GB and 79GB in size, so this is typically seen under heavy memory usage situation. 
+> 
+> Are these issues in jemalloc code or the application code that is using jemalloc?
+
+It's hard to say for sure whether this is an application bug or jemalloc bug.  Is it possible that the application is double-freeing a huge allocation?  If you're unable to narrow down the problem, I recommend running with a debug build of jemalloc to see if any assertions fail.  Hopefully that will help us determine where things first go wrong.
+
+Thanks,
+Jason
+
+P.S. I'm just about to retire this mailing list, so if you need to follow up on this thread, please create a new GitHub issue (https://github.com/jemalloc/jemalloc/issues), and refer to this thread's archive (e.g. http://jemalloc.net/mailman/jemalloc-discuss/2016-September/001326.html).
+
+From jasone at canonware.com  Wed Sep 14 16:51:44 2016
+From: jasone at canonware.com (Jason Evans)
+Date: Wed, 14 Sep 2016 16:51:44 -0700
+Subject: Mailing list retirement
+Message-ID: <37449433-75F4-4A7A-B1B2-C1556F19479B@canonware.com>
+
+This mailing list is now retired, as part of consolidating all project management on GitHub.  The issues facility (https://github.com/jemalloc/jemalloc/issues) will now be used for all public communication, as documented in the "Project activity" section of the primary website, which is now at:
+
+	http://jemalloc.net/
+
+Note that the mailing list archives will remain available, currently at:
+
+	http://jemalloc.net/mailman/jemalloc-discuss/index.html
+
+Our communication has increasingly taken place on GitHub over the past couple of years, so for the most part this merely finalizes the transition.  I hope this will not be a burden for any of you, and I look forward to your ongoing collaboration.
+
+Thanks,
+Jason
+
