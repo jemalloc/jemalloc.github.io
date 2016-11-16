@@ -55,7 +55,7 @@ Subject: Re: jemalloc tuning help
 You can potentially mitigate the problem by reducing the number of arenas (only helps if per thread memory usage spikes are uncorrelated).  Another possibility is to segregate short- and long-lived objects into different arenas, but this requires that you have reliable (and ideally stable) knowledge of object lifetimes.  In practice, segregation is usually very difficult to maintain.  If you choose to go this direction, take a look at the &quot;arenas.extend&quot; mallctl (for creating an arena that contains long-lived objects), and the ALLOCM_ARENA(a) macro argument to the [r]allocm() functions.
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131115/c3f7e1df/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20131115/c3f7e1df/attachment.html</A>&gt;
+URL: &lt;<A HREF="http://jemalloc.net/mailman/jemalloc-discuss/attachments/20131115/c3f7e1df/attachment.html">http://jemalloc.net/mailman/jemalloc-discuss/attachments/20131115/c3f7e1df/attachment.html</A>&gt;
 </PRE>
 
 <!--endarticle-->

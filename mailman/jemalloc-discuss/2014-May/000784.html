@@ -39,7 +39,7 @@
 <PRE>Hello,
 
 
-Some time ago I ported jemalloc to work on old systems still using LinuxThreads. See this thread: <A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2013-October/000646.html">http://www.canonware.com/pipermail/jemalloc-discuss/2013-October/000646.html</A>
+Some time ago I ported jemalloc to work on old systems still using LinuxThreads. See this thread: <A HREF="http://jemalloc.net/mailman/jemalloc-discuss/2013-October/000646.html">http://jemalloc.net/mailman/jemalloc-discuss/2013-October/000646.html</A>
 
 
 It seems that with LinuxThreads the fork() implementation will call free during fork, between jemalloc_prefork and jemalloc_postfork_child. This can sometimes (very rarely) hang in a call to system() with a stack like the following:
@@ -79,14 +79,14 @@ Regards,
 Leonard
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.html">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.html</A>&gt;
+URL: &lt;<A HREF="http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.html">http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.html</A>&gt;
 -------------- next part --------------
 A non-text attachment was scrubbed...
 Name: track-jemalloc-forking.diff
 Type: text/x-patch
 Size: 2859 bytes
 Desc: track-jemalloc-forking.diff
-URL: &lt;<A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.bin">http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.bin</A>&gt;
+URL: &lt;<A HREF="http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.bin">http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140513/e23ac7bb/attachment.bin</A>&gt;
 </PRE>
 
 

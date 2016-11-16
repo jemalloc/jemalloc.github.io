@@ -56,7 +56,7 @@
 </I>&gt;<i> size field in chunks. Thoughts?
 </I>&gt;<i> 
 </I>&gt;<i> 1- <A HREF="https://bugzilla.mozilla.org/show_bug.cgi?id=683597">https://bugzilla.mozilla.org/show_bug.cgi?id=683597</A>
-</I>&gt;<i> 2- <A HREF="http://www.canonware.com/pipermail/jemalloc-discuss/2012-April/000221.html">http://www.canonware.com/pipermail/jemalloc-discuss/2012-April/000221.html</A>
+</I>&gt;<i> 2- <A HREF="http://jemalloc.net/mailman/jemalloc-discuss/2012-April/000221.html">http://jemalloc.net/mailman/jemalloc-discuss/2012-April/000221.html</A>
 </I>&gt;<i> 3- <A HREF="https://github.com/guilherme-pg/jemalloc/commit/9ca3ca5f92053f3e605f7b470ade6e53e8fa5160">https://github.com/guilherme-pg/jemalloc/commit/9ca3ca5f92053f3e605f7b470ade6e53e8fa5160</A>
 </I>
 The main reason for the current approach for huge allocation size classes is that even if jemalloc avoids allocating virtual memory for the trailing unneeded space, every chunk must start at a chunk alignment boundary, so the resulting virtual memory holes are unusable by jemalloc.  In principle these holes could be useful to some auxiliary allocator in applications that use mmap() directly, but that's not a common use case.  Furthermore, these virtual memory holes cause map fragmentation in the kernel-level virtual memory data structures, and such holes are especially harmful on Linux, which uses linear map scan algorithms in some critical paths.  We have strong pressure to actually map full chunks, so historically I held the opinion that if we're mapping the virtual memory, we might as well make it available to the application.

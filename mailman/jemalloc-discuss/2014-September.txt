@@ -39,7 +39,7 @@ Thanks,
 Dave Rigby
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140904/7d7acc4c/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140904/7d7acc4c/attachment.html>
 
 From jasone at canonware.com  Thu Sep  4 22:50:15 2014
 From: jasone at canonware.com (Jason Evans)
@@ -69,7 +69,7 @@ Thanks,
 Jason
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140904/eed1a3e7/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140904/eed1a3e7/attachment.html>
 
 From jasone at canonware.com  Fri Sep  5 14:40:08 2014
 From: jasone at canonware.com (Jason Evans)
@@ -99,7 +99,7 @@ On Aug 21, 2014, at 2:52 PM, Guilherme Goncalves <ggp at mozilla.com> wrote:
 > size field in chunks. Thoughts?
 > 
 > 1- https://bugzilla.mozilla.org/show_bug.cgi?id=683597
-> 2- http://www.canonware.com/pipermail/jemalloc-discuss/2012-April/000221.html
+> 2- http://jemalloc.net/mailman/jemalloc-discuss/2012-April/000221.html
 > 3- https://github.com/guilherme-pg/jemalloc/commit/9ca3ca5f92053f3e605f7b470ade6e53e8fa5160
 
 The main reason for the current approach for huge allocation size classes is that even if jemalloc avoids allocating virtual memory for the trailing unneeded space, every chunk must start at a chunk alignment boundary, so the resulting virtual memory holes are unusable by jemalloc.  In principle these holes could be useful to some auxiliary allocator in applications that use mmap() directly, but that's not a common use case.  Furthermore, these virtual memory holes cause map fragmentation in the kernel-level virtual memory data structures, and such holes are especially harmful on Linux, which uses linear map scan algorithms in some critical paths.  We have strong pressure to actually map full chunks, so historically I held the opinion that if we're mapping the virtual memory, we might as well make it available to the application.
@@ -185,7 +185,7 @@ Any help to make my writing clearer would be appreciated!
 -Bradley
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140909/5a9a8ca9/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140909/5a9a8ca9/attachment.html>
 
 From jasone at canonware.com  Tue Sep  9 11:25:08 2014
 From: jasone at canonware.com (Jason Evans)
@@ -270,7 +270,7 @@ Thanks,
 Dave
 
 
-[1]: http://www.canonware.com/pipermail/jemalloc-discuss/2013-November/000675.html
+[1]: http://jemalloc.net/mailman/jemalloc-discuss/2013-November/000675.html
 
 From mhall at mhcomputing.net  Mon Sep 22 22:37:44 2014
 From: mhall at mhcomputing.net (Matthew Hall)
@@ -537,7 +537,7 @@ On Wed, Sep 24, 2014 at 1:26 AM, Matthew Hall <mhall at mhcomputing.net> wrote:
 >
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140924/e2189842/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140924/e2189842/attachment.html>
 
 From mhall at mhcomputing.net  Wed Sep 24 00:21:45 2014
 From: mhall at mhcomputing.net (Matthew Hall)
@@ -650,7 +650,7 @@ Name: signature.asc
 Type: application/pgp-signature
 Size: 819 bytes
 Desc: OpenPGP digital signature
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20140924/8bb93aac/attachment.sig>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20140924/8bb93aac/attachment.sig>
 
 From jasone at canonware.com  Mon Sep 29 15:21:04 2014
 From: jasone at canonware.com (Jason Evans)

@@ -10,7 +10,7 @@ I am trying to match output from malloc_stats with output from top and also tryi
 What fields in the stats should be added to get the total virtual memory for my process ?
 
 Also is this link an accurate measurement of fragmentation for my process?
-http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html
+http://jemalloc.net/mailman/jemalloc-discuss/2014-April/000766.html
 
 from the link it seems active should be less than allocated, but I see otherwise. Is there a documentation somewhere to decipher this interesting output from jemalloc stats ?
 
@@ -42,7 +42,7 @@ active:     270594048
 mapped:     411041792
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150602/f0381804/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150602/f0381804/attachment.html>
 
 From jasone at canonware.com  Tue Jun  2 22:10:23 2015
 From: jasone at canonware.com (Jason Evans)
@@ -60,7 +60,7 @@ On Jun 2, 2015, at 11:25 AM, Mayank Kumar (mayankum) <mayankum at cisco.com <mai
 For the version of jemalloc you're using, virtual memory can be computed by multiplying the number of chunks times the chunk size -- 396 MiB in this case.
 
 > Also is this link an accurate measurement of fragmentation for my process?
-> http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html <http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html>
+> http://jemalloc.net/mailman/jemalloc-discuss/2014-April/000766.html <http://jemalloc.net/mailman/jemalloc-discuss/2014-April/000766.html>
 >  
 > from the link it seems active should be less than allocated, but I see otherwise. Is there a documentation somewhere to decipher this interesting output from jemalloc stats ?
 
@@ -88,7 +88,7 @@ The jemalloc manual documents all the statistics:
 Jason
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150602/b20249c8/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150602/b20249c8/attachment.html>
 
 From mayankum at cisco.com  Tue Jun  2 23:42:11 2015
 From: mayankum at cisco.com (Mayank Kumar (mayankum))
@@ -115,7 +115,7 @@ What fields in the stats should be added to get the total virtual memory for my 
 For the version of jemalloc you're using, virtual memory can be computed by multiplying the number of chunks times the chunk size -- 396 MiB in this case.
 
 Also is this link an accurate measurement of fragmentation for my process?
-http://www.canonware.com/pipermail/jemalloc-discuss/2014-April/000766.html
+http://jemalloc.net/mailman/jemalloc-discuss/2014-April/000766.html
 
 from the link it seems active should be less than allocated, but I see otherwise. Is there a documentation somewhere to decipher this interesting output from jemalloc stats ?
 
@@ -144,7 +144,7 @@ huge: nmalloc      ndalloc    allocated
 Jason
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150603/fcbc3a2e/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150603/fcbc3a2e/attachment.html>
 
 From cferris at google.com  Mon Jun  8 14:15:53 2015
 From: cferris at google.com (Christopher Ferris)
@@ -191,7 +191,7 @@ Christopher Ferris
 (cferris at google.com)
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150608/e2c735f1/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150608/e2c735f1/attachment.html>
 
 From danielmicay at gmail.com  Mon Jun  8 14:56:31 2015
 From: danielmicay at gmail.com (Daniel Micay)
@@ -254,7 +254,7 @@ Name: signature.asc
 Type: application/pgp-signature
 Size: 819 bytes
 Desc: OpenPGP digital signature
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150608/eb26bbef/attachment.sig>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150608/eb26bbef/attachment.sig>
 
 From cferris at google.com  Mon Jun 15 12:08:50 2015
 From: cferris at google.com (Christopher Ferris)
@@ -348,7 +348,7 @@ On Mon, Jun 8, 2015 at 2:56 PM, Daniel Micay <danielmicay at gmail.com> wrote:
 >
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150615/03a27b75/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150615/03a27b75/attachment.html>
 
 From stevecobb47 at yahoo.com  Fri Jun 19 16:03:03 2015
 From: stevecobb47 at yahoo.com (Steve Cobb)
@@ -367,7 +367,7 @@ Any help/pointers/comments will be greatly appreciated.
 Thanks//Steve
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150619/83613def/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150619/83613def/attachment.html>
 
 From MillerHenry at JohnDeere.com  Fri Jun 12 08:13:52 2015
 From: MillerHenry at JohnDeere.com (Miller Henry)
@@ -382,7 +382,7 @@ How can I figure this out?  Ideally I want a command I can run in a shell, but i
 
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150612/80f8385d/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150612/80f8385d/attachment.html>
 
 From congcche at cisco.com  Wed Jun 17 16:19:01 2015
 From: congcche at cisco.com (Congcong Chen (congcche))
@@ -404,5 +404,5 @@ Best,
 Congcong Chen
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: <http://www.canonware.com/pipermail/jemalloc-discuss/attachments/20150617/aa226608/attachment.html>
+URL: <http://jemalloc.net/mailman/jemalloc-discuss/attachments/20150617/aa226608/attachment.html>
 
