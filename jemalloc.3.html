@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<html><head><title>JEMALLOC</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"/></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="refentry"><a name="idm45638857488144"/><div class="titlepage"/><div class="refnamediv"><h2>Name</h2><p>jemalloc — general purpose memory allocation functions</p></div><div class="refsect1"><a name="library"/><h2>LIBRARY</h2><p>This manual describes jemalloc 4.5.0-0-g04380e79f1e2428bd0ad000bbc6e3d2dfc6b66a5.  More information
-    can be found at the <a class="ulink" href="http://jemalloc.net/" target="_top">jemalloc website</a>.</p></div><div class="refsynopsisdiv"><h2>SYNOPSIS</h2><div class="funcsynopsis"><pre class="funcsynopsisinfo">#include &lt;<code class="filename">jemalloc/jemalloc.h</code>&gt;</pre><div class="refsect2"><a name="idm45638853062640"/><h3>Standard API</h3><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">malloc</b>(</code></td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">calloc</b>(</code></td><td>size_t <var class="pdparam">number</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">int <b class="fsfunc">posix_memalign</b>(</code></td><td>void **<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">alignment</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">aligned_alloc</b>(</code></td><td>size_t <var class="pdparam">alignment</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">realloc</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">free</b>(</code></td><td>void *<var class="pdparam">ptr</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="refsect2"><a name="idm45638852535872"/><h3>Non-standard API</h3><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">mallocx</b>(</code></td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">rallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">size_t <b class="fsfunc">xallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">extra</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">size_t <b class="fsfunc">sallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">dallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">sdallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">size_t <b class="fsfunc">nallocx</b>(</code></td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">int <b class="fsfunc">mallctl</b>(</code></td><td>const char *<var class="pdparam">name</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">oldp</var>, </td></tr><tr><td> </td><td>size_t *<var class="pdparam">oldlenp</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">newp</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">newlen</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">int <b class="fsfunc">mallctlnametomib</b>(</code></td><td>const char *<var class="pdparam">name</var>, </td></tr><tr><td> </td><td>size_t *<var class="pdparam">mibp</var>, </td></tr><tr><td> </td><td>size_t *<var class="pdparam">miblenp</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">int <b class="fsfunc">mallctlbymib</b>(</code></td><td>const size_t *<var class="pdparam">mib</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">miblen</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">oldp</var>, </td></tr><tr><td> </td><td>size_t *<var class="pdparam">oldlenp</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">newp</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">newlen</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">malloc_stats_print</b>(</code></td><td>void <var class="pdparam">(*write_cb)</var>
+<html><head><title>JEMALLOC</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"/></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="refentry"><a name="idm45682574717776"/><div class="titlepage"/><div class="refnamediv"><h2>Name</h2><p>jemalloc — general purpose memory allocation functions</p></div><div class="refsect1"><a name="library"/><h2>LIBRARY</h2><p>This manual describes jemalloc 5.0.0-0-g5018fe3f0979b7f9db9930accdf7ee31071fd703.  More information
+    can be found at the <a class="ulink" href="http://jemalloc.net/" target="_top">jemalloc website</a>.</p></div><div class="refsynopsisdiv"><h2>SYNOPSIS</h2><div class="funcsynopsis"><pre class="funcsynopsisinfo">#include &lt;<code class="filename">jemalloc/jemalloc.h</code>&gt;</pre><div class="refsect2"><a name="idm45682572352208"/><h3>Standard API</h3><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">malloc</b>(</code></td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">calloc</b>(</code></td><td>size_t <var class="pdparam">number</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">int <b class="fsfunc">posix_memalign</b>(</code></td><td>void **<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">alignment</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">aligned_alloc</b>(</code></td><td>size_t <var class="pdparam">alignment</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">realloc</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">free</b>(</code></td><td>void *<var class="pdparam">ptr</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="refsect2"><a name="idm45682572760912"/><h3>Non-standard API</h3><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">mallocx</b>(</code></td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void *<b class="fsfunc">rallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">size_t <b class="fsfunc">xallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">extra</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">size_t <b class="fsfunc">sallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">dallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">sdallocx</b>(</code></td><td>void *<var class="pdparam">ptr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">size_t <b class="fsfunc">nallocx</b>(</code></td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>int <var class="pdparam">flags</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">int <b class="fsfunc">mallctl</b>(</code></td><td>const char *<var class="pdparam">name</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">oldp</var>, </td></tr><tr><td> </td><td>size_t *<var class="pdparam">oldlenp</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">newp</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">newlen</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">int <b class="fsfunc">mallctlnametomib</b>(</code></td><td>const char *<var class="pdparam">name</var>, </td></tr><tr><td> </td><td>size_t *<var class="pdparam">mibp</var>, </td></tr><tr><td> </td><td>size_t *<var class="pdparam">miblenp</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">int <b class="fsfunc">mallctlbymib</b>(</code></td><td>const size_t *<var class="pdparam">mib</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">miblen</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">oldp</var>, </td></tr><tr><td> </td><td>size_t *<var class="pdparam">oldlenp</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">newp</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">newlen</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">malloc_stats_print</b>(</code></td><td>void <var class="pdparam">(*write_cb)</var>
             <code>(</code>void *, const char *<code>)</code>
-          , </td></tr><tr><td> </td><td>void *<var class="pdparam">cbopaque</var>, </td></tr><tr><td> </td><td>const char *<var class="pdparam">opts</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">size_t <b class="fsfunc">malloc_usable_size</b>(</code></td><td>const void *<var class="pdparam">ptr</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">(*malloc_message)</b>(</code></td><td>void *<var class="pdparam">cbopaque</var>, </td></tr><tr><td> </td><td>const char *<var class="pdparam">s</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><p><span class="type">const char *</span><code class="varname">malloc_conf</code>;</p></div></div></div><div class="refsect1"><a name="description"/><h2>DESCRIPTION</h2><div class="refsect2"><a name="idm45638857561712"/><h3>Standard API</h3><p>The <code class="function">malloc()</code> function allocates
+          , </td></tr><tr><td> </td><td>void *<var class="pdparam">cbopaque</var>, </td></tr><tr><td> </td><td>const char *<var class="pdparam">opts</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">size_t <b class="fsfunc">malloc_usable_size</b>(</code></td><td>const void *<var class="pdparam">ptr</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">void <b class="fsfunc">(*malloc_message)</b>(</code></td><td>void *<var class="pdparam">cbopaque</var>, </td></tr><tr><td> </td><td>const char *<var class="pdparam">s</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div><p><span class="type">const char *</span><code class="varname">malloc_conf</code>;</p></div></div></div><div class="refsect1"><a name="description"/><h2>DESCRIPTION</h2><div class="refsect2"><a name="idm45682571302960"/><h3>Standard API</h3><p>The <code class="function">malloc()</code> function allocates
       <em class="parameter"><code>size</code></em> bytes of uninitialized memory.  The allocated
       space is suitably aligned (after possible pointer coercion) for storage
       of any type of object.</p><p>The <code class="function">calloc()</code> function allocates
@@ -38,7 +38,7 @@
       <code class="function">malloc()</code> for the specified size.</p><p>The <code class="function">free()</code> function causes the
       allocated memory referenced by <em class="parameter"><code>ptr</code></em> to be made
       available for future allocations.  If <em class="parameter"><code>ptr</code></em> is
-      <code class="constant">NULL</code>, no action occurs.</p></div><div class="refsect2"><a name="idm45638852192448"/><h3>Non-standard API</h3><p>The <code class="function">mallocx()</code>,
+      <code class="constant">NULL</code>, no action occurs.</p></div><div class="refsect2"><a name="idm45682569758720"/><h3>Non-standard API</h3><p>The <code class="function">mallocx()</code>,
       <code class="function">rallocx()</code>,
       <code class="function">xallocx()</code>,
       <code class="function">sallocx()</code>,
@@ -161,7 +161,7 @@ for (i = 0; i &lt; nbins; i++) {
 	len = sizeof(bin_size);
 	mallctlbymib(mib, miblen, (void *)&amp;bin_size, &amp;len, NULL, 0);
 	/* Do something with bin_size... */
-}</pre><p>The <code class="function">malloc_stats_print()</code> function writes
+}</pre><dt><a name="malloc_stats_print_opts"/></dt><dd/><p>The <code class="function">malloc_stats_print()</code> function writes
       summary statistics via the <em class="parameter"><code>write_cb</code></em> callback
       function pointer and <em class="parameter"><code>cbopaque</code></em> data passed to
       <em class="parameter"><code>write_cb</code></em>, or <code class="function">malloc_message()</code>
@@ -176,14 +176,15 @@ for (i = 0; i &lt; nbins; i++) {
       <code class="function">mallctl*()</code> functions internally, so inconsistent
       statistics can be reported if multiple threads use these functions
       simultaneously.  If <code class="option">--enable-stats</code> is specified during
-      configuration, <span class="quote">“<span class="quote">m</span>”</span> and <span class="quote">“<span class="quote">a</span>”</span> can be specified to
-      omit merged arena and per arena statistics, respectively;
-      <span class="quote">“<span class="quote">b</span>”</span>, <span class="quote">“<span class="quote">l</span>”</span>, and <span class="quote">“<span class="quote">h</span>”</span> can be specified
-      to omit per size class statistics for bins, large objects, and huge
-      objects, respectively.  Unrecognized characters are silently ignored.
-      Note that thread caching may prevent some statistics from being completely
-      up to date, since extra locking would be required to merge counters that
-      track thread cache operations.</p><p>The <code class="function">malloc_usable_size()</code> function
+      configuration, <span class="quote">“<span class="quote">m</span>”</span>, <span class="quote">“<span class="quote">d</span>”</span>, and <span class="quote">“<span class="quote">a</span>”</span>
+      can be specified to omit merged arena, destroyed merged arena, and per
+      arena statistics, respectively; <span class="quote">“<span class="quote">b</span>”</span> and <span class="quote">“<span class="quote">l</span>”</span> can
+      be specified to omit per size class statistics for bins and large objects,
+      respectively; <span class="quote">“<span class="quote">x</span>”</span> can be specified to omit all mutex
+      statistics.  Unrecognized characters are silently ignored.  Note that
+      thread caching may prevent some statistics from being completely up to
+      date, since extra locking would be required to merge counters that track
+      thread cache operations.</p><p>The <code class="function">malloc_usable_size()</code> function
       returns the usable size of the allocation pointed to by
       <em class="parameter"><code>ptr</code></em>.  The return value may be larger than the size
       that was requested during allocation.  The
@@ -232,34 +233,26 @@ for (i = 0; i &lt; nbins; i++) {
     substantially more arenas than the default is not likely to improve
     performance, mainly due to reduced cache performance.  However, it may make
     sense to reduce the number of arenas if an application does not make much
-    use of the allocation functions.</p><p>In addition to multiple arenas, unless
-    <code class="option">--disable-tcache</code> is specified during configuration, this
-    allocator supports thread-specific caching for small and large objects, in
-    order to make it possible to completely avoid synchronization for most
-    allocation requests.  Such caching allows very fast allocation in the
-    common case, but it increases memory usage and fragmentation, since a
-    bounded number of objects can remain allocated in each thread cache.</p><p>Memory is conceptually broken into equal-sized chunks, where the chunk
-    size is a power of two that is greater than the page size.  Chunks are
-    always aligned to multiples of the chunk size.  This alignment makes it
-    possible to find metadata for user objects very quickly.  User objects are
-    broken into three categories according to size: small, large, and huge.
-    Multiple small and large objects can reside within a single chunk, whereas
-    huge objects each have one or more chunks backing them.  Each chunk that
-    contains small and/or large objects tracks its contents as runs of
-    contiguous pages (unused, backing a set of small objects, or backing one
-    large object).  The combination of chunk alignment and chunk page maps makes
-    it possible to determine all metadata regarding small and large allocations
-    in constant time.</p><p>Small objects are managed in groups by page runs.  Each run maintains
+    use of the allocation functions.</p><p>In addition to multiple arenas, this allocator supports
+    thread-specific caching, in order to make it possible to completely avoid
+    synchronization for most allocation requests.  Such caching allows very fast
+    allocation in the common case, but it increases memory usage and
+    fragmentation, since a bounded number of objects can remain allocated in
+    each thread cache.</p><p>Memory is conceptually broken into extents.  Extents are always
+    aligned to multiples of the page size.  This alignment makes it possible to
+    find metadata for user objects quickly.  User objects are broken into two
+    categories according to size: small and large.  Contiguous small objects
+    comprise a slab, which resides within a single extent, whereas large objects
+    each have their own extents backing them.</p><p>Small objects are managed in groups by slabs.  Each slab maintains
     a bitmap to track which regions are in use.  Allocation requests that are no
     more than half the quantum (8 or 16, depending on architecture) are rounded
     up to the nearest power of two that is at least <code class="code">sizeof(<span class="type">double</span>)</code>.  All other object size
     classes are multiples of the quantum, spaced such that there are four size
     classes for each doubling in size, which limits internal fragmentation to
     approximately 20% for all but the smallest size classes.  Small size classes
-    are smaller than four times the page size, large size classes are smaller
-    than the chunk size (see the <a class="link" href="#opt.lg_chunk"><quote><code class="mallctl">opt.lg_chunk</code></quote></a> option), and
-    huge size classes extend from the chunk size up to the largest size class
-    that does not exceed <code class="constant">PTRDIFF_MAX</code>.</p><p>Allocations are packed tightly together, which can be an issue for
+    are smaller than four times the page size, and large size classes extend
+    from four times the page size up to the largest size class that does not
+    exceed <code class="constant">PTRDIFF_MAX</code>.</p><p>Allocations are packed tightly together, which can be an issue for
     multi-threaded applications.  If you need to assure that allocations do not
     suffer from cacheline sharing, round your allocation requests up to the
     nearest multiple of the cacheline size, or specify cacheline alignment when
@@ -275,26 +268,37 @@ for (i = 0; i &lt; nbins; i++) {
     trivially succeeds in place as long as the pre-size and post-size both round
     up to the same size class.  No other API guarantees are made regarding
     in-place resizing, but the current implementation also tries to resize large
-    and huge allocations in place, as long as the pre-size and post-size are
-    both large or both huge.  In such cases shrinkage always succeeds for large
-    size classes, but for huge size classes the chunk allocator must support
-    splitting (see <a class="link" href="#arena.i.chunk_hooks"><quote><code class="mallctl">arena.&lt;i&gt;.chunk_hooks</code></quote></a>).
-    Growth only succeeds if the trailing memory is currently available, and
-    additionally for huge size classes the chunk allocator must support
-    merging.</p><p>Assuming 2 MiB chunks, 4 KiB pages, and a 16-byte quantum on a
-    64-bit system, the size classes in each category are as shown in <a class="xref" href="#size_classes" title="Table 1. Size classes">Table 1</a>.</p><div class="table"><a name="size_classes"/><p class="title"><b>Table 1. Size classes</b></p><div class="table-contents"><table class="table" summary="Size classes" border="1"><colgroup><col align="left" class="c1"/><col align="right" class="c2"/><col align="left" class="c3"/></colgroup><thead><tr><th align="left">Category</th><th align="right">Spacing</th><th align="left">Size</th></tr></thead><tbody><tr><td rowspan="9" align="left">Small</td><td align="right">lg</td><td align="left">[8]</td></tr><tr><td align="right">16</td><td align="left">[16, 32, 48, 64, 80, 96, 112, 128]</td></tr><tr><td align="right">32</td><td align="left">[160, 192, 224, 256]</td></tr><tr><td align="right">64</td><td align="left">[320, 384, 448, 512]</td></tr><tr><td align="right">128</td><td align="left">[640, 768, 896, 1024]</td></tr><tr><td align="right">256</td><td align="left">[1280, 1536, 1792, 2048]</td></tr><tr><td align="right">512</td><td align="left">[2560, 3072, 3584, 4096]</td></tr><tr><td align="right">1 KiB</td><td align="left">[5 KiB, 6 KiB, 7 KiB, 8 KiB]</td></tr><tr><td align="right">2 KiB</td><td align="left">[10 KiB, 12 KiB, 14 KiB]</td></tr><tr><td rowspan="8" align="left">Large</td><td align="right">2 KiB</td><td align="left">[16 KiB]</td></tr><tr><td align="right">4 KiB</td><td align="left">[20 KiB, 24 KiB, 28 KiB, 32 KiB]</td></tr><tr><td align="right">8 KiB</td><td align="left">[40 KiB, 48 KiB, 54 KiB, 64 KiB]</td></tr><tr><td align="right">16 KiB</td><td align="left">[80 KiB, 96 KiB, 112 KiB, 128 KiB]</td></tr><tr><td align="right">32 KiB</td><td align="left">[160 KiB, 192 KiB, 224 KiB, 256 KiB]</td></tr><tr><td align="right">64 KiB</td><td align="left">[320 KiB, 384 KiB, 448 KiB, 512 KiB]</td></tr><tr><td align="right">128 KiB</td><td align="left">[640 KiB, 768 KiB, 896 KiB, 1 MiB]</td></tr><tr><td align="right">256 KiB</td><td align="left">[1280 KiB, 1536 KiB, 1792 KiB]</td></tr><tr><td rowspan="9" align="left">Huge</td><td align="right">256 KiB</td><td align="left">[2 MiB]</td></tr><tr><td align="right">512 KiB</td><td align="left">[2560 KiB, 3 MiB, 3584 KiB, 4 MiB]</td></tr><tr><td align="right">1 MiB</td><td align="left">[5 MiB, 6 MiB, 7 MiB, 8 MiB]</td></tr><tr><td align="right">2 MiB</td><td align="left">[10 MiB, 12 MiB, 14 MiB, 16 MiB]</td></tr><tr><td align="right">4 MiB</td><td align="left">[20 MiB, 24 MiB, 28 MiB, 32 MiB]</td></tr><tr><td align="right">8 MiB</td><td align="left">[40 MiB, 48 MiB, 56 MiB, 64 MiB]</td></tr><tr><td align="right">...</td><td align="left">...</td></tr><tr><td align="right">512 PiB</td><td align="left">[2560 PiB, 3 EiB, 3584 PiB, 4 EiB]</td></tr><tr><td align="right">1 EiB</td><td align="left">[5 EiB, 6 EiB, 7 EiB]</td></tr></tbody></table></div></div><br class="table-break"/></div><div class="refsect1"><a name="mallctl_namespace"/><h2>MALLCTL NAMESPACE</h2><p>The following names are defined in the namespace accessible via the
-    <code class="function">mallctl*()</code> functions.  Value types are
-    specified in parentheses, their readable/writable statuses are encoded as
+    allocations in place, as long as the pre-size and post-size are both large.
+    For shrinkage to succeed, the extent allocator must support splitting (see
+    <a class="link" href="#arena.i.extent_hooks"><quote><code class="mallctl">arena.&lt;i&gt;.extent_hooks</code></quote></a>).
+    Growth only succeeds if the trailing memory is currently available, and the
+    extent allocator supports merging.</p><p>Assuming 4 KiB pages and a 16-byte quantum on a 64-bit system, the
+    size classes in each category are as shown in <a class="xref" href="#size_classes" title="Table 1. Size classes">Table 1</a>.</p><div class="table"><a name="size_classes"/><p class="title"><b>Table 1. Size classes</b></p><div class="table-contents"><table class="table" summary="Size classes" border="1"><colgroup><col align="left" class="c1"/><col align="right" class="c2"/><col align="left" class="c3"/></colgroup><thead><tr><th align="left">Category</th><th align="right">Spacing</th><th align="left">Size</th></tr></thead><tbody><tr><td rowspan="9" align="left">Small</td><td align="right">lg</td><td align="left">[8]</td></tr><tr><td align="right">16</td><td align="left">[16, 32, 48, 64, 80, 96, 112, 128]</td></tr><tr><td align="right">32</td><td align="left">[160, 192, 224, 256]</td></tr><tr><td align="right">64</td><td align="left">[320, 384, 448, 512]</td></tr><tr><td align="right">128</td><td align="left">[640, 768, 896, 1024]</td></tr><tr><td align="right">256</td><td align="left">[1280, 1536, 1792, 2048]</td></tr><tr><td align="right">512</td><td align="left">[2560, 3072, 3584, 4096]</td></tr><tr><td align="right">1 KiB</td><td align="left">[5 KiB, 6 KiB, 7 KiB, 8 KiB]</td></tr><tr><td align="right">2 KiB</td><td align="left">[10 KiB, 12 KiB, 14 KiB]</td></tr><tr><td rowspan="16" align="left">Large</td><td align="right">2 KiB</td><td align="left">[16 KiB]</td></tr><tr><td align="right">4 KiB</td><td align="left">[20 KiB, 24 KiB, 28 KiB, 32 KiB]</td></tr><tr><td align="right">8 KiB</td><td align="left">[40 KiB, 48 KiB, 54 KiB, 64 KiB]</td></tr><tr><td align="right">16 KiB</td><td align="left">[80 KiB, 96 KiB, 112 KiB, 128 KiB]</td></tr><tr><td align="right">32 KiB</td><td align="left">[160 KiB, 192 KiB, 224 KiB, 256 KiB]</td></tr><tr><td align="right">64 KiB</td><td align="left">[320 KiB, 384 KiB, 448 KiB, 512 KiB]</td></tr><tr><td align="right">128 KiB</td><td align="left">[640 KiB, 768 KiB, 896 KiB, 1 MiB]</td></tr><tr><td align="right">256 KiB</td><td align="left">[1280 KiB, 1536 KiB, 1792 KiB, 2 MiB]</td></tr><tr><td align="right">512 KiB</td><td align="left">[2560 KiB, 3 MiB, 3584 KiB, 4 MiB]</td></tr><tr><td align="right">1 MiB</td><td align="left">[5 MiB, 6 MiB, 7 MiB, 8 MiB]</td></tr><tr><td align="right">2 MiB</td><td align="left">[10 MiB, 12 MiB, 14 MiB, 16 MiB]</td></tr><tr><td align="right">4 MiB</td><td align="left">[20 MiB, 24 MiB, 28 MiB, 32 MiB]</td></tr><tr><td align="right">8 MiB</td><td align="left">[40 MiB, 48 MiB, 56 MiB, 64 MiB]</td></tr><tr><td align="right">...</td><td align="left">...</td></tr><tr><td align="right">512 PiB</td><td align="left">[2560 PiB, 3 EiB, 3584 PiB, 4 EiB]</td></tr><tr><td align="right">1 EiB</td><td align="left">[5 EiB, 6 EiB, 7 EiB]</td></tr></tbody></table></div></div><br class="table-break"/></div><div class="refsect1"><a name="mallctl_namespace"/><h2>MALLCTL NAMESPACE</h2><p>The following names are defined in the namespace accessible via the
+    <code class="function">mallctl*()</code> functions.  Value types are specified in
+    parentheses, their readable/writable statuses are encoded as
     <code class="literal">rw</code>, <code class="literal">r-</code>, <code class="literal">-w</code>, or
     <code class="literal">--</code>, and required build configuration flags follow, if
     any.  A name element encoded as <code class="literal">&lt;i&gt;</code> or
     <code class="literal">&lt;j&gt;</code> indicates an integer component, where the
     integer varies from 0 to some upper value that must be determined via
-    introspection.  In the case of <quote><code class="mallctl">stats.arenas.&lt;i&gt;.*</code></quote>,
-    <code class="literal">&lt;i&gt;</code> equal to <a class="link" href="#arenas.narenas"><quote><code class="mallctl">arenas.narenas</code></quote></a> can be
-    used to access the summation of statistics from all arenas.  Take special
-    note of the <a class="link" href="#epoch"><quote><code class="mallctl">epoch</code></quote></a> mallctl,
-    which controls refreshing of cached dynamic statistics.</p><div class="variablelist"><dl class="variablelist"><dt><a name="version"/><span class="term">
+    introspection.  In the case of <quote><code class="mallctl">stats.arenas.&lt;i&gt;.*</code></quote>
+    and <quote><code class="mallctl">arena.&lt;i&gt;.{initialized,purge,decay,dss}</code></quote>,
+    <code class="literal">&lt;i&gt;</code> equal to
+    <code class="constant">MALLCTL_ARENAS_ALL</code> can be used to operate on all arenas
+    or access the summation of statistics from all arenas; similarly
+    <code class="literal">&lt;i&gt;</code> equal to
+    <code class="constant">MALLCTL_ARENAS_DESTROYED</code> can be used to access the
+    summation of statistics from all destroyed arenas.  These constants can be
+    utilized either via <code class="function">mallctlnametomib()</code> followed by
+    <code class="function">mallctlbymib()</code>, or via code such as the following:
+    </p><pre class="programlisting">
+#define STRINGIFY_HELPER(x) #x
+#define STRINGIFY(x) STRINGIFY_HELPER(x)
+
+mallctl("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".decay",
+    NULL, NULL, NULL, 0);</pre><p>
+    Take special note of the <a class="link" href="#epoch"><quote><code class="mallctl">epoch</code></quote></a> mallctl, which controls
+    refreshing of cached dynamic statistics.</p><div class="variablelist"><dl class="variablelist"><dt><a name="version"/><span class="term">
           <quote><code class="mallctl">version</code></quote>
           (<span class="type">const char *</span>)
           <code class="literal">r-</code>
@@ -305,7 +309,21 @@ for (i = 0; i &lt; nbins; i++) {
         </span></dt><dd><p>If a value is passed in, refresh the data from which
         the <code class="function">mallctl*()</code> functions report values,
         and increment the epoch.  Return the current epoch.  This is useful for
-        detecting whether another thread caused a refresh.</p></dd><dt><a name="config.cache_oblivious"/><span class="term">
+        detecting whether another thread caused a refresh.</p></dd><dt><a name="background_thread"/><span class="term">
+          <quote><code class="mallctl">background_thread</code></quote>
+          (<span class="type">bool</span>)
+          <code class="literal">rw</code>
+        </span></dt><dd><p>Enable/disable internal background worker threads.  When
+        set to true, background threads are created on demand (the number of
+        background threads will be no more than the number of CPUs or active
+        arenas).  Threads run periodically, and handle <a class="link" href="#arena.i.decay">purging</a> asynchronously.  When switching
+        off, background threads are terminated synchronously.  Note that after
+        <span class="citerefentry"><span class="refentrytitle">fork</span>(2)</span>
+        function, the state in the child process will be disabled regardless
+        the state in parent process. See <a class="link" href="#stats.background_thread.num_threads"><quote><code class="mallctl">stats.background_thread</code></quote></a>
+        for related stats.  <a class="link" href="#opt.background_thread"><quote><code class="mallctl">opt.background_thread</code></quote></a>
+        can be used to set the default option.  This option is only available on
+        selected pthread-based platforms.</p></dd><dt><a name="config.cache_oblivious"/><span class="term">
           <quote><code class="mallctl">config.cache_oblivious</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
@@ -331,12 +349,7 @@ for (i = 0; i &lt; nbins; i++) {
           <code class="literal">r-</code>
         </span></dt><dd><p>Embedded configure-time-specified run-time options
         string, empty unless <code class="option">--with-malloc-conf</code> was specified
-        during build configuration.</p></dd><dt><a name="config.munmap"/><span class="term">
-          <quote><code class="mallctl">config.munmap</code></quote>
-          (<span class="type">bool</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p><code class="option">--enable-munmap</code> was specified during
-        build configuration.</p></dd><dt><a name="config.prof"/><span class="term">
+        during build configuration.</p></dd><dt><a name="config.prof"/><span class="term">
           <quote><code class="mallctl">config.prof</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
@@ -356,32 +369,17 @@ for (i = 0; i &lt; nbins; i++) {
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p><code class="option">--enable-stats</code> was specified during
-        build configuration.</p></dd><dt><a name="config.tcache"/><span class="term">
-          <quote><code class="mallctl">config.tcache</code></quote>
-          (<span class="type">bool</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p><code class="option">--disable-tcache</code> was not specified
-        during build configuration.</p></dd><dt><a name="config.thp"/><span class="term">
+        build configuration.</p></dd><dt><a name="config.thp"/><span class="term">
           <quote><code class="mallctl">config.thp</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p><code class="option">--disable-thp</code> was not specified
         during build configuration, and the system supports transparent huge
-        page manipulation.</p></dd><dt><a name="config.tls"/><span class="term">
-          <quote><code class="mallctl">config.tls</code></quote>
-          (<span class="type">bool</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p><code class="option">--disable-tls</code> was not specified during
-        build configuration.</p></dd><dt><a name="config.utrace"/><span class="term">
+        page manipulation.</p></dd><dt><a name="config.utrace"/><span class="term">
           <quote><code class="mallctl">config.utrace</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p><code class="option">--enable-utrace</code> was specified during
-        build configuration.</p></dd><dt><a name="config.valgrind"/><span class="term">
-          <quote><code class="mallctl">config.valgrind</code></quote>
-          (<span class="type">bool</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p><code class="option">--enable-valgrind</code> was specified during
         build configuration.</p></dd><dt><a name="config.xmalloc"/><span class="term">
           <quote><code class="mallctl">config.xmalloc</code></quote>
           (<span class="type">bool</span>)
@@ -392,10 +390,36 @@ for (i = 0; i &lt; nbins; i++) {
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p>Abort-on-warning enabled/disabled.  If true, most
-        warnings are fatal.  The process will call
+        warnings are fatal.  Note that runtime option warnings are not included
+        (see <a class="link" href="#opt.abort_conf"><quote><code class="mallctl">opt.abort_conf</code></quote></a> for
+        that). The process will call
         <span class="citerefentry"><span class="refentrytitle">abort</span>(3)</span> in these cases.  This option is
         disabled by default unless <code class="option">--enable-debug</code> is
         specified during configuration, in which case it is enabled by default.
+        </p></dd><dt><a name="opt.abort_conf"/><span class="term">
+          <quote><code class="mallctl">opt.abort_conf</code></quote>
+          (<span class="type">bool</span>)
+          <code class="literal">r-</code>
+        </span></dt><dd><p>Abort-on-invalid-configuration enabled/disabled.  If
+        true, invalid runtime options are fatal.  The process will call
+        <span class="citerefentry"><span class="refentrytitle">abort</span>(3)</span> in these cases.  This option is
+        disabled by default unless <code class="option">--enable-debug</code> is
+        specified during configuration, in which case it is enabled by default.
+        </p></dd><dt><a name="opt.retain"/><span class="term">
+          <quote><code class="mallctl">opt.retain</code></quote>
+          (<span class="type">bool</span>)
+          <code class="literal">r-</code>
+        </span></dt><dd><p>If true, retain unused virtual memory for later reuse
+        rather than discarding it by calling
+        <span class="citerefentry"><span class="refentrytitle">munmap</span>(2)</span> or equivalent (see <a class="link" href="#stats.retained">stats.retained</a> for related details).
+        This option is disabled by default unless discarding virtual memory is
+        known to trigger
+        platform-specific performance problems, e.g. for [64-bit] Linux, which
+        has a quirk in its virtual memory allocation algorithm that causes
+        semi-permanent VM map holes under normal jemalloc operation.  Although
+        <span class="citerefentry"><span class="refentrytitle">munmap</span>(2)</span> causes issues on 32-bit Linux as
+        well, retaining virtual memory for 32-bit Linux is disabled by default
+        due to the practical possibility of address space exhaustion.
         </p></dd><dt><a name="opt.dss"/><span class="term">
           <quote><code class="mallctl">opt.dss</code></quote>
           (<span class="type">const char *</span>)
@@ -409,62 +433,76 @@ for (i = 0; i &lt; nbins; i++) {
         supported.  The default is <span class="quote">“<span class="quote">secondary</span>”</span> if
         <span class="citerefentry"><span class="refentrytitle">sbrk</span>(2)</span> is supported by the operating
         system; <span class="quote">“<span class="quote">disabled</span>”</span> otherwise.
-        </p></dd><dt><a name="opt.lg_chunk"/><span class="term">
-          <quote><code class="mallctl">opt.lg_chunk</code></quote>
-          (<span class="type">size_t</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p>Virtual memory chunk size (log base 2).  If a chunk
-        size outside the supported size range is specified, the size is
-        silently clipped to the minimum/maximum supported size.  The default
-        chunk size is 2 MiB (2^21).
         </p></dd><dt><a name="opt.narenas"/><span class="term">
           <quote><code class="mallctl">opt.narenas</code></quote>
           (<span class="type">unsigned</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p>Maximum number of arenas to use for automatic
         multiplexing of threads and arenas.  The default is four times the
-        number of CPUs, or one if there is a single CPU.</p></dd><dt><a name="opt.purge"/><span class="term">
-          <quote><code class="mallctl">opt.purge</code></quote>
+        number of CPUs, or one if there is a single CPU.</p></dd><dt><a name="opt.percpu_arena"/><span class="term">
+          <quote><code class="mallctl">opt.percpu_arena</code></quote>
           (<span class="type">const char *</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Purge mode is “ratio” (default) or
-        “decay”.  See <a class="link" href="#opt.lg_dirty_mult"><quote><code class="mallctl">opt.lg_dirty_mult</code></quote></a>
-        for details of the ratio mode.  See <a class="link" href="#opt.decay_time"><quote><code class="mallctl">opt.decay_time</code></quote></a> for
-        details of the decay mode.</p></dd><dt><a name="opt.lg_dirty_mult"/><span class="term">
-          <quote><code class="mallctl">opt.lg_dirty_mult</code></quote>
+        </span></dt><dd><p>Per CPU arena mode.  Use the <span class="quote">“<span class="quote">percpu</span>”</span>
+        setting to enable this feature, which uses number of CPUs to determine
+        number of arenas, and bind threads to arenas dynamically based on the
+        CPU the thread runs on currently.  <span class="quote">“<span class="quote">phycpu</span>”</span> setting uses
+        one arena per physical CPU, which means the two hyper threads on the
+        same CPU share one arena.  Note that no runtime checking regarding the
+        availability of hyper threading is done at the moment.  When set to
+        <span class="quote">“<span class="quote">disabled</span>”</span>, narenas and thread to arena association will
+        not be impacted by this option.  The default is <span class="quote">“<span class="quote">disabled</span>”</span>.
+        </p></dd><dt><a name="opt.background_thread"/><span class="term">
+          <quote><code class="mallctl">opt.background_thread</code></quote>
+          (<span class="type">const bool</span>)
+          <code class="literal">r-</code>
+        </span></dt><dd><p>Internal background worker threads enabled/disabled. See
+        <a class="link" href="#background_thread">background_thread</a> for dynamic
+        control options and details.  This option is disabled by
+        default.</p></dd><dt><a name="opt.dirty_decay_ms"/><span class="term">
+          <quote><code class="mallctl">opt.dirty_decay_ms</code></quote>
           (<span class="type">ssize_t</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Per-arena minimum ratio (log base 2) of active to dirty
-        pages.  Some dirty unused pages may be allowed to accumulate, within
-        the limit set by the ratio (or one chunk worth of dirty pages,
-        whichever is greater), before informing the kernel about some of those
-        pages via <span class="citerefentry"><span class="refentrytitle">madvise</span>(2)</span> or a similar system call.  This
-        provides the kernel with sufficient information to recycle dirty pages
-        if physical memory becomes scarce and the pages remain unused.  The
-        default minimum ratio is 8:1 (2^3:1); an option value of -1 will
-        disable dirty page purging.  See <a class="link" href="#arenas.lg_dirty_mult"><quote><code class="mallctl">arenas.lg_dirty_mult</code></quote></a>
-        and <a class="link" href="#arena.i.lg_dirty_mult"><quote><code class="mallctl">arena.&lt;i&gt;.lg_dirty_mult</code></quote></a>
-        for related dynamic control options.</p></dd><dt><a name="opt.decay_time"/><span class="term">
-          <quote><code class="mallctl">opt.decay_time</code></quote>
+        </span></dt><dd><p>Approximate time in milliseconds from the creation of a
+        set of unused dirty pages until an equivalent set of unused dirty pages
+        is purged (i.e. converted to muzzy via e.g.
+        <code class="function">madvise(<em class="parameter"><code>...</code></em><em class="parameter"><code><code class="constant">MADV_FREE</code></code></em>)</code>
+        if supported by the operating system, or converted to clean otherwise)
+        and/or reused.  Dirty pages are defined as previously having been
+        potentially written to by the application, and therefore consuming
+        physical memory, yet having no current use.  The pages are incrementally
+        purged according to a sigmoidal decay curve that starts and ends with
+        zero purge rate.  A decay time of 0 causes all unused dirty pages to be
+        purged immediately upon creation.  A decay time of -1 disables purging.
+        The default decay time is 10 seconds.  See <a class="link" href="#arenas.dirty_decay_ms"><quote><code class="mallctl">arenas.dirty_decay_ms</code></quote></a>
+        and <a class="link" href="#arena.i.muzzy_decay_ms"><quote><code class="mallctl">arena.&lt;i&gt;.muzzy_decay_ms</code></quote></a>
+        for related dynamic control options.  See <a class="link" href="#opt.muzzy_decay_ms"><quote><code class="mallctl">opt.muzzy_decay_ms</code></quote></a>
+        for a description of muzzy pages.</p></dd><dt><a name="opt.muzzy_decay_ms"/><span class="term">
+          <quote><code class="mallctl">opt.muzzy_decay_ms</code></quote>
           (<span class="type">ssize_t</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Approximate time in seconds from the creation of a set
-        of unused dirty pages until an equivalent set of unused dirty pages is
-        purged and/or reused.  The pages are incrementally purged according to a
-        sigmoidal decay curve that starts and ends with zero purge rate.  A
-        decay time of 0 causes all unused dirty pages to be purged immediately
-        upon creation.  A decay time of -1 disables purging.  The default decay
-        time is 10 seconds.  See <a class="link" href="#arenas.decay_time"><quote><code class="mallctl">arenas.decay_time</code></quote></a>
-        and <a class="link" href="#arena.i.decay_time"><quote><code class="mallctl">arena.&lt;i&gt;.decay_time</code></quote></a>
-        for related dynamic control options.
-        </p></dd><dt><a name="opt.stats_print"/><span class="term">
+        </span></dt><dd><p>Approximate time in milliseconds from the creation of a
+        set of unused muzzy pages until an equivalent set of unused muzzy pages
+        is purged (i.e. converted to clean) and/or reused.  Muzzy pages are
+        defined as previously having been unused dirty pages that were
+        subsequently purged in a manner that left them subject to the
+        reclamation whims of the operating system (e.g.
+        <code class="function">madvise(<em class="parameter"><code>...</code></em><em class="parameter"><code><code class="constant">MADV_FREE</code></code></em>)</code>),
+        and therefore in an indeterminate state.  The pages are incrementally
+        purged according to a sigmoidal decay curve that starts and ends with
+        zero purge rate.  A decay time of 0 causes all unused muzzy pages to be
+        purged immediately upon creation.  A decay time of -1 disables purging.
+        The default decay time is 10 seconds.  See <a class="link" href="#arenas.muzzy_decay_ms"><quote><code class="mallctl">arenas.muzzy_decay_ms</code></quote></a>
+        and <a class="link" href="#arena.i.muzzy_decay_ms"><quote><code class="mallctl">arena.&lt;i&gt;.muzzy_decay_ms</code></quote></a>
+        for related dynamic control options.</p></dd><dt><a name="opt.stats_print"/><span class="term">
           <quote><code class="mallctl">opt.stats_print</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p>Enable/disable statistics printing at exit.  If
         enabled, the <code class="function">malloc_stats_print()</code>
         function is called at program exit via an
-        <span class="citerefentry"><span class="refentrytitle">atexit</span>(3)</span> function.  If
+        <span class="citerefentry"><span class="refentrytitle">atexit</span>(3)</span> function.  <a class="link" href="#opt.stats_print_opts"><quote><code class="mallctl">opt.stats_print_opts</code></quote></a>
+        can be combined to specify output options. If
         <code class="option">--enable-stats</code> is specified during configuration, this
         has the potential to cause deadlock for a multi-threaded process that
         exits while one or more threads are executing in the memory allocation
@@ -476,7 +514,16 @@ for (i = 0; i &lt; nbins; i++) {
         <code class="function">atexit()</code> function with equivalent
         functionality).  Therefore, this option should only be used with care;
         it is primarily intended as a performance tuning aid during application
-        development.  This option is disabled by default.</p></dd><dt><a name="opt.junk"/><span class="term">
+        development.  This option is disabled by default.</p></dd><dt><a name="opt.stats_print_opts"/><span class="term">
+          <quote><code class="mallctl">opt.stats_print_opts</code></quote>
+          (<span class="type">const char *</span>)
+          <code class="literal">r-</code>
+        </span></dt><dd><p>Options (the <em class="parameter"><code>opts</code></em> string) to pass
+        to the <code class="function">malloc_stats_print()</code> at exit (enabled
+        through <a class="link" href="#opt.stats_print"><quote><code class="mallctl">opt.stats_print</code></quote></a>). See
+        available options in <a class="link" href="#malloc_stats_print_opts"><code class="function">malloc_stats_print()</code></a>.
+        Has no effect unless <a class="link" href="#opt.stats_print"><quote><code class="mallctl">opt.stats_print</code></quote></a> is
+        enabled.  The default is <span class="quote">“<span class="quote"/>”</span>.</p></dd><dt><a name="opt.junk"/><span class="term">
           <quote><code class="mallctl">opt.junk</code></quote>
           (<span class="type">const char *</span>)
           <code class="literal">r-</code>
@@ -490,36 +537,8 @@ for (i = 0; i &lt; nbins; i++) {
         disabled entirely.  This is intended for debugging and will impact
         performance negatively.  This option is <span class="quote">“<span class="quote">false</span>”</span> by default
         unless <code class="option">--enable-debug</code> is specified during
-        configuration, in which case it is <span class="quote">“<span class="quote">true</span>”</span> by default unless
-        running inside <a class="ulink" href="http://valgrind.org/" target="_top">Valgrind</a>.</p></dd><dt><a name="opt.quarantine"/><span class="term">
-          <quote><code class="mallctl">opt.quarantine</code></quote>
-          (<span class="type">size_t</span>)
-          <code class="literal">r-</code>
-          [<code class="option">--enable-fill</code>]
-        </span></dt><dd><p>Per thread quarantine size in bytes.  If non-zero, each
-        thread maintains a FIFO object quarantine that stores up to the
-        specified number of bytes of memory.  The quarantined memory is not
-        freed until it is released from quarantine, though it is immediately
-        junk-filled if the <a class="link" href="#opt.junk"><quote><code class="mallctl">opt.junk</code></quote></a> option is
-        enabled.  This feature is of particular use in combination with <a class="ulink" href="http://valgrind.org/" target="_top">Valgrind</a>, which can detect attempts
-        to access quarantined objects.  This is intended for debugging and will
-        impact performance negatively.  The default quarantine size is 0 unless
-        running inside Valgrind, in which case the default is 16
-        MiB.</p></dd><dt><a name="opt.redzone"/><span class="term">
-          <quote><code class="mallctl">opt.redzone</code></quote>
-          (<span class="type">bool</span>)
-          <code class="literal">r-</code>
-          [<code class="option">--enable-fill</code>]
-        </span></dt><dd><p>Redzones enabled/disabled.  If enabled, small
-        allocations have redzones before and after them.  Furthermore, if the
-        <a class="link" href="#opt.junk"><quote><code class="mallctl">opt.junk</code></quote></a> option is
-        enabled, the redzones are checked for corruption during deallocation.
-        However, the primary intended purpose of this feature is to be used in
-        combination with <a class="ulink" href="http://valgrind.org/" target="_top">Valgrind</a>,
-        which needs redzones in order to do effective buffer overflow/underflow
-        detection.  This option is intended for debugging and will impact
-        performance negatively.  This option is disabled by
-        default unless running inside Valgrind.</p></dd><dt><a name="opt.zero"/><span class="term">
+        configuration, in which case it is <span class="quote">“<span class="quote">true</span>”</span> by
+        default.</p></dd><dt><a name="opt.zero"/><span class="term">
           <quote><code class="mallctl">opt.zero</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
@@ -556,29 +575,16 @@ malloc_conf = "xmalloc:true";</pre><p>
           <quote><code class="mallctl">opt.tcache</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">r-</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Thread-specific caching (tcache) enabled/disabled.  When
         there are multiple threads, each thread uses a tcache for objects up to
         a certain size.  Thread-specific caching allows many allocations to be
         satisfied without performing any thread synchronization, at the cost of
         increased memory use.  See the <a class="link" href="#opt.lg_tcache_max"><quote><code class="mallctl">opt.lg_tcache_max</code></quote></a>
         option for related tuning information.  This option is enabled by
-        default unless running inside <a class="ulink" href="http://valgrind.org/" target="_top">Valgrind</a>, in which case it is
-        forcefully disabled.</p></dd><dt><a name="opt.thp"/><span class="term">
-          <quote><code class="mallctl">opt.thp</code></quote>
-          (<span class="type">bool</span>)
-          <code class="literal">r-</code>
-          [<code class="option">--enable-thp</code>]
-        </span></dt><dd><p>Transparent huge page (THP) integration
-        enabled/disabled.  When enabled, THPs are explicitly disabled as a side
-        effect of unused dirty page purging for chunks that back small and/or
-        large allocations, because such chunks typically comprise active,
-        unused dirty, and untouched clean pages.  This option is enabled by
         default.</p></dd><dt><a name="opt.lg_tcache_max"/><span class="term">
           <quote><code class="mallctl">opt.lg_tcache_max</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Maximum size class (log base 2) to cache in the
         thread-specific cache (tcache).  At a minimum, all small size classes
         are cached, and at a maximum all large size classes are cached.  The
@@ -700,7 +706,7 @@ malloc_conf = "xmalloc:true";</pre><p>
           <code class="literal">rw</code>
         </span></dt><dd><p>Get or set the arena associated with the calling
         thread.  If the specified arena was not initialized beforehand (see the
-        <a class="link" href="#arenas.initialized"><quote><code class="mallctl">arenas.initialized</code></quote></a>
+        <a class="link" href="#arena.i.initialized"><quote><code class="mallctl">arena.i.initialized</code></quote></a>
         mallctl), it will be automatically initialized as a side effect of
         calling this interface.</p></dd><dt><a name="thread.allocated"/><span class="term">
           <quote><code class="mallctl">thread.allocated</code></quote>
@@ -738,7 +744,6 @@ malloc_conf = "xmalloc:true";</pre><p>
           <quote><code class="mallctl">thread.tcache.enabled</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">rw</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Enable/disable calling thread's tcache.  The tcache is
         implicitly flushed as a side effect of becoming
         disabled (see <a class="link" href="#thread.tcache.flush"><quote><code class="mallctl">thread.tcache.flush</code></quote></a>).
@@ -746,7 +751,6 @@ malloc_conf = "xmalloc:true";</pre><p>
           <quote><code class="mallctl">thread.tcache.flush</code></quote>
           (<span class="type">void</span>)
           <code class="literal">--</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Flush calling thread's thread-specific cache (tcache).
         This interface releases all cached objects and internal data structures
         associated with the calling thread's tcache.  Ordinarily, this interface
@@ -784,7 +788,6 @@ malloc_conf = "xmalloc:true";</pre><p>
           <quote><code class="mallctl">tcache.create</code></quote>
           (<span class="type">unsigned</span>)
           <code class="literal">r-</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Create an explicit thread-specific cache (tcache) and
         return an identifier that can be passed to the <a class="link" href="#MALLOCX_TCACHE"><code class="constant">MALLOCX_TCACHE(<em class="parameter"><code>tc</code></em>)</code></a>
         macro to explicitly use the specified cache rather than the
@@ -795,7 +798,6 @@ malloc_conf = "xmalloc:true";</pre><p>
           <quote><code class="mallctl">tcache.flush</code></quote>
           (<span class="type">unsigned</span>)
           <code class="literal">-w</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Flush the specified thread-specific cache (tcache).  The
         same considerations apply to this interface as to <a class="link" href="#thread.tcache.flush"><quote><code class="mallctl">thread.tcache.flush</code></quote></a>,
         except that the tcache will never be automatically discarded.
@@ -803,128 +805,155 @@ malloc_conf = "xmalloc:true";</pre><p>
           <quote><code class="mallctl">tcache.destroy</code></quote>
           (<span class="type">unsigned</span>)
           <code class="literal">-w</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Flush the specified thread-specific cache (tcache) and
         make the identifier available for use during a future tcache creation.
-        </p></dd><dt><a name="arena.i.purge"/><span class="term">
+        </p></dd><dt><a name="arena.i.initialized"/><span class="term">
+          <quote><code class="mallctl">arena.&lt;i&gt;.initialized</code></quote>
+          (<span class="type">bool</span>)
+          <code class="literal">r-</code>
+        </span></dt><dd><p>Get whether the specified arena's statistics are
+        initialized (i.e. the arena was initialized prior to the current epoch).
+        This interface can also be nominally used to query whether the merged
+        statistics corresponding to <code class="constant">MALLCTL_ARENAS_ALL</code> are
+        initialized (always true).</p></dd><dt><a name="arena.i.decay"/><span class="term">
+          <quote><code class="mallctl">arena.&lt;i&gt;.decay</code></quote>
+          (<span class="type">void</span>)
+          <code class="literal">--</code>
+        </span></dt><dd><p>Trigger decay-based purging of unused dirty/muzzy pages
+        for arena &lt;i&gt;, or for all arenas if &lt;i&gt; equals
+        <code class="constant">MALLCTL_ARENAS_ALL</code>.  The proportion of unused
+        dirty/muzzy pages to be purged depends on the current time; see <a class="link" href="#opt.dirty_decay_ms"><quote><code class="mallctl">opt.dirty_decay_ms</code></quote></a>
+        and <a class="link" href="#opt.muzzy_decay_ms"><quote><code class="mallctl">opt.muzy_decay_ms</code></quote></a>
+        for details.</p></dd><dt><a name="arena.i.purge"/><span class="term">
           <quote><code class="mallctl">arena.&lt;i&gt;.purge</code></quote>
           (<span class="type">void</span>)
           <code class="literal">--</code>
         </span></dt><dd><p>Purge all unused dirty pages for arena &lt;i&gt;, or for
-        all arenas if &lt;i&gt; equals <a class="link" href="#arenas.narenas"><quote><code class="mallctl">arenas.narenas</code></quote></a>.
-        </p></dd><dt><a name="arena.i.decay"/><span class="term">
-          <quote><code class="mallctl">arena.&lt;i&gt;.decay</code></quote>
-          (<span class="type">void</span>)
-          <code class="literal">--</code>
-        </span></dt><dd><p>Trigger decay-based purging of unused dirty pages for
-        arena &lt;i&gt;, or for all arenas if &lt;i&gt; equals <a class="link" href="#arenas.narenas"><quote><code class="mallctl">arenas.narenas</code></quote></a>.
-        The proportion of unused dirty pages to be purged depends on the current
-        time; see <a class="link" href="#opt.decay_time"><quote><code class="mallctl">opt.decay_time</code></quote></a> for
-        details.</p></dd><dt><a name="arena.i.reset"/><span class="term">
+        all arenas if &lt;i&gt; equals <code class="constant">MALLCTL_ARENAS_ALL</code>.
+        </p></dd><dt><a name="arena.i.reset"/><span class="term">
           <quote><code class="mallctl">arena.&lt;i&gt;.reset</code></quote>
           (<span class="type">void</span>)
           <code class="literal">--</code>
         </span></dt><dd><p>Discard all of the arena's extant allocations.  This
-        interface can only be used with arenas created via <a class="link" href="#arenas.extend"><quote><code class="mallctl">arenas.extend</code></quote></a>.  None
+        interface can only be used with arenas explicitly created via <a class="link" href="#arenas.create"><quote><code class="mallctl">arenas.create</code></quote></a>.  None
         of the arena's discarded/cached allocations may accessed afterward.  As
         part of this requirement, all thread caches which were used to
         allocate/deallocate in conjunction with the arena must be flushed
-        beforehand.  This interface cannot be used if running inside Valgrind,
-        nor if the <a class="link" href="#opt.quarantine">quarantine</a> size is
-        non-zero.</p></dd><dt><a name="arena.i.dss"/><span class="term">
+        beforehand.</p></dd><dt><a name="arena.i.destroy"/><span class="term">
+          <quote><code class="mallctl">arena.&lt;i&gt;.destroy</code></quote>
+          (<span class="type">void</span>)
+          <code class="literal">--</code>
+        </span></dt><dd><p>Destroy the arena.  Discard all of the arena's extant
+        allocations using the same mechanism as for <a class="link" href="#arena.i.reset"><quote><code class="mallctl">arena.&lt;i&gt;.reset</code></quote></a>
+        (with all the same constraints and side effects), merge the arena stats
+        into those accessible at arena index
+        <code class="constant">MALLCTL_ARENAS_DESTROYED</code>, and then completely
+        discard all metadata associated with the arena.  Future calls to <a class="link" href="#arenas.create"><quote><code class="mallctl">arenas.create</code></quote></a> may
+        recycle the arena index.  Destruction will fail if any threads are
+        currently associated with the arena as a result of calls to <a class="link" href="#thread.arena"><quote><code class="mallctl">thread.arena</code></quote></a>.</p></dd><dt><a name="arena.i.dss"/><span class="term">
           <quote><code class="mallctl">arena.&lt;i&gt;.dss</code></quote>
           (<span class="type">const char *</span>)
           <code class="literal">rw</code>
         </span></dt><dd><p>Set the precedence of dss allocation as related to mmap
         allocation for arena &lt;i&gt;, or for all arenas if &lt;i&gt; equals
-        <a class="link" href="#arenas.narenas"><quote><code class="mallctl">arenas.narenas</code></quote></a>.  See
-        <a class="link" href="#opt.dss"><quote><code class="mallctl">opt.dss</code></quote></a> for supported
-        settings.</p></dd><dt><a name="arena.i.lg_dirty_mult"/><span class="term">
-          <quote><code class="mallctl">arena.&lt;i&gt;.lg_dirty_mult</code></quote>
+        <code class="constant">MALLCTL_ARENAS_ALL</code>.  See <a class="link" href="#opt.dss"><quote><code class="mallctl">opt.dss</code></quote></a> for supported
+        settings.</p></dd><dt><a name="arena.i.dirty_decay_ms"/><span class="term">
+          <quote><code class="mallctl">arena.&lt;i&gt;.dirty_decay_ms</code></quote>
           (<span class="type">ssize_t</span>)
           <code class="literal">rw</code>
-        </span></dt><dd><p>Current per-arena minimum ratio (log base 2) of active
-        to dirty pages for arena &lt;i&gt;.  Each time this interface is set and
-        the ratio is increased, pages are synchronously purged as necessary to
-        impose the new ratio.  See <a class="link" href="#opt.lg_dirty_mult"><quote><code class="mallctl">opt.lg_dirty_mult</code></quote></a>
-        for additional information.</p></dd><dt><a name="arena.i.decay_time"/><span class="term">
-          <quote><code class="mallctl">arena.&lt;i&gt;.decay_time</code></quote>
-          (<span class="type">ssize_t</span>)
-          <code class="literal">rw</code>
-        </span></dt><dd><p>Current per-arena approximate time in seconds from the
-        creation of a set of unused dirty pages until an equivalent set of
+        </span></dt><dd><p>Current per-arena approximate time in milliseconds from
+        the creation of a set of unused dirty pages until an equivalent set of
         unused dirty pages is purged and/or reused.  Each time this interface is
         set, all currently unused dirty pages are considered to have fully
         decayed, which causes immediate purging of all unused dirty pages unless
-        the decay time is set to -1 (i.e. purging disabled).  See <a class="link" href="#opt.decay_time"><quote><code class="mallctl">opt.decay_time</code></quote></a> for
-        additional information.</p></dd><dt><a name="arena.i.chunk_hooks"/><span class="term">
-          <quote><code class="mallctl">arena.&lt;i&gt;.chunk_hooks</code></quote>
-          (<span class="type">chunk_hooks_t</span>)
+        the decay time is set to -1 (i.e. purging disabled).  See <a class="link" href="#opt.dirty_decay_ms"><quote><code class="mallctl">opt.dirty_decay_ms</code></quote></a>
+        for additional information.</p></dd><dt><a name="arena.i.muzzy_decay_ms"/><span class="term">
+          <quote><code class="mallctl">arena.&lt;i&gt;.muzzy_decay_ms</code></quote>
+          (<span class="type">ssize_t</span>)
           <code class="literal">rw</code>
-        </span></dt><dd><p>Get or set the chunk management hook functions for arena
-        &lt;i&gt;.  The functions must be capable of operating on all extant
-        chunks associated with arena &lt;i&gt;, usually by passing unknown
-        chunks to the replaced functions.  In practice, it is feasible to
-        control allocation for arenas created via <a class="link" href="#arenas.extend"><quote><code class="mallctl">arenas.extend</code></quote></a> such
-        that all chunks originate from an application-supplied chunk allocator
-        (by setting custom chunk hook functions just after arena creation), but
-        the automatically created arenas may have already created chunks prior
-        to the application having an opportunity to take over chunk
+        </span></dt><dd><p>Current per-arena approximate time in milliseconds from
+        the creation of a set of unused muzzy pages until an equivalent set of
+        unused muzzy pages is purged and/or reused.  Each time this interface is
+        set, all currently unused muzzy pages are considered to have fully
+        decayed, which causes immediate purging of all unused muzzy pages unless
+        the decay time is set to -1 (i.e. purging disabled).  See <a class="link" href="#opt.muzzy_decay_ms"><quote><code class="mallctl">opt.muzzy_decay_ms</code></quote></a>
+        for additional information.</p></dd><dt><a name="arena.i.extent_hooks"/><span class="term">
+          <quote><code class="mallctl">arena.&lt;i&gt;.extent_hooks</code></quote>
+          (<span class="type">extent_hooks_t *</span>)
+          <code class="literal">rw</code>
+        </span></dt><dd><p>Get or set the extent management hook functions for
+        arena &lt;i&gt;.  The functions must be capable of operating on all
+        extant extents associated with arena &lt;i&gt;, usually by passing
+        unknown extents to the replaced functions.  In practice, it is feasible
+        to control allocation for arenas explicitly created via <a class="link" href="#arenas.create"><quote><code class="mallctl">arenas.create</code></quote></a> such
+        that all extents originate from an application-supplied extent allocator
+        (by specifying the custom extent hook functions during arena creation),
+        but the automatically created arenas will have already created extents
+        prior to the application having an opportunity to take over extent
         allocation.</p><pre class="programlisting">
-typedef struct {
-	chunk_alloc_t		*alloc;
-	chunk_dalloc_t		*dalloc;
-	chunk_commit_t		*commit;
-	chunk_decommit_t	*decommit;
-	chunk_purge_t		*purge;
-	chunk_split_t		*split;
-	chunk_merge_t		*merge;
-} chunk_hooks_t;</pre><p>The <span class="type">chunk_hooks_t</span> structure comprises function
+typedef extent_hooks_s extent_hooks_t;
+struct extent_hooks_s {
+	extent_alloc_t		*alloc;
+	extent_dalloc_t		*dalloc;
+	extent_destroy_t	*destroy;
+	extent_commit_t		*commit;
+	extent_decommit_t	*decommit;
+	extent_purge_t		*purge_lazy;
+	extent_purge_t		*purge_forced;
+	extent_split_t		*split;
+	extent_merge_t		*merge;
+};</pre><p>The <span class="type">extent_hooks_t</span> structure comprises function
         pointers which are described individually below.  jemalloc uses these
-        functions to manage chunk lifetime, which starts off with allocation of
+        functions to manage extent lifetime, which starts off with allocation of
         mapped committed memory, in the simplest case followed by deallocation.
-        However, there are performance and platform reasons to retain chunks for
-        later reuse.  Cleanup attempts cascade from deallocation to decommit to
-        purging, which gives the chunk management functions opportunities to
-        reject the most permanent cleanup operations in favor of less permanent
-        (and often less costly) operations.  The chunk splitting and merging
-        operations can also be opted out of, but this is mainly intended to
-        support platforms on which virtual memory mappings provided by the
-        operating system kernel do not automatically coalesce and split, e.g.
-        Windows.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef void *<b class="fsfunc">(chunk_alloc_t)</b>(</code></td><td>void *<var class="pdparam">chunk</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">alignment</var>, </td></tr><tr><td> </td><td>bool *<var class="pdparam">zero</var>, </td></tr><tr><td> </td><td>bool *<var class="pdparam">commit</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>A chunk allocation function conforms to the
-        <span class="type">chunk_alloc_t</span> type and upon success returns a pointer to
+        However, there are performance and platform reasons to retain extents
+        for later reuse.  Cleanup attempts cascade from deallocation to decommit
+        to forced purging to lazy purging, which gives the extent management
+        functions opportunities to reject the most permanent cleanup operations
+        in favor of less permanent (and often less costly) operations.  All
+        operations except allocation can be universally opted out of by setting
+        the hook pointers to <code class="constant">NULL</code>, or selectively opted out
+        of by returning failure.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef void *<b class="fsfunc">(extent_alloc_t)</b>(</code></td><td>extent_hooks_t *<var class="pdparam">extent_hooks</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">new_addr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">alignment</var>, </td></tr><tr><td> </td><td>bool *<var class="pdparam">zero</var>, </td></tr><tr><td> </td><td>bool *<var class="pdparam">commit</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>An extent allocation function conforms to the
+        <span class="type">extent_alloc_t</span> type and upon success returns a pointer to
         <em class="parameter"><code>size</code></em> bytes of mapped memory on behalf of arena
-        <em class="parameter"><code>arena_ind</code></em> such that the chunk's base address is a
-        multiple of <em class="parameter"><code>alignment</code></em>, as well as setting
-        <em class="parameter"><code>*zero</code></em> to indicate whether the chunk is zeroed and
-        <em class="parameter"><code>*commit</code></em> to indicate whether the chunk is
+        <em class="parameter"><code>arena_ind</code></em> such that the extent's base address is
+        a multiple of <em class="parameter"><code>alignment</code></em>, as well as setting
+        <em class="parameter"><code>*zero</code></em> to indicate whether the extent is zeroed
+        and <em class="parameter"><code>*commit</code></em> to indicate whether the extent is
         committed.  Upon error the function returns <code class="constant">NULL</code>
         and leaves <em class="parameter"><code>*zero</code></em> and
         <em class="parameter"><code>*commit</code></em> unmodified.  The
-        <em class="parameter"><code>size</code></em> parameter is always a multiple of the chunk
+        <em class="parameter"><code>size</code></em> parameter is always a multiple of the page
         size.  The <em class="parameter"><code>alignment</code></em> parameter is always a power
-        of two at least as large as the chunk size.  Zeroing is mandatory if
+        of two at least as large as the page size.  Zeroing is mandatory if
         <em class="parameter"><code>*zero</code></em> is true upon function entry.  Committing is
         mandatory if <em class="parameter"><code>*commit</code></em> is true upon function entry.
-        If <em class="parameter"><code>chunk</code></em> is not <code class="constant">NULL</code>, the
-        returned pointer must be <em class="parameter"><code>chunk</code></em> on success or
+        If <em class="parameter"><code>new_addr</code></em> is not <code class="constant">NULL</code>, the
+        returned pointer must be <em class="parameter"><code>new_addr</code></em> on success or
         <code class="constant">NULL</code> on error.  Committed memory may be committed
         in absolute terms as on a system that does not overcommit, or in
         implicit terms as on a system that overcommits and satisfies physical
         memory needs on demand via soft page faults.  Note that replacing the
-        default chunk allocation function makes the arena's <a class="link" href="#arena.i.dss"><quote><code class="mallctl">arena.&lt;i&gt;.dss</code></quote></a>
-        setting irrelevant.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(chunk_dalloc_t)</b>(</code></td><td>void *<var class="pdparam">chunk</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>bool <var class="pdparam">committed</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>
-        A chunk deallocation function conforms to the
-        <span class="type">chunk_dalloc_t</span> type and deallocates a
-        <em class="parameter"><code>chunk</code></em> of given <em class="parameter"><code>size</code></em> with
+        default extent allocation function makes the arena's <a class="link" href="#arena.i.dss"><quote><code class="mallctl">arena.&lt;i&gt;.dss</code></quote></a>
+        setting irrelevant.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(extent_dalloc_t)</b>(</code></td><td>extent_hooks_t *<var class="pdparam">extent_hooks</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">addr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>bool <var class="pdparam">committed</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>
+        An extent deallocation function conforms to the
+        <span class="type">extent_dalloc_t</span> type and deallocates an extent at given
+        <em class="parameter"><code>addr</code></em> and <em class="parameter"><code>size</code></em> with
         <em class="parameter"><code>committed</code></em>/decommited memory as indicated, on
         behalf of arena <em class="parameter"><code>arena_ind</code></em>, returning false upon
         success.  If the function returns true, this indicates opt-out from
-        deallocation; the virtual memory mapping associated with the chunk
+        deallocation; the virtual memory mapping associated with the extent
         remains mapped, in the same commit state, and available for future use,
-        in which case it will be automatically retained for later reuse.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(chunk_commit_t)</b>(</code></td><td>void *<var class="pdparam">chunk</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">offset</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">length</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>A chunk commit function conforms to the
-        <span class="type">chunk_commit_t</span> type and commits zeroed physical memory to
-        back pages within a <em class="parameter"><code>chunk</code></em> of given
+        in which case it will be automatically retained for later reuse.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef void <b class="fsfunc">(extent_destroy_t)</b>(</code></td><td>extent_hooks_t *<var class="pdparam">extent_hooks</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">addr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>bool <var class="pdparam">committed</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>
+        An extent destruction function conforms to the
+        <span class="type">extent_destroy_t</span> type and unconditionally destroys an
+        extent at given <em class="parameter"><code>addr</code></em> and
+        <em class="parameter"><code>size</code></em> with
+        <em class="parameter"><code>committed</code></em>/decommited memory as indicated, on
+        behalf of arena <em class="parameter"><code>arena_ind</code></em>.  This function may be
+        called to destroy retained extents during arena destruction (see <a class="link" href="#arena.i.destroy"><quote><code class="mallctl">arena.&lt;i&gt;.destroy</code></quote></a>).</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(extent_commit_t)</b>(</code></td><td>extent_hooks_t *<var class="pdparam">extent_hooks</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">addr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">offset</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">length</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>An extent commit function conforms to the
+        <span class="type">extent_commit_t</span> type and commits zeroed physical memory to
+        back pages within an extent at given <em class="parameter"><code>addr</code></em> and
         <em class="parameter"><code>size</code></em> at <em class="parameter"><code>offset</code></em> bytes,
         extending for <em class="parameter"><code>length</code></em> on behalf of arena
         <em class="parameter"><code>arena_ind</code></em>, returning false upon success.
@@ -932,66 +961,70 @@ typedef struct {
         does not overcommit, or in implicit terms as on a system that
         overcommits and satisfies physical memory needs on demand via soft page
         faults. If the function returns true, this indicates insufficient
-        physical memory to satisfy the request.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(chunk_decommit_t)</b>(</code></td><td>void *<var class="pdparam">chunk</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">offset</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">length</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>A chunk decommit function conforms to the
-        <span class="type">chunk_decommit_t</span> type and decommits any physical memory
-        that is backing pages within a <em class="parameter"><code>chunk</code></em> of given
-        <em class="parameter"><code>size</code></em> at <em class="parameter"><code>offset</code></em> bytes,
-        extending for <em class="parameter"><code>length</code></em> on behalf of arena
+        physical memory to satisfy the request.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(extent_decommit_t)</b>(</code></td><td>extent_hooks_t *<var class="pdparam">extent_hooks</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">addr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">offset</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">length</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>An extent decommit function conforms to the
+        <span class="type">extent_decommit_t</span> type and decommits any physical memory
+        that is backing pages within an extent at given
+        <em class="parameter"><code>addr</code></em> and <em class="parameter"><code>size</code></em> at
+        <em class="parameter"><code>offset</code></em> bytes, extending for
+        <em class="parameter"><code>length</code></em> on behalf of arena
         <em class="parameter"><code>arena_ind</code></em>, returning false upon success, in which
-        case the pages will be committed via the chunk commit function before
+        case the pages will be committed via the extent commit function before
         being reused.  If the function returns true, this indicates opt-out from
         decommit; the memory remains committed and available for future use, in
-        which case it will be automatically retained for later reuse.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(chunk_purge_t)</b>(</code></td><td>void *<var class="pdparam">chunk</var>, </td></tr><tr><td> </td><td>size_t<var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">offset</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">length</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>A chunk purge function conforms to the <span class="type">chunk_purge_t</span>
-        type and optionally discards physical pages within the virtual memory
-        mapping associated with <em class="parameter"><code>chunk</code></em> of given
-        <em class="parameter"><code>size</code></em> at <em class="parameter"><code>offset</code></em> bytes,
-        extending for <em class="parameter"><code>length</code></em> on behalf of arena
-        <em class="parameter"><code>arena_ind</code></em>, returning false if pages within the
-        purged virtual memory range will be zero-filled the next time they are
-        accessed.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(chunk_split_t)</b>(</code></td><td>void *<var class="pdparam">chunk</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size_a</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size_b</var>, </td></tr><tr><td> </td><td>bool <var class="pdparam">committed</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>A chunk split function conforms to the <span class="type">chunk_split_t</span>
-        type and optionally splits <em class="parameter"><code>chunk</code></em> of given
-        <em class="parameter"><code>size</code></em> into two adjacent chunks, the first of
-        <em class="parameter"><code>size_a</code></em> bytes, and the second of
-        <em class="parameter"><code>size_b</code></em> bytes, operating on
+        which case it will be automatically retained for later reuse.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(extent_purge_t)</b>(</code></td><td>extent_hooks_t *<var class="pdparam">extent_hooks</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">addr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">offset</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">length</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>An extent purge function conforms to the
+        <span class="type">extent_purge_t</span> type and discards physical pages
+        within the virtual memory mapping associated with an extent at given
+        <em class="parameter"><code>addr</code></em> and <em class="parameter"><code>size</code></em> at
+        <em class="parameter"><code>offset</code></em> bytes, extending for
+        <em class="parameter"><code>length</code></em> on behalf of arena
+        <em class="parameter"><code>arena_ind</code></em>.  A lazy extent purge function (e.g.
+        implemented via
+        <code class="function">madvise(<em class="parameter"><code>...</code></em><em class="parameter"><code><code class="constant">MADV_FREE</code></code></em>)</code>)
+        can delay purging indefinitely and leave the pages within the purged
+        virtual memory range in an indeterminite state, whereas a forced extent
+        purge function immediately purges, and the pages within the virtual
+        memory range will be zero-filled the next time they are accessed.  If
+        the function returns true, this indicates failure to purge.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(extent_split_t)</b>(</code></td><td>extent_hooks_t *<var class="pdparam">extent_hooks</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">addr</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size_a</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size_b</var>, </td></tr><tr><td> </td><td>bool <var class="pdparam">committed</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>An extent split function conforms to the
+        <span class="type">extent_split_t</span> type and optionally splits an extent at
+        given <em class="parameter"><code>addr</code></em> and <em class="parameter"><code>size</code></em> into
+        two adjacent extents, the first of <em class="parameter"><code>size_a</code></em> bytes,
+        and the second of <em class="parameter"><code>size_b</code></em> bytes, operating on
         <em class="parameter"><code>committed</code></em>/decommitted memory as indicated, on
         behalf of arena <em class="parameter"><code>arena_ind</code></em>, returning false upon
-        success.  If the function returns true, this indicates that the chunk
+        success.  If the function returns true, this indicates that the extent
         remains unsplit and therefore should continue to be operated on as a
-        whole.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(chunk_merge_t)</b>(</code></td><td>void *<var class="pdparam">chunk_a</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size_a</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">chunk_b</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size_b</var>, </td></tr><tr><td> </td><td>bool <var class="pdparam">committed</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>A chunk merge function conforms to the <span class="type">chunk_merge_t</span>
-        type and optionally merges adjacent chunks,
-        <em class="parameter"><code>chunk_a</code></em> of given <em class="parameter"><code>size_a</code></em>
-        and <em class="parameter"><code>chunk_b</code></em> of given
-        <em class="parameter"><code>size_b</code></em> into one contiguous chunk, operating on
+        whole.</p><div class="funcsynopsis"><table border="0" class="funcprototype-table" summary="Function synopsis" style="cellspacing: 0; cellpadding: 0;"><tr><td><code class="funcdef">typedef bool <b class="fsfunc">(extent_merge_t)</b>(</code></td><td>extent_hooks_t *<var class="pdparam">extent_hooks</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">addr_a</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size_a</var>, </td></tr><tr><td> </td><td>void *<var class="pdparam">addr_b</var>, </td></tr><tr><td> </td><td>size_t <var class="pdparam">size_b</var>, </td></tr><tr><td> </td><td>bool <var class="pdparam">committed</var>, </td></tr><tr><td> </td><td>unsigned <var class="pdparam">arena_ind</var><code>)</code>;</td></tr></table><div class="funcprototype-spacer"> </div></div><div class="literallayout"><p/></div><p>An extent merge function conforms to the
+        <span class="type">extent_merge_t</span> type and optionally merges adjacent extents,
+        at given <em class="parameter"><code>addr_a</code></em> and <em class="parameter"><code>size_a</code></em>
+        with given <em class="parameter"><code>addr_b</code></em> and
+        <em class="parameter"><code>size_b</code></em> into one contiguous extent, operating on
         <em class="parameter"><code>committed</code></em>/decommitted memory as indicated, on
         behalf of arena <em class="parameter"><code>arena_ind</code></em>, returning false upon
-        success.  If the function returns true, this indicates that the chunks
+        success.  If the function returns true, this indicates that the extents
         remain distinct mappings and therefore should continue to be operated on
         independently.</p></dd><dt><a name="arenas.narenas"/><span class="term">
           <quote><code class="mallctl">arenas.narenas</code></quote>
           (<span class="type">unsigned</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Current limit on number of arenas.</p></dd><dt><a name="arenas.initialized"/><span class="term">
-          <quote><code class="mallctl">arenas.initialized</code></quote>
-          (<span class="type">bool *</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p>An array of <a class="link" href="#arenas.narenas"><quote><code class="mallctl">arenas.narenas</code></quote></a>
-        booleans.  Each boolean indicates whether the corresponding arena is
-        initialized.</p></dd><dt><a name="arenas.lg_dirty_mult"/><span class="term">
-          <quote><code class="mallctl">arenas.lg_dirty_mult</code></quote>
+        </span></dt><dd><p>Current limit on number of arenas.</p></dd><dt><a name="arenas.dirty_decay_ms"/><span class="term">
+          <quote><code class="mallctl">arenas.dirty_decay_ms</code></quote>
           (<span class="type">ssize_t</span>)
           <code class="literal">rw</code>
-        </span></dt><dd><p>Current default per-arena minimum ratio (log base 2) of
-        active to dirty pages, used to initialize <a class="link" href="#arena.i.lg_dirty_mult"><quote><code class="mallctl">arena.&lt;i&gt;.lg_dirty_mult</code></quote></a>
-        during arena creation.  See <a class="link" href="#opt.lg_dirty_mult"><quote><code class="mallctl">opt.lg_dirty_mult</code></quote></a>
-        for additional information.</p></dd><dt><a name="arenas.decay_time"/><span class="term">
-          <quote><code class="mallctl">arenas.decay_time</code></quote>
+        </span></dt><dd><p>Current default per-arena approximate time in
+        milliseconds from the creation of a set of unused dirty pages until an
+        equivalent set of unused dirty pages is purged and/or reused, used to
+        initialize <a class="link" href="#arena.i.dirty_decay_ms"><quote><code class="mallctl">arena.&lt;i&gt;.dirty_decay_ms</code></quote></a>
+        during arena creation.  See <a class="link" href="#opt.dirty_decay_ms"><quote><code class="mallctl">opt.dirty_decay_ms</code></quote></a>
+        for additional information.</p></dd><dt><a name="arenas.muzzy_decay_ms"/><span class="term">
+          <quote><code class="mallctl">arenas.muzzy_decay_ms</code></quote>
           (<span class="type">ssize_t</span>)
           <code class="literal">rw</code>
-        </span></dt><dd><p>Current default per-arena approximate time in seconds
-        from the creation of a set of unused dirty pages until an equivalent set
-        of unused dirty pages is purged and/or reused, used to initialize <a class="link" href="#arena.i.decay_time"><quote><code class="mallctl">arena.&lt;i&gt;.decay_time</code></quote></a>
-        during arena creation.  See <a class="link" href="#opt.decay_time"><quote><code class="mallctl">opt.decay_time</code></quote></a> for
-        additional information.</p></dd><dt><a name="arenas.quantum"/><span class="term">
+        </span></dt><dd><p>Current default per-arena approximate time in
+        milliseconds from the creation of a set of unused muzzy pages until an
+        equivalent set of unused muzzy pages is purged and/or reused, used to
+        initialize <a class="link" href="#arena.i.muzzy_decay_ms"><quote><code class="mallctl">arena.&lt;i&gt;.muzzy_decay_ms</code></quote></a>
+        during arena creation.  See <a class="link" href="#opt.muzzy_decay_ms"><quote><code class="mallctl">opt.muzzy_decay_ms</code></quote></a>
+        for additional information.</p></dd><dt><a name="arenas.quantum"/><span class="term">
           <quote><code class="mallctl">arenas.quantum</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
@@ -1003,7 +1036,6 @@ typedef struct {
           <quote><code class="mallctl">arenas.tcache_max</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Maximum thread-cached size class.</p></dd><dt><a name="arenas.nbins"/><span class="term">
           <quote><code class="mallctl">arenas.nbins</code></quote>
           (<span class="type">unsigned</span>)
@@ -1012,7 +1044,6 @@ typedef struct {
           <quote><code class="mallctl">arenas.nhbins</code></quote>
           (<span class="type">unsigned</span>)
           <code class="literal">r-</code>
-          [<code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Total number of thread cache bin size
         classes.</p></dd><dt><a name="arenas.bin.i.size"/><span class="term">
           <quote><code class="mallctl">arenas.bin.&lt;i&gt;.size</code></quote>
@@ -1022,34 +1053,26 @@ typedef struct {
           <quote><code class="mallctl">arenas.bin.&lt;i&gt;.nregs</code></quote>
           (<span class="type">uint32_t</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Number of regions per page run.</p></dd><dt><a name="arenas.bin.i.run_size"/><span class="term">
-          <quote><code class="mallctl">arenas.bin.&lt;i&gt;.run_size</code></quote>
+        </span></dt><dd><p>Number of regions per slab.</p></dd><dt><a name="arenas.bin.i.slab_size"/><span class="term">
+          <quote><code class="mallctl">arenas.bin.&lt;i&gt;.slab_size</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Number of bytes per page run.</p></dd><dt><a name="arenas.nlruns"/><span class="term">
-          <quote><code class="mallctl">arenas.nlruns</code></quote>
+        </span></dt><dd><p>Number of bytes per slab.</p></dd><dt><a name="arenas.nlextents"/><span class="term">
+          <quote><code class="mallctl">arenas.nlextents</code></quote>
           (<span class="type">unsigned</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Total number of large size classes.</p></dd><dt><a name="arenas.lrun.i.size"/><span class="term">
-          <quote><code class="mallctl">arenas.lrun.&lt;i&gt;.size</code></quote>
+        </span></dt><dd><p>Total number of large size classes.</p></dd><dt><a name="arenas.lextent.i.size"/><span class="term">
+          <quote><code class="mallctl">arenas.lextent.&lt;i&gt;.size</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p>Maximum size supported by this large size
-        class.</p></dd><dt><a name="arenas.nhchunks"/><span class="term">
-          <quote><code class="mallctl">arenas.nhchunks</code></quote>
-          (<span class="type">unsigned</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p>Total number of huge size classes.</p></dd><dt><a name="arenas.hchunk.i.size"/><span class="term">
-          <quote><code class="mallctl">arenas.hchunk.&lt;i&gt;.size</code></quote>
-          (<span class="type">size_t</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p>Maximum size supported by this huge size
-        class.</p></dd><dt><a name="arenas.extend"/><span class="term">
-          <quote><code class="mallctl">arenas.extend</code></quote>
-          (<span class="type">unsigned</span>)
-          <code class="literal">r-</code>
-        </span></dt><dd><p>Extend the array of arenas by appending a new arena,
-        and returning the new arena index.</p></dd><dt><a name="prof.thread_active_init"/><span class="term">
+        class.</p></dd><dt><a name="arenas.create"/><span class="term">
+          <quote><code class="mallctl">arenas.create</code></quote>
+          (<span class="type">unsigned</span>, <span class="type">extent_hooks_t *</span>)
+          <code class="literal">rw</code>
+        </span></dt><dd><p>Explicitly create a new arena outside the range of
+        automatically managed arenas, with optionally specified extent hooks,
+        and return the new arena index.</p></dd><dt><a name="prof.thread_active_init"/><span class="term">
           <quote><code class="mallctl">prof.thread_active_init</code></quote>
           (<span class="type">bool</span>)
           <code class="literal">rw</code>
@@ -1106,19 +1129,7 @@ typedef struct {
         </span></dt><dd><p>Average number of bytes allocated between
         interval-based profile dumps.  See the
         <a class="link" href="#opt.lg_prof_interval"><quote><code class="mallctl">opt.lg_prof_interval</code></quote></a>
-        option for additional information.</p></dd><dt><a name="stats.cactive"/><span class="term">
-          <quote><code class="mallctl">stats.cactive</code></quote>
-          (<span class="type">size_t *</span>)
-          <code class="literal">r-</code>
-          [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Pointer to a counter that contains an approximate count
-        of the current number of bytes in active pages.  The estimate may be
-        high, but never low, because each arena rounds up when computing its
-        contribution to the counter.  Note that the <a class="link" href="#epoch"><quote><code class="mallctl">epoch</code></quote></a> mallctl has no bearing
-        on this counter.  Furthermore, counter consistency is maintained via
-        atomic operations, so it is necessary to use an atomic operation in
-        order to guarantee a consistent read when dereferencing the pointer.
-        </p></dd><dt><a name="stats.allocated"/><span class="term">
+        option for additional information.</p></dd><dt><a name="stats.allocated"/><span class="term">
           <quote><code class="mallctl">stats.allocated</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
@@ -1133,16 +1144,18 @@ typedef struct {
         application.  This is a multiple of the page size, and greater than or
         equal to <a class="link" href="#stats.allocated"><quote><code class="mallctl">stats.allocated</code></quote></a>.
         This does not include <a class="link" href="#stats.arenas.i.pdirty">
-        <quote><code class="mallctl">stats.arenas.&lt;i&gt;.pdirty</code></quote></a>, nor pages
+        <quote><code class="mallctl">stats.arenas.&lt;i&gt;.pdirty</code></quote></a>,
+        <a class="link" href="#stats.arenas.i.pmuzzy">
+        <quote><code class="mallctl">stats.arenas.&lt;i&gt;.pmuzzy</code></quote></a>, nor pages
         entirely devoted to allocator metadata.</p></dd><dt><a name="stats.metadata"/><span class="term">
           <quote><code class="mallctl">stats.metadata</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
         </span></dt><dd><p>Total number of bytes dedicated to metadata, which
-        comprise base allocations used for bootstrap-sensitive internal
-        allocator data structures, arena chunk headers (see <a class="link" href="#stats.arenas.i.metadata.mapped"><quote><code class="mallctl">stats.arenas.&lt;i&gt;.metadata.mapped</code></quote></a>),
-        and internal allocations (see <a class="link" href="#stats.arenas.i.metadata.allocated"><quote><code class="mallctl">stats.arenas.&lt;i&gt;.metadata.allocated</code></quote></a>).</p></dd><dt><a name="stats.resident"/><span class="term">
+        comprise base allocations used for bootstrap-sensitive allocator
+        metadata structures (see <a class="link" href="#stats.arenas.i.base"><quote><code class="mallctl">stats.arenas.&lt;i&gt;.base</code></quote></a>)
+        and internal allocations (see <a class="link" href="#stats.arenas.i.internal"><quote><code class="mallctl">stats.arenas.&lt;i&gt;.internal</code></quote></a>).</p></dd><dt><a name="stats.resident"/><span class="term">
           <quote><code class="mallctl">stats.resident</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
@@ -1158,58 +1171,136 @@ typedef struct {
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Total number of bytes in active chunks mapped by the
-        allocator.  This is a multiple of the chunk size, and is larger than
-        <a class="link" href="#stats.active"><quote><code class="mallctl">stats.active</code></quote></a>.
-        This does not include inactive chunks, even those that contain unused
-        dirty pages, which means that there is no strict ordering between this
-        and <a class="link" href="#stats.resident"><quote><code class="mallctl">stats.resident</code></quote></a>.</p></dd><dt><a name="stats.retained"/><span class="term">
+        </span></dt><dd><p>Total number of bytes in active extents mapped by the
+        allocator.  This is larger than <a class="link" href="#stats.active"><quote><code class="mallctl">stats.active</code></quote></a>.  This
+        does not include inactive extents, even those that contain unused dirty
+        pages, which means that there is no strict ordering between this and
+        <a class="link" href="#stats.resident"><quote><code class="mallctl">stats.resident</code></quote></a>.</p></dd><dt><a name="stats.retained"/><span class="term">
           <quote><code class="mallctl">stats.retained</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
         </span></dt><dd><p>Total number of bytes in virtual memory mappings that
         were retained rather than being returned to the operating system via
-        e.g. <span class="citerefentry"><span class="refentrytitle">munmap</span>(2)</span>.  Retained virtual memory is
-        typically untouched, decommitted, or purged, so it has no strongly
-        associated physical memory (see <a class="link" href="#arena.i.chunk_hooks">chunk hooks</a> for details).  Retained
-        memory is excluded from mapped memory statistics, e.g. <a class="link" href="#stats.mapped"><quote><code class="mallctl">stats.mapped</code></quote></a>.
-        </p></dd><dt><a name="stats.arenas.i.dss"/><span class="term">
+        e.g. <span class="citerefentry"><span class="refentrytitle">munmap</span>(2)</span> or similar.  Retained virtual
+        memory is typically untouched, decommitted, or purged, so it has no
+        strongly associated physical memory (see <a class="link" href="#arena.i.extent_hooks">extent hooks</a> for details).
+        Retained memory is excluded from mapped memory statistics, e.g. <a class="link" href="#stats.mapped"><quote><code class="mallctl">stats.mapped</code></quote></a>.
+        </p></dd><dt><a name="stats.background_thread.num_threads"/><span class="term">
+          <quote><code class="mallctl">stats.background_thread.num_threads</code></quote>
+          (<span class="type">size_t</span>)
+          <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p> Number of <a class="link" href="#background_thread">background
+        threads</a> running currently.</p></dd><dt><a name="stats.background_thread.num_runs"/><span class="term">
+          <quote><code class="mallctl">stats.background_thread.num_runs</code></quote>
+          (<span class="type">uint64_t</span>)
+          <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p> Total number of runs from all <a class="link" href="#background_thread">background threads</a>.</p></dd><dt><a name="stats.background_thread.run_interval"/><span class="term">
+          <quote><code class="mallctl">stats.background_thread.run_interval</code></quote>
+          (<span class="type">uint64_t</span>)
+          <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p> Average run interval in nanoseconds of <a class="link" href="#background_thread">background threads</a>.</p></dd><dt><a name="stats.mutexes.ctl"/><span class="term">
+          <quote><code class="mallctl">stats.mutexes.ctl.{counter};</code></quote>
+          (<span class="type">counter specific type</span>)
+          <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on <code class="varname">ctl</code> mutex (global
+        scope; mallctl related).  <quote><code class="mallctl">{counter}</code></quote> is one of the
+        counters below:</p><dt><a name="mutex_counters"/></dt><dd><p><code class="varname">num_ops</code> (<span class="type">uint64_t</span>):
+          Total number of lock acquisition operations on this mutex.</p><p><code class="varname">num_spin_acq</code> (<span class="type">uint64_t</span>): Number
+	  of times the mutex was spin-acquired.  When the mutex is currently
+	  locked and cannot be acquired immediately, a short period of
+	  spin-retry within jemalloc will be performed.  Acquired through spin
+	  generally means the contention was lightweight and not causing context
+	  switches.</p><p><code class="varname">num_wait</code> (<span class="type">uint64_t</span>): Number of
+	  times the mutex was wait-acquired, which means the mutex contention
+	  was not solved by spin-retry, and blocking operation was likely
+	  involved in order to acquire the mutex.  This event generally implies
+	  higher cost / longer delay, and should be investigated if it happens
+	  often.</p><p><code class="varname">max_wait_time</code> (<span class="type">uint64_t</span>):
+	  Maximum length of time in nanoseconds spent on a single wait-acquired
+	  lock operation.  Note that to avoid profiling overhead on the common
+	  path, this does not consider spin-acquired cases.</p><p><code class="varname">total_wait_time</code> (<span class="type">uint64_t</span>):
+	  Cumulative time in nanoseconds spent on wait-acquired lock operations.
+	  Similarly, spin-acquired cases are not considered.</p><p><code class="varname">max_num_thds</code> (<span class="type">uint32_t</span>): Maximum
+	  number of threads waiting on this mutex simultaneously.  Similarly,
+	  spin-acquired cases are not considered.</p><p><code class="varname">num_owner_switch</code> (<span class="type">uint64_t</span>):
+	  Number of times the current mutex owner is different from the previous
+	  one.  This event does not generally imply an issue; rather it is an
+	  indicator of how often the protected data are accessed by different
+	  threads.
+	  </p></dd></dd><dt><a name="stats.mutexes.background_thread"/><span class="term">
+          <quote><code class="mallctl">stats.mutexes.background_thread.{counter}</code></quote>
+	  (<span class="type">counter specific type</span>) <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on <code class="varname">background_thread</code> mutex
+        (global scope; <a class="link" href="#background_thread"><quote><code class="mallctl">background_thread</code></quote></a>
+        related).  <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.mutexes.prof"/><span class="term">
+          <quote><code class="mallctl">stats.mutexes.prof.{counter}</code></quote>
+	  (<span class="type">counter specific type</span>) <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on <code class="varname">prof</code> mutex (global
+        scope; profiling related).  <quote><code class="mallctl">{counter}</code></quote> is one of the
+        counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.mutexes.reset"/><span class="term">
+          <quote><code class="mallctl">stats.mutexes.reset</code></quote>
+	  (<span class="type">void</span>) <code class="literal">--</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Reset all mutex profile statistics, including global
+        mutexes, arena mutexes and bin mutexes.</p></dd><dt><a name="stats.arenas.i.dss"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.dss</code></quote>
           (<span class="type">const char *</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p>dss (<span class="citerefentry"><span class="refentrytitle">sbrk</span>(2)</span>) allocation precedence as
         related to <span class="citerefentry"><span class="refentrytitle">mmap</span>(2)</span> allocation.  See <a class="link" href="#opt.dss"><quote><code class="mallctl">opt.dss</code></quote></a> for details.
-        </p></dd><dt><a name="stats.arenas.i.lg_dirty_mult"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lg_dirty_mult</code></quote>
+        </p></dd><dt><a name="stats.arenas.i.dirty_decay_ms"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.dirty_decay_ms</code></quote>
           (<span class="type">ssize_t</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Minimum ratio (log base 2) of active to dirty pages.
-        See <a class="link" href="#opt.lg_dirty_mult"><quote><code class="mallctl">opt.lg_dirty_mult</code></quote></a>
-        for details.</p></dd><dt><a name="stats.arenas.i.decay_time"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.decay_time</code></quote>
+        </span></dt><dd><p>Approximate time in milliseconds from the creation of a
+        set of unused dirty pages until an equivalent set of unused dirty pages
+        is purged and/or reused.  See <a class="link" href="#opt.dirty_decay_ms"><quote><code class="mallctl">opt.dirty_decay_ms</code></quote></a>
+        for details.</p></dd><dt><a name="stats.arenas.i.muzzy_decay_ms"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.muzzy_decay_ms</code></quote>
           (<span class="type">ssize_t</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Approximate time in seconds from the creation of a set
-        of unused dirty pages until an equivalent set of unused dirty pages is
-        purged and/or reused.  See <a class="link" href="#opt.decay_time"><quote><code class="mallctl">opt.decay_time</code></quote></a>
+        </span></dt><dd><p>Approximate time in milliseconds from the creation of a
+        set of unused muzzy pages until an equivalent set of unused muzzy pages
+        is purged and/or reused.  See <a class="link" href="#opt.muzzy_decay_ms"><quote><code class="mallctl">opt.muzzy_decay_ms</code></quote></a>
         for details.</p></dd><dt><a name="stats.arenas.i.nthreads"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.nthreads</code></quote>
           (<span class="type">unsigned</span>)
           <code class="literal">r-</code>
         </span></dt><dd><p>Number of threads currently assigned to
-        arena.</p></dd><dt><a name="stats.arenas.i.pactive"/><span class="term">
+        arena.</p></dd><dt><a name="stats.arenas.i.uptime"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.uptime</code></quote>
+          (<span class="type">uint64_t</span>)
+          <code class="literal">r-</code>
+        </span></dt><dd><p>Time elapsed (in nanoseconds) since the arena was
+        created.  If &lt;i&gt; equals <code class="constant">0</code> or
+        <code class="constant">MALLCTL_ARENAS_ALL</code>, this is the uptime since malloc
+        initialization.</p></dd><dt><a name="stats.arenas.i.pactive"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.pactive</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Number of pages in active runs.</p></dd><dt><a name="stats.arenas.i.pdirty"/><span class="term">
+        </span></dt><dd><p>Number of pages in active extents.</p></dd><dt><a name="stats.arenas.i.pdirty"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.pdirty</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
-        </span></dt><dd><p>Number of pages within unused runs that are potentially
-        dirty, and for which <code class="function">madvise<em class="parameter"><code>...</code></em>
-        <em class="parameter"><code><code class="constant">MADV_DONTNEED</code></code></em></code> or
-        similar has not been called.</p></dd><dt><a name="stats.arenas.i.mapped"/><span class="term">
+        </span></dt><dd><p>Number of pages within unused extents that are
+        potentially dirty, and for which <code class="function">madvise()</code> or
+        similar has not been called.  See <a class="link" href="#opt.dirty_decay_ms"><quote><code class="mallctl">opt.dirty_decay_ms</code></quote></a>
+        for a description of dirty pages.</p></dd><dt><a name="stats.arenas.i.pmuzzy"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.pmuzzy</code></quote>
+          (<span class="type">size_t</span>)
+          <code class="literal">r-</code>
+        </span></dt><dd><p>Number of pages within unused extents that are muzzy.
+        See <a class="link" href="#opt.muzzy_decay_ms"><quote><code class="mallctl">opt.muzzy_decay_ms</code></quote></a>
+        for a description of muzzy pages.</p></dd><dt><a name="stats.arenas.i.mapped"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mapped</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
@@ -1220,44 +1311,67 @@ typedef struct {
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
         </span></dt><dd><p>Number of retained bytes.  See <a class="link" href="#stats.retained"><quote><code class="mallctl">stats.retained</code></quote></a> for
-        details.</p></dd><dt><a name="stats.arenas.i.metadata.mapped"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.metadata.mapped</code></quote>
+        details.</p></dd><dt><a name="stats.arenas.i.base"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.base</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Number of mapped bytes in arena chunk headers, which
-        track the states of the non-metadata pages.</p></dd><dt><a name="stats.arenas.i.metadata.allocated"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.metadata.allocated</code></quote>
+        </span></dt><dd><p>
+        Number of bytes dedicated to bootstrap-sensitive allocator metadata
+        structures.</p></dd><dt><a name="stats.arenas.i.internal"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.internal</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
         </span></dt><dd><p>Number of bytes dedicated to internal allocations.
         Internal allocations differ from application-originated allocations in
         that they are for internal use, and that they are omitted from heap
-        profiles.  This statistic is reported separately from <a class="link" href="#stats.metadata"><quote><code class="mallctl">stats.metadata</code></quote></a> and
-        <a class="link" href="#stats.arenas.i.metadata.mapped"><quote><code class="mallctl">stats.arenas.&lt;i&gt;.metadata.mapped</code></quote></a>
-        because it overlaps with e.g. the <a class="link" href="#stats.allocated"><quote><code class="mallctl">stats.allocated</code></quote></a> and
-        <a class="link" href="#stats.active"><quote><code class="mallctl">stats.active</code></quote></a>
-        statistics, whereas the other metadata statistics do
-        not.</p></dd><dt><a name="stats.arenas.i.npurge"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.npurge</code></quote>
+        profiles.</p></dd><dt><a name="stats.arenas.i.resident"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.resident</code></quote>
+          (<span class="type">size_t</span>)
+          <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Maximum number of bytes in physically resident data
+        pages mapped by the arena, comprising all pages dedicated to allocator
+        metadata, pages backing active allocations, and unused dirty pages.
+        This is a maximum rather than precise because pages may not actually be
+        physically resident if they correspond to demand-zeroed virtual memory
+        that has not yet been touched.  This is a multiple of the page
+        size.</p></dd><dt><a name="stats.arenas.i.dirty_npurge"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.dirty_npurge</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
         </span></dt><dd><p>Number of dirty page purge sweeps performed.
-        </p></dd><dt><a name="stats.arenas.i.nmadvise"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.nmadvise</code></quote>
+        </p></dd><dt><a name="stats.arenas.i.dirty_nmadvise"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.dirty_nmadvise</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Number of <code class="function">madvise<em class="parameter"><code>...</code></em>
-        <em class="parameter"><code><code class="constant">MADV_DONTNEED</code></code></em></code> or
-        similar calls made to purge dirty pages.</p></dd><dt><a name="stats.arenas.i.purged"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.purged</code></quote>
+        </span></dt><dd><p>Number of <code class="function">madvise()</code> or similar
+        calls made to purge dirty pages.</p></dd><dt><a name="stats.arenas.i.dirty_purged"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.dirty_purged</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Number of pages purged.</p></dd><dt><a name="stats.arenas.i.small.allocated"/><span class="term">
+        </span></dt><dd><p>Number of dirty pages purged.</p></dd><dt><a name="stats.arenas.i.muzzy_npurge"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.muzzy_npurge</code></quote>
+          (<span class="type">uint64_t</span>)
+          <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Number of muzzy page purge sweeps performed.
+        </p></dd><dt><a name="stats.arenas.i.muzzy_nmadvise"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.muzzy_nmadvise</code></quote>
+          (<span class="type">uint64_t</span>)
+          <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Number of <code class="function">madvise()</code> or similar
+        calls made to purge muzzy pages.</p></dd><dt><a name="stats.arenas.i.muzzy_purged"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.muzzy_purged</code></quote>
+          (<span class="type">uint64_t</span>)
+          <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Number of muzzy pages purged.</p></dd><dt><a name="stats.arenas.i.small.allocated"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.small.allocated</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
@@ -1268,20 +1382,26 @@ typedef struct {
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of allocation requests served by
-        small bins.</p></dd><dt><a name="stats.arenas.i.small.ndalloc"/><span class="term">
+        </span></dt><dd><p>Cumulative number of times a small allocation was
+        requested from the arena's bins, whether to fill the relevant tcache if
+        <a class="link" href="#opt.tcache"><quote><code class="mallctl">opt.tcache</code></quote></a> is
+        enabled, or to directly satisfy an allocation request
+        otherwise.</p></dd><dt><a name="stats.arenas.i.small.ndalloc"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.small.ndalloc</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of small objects returned to bins.
-        </p></dd><dt><a name="stats.arenas.i.small.nrequests"/><span class="term">
+        </span></dt><dd><p>Cumulative number of times a small allocation was
+        returned to the arena's bins, whether to flush the relevant tcache if
+        <a class="link" href="#opt.tcache"><quote><code class="mallctl">opt.tcache</code></quote></a> is
+        enabled, or to directly deallocate an allocation
+        otherwise.</p></dd><dt><a name="stats.arenas.i.small.nrequests"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.small.nrequests</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of small allocation requests.
-        </p></dd><dt><a name="stats.arenas.i.large.allocated"/><span class="term">
+        </span></dt><dd><p>Cumulative number of allocation requests satisfied by
+        all bin size classes.</p></dd><dt><a name="stats.arenas.i.large.allocated"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.large.allocated</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
@@ -1292,62 +1412,46 @@ typedef struct {
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of large allocation requests served
-        directly by the arena.</p></dd><dt><a name="stats.arenas.i.large.ndalloc"/><span class="term">
+        </span></dt><dd><p>Cumulative number of times a large extent was allocated
+        from the arena, whether to fill the relevant tcache if <a class="link" href="#opt.tcache"><quote><code class="mallctl">opt.tcache</code></quote></a> is enabled and
+        the size class is within the range being cached, or to directly satisfy
+        an allocation request otherwise.</p></dd><dt><a name="stats.arenas.i.large.ndalloc"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.large.ndalloc</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of large deallocation requests served
-        directly by the arena.</p></dd><dt><a name="stats.arenas.i.large.nrequests"/><span class="term">
+        </span></dt><dd><p>Cumulative number of times a large extent was returned
+        to the arena, whether to flush the relevant tcache if <a class="link" href="#opt.tcache"><quote><code class="mallctl">opt.tcache</code></quote></a> is enabled and
+        the size class is within the range being cached, or to directly
+        deallocate an allocation otherwise.</p></dd><dt><a name="stats.arenas.i.large.nrequests"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.large.nrequests</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of large allocation requests.
-        </p></dd><dt><a name="stats.arenas.i.huge.allocated"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.huge.allocated</code></quote>
-          (<span class="type">size_t</span>)
-          <code class="literal">r-</code>
-          [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Number of bytes currently allocated by huge objects.
-        </p></dd><dt><a name="stats.arenas.i.huge.nmalloc"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.huge.nmalloc</code></quote>
-          (<span class="type">uint64_t</span>)
-          <code class="literal">r-</code>
-          [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of huge allocation requests served
-        directly by the arena.</p></dd><dt><a name="stats.arenas.i.huge.ndalloc"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.huge.ndalloc</code></quote>
-          (<span class="type">uint64_t</span>)
-          <code class="literal">r-</code>
-          [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of huge deallocation requests served
-        directly by the arena.</p></dd><dt><a name="stats.arenas.i.huge.nrequests"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.huge.nrequests</code></quote>
-          (<span class="type">uint64_t</span>)
-          <code class="literal">r-</code>
-          [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of huge allocation requests.
-        </p></dd><dt><a name="stats.arenas.i.bins.j.nmalloc"/><span class="term">
+        </span></dt><dd><p>Cumulative number of allocation requests satisfied by
+        all large size classes.</p></dd><dt><a name="stats.arenas.i.bins.j.nmalloc"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.nmalloc</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of allocations served by bin.
-        </p></dd><dt><a name="stats.arenas.i.bins.j.ndalloc"/><span class="term">
+        </span></dt><dd><p>Cumulative number of times a bin region of the
+        corresponding size class was allocated from the arena, whether to fill
+        the relevant tcache if <a class="link" href="#opt.tcache"><quote><code class="mallctl">opt.tcache</code></quote></a> is enabled, or
+        to directly satisfy an allocation request otherwise.</p></dd><dt><a name="stats.arenas.i.bins.j.ndalloc"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.ndalloc</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of allocations returned to bin.
-        </p></dd><dt><a name="stats.arenas.i.bins.j.nrequests"/><span class="term">
+        </span></dt><dd><p>Cumulative number of times a bin region of the
+        corresponding size class was returned to the arena, whether to flush the
+        relevant tcache if <a class="link" href="#opt.tcache"><quote><code class="mallctl">opt.tcache</code></quote></a> is enabled, or
+        to directly deallocate an allocation otherwise.</p></dd><dt><a name="stats.arenas.i.bins.j.nrequests"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.nrequests</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of allocation
-        requests.</p></dd><dt><a name="stats.arenas.i.bins.j.curregs"/><span class="term">
+        </span></dt><dd><p>Cumulative number of allocation requests satisfied by
+        bin regions of the corresponding size class.</p></dd><dt><a name="stats.arenas.i.bins.j.curregs"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.curregs</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
@@ -1357,77 +1461,130 @@ typedef struct {
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.nfills</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
-          [<code class="option">--enable-stats</code> <code class="option">--enable-tcache</code>]
         </span></dt><dd><p>Cumulative number of tcache fills.</p></dd><dt><a name="stats.arenas.i.bins.j.nflushes"/><span class="term">
           <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.nflushes</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
-          [<code class="option">--enable-stats</code> <code class="option">--enable-tcache</code>]
-        </span></dt><dd><p>Cumulative number of tcache flushes.</p></dd><dt><a name="stats.arenas.i.bins.j.nruns"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.nruns</code></quote>
+        </span></dt><dd><p>Cumulative number of tcache flushes.</p></dd><dt><a name="stats.arenas.i.bins.j.nslabs"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.nslabs</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of runs created.</p></dd><dt><a name="stats.arenas.i.bins.j.nreruns"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.nreruns</code></quote>
+        </span></dt><dd><p>Cumulative number of slabs created.</p></dd><dt><a name="stats.arenas.i.bins.j.nreslabs"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.nreslabs</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of times the current run from which
-        to allocate changed.</p></dd><dt><a name="stats.arenas.i.bins.j.curruns"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.curruns</code></quote>
+        </span></dt><dd><p>Cumulative number of times the current slab from which
+        to allocate changed.</p></dd><dt><a name="stats.arenas.i.bins.j.curslabs"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.curslabs</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Current number of runs.</p></dd><dt><a name="stats.arenas.i.lruns.j.nmalloc"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lruns.&lt;j&gt;.nmalloc</code></quote>
+        </span></dt><dd><p>Current number of slabs.</p></dd><dt><a name="stats.arenas.i.bins.mutex"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.bins.&lt;j&gt;.mutex.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on
+        <code class="varname">arena.&lt;i&gt;.bins.&lt;j&gt;</code> mutex (arena bin
+        scope; bin operation related).  <quote><code class="mallctl">{counter}</code></quote> is one of
+        the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.lextents.j.nmalloc"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lextents.&lt;j&gt;.nmalloc</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of allocation requests for this size
-        class served directly by the arena.</p></dd><dt><a name="stats.arenas.i.lruns.j.ndalloc"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lruns.&lt;j&gt;.ndalloc</code></quote>
+        </span></dt><dd><p>Cumulative number of times a large extent of the
+        corresponding size class was allocated from the arena, whether to fill
+        the relevant tcache if <a class="link" href="#opt.tcache"><quote><code class="mallctl">opt.tcache</code></quote></a> is enabled and
+        the size class is within the range being cached, or to directly satisfy
+        an allocation request otherwise.</p></dd><dt><a name="stats.arenas.i.lextents.j.ndalloc"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lextents.&lt;j&gt;.ndalloc</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of deallocation requests for this
-        size class served directly by the arena.</p></dd><dt><a name="stats.arenas.i.lruns.j.nrequests"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lruns.&lt;j&gt;.nrequests</code></quote>
+        </span></dt><dd><p>Cumulative number of times a large extent of the
+        corresponding size class was returned to the arena, whether to flush the
+        relevant tcache if <a class="link" href="#opt.tcache"><quote><code class="mallctl">opt.tcache</code></quote></a> is enabled and
+        the size class is within the range being cached, or to directly
+        deallocate an allocation otherwise.</p></dd><dt><a name="stats.arenas.i.lextents.j.nrequests"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lextents.&lt;j&gt;.nrequests</code></quote>
           (<span class="type">uint64_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of allocation requests for this size
-        class.</p></dd><dt><a name="stats.arenas.i.lruns.j.curruns"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lruns.&lt;j&gt;.curruns</code></quote>
+        </span></dt><dd><p>Cumulative number of allocation requests satisfied by
+        large extents of the corresponding size class.</p></dd><dt><a name="stats.arenas.i.lextents.j.curlextents"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.lextents.&lt;j&gt;.curlextents</code></quote>
           (<span class="type">size_t</span>)
           <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Current number of runs for this size class.
-        </p></dd><dt><a name="stats.arenas.i.hchunks.j.nmalloc"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.hchunks.&lt;j&gt;.nmalloc</code></quote>
-          (<span class="type">uint64_t</span>)
-          <code class="literal">r-</code>
+        </span></dt><dd><p>Current number of large allocations for this size class.
+        </p></dd><dt><a name="stats.arenas.i.mutexes.large"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.large.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of allocation requests for this size
-        class served directly by the arena.</p></dd><dt><a name="stats.arenas.i.hchunks.j.ndalloc"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.hchunks.&lt;j&gt;.ndalloc</code></quote>
-          (<span class="type">uint64_t</span>)
-          <code class="literal">r-</code>
+        </span></dt><dd><p>Statistics on <code class="varname">arena.&lt;i&gt;.large</code>
+        mutex (arena scope; large allocation related).
+        <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.mutexes.extent_avail"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.extent_avail.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of deallocation requests for this
-        size class served directly by the arena.</p></dd><dt><a name="stats.arenas.i.hchunks.j.nrequests"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.hchunks.&lt;j&gt;.nrequests</code></quote>
-          (<span class="type">uint64_t</span>)
-          <code class="literal">r-</code>
+        </span></dt><dd><p>Statistics on <code class="varname">arena.&lt;i&gt;.extent_avail
+        </code> mutex (arena scope; extent avail related).
+        <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.mutexes.extents_dirty"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.extents_dirty.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Cumulative number of allocation requests for this size
-        class.</p></dd><dt><a name="stats.arenas.i.hchunks.j.curhchunks"/><span class="term">
-          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.hchunks.&lt;j&gt;.curhchunks</code></quote>
-          (<span class="type">size_t</span>)
-          <code class="literal">r-</code>
+        </span></dt><dd><p>Statistics on <code class="varname">arena.&lt;i&gt;.extents_dirty
+        </code> mutex (arena scope; dirty extents related).
+        <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.mutexes.extents_muzzy"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.extents_muzzy.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
           [<code class="option">--enable-stats</code>]
-        </span></dt><dd><p>Current number of huge allocations for this size class.
-        </p></dd></dl></div></div><div class="refsect1"><a name="heap_profile_format"/><h2>HEAP PROFILE FORMAT</h2><p>Although the heap profiling functionality was originally designed to
+        </span></dt><dd><p>Statistics on <code class="varname">arena.&lt;i&gt;.extents_muzzy
+        </code> mutex (arena scope; muzzy extents related).
+        <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.mutexes.extents_retained"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.extents_retained.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on <code class="varname">arena.&lt;i&gt;.extents_retained
+        </code> mutex (arena scope; retained extents related).
+        <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.mutexes.decay_dirty"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.decay_dirty.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on <code class="varname">arena.&lt;i&gt;.decay_dirty
+        </code> mutex (arena scope; decay for dirty pages related).
+        <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.mutexes.decay_muzzy"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.decay_muzzy.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on <code class="varname">arena.&lt;i&gt;.decay_muzzy
+        </code> mutex (arena scope; decay for muzzy pages related).
+        <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.mutexes.base"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.base.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on <code class="varname">arena.&lt;i&gt;.base</code>
+        mutex (arena scope; base allocator related).
+        <quote><code class="mallctl">{counter}</code></quote> is one of the counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd><dt><a name="stats.arenas.i.mutexes.tcache_list"/><span class="term">
+          <quote><code class="mallctl">stats.arenas.&lt;i&gt;.mutexes.tcache_list.{counter}</code></quote>
+          (<span class="type">counter specific type</span>) <code class="literal">r-</code>
+          [<code class="option">--enable-stats</code>]
+        </span></dt><dd><p>Statistics on
+        <code class="varname">arena.&lt;i&gt;.tcache_list</code> mutex (arena scope;
+        tcache to arena association related).  This mutex is expected to be
+        accessed less often.  <quote><code class="mallctl">{counter}</code></quote> is one of the
+        counters in <a class="link" href="#mutex_counters">mutex profiling
+        counters</a>.</p></dd></dl></div></div><div class="refsect1"><a name="heap_profile_format"/><h2>HEAP PROFILE FORMAT</h2><p>Although the heap profiling functionality was originally designed to
     be compatible with the
     <span class="command"><strong>pprof</strong></span> command that is developed as part of the <a class="ulink" href="http://code.google.com/p/gperftools/" target="_top">gperftools
     package</a>, the addition of per thread heap profiling functionality
@@ -1480,9 +1637,7 @@ MAPPED_LIBRARIES:
     the symptoms of such bugs.  Between these two options, it is usually
     possible to quickly detect, diagnose, and eliminate such bugs.</p><p>This implementation does not provide much detail about the problems
     it detects, because the performance impact for storing such information
-    would be prohibitive.  However, jemalloc does integrate with the most
-    excellent <a class="ulink" href="http://valgrind.org/" target="_top">Valgrind</a> tool if the
-    <code class="option">--enable-valgrind</code> configuration option is enabled.</p></div><div class="refsect1"><a name="diagnostic_messages"/><h2>DIAGNOSTIC MESSAGES</h2><p>If any of the memory allocation/deallocation functions detect an
+    would be prohibitive.</p></div><div class="refsect1"><a name="diagnostic_messages"/><h2>DIAGNOSTIC MESSAGES</h2><p>If any of the memory allocation/deallocation functions detect an
     error or warning condition, a message will be printed to file descriptor
     <code class="constant">STDERR_FILENO</code>.  Errors will result in the process
     dumping core.  If the <a class="link" href="#opt.abort"><quote><code class="mallctl">opt.abort</code></quote></a> option is set, most
@@ -1496,7 +1651,7 @@ MAPPED_LIBRARIES:
     <code class="function">malloc_stats_print()</code>, followed by a string
     pointer.  Please note that doing anything which tries to allocate memory in
     this function is likely to result in a crash or deadlock.</p><p>All messages are prefixed by
-    <span class="quote">“<span class="quote"><code class="computeroutput">&lt;jemalloc&gt;: </code></span>”</span>.</p></div><div class="refsect1"><a name="return_values"/><h2>RETURN VALUES</h2><div class="refsect2"><a name="idm45638851326112"/><h3>Standard API</h3><p>The <code class="function">malloc()</code> and
+    <span class="quote">“<span class="quote"><code class="computeroutput">&lt;jemalloc&gt;: </code></span>”</span>.</p></div><div class="refsect1"><a name="return_values"/><h2>RETURN VALUES</h2><div class="refsect2"><a name="idm45682568283184"/><h3>Standard API</h3><p>The <code class="function">malloc()</code> and
       <code class="function">calloc()</code> functions return a pointer to the
       allocated memory if successful; otherwise a <code class="constant">NULL</code>
       pointer is returned and <code class="varname">errno</code> is set to
@@ -1524,7 +1679,7 @@ MAPPED_LIBRARIES:
       allocation failure.  The <code class="function">realloc()</code>
       function always leaves the original buffer intact when an error occurs.
       </p><p>The <code class="function">free()</code> function returns no
-      value.</p></div><div class="refsect2"><a name="idm45638851304624"/><h3>Non-standard API</h3><p>The <code class="function">mallocx()</code> and
+      value.</p></div><div class="refsect2"><a name="idm45682568261696"/><h3>Non-standard API</h3><p>The <code class="function">mallocx()</code> and
       <code class="function">rallocx()</code> functions return a pointer to
       the allocated memory if successful; otherwise a <code class="constant">NULL</code>
       pointer is returned to indicate insufficient contiguous memory was
@@ -1562,9 +1717,10 @@ MAPPED_LIBRARIES:
           will be interpreted as options.</p></dd></dl></div><p>
     </p></div><div class="refsect1"><a name="examples"/><h2>EXAMPLES</h2><p>To dump core whenever a problem occurs:
       </p><pre class="screen">ln -s 'abort:true' /etc/malloc.conf</pre><p>
-    </p><p>To specify in the source a chunk size that is 16 MiB:
+    </p><p>To specify in the source that only one arena should be automatically
+    created:
       </p><pre class="programlisting">
-malloc_conf = "lg_chunk:24";</pre></div><div class="refsect1"><a name="see_also"/><h2>SEE ALSO</h2><p><span class="citerefentry"><span class="refentrytitle">madvise</span>(2)</span>,
+malloc_conf = "narenas:1";</pre></div><div class="refsect1"><a name="see_also"/><h2>SEE ALSO</h2><p><span class="citerefentry"><span class="refentrytitle">madvise</span>(2)</span>,
     <span class="citerefentry"><span class="refentrytitle">mmap</span>(2)</span>,
     <span class="citerefentry"><span class="refentrytitle">sbrk</span>(2)</span>,
     <span class="citerefentry"><span class="refentrytitle">utrace</span>(2)</span>,
